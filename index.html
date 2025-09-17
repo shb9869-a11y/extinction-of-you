@@ -3,16 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Camera + Firebase Upload (BW toggle)</title>
+  <title>Camera + Firebase Upload (BW only)</title>
   <style>
     html, body { margin:0; padding:0; width:100%; height:100%; background:#000; overflow:hidden; font-family:system-ui,sans-serif; }
-    #camera-view { position:fixed; inset:0; width:100vw; height:100vh; object-fit:cover; transition:filter .2s ease; }
-    #camera-view.bw { filter: grayscale(100%); } /* 미리보기 흑백 토글 */
+    #camera-view { position:fixed; inset:0; width:100vw; height:100vh; object-fit:cover; filter:grayscale(100%); } /* 항상 흑백 */
     #ui { position:fixed; right:20px; bottom:24px; z-index:10; display:flex; flex-direction:column; gap:10px; }
     button { padding:10px 16px; font-weight:700; border:0; border-radius:10px; cursor:pointer; }
     #capture-btn { background:#fff; color:#000; }
     #test-btn { background:#ffd166; color:#000; }
-    #bw-btn { background:#9aa0a6; color:#000; }
     #status { position:fixed; left:12px; bottom:12px; z-index:10; color:#fff; font-size:14px; opacity:.95; }
   </style>
 </head>
@@ -21,7 +19,6 @@
   <div id="ui">
     <button id="capture-btn">📸 Capture & Upload</button>
     <button id="test-btn">🧪 Test upload</button>
-    <button id="bw-btn" aria-pressed="false">◻️ B/W: OFF</button>
   </div>
   <div id="status">ready</div>
   <canvas id="canvas" style="display:none;"></canvas>
@@ -41,32 +38,20 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    // 버킷 명시(혹시 모를 자동 선택 오류 방지)
     const storage = getStorage(app, "gs://we-are-moim.appspot.com");
 
     const video = document.getElementById('camera-view');
     const captureBtn = document.getElementById('capture-btn');
     const testBtn = document.getElementById('test-btn');
-    const bwBtn = document.getElementById('bw-btn');
     const canvas = document.getElementById('canvas');
     const statusEl = document.getElementById('status');
 
-    // iOS 첫 탭 자동재생 보장
     document.body.addEventListener('click', () => video.play(), { once: true });
 
     // 카메라 시작
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
       .then(s => { video.srcObject = s; statusEl.textContent = "📷 camera on"; })
       .catch(e => { alert("카메라 접근 불가: " + e.message); statusEl.textContent = "❌ camera error"; });
-
-    // ===== 흑백 토글 =====
-    let isBW = false;
-    bwBtn.addEventListener('click', () => {
-      isBW = !isBW;
-      video.classList.toggle('bw', isBW);   // 미리보기 토글
-      bwBtn.textContent = isBW ? "⬛ B/W: ON" : "◻️ B/W: OFF";
-      bwBtn.setAttribute('aria-pressed', String(isBW));
-    });
 
     // ===== 업로드(진행률 표시) =====
     function uploadWithProgress(path, blob) {
@@ -88,7 +73,7 @@
       });
     }
 
-    // ===== 캡처 → 흑백 반영 → 업로드 =====
+    // ===== 캡처 (항상 흑백으로 저장) =====
     captureBtn.addEventListener('click', async () => {
       try {
         const w = video.videoWidth, h = video.videoHeight;
@@ -97,21 +82,17 @@
         canvas.width = w; canvas.height = h;
         const ctx = canvas.getContext('2d');
 
-        // Canvas 필터 적용 (지원 브라우저: 대부분 최신 / iOS 15+)
-        if ('filter' in ctx && isBW) {
+        if ('filter' in ctx) {
           ctx.filter = 'grayscale(100%)';
-        } else {
-          ctx.filter = 'none';
         }
         ctx.drawImage(video, 0, 0, w, h);
 
-        // 만약 아주 구형 브라우저라 canvas filter 미지원 & isBW라면, 픽셀 조정(간단 변환) fallback
-        if (!('filter' in ctx) && isBW) {
+        if (!('filter' in ctx)) {
           const img = ctx.getImageData(0, 0, w, h);
           const d = img.data;
           for (let i = 0; i < d.length; i += 4) {
             const r = d[i], g = d[i+1], b = d[i+2];
-            const y = 0.2126*r + 0.7152*g + 0.0722*b; // sRGB luma
+            const y = 0.2126*r + 0.7152*g + 0.0722*b;
             d[i] = d[i+1] = d[i+2] = y;
           }
           ctx.putImageData(img, 0, 0);
@@ -121,7 +102,7 @@
         const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
         if (!blob) throw new Error("blob-null");
 
-        const path = `uploads/capture_${Date.now()}${isBW ? "_bw" : ""}.png`;
+        const path = `uploads/capture_${Date.now()}_bw.png`;
         const url = await uploadWithProgress(path, blob);
         statusEl.textContent = "✅ uploaded: " + path;
         alert("업로드 완료!\n" + url);
