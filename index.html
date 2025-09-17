@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Add a Bubble</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: sans-serif;
+      background: black;
+    }
+    #camera-view {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      z-index: 0;
+    }
+    .sticker, .text-sticker {
+      position: absolute;
+      font-size: 24px;
+      background: white;
+      color: black;
+      padding: 4px 10px;
+      border-radius: 12px;
+      cursor: move;
+      white-space: pre-line;
+    }
+    .sticker-bar, .text-carousel {
+      position: absolute;
+      width: 100%;
+      display: flex;
+      overflow-x: auto;
+      background: rgba(0,0,0,0.5);
+      padding: 6px;
+      z-index: 10;
+    }
+    .sticker-bar {
+      bottom: 0;
+    }
+    .text-carousel {
+      bottom: 80px;
+    }
+    .sticker-option, .text-option {
+      background: white;
+      color: black;
+      padding: 6px 12px;
+      border-radius: 20px;
+      margin-right: 10px;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .name-en {
+      font-weight: bold;
+    }
+    .name-ko {
+      font-size: 12px;
+    }
+    #capture-btn {
+      position: absolute;
+      bottom: 150px;
+      right: 20px;
+      padding: 10px 18px;
+      background: white;
+      color: black;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      z-index: 11;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <video id="camera-view" autoplay playsinline muted></video>
+
+  <div class="text-carousel" id="text-carousel">
+    <div class="text-option" data-id="Han1"><div class="name-en">One Sentence</div><div class="name-ko">한 문장</div></div>
+    <div class="text-option" data-id="Han2"><div class="name-en">Try</div><div class="name-ko">시도</div></div>
+    <div class="text-option" data-id="Han3"><div class="name-en">Life</div><div class="name-ko">삶</div></div>
+    <div class="text-option" data-id="Han4"><div class="name-en">Uniqueness</div><div class="name-ko">유일함</div></div>
+    <div class="text-option" data-id="Han5"><div class="name-en">Uncomfortable</div><div class="name-ko">불편함</div></div>
+    <div class="text-option" data-id="Han6"><div class="name-en">Technology</div><div class="name-ko">기술</div></div>
+    <div class="text-option" data-id="Han7"><div class="name-en">Imagination</div><div class="name-ko">상상력</div></div>
+    <div class="text-option" data-id="Han8"><div class="name-en">Incomplete</div><div class="name-ko">미완성</div></div>
+    <div class="text-option" data-id="Han9"><div class="name-en">Truth</div><div class="name-ko">진실</div></div>
+    <div class="text-option" data-id="Han10"><div class="name-en">Thief</div><div class="name-ko">도둑</div></div>
+  </div>
+
+  <div class="sticker-bar" id="sticker-bar">
+    <div class="sticker-option">Why so serious?</div>
+    <div class="sticker-option">Like it.</div>
+    <div class="sticker-option">Masterpiece.</div>
+    <div class="sticker-option">No cap</div>
+    <div class="sticker-option">No comment.</div>
+    <div class="sticker-option">I don’t get it.</div>
+    <div class="sticker-option">????????????????????</div>
+    <div class="sticker-option">Nice try.</div>
+  </div>
+
+  <button id="capture-btn">📸 Capture</button>
+  <canvas id="canvas" style="display: none;"></canvas>
+
+  <script>
+    const video = document.getElementById('camera-view');
+    const captureBtn = document.getElementById('capture-btn');
+    const canvas = document.getElementById('canvas');
+    const body = document.body;
+
+    // 카메라 실행
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
+      .then(stream => {
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          video.play();
+        };
+      })
+      .catch(err => alert("카메라에 접근할 수 없습니다: " + err.message));
+
+    // 스티커 (짧은 문구)
+    let currentSticker = null;
+    document.querySelectorAll('.sticker-option').forEach(option => {
+      option.addEventListener('click', () => {
+        if (currentSticker) currentSticker.remove();
+        const div = document.createElement('div');
+        div.className = 'sticker';
+        div.textContent = option.textContent;
+        div.style.left = '50px';
+        div.style.top = '50px';
+        makeDraggable(div);
+        body.appendChild(div);
+        currentSticker = div;
+      });
+    });
+
+    // 긴 문장 텍스트
+    const quotes = {
+      Han1: { en: "If it can be expressed in one sentence, is it really art?", ko: "한 문장으로 표현이 가능하다면, 그게 예술이 맞는가?" },
+      Han2: { en: "If you think you can do it too, maybe you should try.", ko: "나도 할 수 있을 것 같다면, 한 번 해보는 것도 좋을듯." },
+      Han3: { en: "How many people truly equate art with life?", ko: "예술과 삶을 동일시 하는 사람이 몇이나 되겠는가." },
+      Han4: { en: "If uniqueness defines art, that idea is already outdated.", ko: "유일함이 예술의 특성이란 말은, 옛 말일 뿐이다." },
+      Han5: { en: "Uncomfortable to see, impossible to forget.", ko: "불편해서 눈을 피했지만, 계속 생각나더라." },
+      Han6: { en: "The more technology evolves, the more extraordinary the artist becomes.", ko: "기술이 발전할수록 예술가는 더 대단해진다." },
+      Han7: { en: "Perfect order leaves no room for imagination.", ko: "완벽한 질서는 상상력을 허용하지 않는다." },
+      Han8: { en: "Without a viewer, it's incomplete.", ko: "보는 이가 없으면, 미완성이다." },
+      Han9: { en: "If all you want is to speak the truth, go to a news studio, not a gallery.", ko: "진실만을 말하려면, 미술관이 아니라 방송국으로 가라." },
+      Han10: { en: "Some works retrieve forgotten memories like a thief.", ko: "어떤 작품은 잊고 있었던 기억을 도둑처럼 찾아낸다." }
+    };
+
+    let currentTextSticker = null;
+    document.querySelectorAll('.text-option').forEach(option => {
+      option.addEventListener('click', () => {
+        const id = option.dataset.id;
+        const quote = quotes[id];
+        if (!quote) return;
+        if (currentTextSticker) currentTextSticker.remove();
+        const div = document.createElement('div');
+        div.className = 'text-sticker';
+        div.textContent = quote.en + "\n" + quote.ko;
+        div.style.left = '30px';
+        div.style.top = '30px';
+        makeDraggable(div);
+        body.appendChild(div);
+        currentTextSticker = div;
+      });
+    });
+
+    function makeDraggable(div) {
+      let offsetX, offsetY, isDragging = false;
+      div.addEventListener('touchstart', e => {
+        isDragging = true;
+        const touch = e.touches[0];
+        offsetX = touch.clientX - div.getBoundingClientRect().left;
+        offsetY = touch.clientY - div.getBoundingClientRect().top;
+      });
+      document.addEventListener('touchmove', e => {
+        if (!isDragging) return;
+        const touch = e.touches[0];
+        div.style.left = (touch.pageX - offsetX) + 'px';
+        div.style.top = (touch.pageY - offsetY) + 'px';
+      }, { passive: false });
+      document.addEventListener('touchend', () => isDragging = false);
+    }
+
+    // 캡처 기능
+    captureBtn.addEventListener('click', () => {
+      const width = video.videoWidth;
+      const height = video.videoHeight;
+      if (width === 0 || height === 0) {
+        alert("카메라 영상이 아직 준비되지 않았습니다.");
+        return;
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, width, height);
+      document.querySelectorAll('.sticker, .text-sticker').forEach(el => {
+        const rect = el.getBoundingClientRect();
+        const scaleX = width / window.innerWidth;
+        const scaleY = height / window.innerHeight;
+        ctx.font = '24px sans-serif';
+        ctx.fillStyle = 'white';
+        ctx.fillRect(rect.left * scaleX, rect.top * scaleY, rect.width * scaleX, rect.height * scaleY);
+        ctx.fillStyle = 'black';
+        const lines = el.textContent.split('\n');
+        lines.forEach((line, i) => {
+          ctx.fillText(line, rect.left * scaleX + 10, rect.top * scaleY + 30 + i * 30);
+        });
+      });
+      const link = document.createElement('a');
+      link.download = 'bubble-capture.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+  </script>
+</body>
+</html>
