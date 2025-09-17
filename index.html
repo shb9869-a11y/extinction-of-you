@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Camera + Firebase Upload (BW only)</title>
+  <title>Camera + Firebase Upload (BW, optimized)</title>
   <style>
     html, body { margin:0; padding:0; width:100%; height:100%; background:#000; overflow:hidden; font-family:system-ui,sans-serif; }
-    #camera-view { position:fixed; inset:0; width:100vw; height:100vh; object-fit:cover; filter:grayscale(100%); } /* 항상 흑백 */
-    #ui { position:fixed; right:20px; bottom:24px; z-index:10; display:flex; flex-direction:column; gap:10px; }
+    /* 미리보기 항상 흑백 */
+    #camera-view { position:fixed; inset:0; width:100vw; height:100vh; object-fit:cover; filter:grayscale(100%); }
+    #ui { position:fixed; right:20px; bottom:24px; z-index:10; display:flex; gap:10px; }
     button { padding:10px 16px; font-weight:700; border:0; border-radius:10px; cursor:pointer; }
     #capture-btn { background:#fff; color:#000; }
-    #test-btn { background:#ffd166; color:#000; }
     #status { position:fixed; left:12px; bottom:12px; z-index:10; color:#fff; font-size:14px; opacity:.95; }
   </style>
 </head>
@@ -18,7 +18,6 @@
   <video id="camera-view" autoplay playsinline muted></video>
   <div id="ui">
     <button id="capture-btn">📸 Capture & Upload</button>
-    <button id="test-btn">🧪 Test upload</button>
   </div>
   <div id="status">ready</div>
   <canvas id="canvas" style="display:none;"></canvas>
@@ -27,7 +26,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
-    // 🔧 Firebase 설정
+    // 🔧 Firebase 설정 (네 프로젝트 값)
     const firebaseConfig = {
       apiKey: "AIzaSyC_WKhRUa4TslEKKLS46qGChSQ8A3Tanks",
       authDomain: "we-are-moim.firebaseapp.com",
@@ -38,14 +37,14 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const storage = getStorage(app, "gs://we-are-moim.appspot.com");
+    const storage = getStorage(app); // 버킷 자동 인식
 
     const video = document.getElementById('camera-view');
     const captureBtn = document.getElementById('capture-btn');
-    const testBtn = document.getElementById('test-btn');
     const canvas = document.getElementById('canvas');
     const statusEl = document.getElementById('status');
 
+    // iOS 첫 탭 자동재생
     document.body.addEventListener('click', () => video.play(), { once: true });
 
     // 카메라 시작
@@ -53,56 +52,63 @@
       .then(s => { video.srcObject = s; statusEl.textContent = "📷 camera on"; })
       .catch(e => { alert("카메라 접근 불가: " + e.message); statusEl.textContent = "❌ camera error"; });
 
-    // ===== 업로드(진행률 표시) =====
+    // 업로드(Resumable) + 진행률 + 60초 타임아웃
     function uploadWithProgress(path, blob) {
       return new Promise((resolve, reject) => {
         const fileRef = ref(storage, path);
-        const metadata = { contentType: 'image/png' };
+        const metadata = { contentType: 'image/jpeg' };
         const task = uploadBytesResumable(fileRef, blob, metadata);
-
-        const timer = setTimeout(() => { task.cancel(); reject(new Error("timeout: upload took too long")); }, 30000);
+        const timer = setTimeout(() => { try { task.cancel(); } catch(e){} reject(new Error("timeout: upload took too long")); }, 60000);
 
         task.on('state_changed',
           (snap) => {
             const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
             statusEl.textContent = `⏳ uploading… ${pct}%`;
           },
-          (err) => { clearTimeout(timer); console.error("upload error:", err); reject(err); },
+          (err) => { clearTimeout(timer); reject(err); },
           async () => { clearTimeout(timer); const url = await getDownloadURL(fileRef); resolve(url); }
         );
       });
     }
 
-    // ===== 캡처 (항상 흑백으로 저장) =====
+    // 캡처 → 흑백 → 리사이즈 → JPEG → 업로드
     captureBtn.addEventListener('click', async () => {
       try {
         const w = video.videoWidth, h = video.videoHeight;
         if (!w || !h) return alert("카메라가 아직 준비되지 않았습니다.");
 
-        canvas.width = w; canvas.height = h;
+        // 🔽 리사이즈 목표 (너비 1000px, 비율 유지) — 필요하면 800/1200 등으로 조절 가능
+        const targetW = 1000;
+        const scale = Math.min(1, targetW / w); // 이미 작으면 키우지 않음
+        const outW = Math.round(w * scale);
+        const outH = Math.round(h * scale);
+
+        canvas.width = outW; 
+        canvas.height = outH;
         const ctx = canvas.getContext('2d');
 
+        // 캔버스 흑백 필터 (지원 브라우저 우선)
         if ('filter' in ctx) {
           ctx.filter = 'grayscale(100%)';
-        }
-        ctx.drawImage(video, 0, 0, w, h);
-
-        if (!('filter' in ctx)) {
-          const img = ctx.getImageData(0, 0, w, h);
+          ctx.drawImage(video, 0, 0, outW, outH);
+        } else {
+          // 필터 미지원 브라우저: 먼저 그린 뒤 픽셀 변환
+          ctx.drawImage(video, 0, 0, outW, outH);
+          const img = ctx.getImageData(0, 0, outW, outH);
           const d = img.data;
           for (let i = 0; i < d.length; i += 4) {
-            const r = d[i], g = d[i+1], b = d[i+2];
-            const y = 0.2126*r + 0.7152*g + 0.0722*b;
+            const y = 0.2126*d[i] + 0.7152*d[i+1] + 0.0722*d[i+2];
             d[i] = d[i+1] = d[i+2] = y;
           }
           ctx.putImageData(img, 0, 0);
         }
 
         statusEl.textContent = "⏳ encoding…";
-        const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+        // PNG 대신 JPEG(품질 0.8)로 용량 대폭 축소
+        const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.8));
         if (!blob) throw new Error("blob-null");
 
-        const path = `uploads/capture_${Date.now()}_bw.png`;
+        const path = `uploads/capture_${Date.now()}_bw.jpg`;
         const url = await uploadWithProgress(path, blob);
         statusEl.textContent = "✅ uploaded: " + path;
         alert("업로드 완료!\n" + url);
@@ -110,27 +116,6 @@
       } catch (e) {
         statusEl.textContent = "❌ upload failed";
         alert("업로드 실패: " + (e.code || e.message));
-        console.error(e);
-      }
-    });
-
-    // ===== 더미(1x1 PNG) 업로드 테스트 =====
-    testBtn.addEventListener('click', async () => {
-      try {
-        const b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
-        const bin = atob(b64);
-        const arr = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-        const blob = new Blob([arr], { type: "image/png" });
-
-        const path = `uploads/test_${Date.now()}.png`;
-        const url = await uploadWithProgress(path, blob);
-        statusEl.textContent = "✅ uploaded: " + path;
-        alert("테스트 업로드 완료!\n" + url);
-        console.log("Download URL:", url);
-      } catch (e) {
-        statusEl.textContent = "❌ test upload failed";
-        alert("테스트 업로드 실패: " + (e.code || e.message));
         console.error(e);
       }
     });
