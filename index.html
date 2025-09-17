@@ -3,50 +3,65 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Motion Trails (BW)</title>
+  <title>Motion Trails (BW + Capture Upload)</title>
   <style>
     html, body { margin:0; height:100%; background:#000; overflow:hidden; }
     #view { position:fixed; inset:0; width:100vw; height:100vh; display:block; }
-    #hint { position:fixed; left:12px; bottom:12px; color:#fff; font:14px/1.3 system-ui, sans-serif; opacity:.9 }
+    #ui { position:fixed; right:20px; bottom:24px; z-index:10; }
+    button { padding:10px 16px; font-weight:700; border:0; border-radius:10px; cursor:pointer; }
+    #capture-btn { background:#fff; color:#000; }
+    #status { position:fixed; left:12px; bottom:12px; z-index:10; color:#fff; font:14px/1.3 system-ui, sans-serif; opacity:.9 }
   </style>
 </head>
 <body>
-  <!-- 비디오는 숨기고, 캔버스만 보여줌 -->
   <video id="video" autoplay playsinline muted style="display:none"></video>
   <canvas id="view"></canvas>
-  <div id="hint">tap once if video is paused</div>
 
-  <script>
-    // ====== 튜닝 파라미터 ======
-    const TRAIL_COUNT = 6;      // 잔상 프레임 개수 (높일수록 잔상 길어짐)
-    const ALPHAS = [0.35,0.25,0.18,0.12,0.08,0.05]; // 각 잔상의 투명도(오래된 프레임부터)
-    const SCALE = 0.6;          // 내부 처리 해상도 (0.5~0.7 권장: 퍼포먼스↑ 잔상 부드러움↑)
-    const JITTER = 1.2;         // 잔상 오프셋 픽셀(살짝 흔들림 효과)
-    // ===========================
+  <div id="ui"><button id="capture-btn">📸 Capture & Upload</button></div>
+  <div id="status">ready</div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
+    // 🔧 Firebase 설정
+    const firebaseConfig = {
+      apiKey: "AIzaSyC_WKhRUa4TslEKKLS46qGChSQ8A3Tanks",
+      authDomain: "we-are-moim.firebaseapp.com",
+      projectId: "we-are-moim",
+      storageBucket: "we-are-moim.appspot.com",
+      messagingSenderId: "709309645608",
+      appId: "1:709309645608:web:2e04e871acb46c4adb861d"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const storage = getStorage(app);
 
     const video = document.getElementById('video');
     const canvas = document.getElementById('view');
     const ctx = canvas.getContext('2d', { alpha:false });
+    const captureBtn = document.getElementById('capture-btn');
+    const statusEl = document.getElementById('status');
 
-    // 잔상 버퍼: 축소 캔버스 재사용
+    // ----- 잔상 효과 설정 -----
+    const TRAIL_COUNT = 6;
+    const ALPHAS = [0.35,0.25,0.18,0.12,0.08,0.05];
+    const SCALE = 0.6;
+    const JITTER = 1.2;
+
     const trailPool = [];
-    let w=0, h=0, sw=0, sh=0, playing=false;
+    let w=0,h=0,sw=0,sh=0;
 
-    // iOS/Safari 자동재생 보조
     document.body.addEventListener('click', () => video.play(), { once:true });
 
-    // 카메라 시작
     navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' }, audio:false })
       .then(stream => { video.srcObject = stream; })
-      .catch(err => alert('카메라 접근 실패: ' + err.message));
+      .catch(err => alert("카메라 접근 실패: " + err.message));
 
     video.addEventListener('loadedmetadata', () => {
       resize();
-      // 풀 해상도 캔버스에 그릴 때 흑백 필터 사용
-      ctx.filter = 'grayscale(100%)';
       requestAnimationFrame(loop);
     });
-
     window.addEventListener('resize', resize);
 
     function resize(){
@@ -54,13 +69,11 @@
       w = canvas.width  = window.innerWidth;
       h = canvas.height = window.innerHeight;
 
-      // 비디오 비율 유지해서 화면 채우기 위한 소스 크기
       const vw = video.videoWidth, vh = video.videoHeight;
       const s = Math.max(w/vw, h/vh);
       sw = Math.round(vw * s);
       sh = Math.round(vh * s);
 
-      // 잔상용 축소 캔버스 풀 준비
       const tw = Math.max(1, Math.round(sw * SCALE));
       const th = Math.max(1, Math.round(sh * SCALE));
       while (trailPool.length < TRAIL_COUNT) {
@@ -68,42 +81,77 @@
         c.width = tw; c.height = th;
         trailPool.push(c);
       }
-      // 기존 캔버스 크기 업데이트
       trailPool.forEach(c => { c.width = tw; c.height = th; });
     }
 
     function loop(){
-      // 비디오 프레임을 화면 크기에 맞춰 먼저 그림(흑백 필터 적용됨)
       if (sw && sh) {
         const x = (w - sw) >> 1;
         const y = (h - sh) >> 1;
+
+        // 현재 프레임 흑백으로 메인 캔버스에 그림
+        ctx.filter = 'grayscale(100%)';
         ctx.drawImage(video, x, y, sw, sh);
 
-        // 최신 프레임을 축소해 trail 버퍼의 맨 뒤에 저장
+        // trail 저장 (흑백)
         const last = trailPool[trailPool.length-1];
         if (last) {
           const tctx = last.getContext('2d');
           tctx.filter = 'grayscale(100%)';
           tctx.drawImage(video, 0, 0, last.width, last.height);
-          // 회전시키듯 앞쪽으로 밀기
           trailPool.unshift(trailPool.pop());
         }
 
-        // 이전 프레임들을 낮은 알파로 덧그리기 (잔상)
+        // trail 덧씌우기
         for (let i=0; i<trailPool.length; i++){
           const src = trailPool[i];
           if (!src) continue;
-          ctx.globalAlpha = (ALPHAS[i] ?? ALPHAS[ALPHAS.length-1] ?? 0.08);
-          // 약간의 오프셋을 줘서 흐트러지는 느낌
-          const off = (i+1) * (JITTER || 0);
-          const x = ((w - sw) >> 1) + off;
-          const y = ((h - sh) >> 1) + off;
-          ctx.drawImage(src, x, y, sw, sh);
+          ctx.globalAlpha = (ALPHAS[i] ?? 0.08);
+          const off = (i+1) * JITTER;
+          ctx.drawImage(src, x+off, y+off, sw, sh);
         }
         ctx.globalAlpha = 1;
       }
       requestAnimationFrame(loop);
     }
+
+    // ----- 업로드 함수 -----
+    function uploadWithProgress(path, blob) {
+      return new Promise((resolve, reject) => {
+        const fileRef = ref(storage, path);
+        const metadata = { contentType: 'image/jpeg' };
+        const task = uploadBytesResumable(fileRef, blob, metadata);
+
+        task.on('state_changed',
+          (snap) => {
+            const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+            statusEl.textContent = `⏳ uploading… ${pct}%`;
+          },
+          (err) => reject(err),
+          async () => { const url = await getDownloadURL(fileRef); resolve(url); }
+        );
+      });
+    }
+
+    // ----- 캡처 & 업로드 -----
+    captureBtn.addEventListener('click', async () => {
+      try {
+        statusEl.textContent = "⏳ encoding…";
+        // 현재 캔버스를 JPG Blob으로 변환
+        const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.8));
+        if (!blob) throw new Error("blob-null");
+
+        const path = `uploads/capture_${Date.now()}_trail.jpg`;
+        const url = await uploadWithProgress(path, blob);
+        statusEl.textContent = "✅ uploaded: " + path;
+        alert("업로드 완료!\n" + url);
+        console.log("Download URL:", url);
+      } catch (e) {
+        statusEl.textContent = "❌ upload failed";
+        alert("업로드 실패: " + (e.code || e.message));
+        console.error(e);
+      }
+    });
   </script>
 </body>
 </html>
