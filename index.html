@@ -39,13 +39,13 @@
   <div id="status">ready</div>
   <canvas id="canvas" style="display:none;"></canvas>
 
-  <!-- Firebase SDK (모듈 버전) -->
+  <!-- Firebase SDK (모듈 방식) -->
   <script type="module">
-    // Firebase SDK 로드
+    // Firebase SDK 불러오기
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
-    // 🔧 네 프로젝트 설정 (storageBucket 수정 반영됨)
+    // ✅ 프로젝트 Firebase 설정 (storageBucket 확인됨)
     const firebaseConfig = {
       apiKey: "AIzaSyC_WKhRUa4TslEKKLS46qGChSQ8A3Tanks",
       authDomain: "we-are-moim.firebaseapp.com",
@@ -53,14 +53,13 @@
       storageBucket: "we-are-moim.appspot.com",
       messagingSenderId: "709309645608",
       appId: "1:709309645608:web:2e04e871acb46c4adb861d"
-      // measurementId는 불필요해서 제외
     };
 
     // Firebase 초기화
     const app = initializeApp(firebaseConfig);
     const storage = getStorage(app);
 
-    // DOM
+    // DOM 요소
     const video = document.getElementById('camera-view');
     const captureBtn = document.getElementById('capture-btn');
     const canvas = document.getElementById('canvas');
@@ -71,31 +70,34 @@
 
     // 카메라 실행
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
-      .then(stream => { video.srcObject = stream; statusEl.textContent = 'camera on'; })
-      .catch(err => { alert("카메라 접근 불가: " + err.message); statusEl.textContent = 'camera error'; });
+      .then(stream => { video.srcObject = stream; statusEl.textContent = '📷 camera on'; })
+      .catch(err => { alert("카메라 접근 불가: " + err.message); statusEl.textContent = '❌ camera error'; });
 
     // 캡처 후 업로드
     captureBtn.addEventListener('click', async () => {
       const w = video.videoWidth, h = video.videoHeight;
       if (!w || !h) { alert("카메라가 아직 준비되지 않았습니다."); return; }
 
+      // 캔버스에 현재 프레임 그리기
       canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, w, h);
 
-      statusEl.textContent = 'encoding…';
+      statusEl.textContent = '⏳ encoding…';
       // PNG Blob 생성
       const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
 
-      // 업로드 경로: uploads/타임스탬프.png
+      // 업로드 경로: uploads/capture_TIMESTAMP.png
       const filename = `uploads/capture_${Date.now()}.png`;
       const fileRef = ref(storage, filename);
 
       try {
-        statusEl.textContent = 'uploading…';
+        statusEl.textContent = '⏳ uploading…';
         await uploadBytes(fileRef, blob);
+        const url = await getDownloadURL(fileRef);
         statusEl.textContent = '✅ uploaded: ' + filename;
-        alert('업로드 완료!');
+        alert('업로드 완료!\n다운로드 URL:\n' + url);
+        console.log("Download URL:", url);
       } catch (e) {
         console.error(e);
         statusEl.textContent = '❌ upload failed';
