@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Camera Capture + Firebase Upload</title>
+  <title>Camera Capture + Firebase Upload (Test)</title>
   <style>
     html, body {
       margin: 0; padding: 0;
@@ -18,13 +18,14 @@
     }
     #ui {
       position: fixed; right: 20px; bottom: 24px; z-index: 10;
-      display: flex; gap: 10px;
+      display: flex; flex-direction: column; gap: 10px;
     }
     button {
       padding: 10px 16px; font-weight: 700; border: 0;
       border-radius: 10px; cursor: pointer;
     }
     #capture-btn { background: white; color: black; }
+    #test-btn { background: #ffd166; color: black; }
     #status {
       position: fixed; left: 12px; bottom: 12px; z-index: 10;
       color: #fff; font-size: 14px; opacity: .9;
@@ -35,17 +36,17 @@
   <video id="camera-view" autoplay playsinline muted></video>
   <div id="ui">
     <button id="capture-btn">📸 Capture & Upload</button>
+    <button id="test-btn">🧪 Test upload</button>
   </div>
   <div id="status">ready</div>
   <canvas id="canvas" style="display:none;"></canvas>
 
   <!-- Firebase SDK (모듈 방식) -->
   <script type="module">
-    // Firebase SDK 불러오기
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
-    // ✅ 프로젝트 Firebase 설정 (storageBucket 확인됨)
+    // ✅ Firebase 프로젝트 설정
     const firebaseConfig = {
       apiKey: "AIzaSyC_WKhRUa4TslEKKLS46qGChSQ8A3Tanks",
       authDomain: "we-are-moim.firebaseapp.com",
@@ -55,17 +56,15 @@
       appId: "1:709309645608:web:2e04e871acb46c4adb861d"
     };
 
-    // Firebase 초기화
     const app = initializeApp(firebaseConfig);
     const storage = getStorage(app);
 
-    // DOM 요소
     const video = document.getElementById('camera-view');
     const captureBtn = document.getElementById('capture-btn');
+    const testBtn = document.getElementById('test-btn');
     const canvas = document.getElementById('canvas');
     const statusEl = document.getElementById('status');
 
-    // iOS/Safari 자동재생 보장: 첫 탭에서 play
     document.body.addEventListener('click', () => video.play(), { once: true });
 
     // 카메라 실행
@@ -73,35 +72,53 @@
       .then(stream => { video.srcObject = stream; statusEl.textContent = '📷 camera on'; })
       .catch(err => { alert("카메라 접근 불가: " + err.message); statusEl.textContent = '❌ camera error'; });
 
-    // 캡처 후 업로드
+    // 공통 업로드 함수
+    async function uploadBlob(path, blob) {
+      if (!blob) { alert('blob 생성 실패'); throw new Error('blob-null'); }
+      const fileRef = ref(storage, path);
+      const metadata = { contentType: 'image/png' };
+      statusEl.textContent = '⏳ uploading…';
+      await uploadBytes(fileRef, blob, metadata);
+      const url = await getDownloadURL(fileRef);
+      statusEl.textContent = '✅ uploaded: ' + path;
+      alert('업로드 완료!\n' + url);
+      console.log("Download URL:", url);
+    }
+
+    // 📸 카메라 캡처 업로드
     captureBtn.addEventListener('click', async () => {
-      const w = video.videoWidth, h = video.videoHeight;
-      if (!w || !h) { alert("카메라가 아직 준비되지 않았습니다."); return; }
-
-      // 캔버스에 현재 프레임 그리기
-      canvas.width = w; canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, w, h);
-
-      statusEl.textContent = '⏳ encoding…';
-      // PNG Blob 생성
-      const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
-
-      // 업로드 경로: uploads/capture_TIMESTAMP.png
-      const filename = `uploads/capture_${Date.now()}.png`;
-      const fileRef = ref(storage, filename);
-
       try {
-        statusEl.textContent = '⏳ uploading…';
-        await uploadBytes(fileRef, blob);
-        const url = await getDownloadURL(fileRef);
-        statusEl.textContent = '✅ uploaded: ' + filename;
-        alert('업로드 완료!\n다운로드 URL:\n' + url);
-        console.log("Download URL:", url);
+        const w = video.videoWidth, h = video.videoHeight;
+        if (!w || !h) return alert('카메라 준비 중');
+
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, w, h);
+
+        statusEl.textContent = '⏳ encoding…';
+        const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+        await uploadBlob(`uploads/capture_${Date.now()}.png`, blob);
       } catch (e) {
         console.error(e);
         statusEl.textContent = '❌ upload failed';
         alert('업로드 실패: ' + e.message);
+      }
+    });
+
+    // 🧪 1x1 PNG 더미 업로드 (테스트용)
+    testBtn.addEventListener('click', async () => {
+      try {
+        const tiny =
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
+        const byteChars = atob(tiny);
+        const arr = new Uint8Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) arr[i] = byteChars.charCodeAt(i);
+        const blob = new Blob([arr], { type: 'image/png' });
+        await uploadBlob(`uploads/test_${Date.now()}.png`, blob);
+      } catch (e) {
+        console.error(e);
+        statusEl.textContent = '❌ test upload failed';
+        alert('테스트 업로드 실패: ' + e.message);
       }
     });
   </script>
