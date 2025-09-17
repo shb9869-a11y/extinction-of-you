@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Motion Trails (BW + Capture Upload)</title>
+  <title>Motion Trails (TRUE BW + Capture Upload)</title>
   <style>
     html, body { margin:0; height:100%; background:#000; overflow:hidden; }
-    #view { position:fixed; inset:0; width:100vw; height:100vh; display:block; }
+    /* 화면 보기는 CSS로 무조건 흑백 보장 */
+    #view { position:fixed; inset:0; width:100vw; height:100vh; display:block; filter:grayscale(100%); }
     #ui { position:fixed; right:20px; bottom:24px; z-index:10; }
     button { padding:10px 16px; font-weight:700; border:0; border-radius:10px; cursor:pointer; }
     #capture-btn { background:#fff; color:#000; }
@@ -14,6 +15,7 @@
   </style>
 </head>
 <body>
+  <!-- 비디오는 숨기고 캔버스만 표시 -->
   <video id="video" autoplay playsinline muted style="display:none"></video>
   <canvas id="view"></canvas>
 
@@ -52,6 +54,7 @@
     const trailPool = [];
     let w=0,h=0,sw=0,sh=0;
 
+    // iOS 자동재생 보조
     document.body.addEventListener('click', () => video.play(), { once:true });
 
     navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' }, audio:false })
@@ -84,25 +87,34 @@
       trailPool.forEach(c => { c.width = tw; c.height = th; });
     }
 
+    // ⛳ 픽셀 흑백 변환(저장용 강제) — 모든 브라우저에서 동작
+    function forceGrayscaleOnCanvas() {
+      const img = ctx.getImageData(0, 0, w, h);
+      const d = img.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const y = 0.2126*d[i] + 0.7152*d[i+1] + 0.0722*d[i+2];
+        d[i] = d[i+1] = d[i+2] = y; // R=G=B=y
+      }
+      ctx.putImageData(img, 0, 0);
+    }
+
     function loop(){
       if (sw && sh) {
         const x = (w - sw) >> 1;
         const y = (h - sh) >> 1;
 
-        // 현재 프레임 흑백으로 메인 캔버스에 그림
-        ctx.filter = 'grayscale(100%)';
+        // 현재 프레임을 먼저 그림 (색상 그대로)
         ctx.drawImage(video, x, y, sw, sh);
 
-        // trail 저장 (흑백)
+        // trail 저장 (축소 캔버스)
         const last = trailPool[trailPool.length-1];
         if (last) {
           const tctx = last.getContext('2d');
-          tctx.filter = 'grayscale(100%)';
           tctx.drawImage(video, 0, 0, last.width, last.height);
           trailPool.unshift(trailPool.pop());
         }
 
-        // trail 덧씌우기
+        // trail 덧씌우기 (오프셋 + 알파)
         for (let i=0; i<trailPool.length; i++){
           const src = trailPool[i];
           if (!src) continue;
@@ -111,6 +123,9 @@
           ctx.drawImage(src, x+off, y+off, sw, sh);
         }
         ctx.globalAlpha = 1;
+
+        // 🔒 저장용 보장 흑백화 (화면도 흑백이지만, 픽셀 레벨로 한 번 더)
+        forceGrayscaleOnCanvas();
       }
       requestAnimationFrame(loop);
     }
@@ -137,11 +152,11 @@
     captureBtn.addEventListener('click', async () => {
       try {
         statusEl.textContent = "⏳ encoding…";
-        // 현재 캔버스를 JPG Blob으로 변환
+        // 현재 캔버스 픽셀은 이미 forceGrayscaleOnCanvas()로 흑백화됨
         const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.8));
         if (!blob) throw new Error("blob-null");
 
-        const path = `uploads/capture_${Date.now()}_trail.jpg`;
+        const path = `uploads/capture_${Date.now()}_trail_bw.jpg`;
         const url = await uploadWithProgress(path, blob);
         statusEl.textContent = "✅ uploaded: " + path;
         alert("업로드 완료!\n" + url);
