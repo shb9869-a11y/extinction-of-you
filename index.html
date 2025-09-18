@@ -3,96 +3,124 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Resolume + Camera Overlay</title>
+  <title>Minimal Live Overlay</title>
   <style>
-    html,body { margin:0; height:100%; background:#000; color:#fff; font-family:sans-serif; }
-    .layer { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; }
+    html,body { margin:0; height:100%; background:#000; color:#fff; font-family:system-ui,-apple-system,sans-serif; }
+    .layer { position:fixed; inset:0; width:100vw; height:100vh; object-fit:cover; }
     #cam { filter:grayscale(100%); z-index:1; }
-    #fx { z-index:2; pointer-events:none; }
-    #overlay { z-index:3; pointer-events:none; opacity:0.7; mix-blend-mode:screen; }
-    .ui { position:fixed; bottom:0; left:0; right:0; z-index:10;
-      background:rgba(0,0,0,0.6); padding:0.5rem; display:flex; gap:0.5rem; justify-content:center; }
-    button,input[type="range"] { background:#222; color:#fff; border:1px solid #444; border-radius:4px; padding:0.4rem 0.7rem; }
+    #fx  { z-index:2; pointer-events:none; }
+    #overlay { z-index:3; pointer-events:none; opacity:.9; mix-blend-mode:screen; }
+    .ui {
+      position:fixed; left:0; right:0; bottom:0; z-index:10;
+      display:flex; gap:.6rem; justify-content:center; align-items:center;
+      padding:.6rem .8rem env(safe-area-inset-bottom) .8rem;
+      background:rgba(0,0,0,.5); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    }
+    button { background:#111; color:#fff; border:1px solid #333; padding:.55rem .9rem; border-radius:.6rem; }
+    .badge { font-size:12px; opacity:.85; }
   </style>
 </head>
 <body>
+  <!-- 관객 카메라 + (필요 시) 잔상 캔버스 -->
   <video id="cam" class="layer" autoplay playsinline muted></video>
-  <canvas id="fx" class="layer"></canvas>
+  <canvas id="fx"  class="layer"></canvas>
+
+  <!-- 레졸룸 라이브 오버레이 -->
   <video id="overlay" class="layer" autoplay playsinline muted></video>
 
   <div class="ui">
-    <button id="btnStart">카메라 시작</button>
-    <button id="btnFlip">전/후면 전환</button>
-    <button id="btnShot">캡처</button>
-    <label>잔상 <input id="delayAmt" type="range" min="0" max="0.98" step="0.01" value="0.82"></label>
-    <label>오버레이 투명 <input id="ovAlpha" type="range" min="0" max="1" step="0.01" value="0.7"></label>
+    <button id="btnStart">시작</button>
+    <button id="btnMode">오버레이 모드: screen</button>
+    <span id="status" class="badge">idle</span>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
-    // ✅ 네 Cloudflare HLS Manifest URL
-    const STREAM_M3U8_URL = "https://customer-e1rhmg8edq32stcl.cloudflarestream.com/0561f69cdb850354620ce2f93cbb05ce/manifest/video.m3u8?protocol=llhlsbeta";
+    // ✅ 당신의 Cloudflare HLS (LL-HLS 포함 전체 주소)
+    const STREAM_M3U8_URL =
+      "https://customer-e1rhmg8edq32stcl.cloudflarestream.com/0561f69cdb850354620ce2f93cbb05ce/manifest/video.m3u8?protocol=llhlsbeta";
+
+    const cam = document.getElementById('cam');
+    const fx  = document.getElementById('fx');
+    const ctx = fx.getContext('2d', { willReadFrequently:true });
+    const overlay = document.getElementById('overlay');
+    const statusEl = document.getElementById('status');
 
     let facingMode = 'environment';
-    const camEl = document.getElementById('cam');
-    const fx = document.getElementById('fx');
-    const ctx = fx.getContext('2d',{ willReadFrequently:true });
-    const overlay = document.getElementById('overlay');
-    let feedback = 0.82;
+    let feedback = 0.82; // 잔상 강도(내부값만 유지, UI 없음)
+    let blend = 'screen'; // screen|normal
 
-    function resizeCanvas(){ fx.width=innerWidth; fx.height=innerHeight; }
+    function setStatus(s){ statusEl.textContent = s; }
+
+    function resizeCanvas(){ fx.width = innerWidth; fx.height = innerHeight; }
     addEventListener('resize', resizeCanvas);
 
     async function startCamera(){
+      setStatus('requesting camera…');
       const stream = await navigator.mediaDevices.getUserMedia({
         video:{ facingMode, width:{ideal:1920}, height:{ideal:1080} },
         audio:false
       });
-      camEl.srcObject = stream;
-      await camEl.play();
+      cam.srcObject = stream;
+      await cam.play();
       resizeCanvas();
       animateFX();
-      startOverlay();
+      setStatus('camera ok');
     }
 
     function animateFX(){
-      if(!camEl.videoWidth){ requestAnimationFrame(animateFX); return; }
-      const vw=camEl.videoWidth, vh=camEl.videoHeight, cw=fx.width, ch=fx.height;
-      const s=Math.max(cw/vw,ch/vh), dw=vw*s, dh=vh*s, dx=(cw-dw)/2, dy=(ch-dh)/2;
+      if(!cam.videoWidth){ requestAnimationFrame(animateFX); return; }
+      const vw=cam.videoWidth, vh=cam.videoHeight, cw=fx.width, ch=fx.height;
+      const s=Math.max(cw/vw, ch/vh), dw=vw*s, dh=vh*s, dx=(cw-dw)/2, dy=(ch-dh)/2;
 
+      // 잔상: 이전 프레임 감쇠 후 현재 프레임 얹기
+      ctx.globalCompositeOperation='source-over';
       ctx.fillStyle=`rgba(0,0,0,${1-(1-feedback)})`;
       ctx.fillRect(0,0,cw,ch);
       ctx.globalAlpha=(1-feedback);
-      ctx.drawImage(camEl,dx,dy,dw,dh);
+      ctx.drawImage(cam, dx, dy, dw, dh);
       ctx.globalAlpha=1;
+
       requestAnimationFrame(animateFX);
     }
 
-    async function captureShot(){
-      const blob = await new Promise(res=>fx.toBlob(res,'image/jpeg',0.92));
-      const url = URL.createObjectURL(blob);
-      const a=document.createElement('a'); a.href=url; a.download=`capture_${Date.now()}.jpg`;
-      a.click(); URL.revokeObjectURL(url);
-    }
-
     function startOverlay(){
-      if(!STREAM_M3U8_URL) return;
-      if(overlay.canPlayType('application/vnd.apple.mpegurl')){
-        overlay.src=STREAM_M3U8_URL; overlay.play();
-      }else if(Hls.isSupported()){
-        const hls=new Hls({ lowLatencyMode:true });
+      setStatus('connecting overlay…');
+      // Safari(iOS)는 네이티브 HLS
+      if (overlay.canPlayType('application/vnd.apple.mpegurl')) {
+        overlay.src = STREAM_M3U8_URL;
+        overlay.play().then(()=>setStatus('overlay playing')).catch(()=>setStatus('tap Start again'));
+      } else if (Hls.isSupported()) {
+        const hls = new Hls({ lowLatencyMode:true, backBufferLength:60 });
+        hls.on(Hls.Events.ERROR, (_, data)=>console.error('HLS error', data));
         hls.loadSource(STREAM_M3U8_URL);
         hls.attachMedia(overlay);
-      }else{
-        overlay.src=STREAM_M3U8_URL; overlay.play();
+        overlay.play().then(()=>setStatus('overlay playing')).catch(()=>setStatus('tap Start again'));
+      } else {
+        overlay.src = STREAM_M3U8_URL;
+        overlay.play().then(()=>setStatus('overlay playing')).catch(()=>setStatus('tap Start again'));
       }
     }
 
-    document.getElementById('btnStart').onclick = startCamera;
-    document.getElementById('btnFlip').onclick = ()=>{ facingMode=(facingMode==='user')?'environment':'user'; startCamera(); };
-    document.getElementById('btnShot').onclick = captureShot;
-    document.getElementById('delayAmt').oninput = e=>{ feedback=parseFloat(e.target.value); };
-    document.getElementById('ovAlpha').oninput = e=>{ overlay.style.opacity=e.target.value; };
+    // --- UI ---
+    document.getElementById('btnStart').addEventListener('click', async () => {
+      try {
+        await startCamera();
+        // 사용자 제스처 직후 play() 강제 → 자동재생 정책 우회
+        startOverlay();
+      } catch (e) {
+        console.error(e); setStatus('camera error');
+      }
+    });
+
+    document.getElementById('btnMode').addEventListener('click', () => {
+      blend = (blend === 'screen') ? 'normal' : 'screen';
+      overlay.style.mixBlendMode = blend;
+      document.getElementById('btnMode').textContent = '오버레이 모드: ' + blend;
+    });
+
+    // 초기
+    resizeCanvas();
   </script>
 </body>
 </html>
