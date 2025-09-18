@@ -1,126 +1,156 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Minimal Live Overlay</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Camera (B/W + Trails) + Cloudflare Stream Overlay</title>
   <style>
-    html,body { margin:0; height:100%; background:#000; color:#fff; font-family:system-ui,-apple-system,sans-serif; }
-    .layer { position:fixed; inset:0; width:100vw; height:100vh; object-fit:cover; }
-    #cam { filter:grayscale(100%); z-index:1; }
-    #fx  { z-index:2; pointer-events:none; }
-    #overlay { z-index:3; pointer-events:none; opacity:.9; mix-blend-mode:screen; }
-    .ui {
-      position:fixed; left:0; right:0; bottom:0; z-index:10;
-      display:flex; gap:.6rem; justify-content:center; align-items:center;
-      padding:.6rem .8rem env(safe-area-inset-bottom) .8rem;
-      background:rgba(0,0,0,.5); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    html, body { margin:0; padding:0; height:100%; background:#000; overflow:hidden; }
+    /* 카메라를 그리는 캔버스 (흑백 + 잔상) */
+    #camCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      background: #000;
     }
-    button { background:#111; color:#fff; border:1px solid #333; padding:.55rem .9rem; border-radius:.6rem; }
-    .badge { font-size:12px; opacity:.85; }
+    /* 클라우드플레어 라이브 스트림을 위 레이어로 겹치기 */
+    #cfStream {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      pointer-events: none;          /* 화면 클릭 방해 X */
+      mix-blend-mode: screen;        /* 겹침 느낌 (필요에 따라 multiply/overlay 등으로 변경 가능) */
+      opacity: 0.70;                 /* 투명도: 0~1 */
+    }
+    /* iOS에서 주소창으로 인한 레이아웃 흔들림 방지 */
+    @supports (height: 100svh) {
+      #camCanvas, #cfStream { height: 100svh; }
+    }
   </style>
 </head>
 <body>
-  <!-- 관객 카메라 + (필요 시) 잔상 캔버스 -->
-  <video id="cam" class="layer" autoplay playsinline muted></video>
-  <canvas id="fx"  class="layer"></canvas>
+  <!-- 카메라 처리용 캔버스 -->
+  <canvas id="camCanvas"></canvas>
 
-  <!-- 레졸룸 라이브 오버레이 -->
-  <video id="overlay" class="layer" autoplay playsinline muted></video>
+  <!-- Cloudflare Stream (HLS/LL-HLS) 오버레이 -->
+  <video id="cfStream" autoplay playsinline muted></video>
 
-  <div class="ui">
-    <button id="btnStart">시작</button>
-    <button id="btnMode">오버레이 모드: screen</button>
-    <span id="status" class="badge">idle</span>
-  </div>
-
+  <!-- HLS.js (사파리 외 브라우저용) -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
-    // ✅ 당신의 Cloudflare HLS (LL-HLS 포함 전체 주소)
-    const STREAM_M3U8_URL =
-      "https://customer-e1rhmg8edq32stcl.cloudflarestream.com/0561f69cdb850354620ce2f93cbb05ce/manifest/video.m3u8?protocol=llhlsbeta";
+  // ====== 설정값 ======
+  // Cloudflare Stream HLS Manifest URL (사용자가 준 주소)
+  const HLS_URL = "https://customer-e1rhmg8edq32stcl.cloudflarestream.com/0561f69cdb850354620ce2f93cbb05ce/manifest/video.m3u8?protocol=llhlsbeta";
 
-    const cam = document.getElementById('cam');
-    const fx  = document.getElementById('fx');
-    const ctx = fx.getContext('2d', { willReadFrequently:true });
-    const overlay = document.getElementById('overlay');
-    const statusEl = document.getElementById('status');
+  // 카메라 설정: 후면 카메라 우선 (기기에 따라 자동 대체)
+  const CAM_CONSTRAINTS = { video: { facingMode: { ideal: "environment" } }, audio: false };
 
-    let facingMode = 'environment';
-    let feedback = 0.82; // 잔상 강도(내부값만 유지, UI 없음)
-    let blend = 'screen'; // screen|normal
+  // 잔상/딜레이 느낌(트레일) 세기
+  // fade: 이전 프레임이 사라지는 속도(0.0 = 잔상 오래 남음, 1.0 = 바로 사라짐)
+  // drawAlpha: 새 프레임을 덧그릴 때의 투명도(0.1~0.5 정도 추천)
+  const TRAIL = {
+    fade: 0.10,        // 화면 어둡게 덮어 지우는 정도 (0.05~0.2)
+    drawAlpha: 0.25    // 현재 프레임 그릴 때 투명도 (0.15~0.35)
+  };
 
-    function setStatus(s){ statusEl.textContent = s; }
+  // 흑백 필터(표준 CSS 캔버스 필터 사용)
+  const CAM_FILTER = "grayscale(100%) contrast(110%)";
 
-    function resizeCanvas(){ fx.width = innerWidth; fx.height = innerHeight; }
-    addEventListener('resize', resizeCanvas);
+  // ====== 카메라 시작 ======
+  const canvas = document.getElementById('camCanvas');
+  const ctx = canvas.getContext('2d', { alpha: false }); // 배경검정 + 성능
+  const camVideo = document.createElement('video');
+  camVideo.playsInline = true;
+  camVideo.muted = true;
+  camVideo.autoplay = true;
 
-    async function startCamera(){
-      setStatus('requesting camera…');
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video:{ facingMode, width:{ideal:1920}, height:{ideal:1080} },
-        audio:false
-      });
-      cam.srcObject = stream;
-      await cam.play();
-      resizeCanvas();
-      animateFX();
-      setStatus('camera ok');
+  // 리사이즈 핸들러
+  function fitCanvasToScreen() {
+    const w = window.innerWidth || document.documentElement.clientWidth;
+    const h = window.innerHeight || document.documentElement.clientHeight;
+    canvas.width = w;
+    canvas.height = h;
+  }
+  window.addEventListener('resize', fitCanvasToScreen, { passive: true });
+  fitCanvasToScreen();
+
+  // 메인 루프(흑백 + 잔상)
+  function drawLoop() {
+    const W = canvas.width, H = canvas.height;
+    // 이전 프레임을 서서히 지우기(잔상 효과)
+    if (TRAIL.fade > 0) {
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = TRAIL.fade;
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, W, H);
     }
 
-    function animateFX(){
-      if(!cam.videoWidth){ requestAnimationFrame(animateFX); return; }
-      const vw=cam.videoWidth, vh=cam.videoHeight, cw=fx.width, ch=fx.height;
-      const s=Math.max(cw/vw, ch/vh), dw=vw*s, dh=vh*s, dx=(cw-dw)/2, dy=(ch-dh)/2;
-
-      // 잔상: 이전 프레임 감쇠 후 현재 프레임 얹기
-      ctx.globalCompositeOperation='source-over';
-      ctx.fillStyle=`rgba(0,0,0,${1-(1-feedback)})`;
-      ctx.fillRect(0,0,cw,ch);
-      ctx.globalAlpha=(1-feedback);
-      ctx.drawImage(cam, dx, dy, dw, dh);
-      ctx.globalAlpha=1;
-
-      requestAnimationFrame(animateFX);
-    }
-
-    function startOverlay(){
-      setStatus('connecting overlay…');
-      // Safari(iOS)는 네이티브 HLS
-      if (overlay.canPlayType('application/vnd.apple.mpegurl')) {
-        overlay.src = STREAM_M3U8_URL;
-        overlay.play().then(()=>setStatus('overlay playing')).catch(()=>setStatus('tap Start again'));
-      } else if (Hls.isSupported()) {
-        const hls = new Hls({ lowLatencyMode:true, backBufferLength:60 });
-        hls.on(Hls.Events.ERROR, (_, data)=>console.error('HLS error', data));
-        hls.loadSource(STREAM_M3U8_URL);
-        hls.attachMedia(overlay);
-        overlay.play().then(()=>setStatus('overlay playing')).catch(()=>setStatus('tap Start again'));
-      } else {
-        overlay.src = STREAM_M3U8_URL;
-        overlay.play().then(()=>setStatus('overlay playing')).catch(()=>setStatus('tap Start again'));
+    // 현재 카메라 프레임 그리기 (흑백 + 약한 투명도)
+    if (camVideo.readyState >= 2) {
+      ctx.filter = CAM_FILTER;
+      ctx.globalAlpha = TRAIL.drawAlpha;
+      // 화면 꽉 채우기
+      const vw = camVideo.videoWidth, vh = camVideo.videoHeight;
+      if (vw && vh) {
+        // object-fit: cover 효과로 채우기
+        const canvasRatio = W / H;
+        const videoRatio = vw / vh;
+        let dw = W, dh = H, dx = 0, dy = 0;
+        if (videoRatio > canvasRatio) {
+          // 비디오가 더 넓음 -> 높이에 맞추고 좌우 크롭
+          dh = H;
+          dw = H * videoRatio;
+          dx = (W - dw) / 2;
+        } else {
+          // 비디오가 더 높음 -> 너비에 맞추고 상하 크롭
+          dw = W;
+          dh = W / videoRatio;
+          dy = (H - dh) / 2;
+        }
+        ctx.drawImage(camVideo, dx, dy, dw, dh);
       }
     }
 
-    // --- UI ---
-    document.getElementById('btnStart').addEventListener('click', async () => {
-      try {
-        await startCamera();
-        // 사용자 제스처 직후 play() 강제 → 자동재생 정책 우회
-        startOverlay();
-      } catch (e) {
-        console.error(e); setStatus('camera error');
-      }
+    // 다음 프레임
+    requestAnimationFrame(drawLoop);
+  }
+
+  // 카메라 시작
+  navigator.mediaDevices.getUserMedia(CAM_CONSTRAINTS)
+    .then(stream => {
+      camVideo.srcObject = stream;
+      camVideo.onloadedmetadata = () => {
+        camVideo.play().catch(()=>{});
+        drawLoop();
+      };
+    })
+    .catch(err => {
+      console.error("카메라 접근 실패:", err);
+      // 실패 시에도 루프는 돌려서 화면이 검게만 보이게 유지
+      drawLoop();
     });
 
-    document.getElementById('btnMode').addEventListener('click', () => {
-      blend = (blend === 'screen') ? 'normal' : 'screen';
-      overlay.style.mixBlendMode = blend;
-      document.getElementById('btnMode').textContent = '오버레이 모드: ' + blend;
-    });
+  // ====== Cloudflare Stream 오버레이 붙이기 ======
+  const streamEl = document.getElementById('cfStream');
+  // iOS 사파리 등 HLS 네이티브 지원 브라우저
+  if (streamEl.canPlayType('application/vnd.apple.mpegURL')) {
+    streamEl.src = HLS_URL;
+  } else if (window.Hls && window.Hls.isSupported()) {
+    const hls = new Hls({ lowLatencyMode: true });
+    hls.loadSource(HLS_URL);
+    hls.attachMedia(streamEl);
+  } else {
+    // 폴백: 직접 붙여보기 (일부 브라우저는 미지원)
+    streamEl.src = HLS_URL;
+  }
+  // 자동재생을 위해 muted 유지. 라이브를 소리까지 듣고 싶으면 아래 주석 해제 후 사용자 제스처로 play 필요
+  // streamEl.muted = false;
+  // document.body.addEventListener('click', ()=> streamEl.play().catch(()=>{}), { once:true });
 
-    // 초기
-    resizeCanvas();
   </script>
 </body>
 </html>
