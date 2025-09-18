@@ -6,116 +6,92 @@
   <title>Camera (B/W + Trails) + Cloudflare Stream Overlay</title>
   <style>
     html, body { margin:0; padding:0; height:100%; background:#000; overflow:hidden; }
-    /* 카메라를 그리는 캔버스 (흑백 + 잔상) */
+    /* 흑백은 CSS 필터로 확실히 적용 */
     #camCanvas {
       position: fixed;
       inset: 0;
       width: 100vw;
       height: 100vh;
       display: block;
-      background: #000;
+      /* 흑백 + 약간 대비 */
+      filter: grayscale(100%) contrast(110%);
     }
-    /* 클라우드플레어 라이브 스트림을 위 레이어로 겹치기 */
+    /* 스트림은 오파시티/블렌드 제거 (Resolume에서 조절) */
     #cfStream {
       position: fixed;
       inset: 0;
       width: 100vw;
       height: 100vh;
       object-fit: cover;
-      pointer-events: none;          /* 화면 클릭 방해 X */
-      mix-blend-mode: screen;        /* 겹침 느낌 (필요에 따라 multiply/overlay 등으로 변경 가능) */
-      opacity: 0.70;                 /* 투명도: 0~1 */
+      pointer-events: none;
     }
-    /* iOS에서 주소창으로 인한 레이아웃 흔들림 방지 */
     @supports (height: 100svh) {
       #camCanvas, #cfStream { height: 100svh; }
     }
   </style>
 </head>
 <body>
-  <!-- 카메라 처리용 캔버스 -->
+  <!-- 카메라 처리용 캔버스 (흑백+잔상) -->
   <canvas id="camCanvas"></canvas>
 
   <!-- Cloudflare Stream (HLS/LL-HLS) 오버레이 -->
   <video id="cfStream" autoplay playsinline muted></video>
 
-  <!-- HLS.js (사파리 외 브라우저용) -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
-  // ====== 설정값 ======
-  // Cloudflare Stream HLS Manifest URL (사용자가 준 주소)
+  // ====== 설정 ======
   const HLS_URL = "https://customer-e1rhmg8edq32stcl.cloudflarestream.com/0561f69cdb850354620ce2f93cbb05ce/manifest/video.m3u8?protocol=llhlsbeta";
-
-  // 카메라 설정: 후면 카메라 우선 (기기에 따라 자동 대체)
   const CAM_CONSTRAINTS = { video: { facingMode: { ideal: "environment" } }, audio: false };
 
-  // 잔상/딜레이 느낌(트레일) 세기
-  // fade: 이전 프레임이 사라지는 속도(0.0 = 잔상 오래 남음, 1.0 = 바로 사라짐)
-  // drawAlpha: 새 프레임을 덧그릴 때의 투명도(0.1~0.5 정도 추천)
-  const TRAIL = {
-    fade: 0.10,        // 화면 어둡게 덮어 지우는 정도 (0.05~0.2)
-    drawAlpha: 0.25    // 현재 프레임 그릴 때 투명도 (0.15~0.35)
-  };
+  // 잔상 파라미터: 알파만 서서히 지우기(화면 전체 어두워지지 않음)
+  // eraseAlpha: 한 프레임마다 지우는 알파 강도 (0.03~0.15 추천)
+  // drawAlpha : 새 프레임을 덧그릴 알파 (0.2~0.5)
+  const TRAIL = { eraseAlpha: 0.07, drawAlpha: 0.30 };
 
-  // 흑백 필터(표준 CSS 캔버스 필터 사용)
-  const CAM_FILTER = "grayscale(100%) contrast(110%)";
-
-  // ====== 카메라 시작 ======
   const canvas = document.getElementById('camCanvas');
-  const ctx = canvas.getContext('2d', { alpha: false }); // 배경검정 + 성능
+  const ctx = canvas.getContext('2d', { alpha: true }); // 알파 켬(잔상용)
   const camVideo = document.createElement('video');
   camVideo.playsInline = true;
   camVideo.muted = true;
   camVideo.autoplay = true;
 
-  // 리사이즈 핸들러
-  function fitCanvasToScreen() {
+  function fitCanvas() {
     const w = window.innerWidth || document.documentElement.clientWidth;
     const h = window.innerHeight || document.documentElement.clientHeight;
     canvas.width = w;
     canvas.height = h;
   }
-  window.addEventListener('resize', fitCanvasToScreen, { passive: true });
-  fitCanvasToScreen();
+  window.addEventListener('resize', fitCanvas, { passive: true });
+  fitCanvas();
 
-  // 메인 루프(흑백 + 잔상)
   function drawLoop() {
     const W = canvas.width, H = canvas.height;
-    // 이전 프레임을 서서히 지우기(잔상 효과)
-    if (TRAIL.fade > 0) {
-      ctx.globalCompositeOperation = "source-over";
-      ctx.globalAlpha = TRAIL.fade;
-      ctx.fillStyle = "#000";
-      ctx.fillRect(0, 0, W, H);
-    }
 
-    // 현재 카메라 프레임 그리기 (흑백 + 약한 투명도)
+    // 1) 이전 프레임을 "알파로 조금씩 지우는" 방식 → 실제 밝기는 유지, 잔상만 사라짐
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.globalAlpha = TRAIL.eraseAlpha;
+    ctx.fillStyle = "rgba(0,0,0,1)";
+    ctx.fillRect(0, 0, W, H);
+
+    // 2) 현재 카메라 프레임 그리기 (알파로 덧그림)
     if (camVideo.readyState >= 2) {
-      ctx.filter = CAM_FILTER;
+      ctx.globalCompositeOperation = "source-over";
       ctx.globalAlpha = TRAIL.drawAlpha;
-      // 화면 꽉 채우기
+
       const vw = camVideo.videoWidth, vh = camVideo.videoHeight;
       if (vw && vh) {
-        // object-fit: cover 효과로 채우기
         const canvasRatio = W / H;
         const videoRatio = vw / vh;
         let dw = W, dh = H, dx = 0, dy = 0;
         if (videoRatio > canvasRatio) {
-          // 비디오가 더 넓음 -> 높이에 맞추고 좌우 크롭
-          dh = H;
-          dw = H * videoRatio;
-          dx = (W - dw) / 2;
+          dh = H; dw = H * videoRatio; dx = (W - dw) / 2;
         } else {
-          // 비디오가 더 높음 -> 너비에 맞추고 상하 크롭
-          dw = W;
-          dh = W / videoRatio;
-          dy = (H - dh) / 2;
+          dw = W; dh = W / videoRatio; dy = (H - dh) / 2;
         }
         ctx.drawImage(camVideo, dx, dy, dw, dh);
       }
     }
 
-    // 다음 프레임
     requestAnimationFrame(drawLoop);
   }
 
@@ -125,32 +101,26 @@
       camVideo.srcObject = stream;
       camVideo.onloadedmetadata = () => {
         camVideo.play().catch(()=>{});
-        drawLoop();
+        drawLoop(); // 메타데이터 로드 후 시작
       };
     })
     .catch(err => {
-      console.error("카메라 접근 실패:", err);
-      // 실패 시에도 루프는 돌려서 화면이 검게만 보이게 유지
+      console.error("카메라 실패:", err);
+      // 실패해도 루프는 돌려 캔버스가 투명 검정 상태로 유지
       drawLoop();
     });
 
-  // ====== Cloudflare Stream 오버레이 붙이기 ======
+  // Cloudflare HLS 붙이기 (블렌드/오파시티 없음)
   const streamEl = document.getElementById('cfStream');
-  // iOS 사파리 등 HLS 네이티브 지원 브라우저
   if (streamEl.canPlayType('application/vnd.apple.mpegURL')) {
-    streamEl.src = HLS_URL;
+    streamEl.src = HLS_URL; // iOS 사파리
   } else if (window.Hls && window.Hls.isSupported()) {
     const hls = new Hls({ lowLatencyMode: true });
     hls.loadSource(HLS_URL);
     hls.attachMedia(streamEl);
   } else {
-    // 폴백: 직접 붙여보기 (일부 브라우저는 미지원)
-    streamEl.src = HLS_URL;
+    streamEl.src = HLS_URL; // 일부 브라우저 폴백
   }
-  // 자동재생을 위해 muted 유지. 라이브를 소리까지 듣고 싶으면 아래 주석 해제 후 사용자 제스처로 play 필요
-  // streamEl.muted = false;
-  // document.body.addEventListener('click', ()=> streamEl.play().catch(()=>{}), { once:true });
-
   </script>
 </body>
 </html>
