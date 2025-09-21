@@ -5,18 +5,35 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Camera – BW + Strong Trail + Frame</title>
 
-<!-- iOS 풀스크린 앱 모드 설정 -->
+<!-- iOS 풀스크린 앱 모드/PWA 힌트 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Camera Trail">
 <meta name="theme-color" content="#0b0b0b">
-<link rel="manifest" href="app.webmanifest">
+<link rel="manifest" href="app.webmanifest"><!-- manifest에서 display: "standalone" 권장 -->
 
 <style>
-  html,body{margin:0;height:100%;background:#000;overflow:hidden}
-  #view{
-    position:fixed; inset:0; width:100%; height:100%;
-    background:#000; touch-action:none;
+  :root{ color-scheme: dark; }
+  html,body{
+    margin:0; height:100%;
+    background:#000; overflow:hidden;
+    overscroll-behavior:none;
+    -webkit-touch-callout:none;
+    -webkit-user-select:none; user-select:none;
+    -webkit-tap-highlight-color:transparent;
   }
+  /* 주소창 높이변동 대응: 100svh */
+  #app{
+    position:fixed; inset:0;
+    width:100vw; height:100svh; /* iOS 16+ 안정적 뷰포트 */
+    background:#000;
+    padding-top:env(safe-area-inset-top);
+    padding-right:env(safe-area-inset-right);
+    padding-bottom:env(safe-area-inset-bottom);
+    padding-left:env(safe-area-inset-left);
+    touch-action:none;
+  }
+  #view{ width:100%; height:100%; display:block; }
   #start{
     position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
     padding:12px 18px; border:0; border-radius:999px;
@@ -27,27 +44,34 @@
     position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
     color:#fff; background:rgba(0,0,0,.55); padding:8px 12px; border-radius:8px;
     font:13px/1.3 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; display:none;
+    text-align:center;
   }
 </style>
 </head>
 <body>
-  <canvas id="view"></canvas>
-  <button id="start">카메라 시작</button>
-  <div id="hint">iOS 권한/자동재생 때문에 버튼이 필요할 수 있어요</div>
+  <div id="app">
+    <canvas id="view"></canvas>
+    <button id="start">카메라 시작</button>
+    <div id="hint">
+      iOS 권한/자동재생으로 첫 탭이 필요할 수 있어요.<br/>
+      주소창을 완전히 숨기려면 홈 화면에 추가(PWA)로 실행하세요.
+    </div>
+  </div>
 
 <script>
 (async ()=>{
+  const app  = document.getElementById('app');
   const view = document.getElementById('view');
   const vctx = view.getContext('2d', { alpha:false });
   const startBtn = document.getElementById('start');
   const hint = document.getElementById('hint');
 
   // 🎛️ 설정값
-  const PROC_SCALE   = 0.6;      // 내부 처리 해상도
-  const TRAIL_ALPHA  = 0.005;    // 🔥 잔상 강하게 (낮출수록 오래 남음)
-  const FRAME_MARGIN = 40;       // 프레임 여백
-  const FRAME_COLOR  = "#ffffff";// 흰색
-  const FRAME_WIDTH  = 0.5;      // 얇은 실선 두께(px)
+  const PROC_SCALE   = 0.6;       // 내부 처리 해상도 (0.4~0.8)
+  const TRAIL_ALPHA  = 0.004;     // 🔥 아주 강한 잔상(낮을수록 오래 남음)
+  const FRAME_MARGIN = 40;        // 프레임 여백
+  const FRAME_COLOR  = "#ffffff"; // 흰색 실선
+  const FRAME_WIDTH  = 0.5;       // 매우 얇게(px)
 
   // 카메라 비디오
   const camVideo = document.createElement('video');
@@ -58,77 +82,110 @@
   const pctx = proc.getContext('2d', { alpha:false });
 
   function resizeAll(){
-    const dpr = window.devicePixelRatio || 1;
-    const w = Math.max(1, Math.floor(window.innerWidth));
-    const h = Math.max(1, Math.floor(window.innerHeight));
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const rect = app.getBoundingClientRect();
+    const w = Math.max(1, Math.floor(rect.width));
+    const h = Math.max(1, Math.floor(rect.height));
 
+    // 메인 캔버스
     view.style.width = w+'px'; view.style.height = h+'px';
     view.width = Math.floor(w * dpr); view.height = Math.floor(h * dpr);
     vctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
+    // 처리 캔버스
     proc.width  = Math.max(1, Math.floor(w * PROC_SCALE));
     proc.height = Math.max(1, Math.floor(h * PROC_SCALE));
   }
-  window.addEventListener('resize', resizeAll);
-  window.addEventListener('orientationchange', ()=>setTimeout(resizeAll, 200));
+  addEventListener('resize', resizeAll);
+  addEventListener('orientationchange', ()=>setTimeout(resizeAll, 200));
   resizeAll();
 
   async function attachCamera(){
     try{
       const s = await navigator.mediaDevices.getUserMedia({
-        video:{ facingMode:{ ideal:'environment' } }, audio:false
+        video:{
+          facingMode:{ ideal:'environment' },
+          // 해상도 힌트(가능 시)
+          width:{ ideal: 1920 }, height:{ ideal: 1080 }
+        },
+        audio:false
       });
       camVideo.srcObject = s;
       await camVideo.play();
     }catch(e){
+      // 폴백
       const s2 = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
       camVideo.srcObject = s2;
       await camVideo.play();
     }
   }
 
+  // iOS 주소창 최소화/풀스크린 시도 (사용자 제스처 필요)
+  async function goFullscreenIfPossible(){
+    try{
+      if (document.fullscreenElement) return;
+      // iOS 16+ Fullscreen API 지원
+      if (app.requestFullscreen) await app.requestFullscreen();
+      // 추가 스크롤 트릭 (구형)
+      setTimeout(()=>scrollTo(0,1), 50);
+    }catch(e){}
+  }
+
+  // 화면 깨짐 방지: 탭 시 주소창 내려가면 재계산
+  let visTimer = null;
+  document.addEventListener('visibilitychange', ()=>{
+    if (!document.hidden){
+      camVideo.play().catch(()=>{});
+      clearTimeout(visTimer);
+      visTimer = setTimeout(resizeAll, 120);
+    }
+  });
+
   let rafId = 0;
   function loop(){
     rafId = requestAnimationFrame(loop);
 
-    const dpr = window.devicePixelRatio || 1;
-    const W = view.width / dpr;
-    const H = view.height / dpr;
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const rect = app.getBoundingClientRect();
+    const W = rect.width;
+    const H = rect.height;
     const PW = proc.width, PH = proc.height;
 
-    // 1) 잔상 페이드 (아주 약하게 지워서 잔상이 오래 남음)
+    // 1) 잔상 페이드
     pctx.fillStyle = `rgba(0,0,0,${TRAIL_ALPHA})`;
     pctx.fillRect(0,0,PW,PH);
 
-    // 2) 카메라 프레임
+    // 2) 카메라 프레임 드로우
     if (camVideo.readyState >= 2){
       const vw = camVideo.videoWidth || 0, vh = camVideo.videoHeight || 0;
       if (vw && vh){
-        const scale = Math.max(PW / vw, PH / vh);
+        const scale = Math.max(PW / vw, PH / vh); // cover
         const dw = vw * scale, dh = vh * scale;
         const dx = (PW - dw) / 2, dy = (PH - dh) / 2;
         pctx.drawImage(camVideo, dx, dy, dw, dh);
-      }
 
-      // 흑백 변환
-      const frame = pctx.getImageData(0,0,PW,PH);
-      const d = frame.data;
-      for (let i=0; i<d.length; i+=4){
-        const r=d[i], g=d[i+1], b=d[i+2];
-        const gray = (0.299*r + 0.587*g + 0.114*b)|0;
-        d[i]=d[i+1]=d[i+2]=gray;
+        // 3) 흑백 변환 (빠른 루프)
+        const frame = pctx.getImageData(0,0,PW,PH);
+        const d = frame.data;
+        for (let i=0; i<d.length; i+=4){
+          const r=d[i], g=d[i+1], b=d[i+2];
+          const gray = (0.299*r + 0.587*g + 0.114*b)|0;
+          d[i]=d[i+1]=d[i+2]=gray;
+        }
+        pctx.putImageData(frame,0,0);
       }
-      pctx.putImageData(frame,0,0);
     }
 
-    // 3) 메인 캔버스에 업스케일
+    // 4) 메인 캔버스에 업스케일
+    // (정확한 픽셀을 위해 직접 크기 사용 + dpr 변환은 setTransform으로 처리)
+    vctx.clearRect(0,0,W,H);
     vctx.drawImage(proc, 0, 0, W, H);
 
-    // 4) 흰색 실선 프레임
+    // 5) 흰색 실선 프레임
     vctx.save();
     vctx.strokeStyle = FRAME_COLOR;
     vctx.lineWidth = FRAME_WIDTH;
-    vctx.setLineDash([]);
+    vctx.setLineDash([]); // 실선
     vctx.strokeRect(FRAME_MARGIN, FRAME_MARGIN, W-2*FRAME_MARGIN, H-2*FRAME_MARGIN);
     vctx.restore();
   }
@@ -136,23 +193,35 @@
   async function startAll(){
     try{
       await attachCamera();
+      await goFullscreenIfPossible(); // 첫 제스처 시 풀스크린 시도
       startBtn.style.display = 'none';
       hint.style.display = 'none';
       if (!rafId) loop();
     }catch(e){
+      // 권한/자동재생 이슈로 버튼 노출
       startBtn.style.display = 'inline-block';
       hint.style.display = 'block';
     }
   }
 
+  // 첫 사용자 제스처 훅
+  const trigger = async ()=>{
+    await startAll();
+    window.removeEventListener('pointerdown', trigger, { once:true });
+  };
+  window.addEventListener('pointerdown', trigger, { once:true, passive:true });
   startBtn.addEventListener('click', startAll, { once:true });
+
+  // 초기 시도 (자동실행 가능한 환경이면 바로 동작)
   startAll();
 
-  document.addEventListener('visibilitychange', ()=>{
-    if (!document.hidden){
-      camVideo.play().catch(()=>{});
-    }
-  });
+  // 뷰포트 안정화를 위한 주기적 재계산(주소창 애니메이션 중)
+  let resizeTick=null;
+  window.addEventListener('scroll', ()=>{
+    clearTimeout(resizeTick);
+    resizeTick = setTimeout(resizeAll, 120);
+  }, { passive:true });
+
 })();
 </script>
 </body>
