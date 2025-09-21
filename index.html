@@ -119,6 +119,16 @@
   const proc=document.createElement('canvas');
   const pctx=proc.getContext('2d',{willReadFrequently:true});
 
+  async function attachCamera(){
+    try{
+      const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+      camVideo.srcObject=s;
+      await camVideo.play();
+    }catch(e){
+      console.error("카메라 접근 실패:", e);
+    }
+  }
+
   function resizeAll(){
     const dpr=window.devicePixelRatio||1;
     const w=window.innerWidth,h=window.innerHeight;
@@ -129,11 +139,6 @@
   }
   resizeAll();
   addEventListener('resize',()=>setTimeout(resizeAll,50));
-
-  async function attachCamera(){
-    const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
-    camVideo.srcObject=s; await camVideo.play();
-  }
 
   function loop(){
     requestAnimationFrame(loop);
@@ -180,6 +185,17 @@
 
   await attachCamera();
   loop();
+
+  // 백그라운드 → 복귀 시 카메라 재시작
+  document.addEventListener("visibilitychange", ()=>{
+    if (!document.hidden){
+      if (camVideo.srcObject){
+        camVideo.play().catch(()=>{});
+      } else {
+        attachCamera();
+      }
+    }
+  });
 
   // 캡쳐 버튼 동작
   const capBtn=document.getElementById('captureBtn');
