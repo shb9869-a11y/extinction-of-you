@@ -116,9 +116,6 @@
   <!-- GOOD NIGHT -->
   <div id="goodnight">GOOD NIGHT</div>
 
-  <!-- 배경음 -->
-  <audio id="bgm" src="bgm.mp3" loop></audio>
-
 <script>
 (async ()=>{
   /* ===== 카메라 ===== */
@@ -130,7 +127,6 @@
   const zoomVal=document.getElementById('zoomVal');
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const updateZoom=()=>zoomVal.textContent=ZOOM.toFixed(1)+'×';
-
   document.getElementById('zoomIn').onclick=()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom(); playClick();};
   document.getElementById('zoomOut').onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom(); playClick();};
   updateZoom();
@@ -183,22 +179,53 @@
   await attachCamera(); loop();
 
   /* ===== 오디오 ===== */
-  const bgm=document.getElementById("bgm");
+  let audioCtx=null, masterGain=null;
+  let bgOsc=null; // 배경음 오실레이터
 
+  function ensureAudio(){
+    if(audioCtx) return;
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value=0.5;
+    masterGain.connect(audioCtx.destination);
+  }
+
+  function startBackgroundTone(){
+    if(!audioCtx || bgOsc) return;
+    bgOsc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    bgOsc.type='sine';
+    bgOsc.frequency.value=80; // 80Hz 저음
+    gain.gain.value=0.15;
+    bgOsc.connect(gain).connect(masterGain);
+    bgOsc.start();
+  }
+
+  // 버튼 소리 (저음 "쿵")
   function playClick(){
-    const o=new AudioContext();
-    const osc=o.createOscillator(), g=o.createGain();
-    osc.type="square"; osc.frequency.value=500;
-    g.gain.value=0.2; osc.connect(g); g.connect(o.destination);
-    osc.start(); osc.stop(o.currentTime+0.1);
+    if(!audioCtx) return;
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type='sine'; o.frequency.setValueAtTime(250,audioCtx.currentTime);
+    g.gain.setValueAtTime(0.3,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.2);
+    o.connect(g).connect(masterGain);
+    o.start(); o.stop(audioCtx.currentTime+0.21);
   }
+
+  // 틱 소리 (메트로놈틱)
   function playTick(){
-    const o=new AudioContext();
-    const osc=o.createOscillator(), g=o.createGain();
-    osc.type="triangle"; osc.frequency.value=900;
-    g.gain.value=0.2; osc.connect(g); g.connect(o.destination);
-    osc.start(); osc.stop(o.currentTime+0.05);
+    if(!audioCtx) return;
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type='triangle'; o.frequency.value=600;
+    g.gain.value=0.2;
+    o.connect(g).connect(masterGain);
+    o.start();
+    g.gain.setValueAtTime(0.2,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.08);
+    o.stop(audioCtx.currentTime+0.1);
   }
+
+  document.addEventListener('pointerdown', ()=>{ensureAudio();}, {once:true});
 
   /* ===== UI ===== */
   const overlay=document.getElementById('overlay');
@@ -228,7 +255,8 @@
   }
 
   startBtn.addEventListener('click', ()=>{
-    bgm.play().catch(e=>console.warn("배경음 재생 실패:", e));
+    ensureAudio(); 
+    startBackgroundTone(); // 80Hz 드론 시작
     playClick();
 
     const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
@@ -258,7 +286,6 @@
     });
   });
 
-  // CAPTURE
   captureBtn.addEventListener('click',()=>{
     playClick();
     try{
