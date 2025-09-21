@@ -3,27 +3,10 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Camera – BW + Trail + Hint</title>
-
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Camera Trail">
-<meta name="theme-color" content="#000000">
-<link rel="manifest" href="app.webmanifest">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-
+<title>Camera – BW + Afterimage (Separated)</title>
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden}
   #view{width:100%;height:100%;display:block}
-  .controls{
-    position:fixed;right:12px;bottom:12px;z-index:30;
-    display:flex;gap:8px;align-items:center;
-    background:rgba(0,0,0,.45);padding:8px;border-radius:12px;
-    font:14px/1 system-ui,-apple-system,sans-serif;color:#fff
-  }
-  .btn{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);
-       color:#fff;padding:6px 10px;border-radius:8px;font-weight:700}
-  .readout{min-width:64px;text-align:center;opacity:.9}
   #hint{
     position:fixed;left:50%;bottom:20px;transform:translateX(-50%);
     background:rgba(0,0,0,.7);color:#fff;padding:10px 16px;border-radius:10px;
@@ -34,20 +17,12 @@
 </head>
 <body>
   <canvas id="view"></canvas>
-  <div class="controls">
-    <button class="btn" id="zoomOut">–</button>
-    <div class="readout"><span id="zoomVal">1.2×</span></div>
-    <button class="btn" id="zoomIn">+</button>
-  </div>
   <div id="hint">📱 iOS 사파리에서 <b>공유 버튼 → 홈 화면에 추가</b>로 실행하면 주소창 없는 전체화면 모드로 쓸 수 있어요.</div>
 
 <script>
 (async ()=>{
   const view=document.getElementById('view');
   const vctx=view.getContext('2d',{alpha:false});
-  const zoomVal=document.getElementById('zoomVal');
-  const btnIn=document.getElementById('zoomIn');
-  const btnOut=document.getElementById('zoomOut');
   const hint=document.getElementById('hint');
 
   // ✅ 앱모드 감지 → 안내 숨김
@@ -55,74 +30,72 @@
                     || window.matchMedia('(display-mode: standalone)').matches;
   if(isStandalone){ hint.style.display="none"; }
 
-  const PROC_SCALE=0.6;
+  const PROC_SCALE=0.5;
+  const TRAIL_ALPHA=0.08;   // trail 강도 (0.02~0.1 사이에서 조절)
   const FRAME_MARGIN=40, FRAME_COLOR="#fff", FRAME_WIDTH=0.5;
-  let ZOOM=1.2;
-  const ZOOM_MIN=0.5, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
 
   const camVideo=document.createElement('video');
   camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
 
-  const proc=document.createElement('canvas');
-  const pctx=proc.getContext('2d',{alpha:false});
+  // 흑백 버퍼
+  const gray=document.createElement('canvas');
+  const gctx=gray.getContext('2d',{willReadFrequently:true});
+
+  // trail 버퍼
+  const trail=document.createElement('canvas');
+  const tctx=trail.getContext('2d');
 
   function resizeAll(){
     const dpr=window.devicePixelRatio||1;
     const w=window.innerWidth,h=window.innerHeight;
     view.width=w*dpr; view.height=h*dpr;
     vctx.setTransform(dpr,0,0,dpr,0,0);
-    proc.width=Math.floor(w*PROC_SCALE);
-    proc.height=Math.floor(h*PROC_SCALE);
+    gray.width=Math.floor(w*PROC_SCALE);
+    gray.height=Math.floor(h*PROC_SCALE);
+    trail.width=gray.width;
+    trail.height=gray.height;
   }
   resizeAll();
   addEventListener('resize',()=>setTimeout(resizeAll,50));
-  addEventListener('orientationchange',()=>setTimeout(resizeAll,120));
 
   async function attachCamera(){
     const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
     camVideo.srcObject=s; await camVideo.play();
   }
 
-  // 줌
-  function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
-  function updateZoom(){zoomVal.textContent=ZOOM.toFixed(1)+'×'}
-  btnIn.onclick=()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom()};
-  btnOut.onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom()};
-  updateZoom();
-
   function loop(){
     requestAnimationFrame(loop);
     const W=view.width/(window.devicePixelRatio||1);
     const H=view.height/(window.devicePixelRatio||1);
-    const PW=proc.width, PH=proc.height;
 
-    // 1) 어둡게 덮어 → trail 효과
-    pctx.globalCompositeOperation="source-over";
-    pctx.fillStyle="rgba(0,0,0,0.1)";
-    pctx.fillRect(0,0,PW,PH);
+    const GW=gray.width, GH=gray.height;
 
-    // 2) 카메라 프레임
+    // 1. 카메라 → gray (흑백 변환)
     if(camVideo.readyState>=2){
-      const vw=camVideo.videoWidth, vh=camVideo.videoHeight;
-      if(vw && vh){
-        const base=Math.max(PW/vw,PH/vh);
-        const sc=base*ZOOM;
-        const dw=vw*sc, dh=vh*sc;
-        const dx=(PW-dw)/2, dy=(PH-dh)/2;
-
-        // 흑백 필터 적용
-        pctx.filter="grayscale(100%)";
-        pctx.globalCompositeOperation="lighter"; // 이전 프레임과 겹치며 꼬리 남음
-        pctx.drawImage(camVideo,dx,dy,dw,dh);
-        pctx.filter="none";
-        pctx.globalCompositeOperation="source-over";
+      gctx.drawImage(camVideo,0,0,GW,GH);
+      const frame=gctx.getImageData(0,0,GW,GH);
+      const d=frame.data;
+      for(let i=0;i<d.length;i+=4){
+        const grayVal=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0;
+        d[i]=d[i+1]=d[i+2]=grayVal;
       }
+      gctx.putImageData(frame,0,0);
     }
 
-    // 3) 업스케일
-    vctx.drawImage(proc,0,0,W,H);
+    // 2. trail 누적
+    tctx.globalCompositeOperation="source-over";
+    tctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`; // 잔상 지우기
+    tctx.fillRect(0,0,trail.width,trail.height);
 
-    // 4) 프레임
+    tctx.globalCompositeOperation="lighter"; // 이전 프레임과 겹치며 꼬리 남김
+    tctx.drawImage(gray,0,0);
+
+    tctx.globalCompositeOperation="source-over";
+
+    // 3. trail → main 업스케일
+    vctx.drawImage(trail,0,0,W,H);
+
+    // 4. 프레임
     vctx.strokeStyle=FRAME_COLOR; vctx.lineWidth=FRAME_WIDTH;
     vctx.strokeRect(FRAME_MARGIN,FRAME_MARGIN,W-2*FRAME_MARGIN,H-2*FRAME_MARGIN);
   }
