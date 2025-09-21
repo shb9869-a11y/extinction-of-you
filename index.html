@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Camera – BW + Afterimage + Mission Flow</title>
 
-<!-- PWA -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="app.webmanifest">
@@ -20,7 +19,7 @@
   html,body{margin:0;height:100%;background:#000;overflow:hidden}
   #view{width:100%;height:100%;display:block;position:fixed;left:0;top:0;z-index:0}
 
-  /* 프로시니엄 프레임 (검정 라인) */
+  /* 프로시니엄 프레임 */
   .frameBox{
     position:fixed;left:var(--frame);top:var(--frame);
     right:var(--frame);bottom:var(--frame);
@@ -28,26 +27,28 @@
     pointer-events:none; z-index:50;
   }
 
-  /* 공통 버튼 디자인(START / CAPTURE / ZOOM) */
+  /* 공통 버튼 디자인 */
   .uiBtn{
     background:#000; color:#fff; border:1px solid #000;
-    font-size:var(--font-strong); padding:10px 20px; cursor:pointer;
+    font-size:var(--font-strong); padding:10px 20px;
     font-family:"Courier New",monospace; border-radius:0;
-    white-space:nowrap; user-select:none;
+    white-space:nowrap; cursor:pointer; user-select:none;
+  }
+  .uiBtn.small{
+    font-size:14px; padding:4px 10px;
   }
 
-  /* 컨트롤 바(프레임 안쪽, 배경 제거해서 버튼과 일관성) */
+  /* 컨트롤 */
   .controls{
     position:fixed;
     right:calc(var(--frame) + var(--ui-gap));
     bottom:calc(var(--frame) + var(--ui-gap));
-    z-index:100; display:flex; gap:8px; align-items:center;
-    background:transparent; padding:0; border-radius:0;
-    font:14px/1 system-ui,-apple-system,sans-serif; color:#fff;
+    z-index:100; display:flex; gap:6px; align-items:center;
+    background:transparent;
   }
-  .readout{min-width:64px;text-align:center;opacity:.9;font-family:"Courier New",monospace}
+  .readout{min-width:48px;text-align:center;opacity:.9;font-family:"Courier New",monospace;font-size:12px}
 
-  /* CAPTURE 버튼(좌하단) */
+  /* CAPTURE */
   .btn-capture{
     position:fixed;
     left:calc(var(--frame) + var(--ui-gap));
@@ -55,7 +56,7 @@
     z-index:150;
   }
 
-  /* 오버레이(배경 없음) */
+  /* 오버레이 */
   #overlay{
     position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
     padding:20px;font-family:"Courier New",monospace;color:#fff;pointer-events:none;
@@ -67,18 +68,14 @@
     overflow:hidden; text-align:left;
   }
 
-  /* 안내문 각 줄 하이라이트 */
-  .line{
-    display:inline; background:#000; color:#fff; padding:6px 8px;
-    box-decoration-break:clone; -webkit-box-decoration-break:clone;
-  }
+  .line{display:inline; background:#000; color:#fff; padding:6px 8px;
+    box-decoration-break:clone; -webkit-box-decoration-break:clone;}
   .lineWrap{ margin:6px 0 }
 
-  /* 페이드 */
   .fade{opacity:1;transition:opacity .45s ease}
   .fade.hidden{opacity:0}
 
-  /* GOOD NIGHT (버튼과 동일 크기/한 줄 고정) */
+  /* GOOD NIGHT */
   #goodnight{
     position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
     z-index:250;display:none;text-align:center;
@@ -90,7 +87,6 @@
   #goodnight.show{display:block;opacity:1}
   #goodnight.fadeout{opacity:0}
 
-  /* 가로모드 폰트 보정 */
   @media (orientation:landscape){
     :root{ --frame: 32px; }
   }
@@ -100,15 +96,15 @@
   <canvas id="view"></canvas>
   <div class="frameBox" aria-hidden="true"></div>
 
-  <!-- 줌 컨트롤: – / + 도 동일 디자인 -->
+  <!-- 줌 -->
   <div class="controls">
-    <button class="uiBtn" id="zoomOut">–</button>
+    <button class="uiBtn small" id="zoomOut">–</button>
     <div class="readout"><span id="zoomVal">1.2×</span></div>
-    <button class="uiBtn" id="zoomIn">+</button>
+    <button class="uiBtn small" id="zoomIn">+</button>
   </div>
 
-  <!-- CAPTURE 버튼 (영문, 동일 디자인) -->
-  <button id="captureBtn" class="uiBtn btn-capture">CAPTURE</button>
+  <!-- CAPTURE -->
+  <button id="captureBtn" class="uiBtn small btn-capture">CAPTURE</button>
 
   <!-- 오버레이 -->
   <div id="overlay" class="fade">
@@ -120,9 +116,12 @@
   <!-- GOOD NIGHT -->
   <div id="goodnight">GOOD NIGHT</div>
 
+  <!-- 배경음 -->
+  <audio id="bgm" src="bgm.mp3" loop></audio>
+
 <script>
 (async ()=>{
-  /* ===== 카메라 렌더 ===== */
+  /* ===== 카메라 ===== */
   const view=document.getElementById('view');
   const vctx=view.getContext('2d',{alpha:false});
   const PROC_SCALE=0.6, TRAIL_ALPHA=0.10, GLOBAL_ALPHA=0.7;
@@ -131,9 +130,6 @@
   const zoomVal=document.getElementById('zoomVal');
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const updateZoom=()=>zoomVal.textContent=ZOOM.toFixed(1)+'×';
-
-  // 공통 클릭 사운드 트리거용
-  const clickables = [];
 
   document.getElementById('zoomIn').onclick=()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom(); playClick();};
   document.getElementById('zoomOut').onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom(); playClick();};
@@ -148,7 +144,7 @@
     try{
       const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
       camVideo.srcObject=s; await camVideo.play().catch(()=>{});
-    }catch(e){console.error("카메라 접근 실패:", e);}
+    }catch(e){console.error("카메라 실패:", e);}
   }
 
   function resizeAll(){
@@ -156,15 +152,6 @@
     const w=window.innerWidth,h=window.innerHeight;
     view.width=w*dpr; view.height=h*dpr; vctx.setTransform(dpr,0,0,dpr,0,0);
     proc.width=Math.floor(w*PROC_SCALE); proc.height=Math.floor(h*PROC_SCALE);
-
-    // 방향 전환 시 폰트 재설정(비율 깨짐 방지)
-    if(w>h){
-      document.documentElement.style.setProperty("--font-body","14px");
-      document.documentElement.style.setProperty("--font-strong","16px");
-    } else {
-      document.documentElement.style.setProperty("--font-body","16px");
-      document.documentElement.style.setProperty("--font-strong","18px");
-    }
   }
   resizeAll(); addEventListener('resize',()=>setTimeout(resizeAll,50));
 
@@ -195,68 +182,30 @@
   }
   await attachCamera(); loop();
 
-  /* ===== 오디오(배경/효과음) ===== */
-  let audioCtx=null, masterGain=null, ambGain=null;
-  function ensureAudio(){
-    if(audioCtx) return;
-    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    masterGain = audioCtx.createGain(); masterGain.gain.value=0.6; masterGain.connect(audioCtx.destination);
-
-    // 배경 드론
-    ambGain = audioCtx.createGain(); ambGain.gain.value=0.15; ambGain.connect(masterGain);
-
-    const osc1 = audioCtx.createOscillator(); osc1.type='sine'; osc1.frequency.value=70;
-    const osc2 = audioCtx.createOscillator(); osc2.type='sine'; osc2.frequency.value=84;
-    const lfo  = audioCtx.createOscillator(); lfo.type='sine'; lfo.frequency.value=0.06;
-    const lfoGain = audioCtx.createGain(); lfoGain.gain.value=8;
-    lfo.connect(lfoGain); lfoGain.connect(osc1.frequency); lfoGain.connect(osc2.frequency);
-    osc1.connect(ambGain); osc2.connect(ambGain);
-    osc1.start(); osc2.start(); lfo.start();
-
-    // 바람/잔향 느낌의 노이즈
-    const noiseBuf = (()=>{ const b = audioCtx.createBuffer(1, audioCtx.sampleRate*2, audioCtx.sampleRate);
-      const data=b.getChannelData(0); for(let i=0;i<data.length;i++) data[i]=(Math.random()*2-1)*0.2; return b;})();
-    const noise = audioCtx.createBufferSource(); noise.buffer=noiseBuf; noise.loop=true;
-    const noiseFilt = audioCtx.createBiquadFilter(); noiseFilt.type='lowpass'; noiseFilt.frequency.value=600;
-    const noiseGain = audioCtx.createGain(); noiseGain.gain.value=0.08;
-    noise.connect(noiseFilt); noiseFilt.connect(noiseGain); noiseGain.connect(ambGain);
-    noise.start();
-  }
+  /* ===== 오디오 ===== */
+  const bgm=document.getElementById("bgm");
 
   function playClick(){
-    if(!audioCtx) return;
-    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-    o.type='square'; o.frequency.setValueAtTime(700,audioCtx.currentTime);
-    o.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime+0.08);
-    g.gain.setValueAtTime(0.0,audioCtx.currentTime);
-    g.gain.linearRampToValueAtTime(0.25,audioCtx.currentTime+0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.12);
-    o.connect(g); g.connect(masterGain);
-    o.start(); o.stop(audioCtx.currentTime+0.13);
+    const o=new AudioContext();
+    const osc=o.createOscillator(), g=o.createGain();
+    osc.type="square"; osc.frequency.value=500;
+    g.gain.value=0.2; osc.connect(g); g.connect(o.destination);
+    osc.start(); osc.stop(o.currentTime+0.1);
   }
   function playTick(){
-    if(!audioCtx) return;
-    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-    o.type='triangle'; o.frequency.value=900; g.gain.value=0.18;
-    o.connect(g); g.connect(masterGain); o.start();
-    g.gain.setValueAtTime(0.18,audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.05);
-    o.stop(audioCtx.currentTime+0.06);
+    const o=new AudioContext();
+    const osc=o.createOscillator(), g=o.createGain();
+    osc.type="triangle"; osc.frequency.value=900;
+    g.gain.value=0.2; osc.connect(g); g.connect(o.destination);
+    osc.start(); osc.stop(o.currentTime+0.05);
   }
 
-  // 첫 사용자 제스처에서 오디오 허용 + 배경시작
-  const unlock = ()=>{ ensureAudio(); document.removeEventListener('pointerdown', unlock); };
-  document.addEventListener('pointerdown', unlock, {once:true});
-
-  /* ===== UI 흐름 ===== */
+  /* ===== UI ===== */
   const overlay=document.getElementById('overlay');
   const overlayContent=document.getElementById('overlayContent');
   const startBtn=document.getElementById('startBtn');
   const goodnight=document.getElementById('goodnight');
   const captureBtn=document.getElementById('captureBtn');
-
-  // 다른 버튼도 클릭 사운드
-  captureBtn.addEventListener('click', ()=>{ ensureAudio(); playClick(); });
 
   function crossfadeUpdate(html,nextAction){
     overlayContent.classList.add('hidden');
@@ -279,7 +228,7 @@
   }
 
   startBtn.addEventListener('click', ()=>{
-    ensureAudio();  // 일부 브라우저에서 확실히 시작
+    bgm.play().catch(e=>console.warn("배경음 재생 실패:", e));
     playClick();
 
     const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
@@ -294,35 +243,28 @@
         <span class="line">THE DOOR WILL OPEN IN <span id="countNum">60</span> SECONDS.</span>
       </div>
     `;
-
     crossfadeUpdate(introHTML, ()=>{
       let count = 60;
       const numEl = document.getElementById('countNum');
       const timer = setInterval(()=>{
         count--;
-        if(count>=0){
-          numEl.textContent = count;
-          playTick(); // 초 줄어들 때 소리
-        }
+        if(count>=0){ numEl.textContent=count; playTick(); }
         if(count<=0){
           clearInterval(timer);
           overlay.classList.add('hidden');
-          setTimeout(()=>{
-            overlay.style.display='none';
-            showGoodNight15s();
-          },450);
+          setTimeout(()=>{overlay.style.display='none'; showGoodNight15s();},450);
         }
       },1000);
     });
   });
 
-  // CAPTURE 저장
+  // CAPTURE
   captureBtn.addEventListener('click',()=>{
+    playClick();
     try{
       const a=document.createElement('a');
       a.download=`capture_${Date.now()}.png`;
-      a.href=view.toDataURL('image/png');
-      a.click();
+      a.href=view.toDataURL('image/png'); a.click();
     }catch(e){ console.warn('CAPTURE 실패', e); }
   });
 })();
