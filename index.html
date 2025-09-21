@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Camera – BW + Afterimage + Mission Flow</title>
 
-<!-- PWA: 홈 화면 추가 시 브라우저 UI 제거 -->
+<!-- PWA: 홈 화면 추가 시 전체화면 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="app.webmanifest">
@@ -24,7 +24,7 @@
   .frameBox{
     position:fixed;left:var(--frame);top:var(--frame);
     right:var(--frame);bottom:var(--frame);
-    border:1px solid #000; /* ← 요청대로 검정 */
+    border:1px solid #000; /* 검정색 라인 */
     pointer-events:none; z-index:50;
   }
 
@@ -62,7 +62,7 @@
     pointer-events:auto; line-height:1.7; font-size:var(--font-body);
     max-width:min(680px, calc(100vw - (var(--frame)*2)));
     max-height:calc(100vh - (var(--frame)*2));
-    overflow:auto; text-align:left;
+    overflow:hidden; text-align:left;
   }
 
   /* 시작 버튼 */
@@ -93,9 +93,13 @@
   #goodnight.show{display:block;opacity:1}
   #goodnight.fadeout{opacity:0}
 
-  /* 가로모드에서 프레임 약간 축소 */
+  /* 가로모드에서 폰트 줄이기 */
   @media (orientation:landscape){
-    :root{ --frame: 32px; }
+    :root{
+      --frame: 32px;
+      --font-body: clamp(12px, 1.6vw, 14px);
+      --font-strong: clamp(14px, 2vw, 16px);
+    }
   }
 </style>
 </head>
@@ -204,10 +208,10 @@
   const goodnight=document.getElementById('goodnight');
 
   function crossfadeUpdate(html,nextAction){
-    overlayContent.classList.add('hidden');          // fade out
+    overlayContent.classList.add('hidden');          
     setTimeout(()=>{
       overlayContent.innerHTML=html;
-      overlayContent.classList.remove('hidden');     // fade in
+      overlayContent.classList.remove('hidden');     
       nextAction && nextAction();
     },450);
   }
