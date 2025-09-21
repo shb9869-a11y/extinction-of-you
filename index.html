@@ -3,172 +3,116 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Camera – BW + Max Trail + Zoom</title>
-
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Camera Trail">
-<meta name="theme-color" content="#000000">
-<link rel="manifest" href="app.webmanifest">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Camera – BW + Afterimage</title>
 
 <style>
-  :root { color-scheme: dark; }
-  html,body{ margin:0; height:100%; background:#000; overflow:hidden; }
-  #app{ position:fixed; inset:0; width:100vw; height:100svh; background:#000; touch-action:none; overscroll-behavior:none; }
-  #view{ width:100%; height:100%; display:block; }
-
-  .controls{
-    position:fixed; right:12px; bottom:12px; z-index:30;
-    display:flex; gap:8px; align-items:center;
-    background:rgba(0,0,0,.45); padding:8px; border-radius:12px;
-    font:14px/1 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; color:#fff;
+  html,body{margin:0;height:100%;background:#000;overflow:hidden}
+  #view{width:100%;height:100%;display:block}
+  #controls{
+    position:fixed;right:12px;bottom:12px;z-index:30;
+    display:flex;gap:8px;align-items:center;
+    background:rgba(0,0,0,.45);padding:8px;border-radius:12px;
+    font:14px/1 system-ui,-apple-system,sans-serif;color:#fff
   }
-  .btn{
-    appearance:none; border:1px solid rgba(255,255,255,.25); color:#fff;
-    background:rgba(255,255,255,.08); padding:8px 12px; border-radius:10px;
-    font:700 14px/1 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-  }
-  .btn:active{ transform:translateY(1px); }
-  .readout{ min-width:64px; text-align:center; opacity:.9; }
-  #start{
-    position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
-    padding:12px 18px; border:0; border-radius:999px; z-index:40;
-    font:700 16px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-    color:#fff; background:#12a150; display:none;
-  }
+  .btn{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);
+       color:#fff;padding:6px 10px;border-radius:8px;font-weight:700}
+  .readout{min-width:64px;text-align:center;opacity:.9}
 </style>
 </head>
 <body>
-  <div id="app">
-    <canvas id="view"></canvas>
-    <div class="controls" id="controls">
-      <button class="btn" id="zoomOut">–</button>
-      <div class="readout"><span id="zoomVal">1.2×</span></div>
-      <button class="btn" id="zoomIn">+</button>
-    </div>
-    <button id="start">카메라 시작</button>
+  <canvas id="view"></canvas>
+  <div id="controls">
+    <button class="btn" id="zoomOut">–</button>
+    <div class="readout"><span id="zoomVal">1.2×</span></div>
+    <button class="btn" id="zoomIn">+</button>
   </div>
 
 <script>
 (async ()=>{
-  const app  = document.getElementById('app');
   const view = document.getElementById('view');
-  const vctx = view.getContext('2d', { alpha:false });
-  const startBtn = document.getElementById('start');
+  const vctx = view.getContext('2d',{alpha:false});
+  const zoomVal=document.getElementById('zoomVal');
+  const btnIn=document.getElementById('zoomIn');
+  const btnOut=document.getElementById('zoomOut');
 
-  const btnIn  = document.getElementById('zoomIn');
-  const btnOut = document.getElementById('zoomOut');
-  const zoomVal = document.getElementById('zoomVal');
+  const PROC_SCALE=0.6;
+  const TRAIL_ALPHA=0.05;   // ☆ 잔영 강도. 0.02~0.08 추천
+  const FRAME_MARGIN=40, FRAME_COLOR="#fff", FRAME_WIDTH=0.5;
 
-  // 🎛️ 설정
-  const PROC_SCALE   = 0.6;        // 내부 처리 해상도
-  const TRAIL_ALPHA  = 0.0005;     // ☆ 최대로 잔상 오래 남음
-  const FRAME_MARGIN = 40;         
-  const FRAME_COLOR  = "#ffffff";  
-  const FRAME_WIDTH  = 0.5;        
+  let ZOOM=1.2;
+  const ZOOM_MIN=0.5, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
 
-  let ZOOM = 1.2;                  // ☆ 기본 확대 1.2×
-  const ZOOM_MIN = 0.5, ZOOM_MAX = 3.0, ZOOM_STEP = 0.1;
+  const camVideo=document.createElement('video');
+  camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
 
-  const camVideo = document.createElement('video');
-  camVideo.autoplay = true; camVideo.playsInline = true; camVideo.muted = true;
-
-  const proc = document.createElement('canvas');
-  const pctx = proc.getContext('2d', { alpha:false, willReadFrequently:true });
+  const proc=document.createElement('canvas');
+  const pctx=proc.getContext('2d',{alpha:false,willReadFrequently:true});
 
   function resizeAll(){
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
-    const w = Math.max(1, Math.floor(window.innerWidth));
-    const h = Math.max(1, Math.floor(window.innerHeight));
-    view.style.width = w+'px';
-    view.style.height = h+'px';
-    view.width  = Math.floor(w * dpr);
-    view.height = Math.floor(h * dpr);
-    vctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    proc.width  = Math.max(1, Math.floor(w * PROC_SCALE));
-    proc.height = Math.max(1, Math.floor(h * PROC_SCALE));
+    const dpr=window.devicePixelRatio||1;
+    const w=window.innerWidth, h=window.innerHeight;
+    view.width=w*dpr; view.height=h*dpr;
+    vctx.setTransform(dpr,0,0,dpr,0,0);
+    proc.width=Math.floor(w*PROC_SCALE);
+    proc.height=Math.floor(h*PROC_SCALE);
   }
-  const reqResize = (delay=50)=>setTimeout(resizeAll, delay);
-  addEventListener('resize', ()=>reqResize(50), {passive:true});
-  addEventListener('orientationchange', ()=>reqResize(120));
-  if (window.visualViewport){ visualViewport.addEventListener('resize', ()=>reqResize(50)); }
   resizeAll();
+  window.addEventListener('resize',()=>setTimeout(resizeAll,50));
+  window.addEventListener('orientationchange',()=>setTimeout(resizeAll,120));
 
   async function attachCamera(){
-    try{
-      const s = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' } }, audio:false });
-      camVideo.srcObject = s; await camVideo.play();
-    }catch(e){
-      const s2 = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
-      camVideo.srcObject = s2; await camVideo.play();
-    }
+    const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    camVideo.srcObject=s; await camVideo.play();
   }
 
-  // 줌 버튼
-  function clamp(v,min,max){ return Math.max(min, Math.min(max,v)); }
-  function updateZoomReadout(){ zoomVal.textContent = (Math.round(ZOOM*10)/10).toFixed(1)+'×'; }
-  btnIn.addEventListener('click', ()=>{ ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX); updateZoomReadout(); });
-  btnOut.addEventListener('click', ()=>{ ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX); updateZoomReadout(); });
-  updateZoomReadout();
+  // 줌 컨트롤
+  function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+  function updateZoom(){zoomVal.textContent=ZOOM.toFixed(1)+'×'}
+  btnIn.onclick=()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom()};
+  btnOut.onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom()};
+  updateZoom();
 
-  let raf=0;
   function loop(){
-    raf = requestAnimationFrame(loop);
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
-    const W = view.width / dpr;
-    const H = view.height / dpr;
-    const PW = proc.width, PH = proc.height;
+    requestAnimationFrame(loop);
+    const W=view.width/(window.devicePixelRatio||1);
+    const H=view.height/(window.devicePixelRatio||1);
+    const PW=proc.width, PH=proc.height;
 
-    // 1) 잔상 페이드
-    pctx.fillStyle = `rgba(0,0,0,${TRAIL_ALPHA})`;
+    // 1) 잔영: 살짝 어둡게 덮어서 이전 프레임 남기기
+    pctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`;
     pctx.fillRect(0,0,PW,PH);
 
-    // 2) 카메라 프레임
-    if (camVideo.readyState >= 2){
-      const vw = camVideo.videoWidth||0, vh = camVideo.videoHeight||0;
-      if (vw && vh){
-        const baseScale = Math.max(PW/vw, PH/vh);
-        const sc = baseScale * ZOOM;
-        const dw = vw*sc, dh = vh*sc;
-        const dx = (PW-dw)/2, dy = (PH-dh)/2;
-        pctx.drawImage(camVideo, dx, dy, dw, dh);
+    // 2) 새 카메라 프레임
+    if(camVideo.readyState>=2){
+      const vw=camVideo.videoWidth, vh=camVideo.videoHeight;
+      if(vw && vh){
+        const base=Math.max(PW/vw, PH/vh);
+        const sc=base*ZOOM;
+        const dw=vw*sc, dh=vh*sc;
+        const dx=(PW-dw)/2, dy=(PH-dh)/2;
+        pctx.drawImage(camVideo,dx,dy,dw,dh);
 
-        // 3) 흑백 변환
-        const frame = pctx.getImageData(0,0,PW,PH);
-        const d = frame.data;
-        for (let i=0;i<d.length;i+=4){
-          const r=d[i], g=d[i+1], b=d[i+2];
-          const gray=(0.299*r+0.587*g+0.114*b)|0;
+        // 3) 흑백 변환 (덮기지만 fillRect 잔영은 남음)
+        const frame=pctx.getImageData(0,0,PW,PH);
+        const d=frame.data;
+        for(let i=0;i<d.length;i+=4){
+          const gray=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0;
           d[i]=d[i+1]=d[i+2]=gray;
         }
         pctx.putImageData(frame,0,0);
       }
     }
 
-    // 4) 메인 캔버스
-    vctx.clearRect(0,0,W,H);
+    // 4) 메인 캔버스 업스케일
     vctx.drawImage(proc,0,0,W,H);
 
-    // 5) 프레임
-    vctx.save();
-    vctx.strokeStyle = FRAME_COLOR;
-    vctx.lineWidth = FRAME_WIDTH;
+    // 5) 흰색 프레임
+    vctx.strokeStyle=FRAME_COLOR; vctx.lineWidth=FRAME_WIDTH;
     vctx.strokeRect(FRAME_MARGIN,FRAME_MARGIN,W-2*FRAME_MARGIN,H-2*FRAME_MARGIN);
-    vctx.restore();
   }
 
-  async function startAll(){
-    try{ await attachCamera(); startBtn.style.display='none'; if(!raf) loop(); }
-    catch(e){ startBtn.style.display='inline-block'; }
-  }
-
-  startBtn.addEventListener('click', startAll, {once:true});
-  startAll();
-
-  document.addEventListener('visibilitychange', ()=>{
-    if (!document.hidden){ camVideo.play().catch(()=>{}); reqResize(120); }
-  });
+  await attachCamera();
+  loop();
 })();
 </script>
 </body>
