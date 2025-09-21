@@ -12,7 +12,7 @@
 
 <style>
   :root{
-    --frame: 40px;            
+    --frame: 40px;
     --ui-gap: 8px;
     --font-body: 16px;
     --font-strong: 18px;
@@ -24,8 +24,7 @@
   .frameBox{
     position:fixed;left:var(--frame);top:var(--frame);
     right:var(--frame);bottom:var(--frame);
-    border:1px solid #000;
-    pointer-events:none; z-index:50;
+    border:1px solid #000; pointer-events:none; z-index:50;
   }
 
   /* 컨트롤 */
@@ -41,27 +40,22 @@
     background:rgba(255,255,255,.08);color:#fff;padding:6px 10px;
     border-radius:8px;font-weight:700;cursor:pointer;font-family:"Courier New",monospace}
   .readout{min-width:64px;text-align:center;opacity:.9;font-family:"Courier New",monospace}
-
   .btn-capture{
-    position:fixed;
-    left:calc(var(--frame) + var(--ui-gap));
+    position:fixed;left:calc(var(--frame) + var(--ui-gap));
     bottom:calc(var(--frame) + var(--ui-gap));
-    z-index:150;
-    border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);
+    z-index:150;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);
     color:#fff;padding:10px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-family:"Courier New",monospace;
   }
 
   /* 오버레이 */
   #overlay{
-    position:fixed;inset:0;z-index:200;
-    display:flex;align-items:center;justify-content:center;
-    padding:20px;font-family:"Courier New",monospace;color:#fff;
-    pointer-events:none;
+    position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
+    padding:20px;font-family:"Courier New",monospace;color:#fff;pointer-events:none;
   }
   #overlayContent{
     pointer-events:auto; line-height:1.7; font-size:var(--font-body);
     max-width:min(680px, calc(100vw - (var(--frame)*2)));
-    max-height:calc(100vh - (var(--frame)*2));
+    max-height:calc(100vh - (var(--frame)*2)));
     overflow:hidden; text-align:left;
   }
 
@@ -70,14 +64,12 @@
     background:#000;color:#fff;border:1px solid #000;
     font-size:var(--font-strong);padding:10px 20px;cursor:pointer;
     font-family:"Courier New",monospace;border-radius:0; display:block; margin:0 auto;
-    white-space:nowrap; /* ✅ 한 줄 고정 */
+    white-space:nowrap; /* 한 줄 고정 */
   }
 
-  /* 안내문 각 줄 */
-  .line{
-    display:inline; background:#000; color:#fff; padding:6px 8px;
-    box-decoration-break:clone; -webkit-box-decoration-break:clone;
-  }
+  /* 안내문 각 줄 하이라이트 */
+  .line{display:inline; background:#000; color:#fff; padding:6px 8px;
+    box-decoration-break:clone; -webkit-box-decoration-break:clone;}
   .lineWrap{ margin:6px 0 }
 
   /* 페이드 */
@@ -89,13 +81,16 @@
     position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
     z-index:250;color:#fff;font-weight:bold;display:none;text-align:center;
     font-family:"Courier New",monospace;
-    font-size:var(--font-strong); /* ✅ PRESS와 동일 크기 */
-    background:#000; padding:10px 20px;
-    white-space:nowrap; /* ✅ 한 줄 고정 */
-    transition:opacity .6s ease;
+    font-size:var(--font-strong); background:#000; padding:10px 20px;
+    white-space:nowrap; transition:opacity .6s ease;
   }
   #goodnight.show{display:block;opacity:1}
   #goodnight.fadeout{opacity:0}
+
+  /* 가로모드 폰트 보정 */
+  @media (orientation:landscape){
+    :root{ --frame: 32px; }
+  }
 </style>
 </head>
 <body>
@@ -123,9 +118,9 @@
 
 <script>
 (async ()=>{
+  /* ===== 카메라 렌더 ===== */
   const view=document.getElementById('view');
   const vctx=view.getContext('2d',{alpha:false});
-
   const PROC_SCALE=0.6, TRAIL_ALPHA=0.10, GLOBAL_ALPHA=0.7;
   let ZOOM=1.2, ZOOM_MIN=0.5, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
 
@@ -144,21 +139,18 @@
   async function attachCamera(){
     try{
       const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
-      camVideo.srcObject=s;
-      await camVideo.play().catch(()=>{});
+      camVideo.srcObject=s; await camVideo.play().catch(()=>{});
     }catch(e){console.error("카메라 접근 실패:", e);}
   }
 
   function resizeAll(){
     const dpr=window.devicePixelRatio||1;
     const w=window.innerWidth,h=window.innerHeight;
-    view.width=w*dpr; view.height=h*dpr;
-    vctx.setTransform(dpr,0,0,dpr,0,0);
-    proc.width=Math.floor(w*PROC_SCALE);
-    proc.height=Math.floor(h*PROC_SCALE);
+    view.width=w*dpr; view.height=h*dpr; vctx.setTransform(dpr,0,0,dpr,0,0);
+    proc.width=Math.floor(w*PROC_SCALE); proc.height=Math.floor(h*PROC_SCALE);
 
-    // ✅ 폰트 크기 재계산 (세로/가로 전환 시 비율 깨짐 방지)
-    if(window.innerWidth > window.innerHeight){
+    // 방향 전환 시 폰트 재설정(비율 깨짐 방지)
+    if(w>h){
       document.documentElement.style.setProperty("--font-body","14px");
       document.documentElement.style.setProperty("--font-strong","16px");
     } else {
@@ -175,26 +167,18 @@
     const PW=proc.width, PH=proc.height;
 
     pctx.globalCompositeOperation="source-over";
-    pctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`;
-    pctx.fillRect(0,0,PW,PH);
+    pctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`; pctx.fillRect(0,0,PW,PH);
 
     if(camVideo.readyState>=2){
       const vw=camVideo.videoWidth, vh=camVideo.videoHeight;
       if(vw && vh){
-        const base=Math.max(PW/vw,PH/vh);
-        const sc=base*ZOOM;
-        const dw=vw*sc, dh=vh*sc;
-        const dx=(PW-dw)/2, dy=(PH-dh)/2;
-
-        pctx.globalAlpha=GLOBAL_ALPHA;
-        pctx.drawImage(camVideo,dx,dy,dw,dh);
+        const base=Math.max(PW/vw,PH/vh), sc=base*ZOOM;
+        const dw=vw*sc, dh=vh*sc, dx=(PW-dw)/2, dy=(PH-dh)/2;
+        pctx.globalAlpha=GLOBAL_ALPHA; pctx.drawImage(camVideo,dx,dy,dw,dh);
         pctx.globalAlpha=1.0;
-
-        const frame=pctx.getImageData(0,0,PW,PH);
-        const d=frame.data;
+        const frame=pctx.getImageData(0,0,PW,PH); const d=frame.data;
         for(let i=0;i<d.length;i+=4){
-          const gray=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0;
-          d[i]=d[i+1]=d[i+2]=gray;
+          const g=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0; d[i]=d[i+1]=d[i+2]=g;
         }
         pctx.putImageData(frame,0,0);
       }
@@ -203,17 +187,83 @@
   }
   await attachCamera(); loop();
 
-  // UI 흐름
+  /* ===== 오디오(배경/효과음) ===== */
+  let audioCtx=null, masterGain=null, ambGain=null;
+  function ensureAudio(){
+    if(audioCtx) return;
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    masterGain = audioCtx.createGain(); masterGain.gain.value=0.6; masterGain.connect(audioCtx.destination);
+
+    // 배경 드론
+    ambGain = audioCtx.createGain(); ambGain.gain.value=0.15; ambGain.connect(masterGain);
+
+    const osc1 = audioCtx.createOscillator(); osc1.type='sine'; osc1.frequency.value=70; // 저음
+    const osc2 = audioCtx.createOscillator(); osc2.type='sine'; osc2.frequency.value=84; // 5도
+    const lfo  = audioCtx.createOscillator(); lfo.type='sine'; lfo.frequency.value=0.06; // 아주 느린 요동
+    const lfoGain = audioCtx.createGain(); lfoGain.gain.value=8; // 진동 폭(Hz)
+
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc1.frequency);
+    lfoGain.connect(osc2.frequency);
+    osc1.connect(ambGain); osc2.connect(ambGain);
+    osc1.start(); osc2.start(); lfo.start();
+
+    // 바람/잔향 느낌의 노이즈
+    const noiseBuf = (()=>{ // 2초짜리 화이트 노이즈 버퍼
+      const b = audioCtx.createBuffer(1, audioCtx.sampleRate*2, audioCtx.sampleRate);
+      const data=b.getChannelData(0);
+      for(let i=0;i<data.length;i++) data[i]=(Math.random()*2-1)*0.2;
+      return b;
+    })();
+    const noise = audioCtx.createBufferSource(); noise.buffer=noiseBuf; noise.loop=true;
+    const noiseFilt = audioCtx.createBiquadFilter(); noiseFilt.type='lowpass'; noiseFilt.frequency.value=600;
+    const noiseGain = audioCtx.createGain(); noiseGain.gain.value=0.08;
+    noise.connect(noiseFilt); noiseFilt.connect(noiseGain); noiseGain.connect(ambGain);
+    noise.start();
+  }
+
+  // 버튼 클릭 소리
+  function playClick(){
+    if(!audioCtx) return;
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type='square'; o.frequency.setValueAtTime(700,audioCtx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime+0.08);
+    g.gain.setValueAtTime(0.0,audioCtx.currentTime);
+    g.gain.linearRampToValueAtTime(0.25,audioCtx.currentTime+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.12);
+    o.connect(g); g.connect(masterGain);
+    o.start(); o.stop(audioCtx.currentTime+0.13);
+  }
+
+  // 카운트다운 틱 소리
+  function playTick(){
+    if(!audioCtx) return;
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type='triangle'; o.frequency.value=900;
+    g.gain.value=0.18;
+    o.connect(g); g.connect(masterGain);
+    o.start();
+    // 아주 짧은 엔벨로프
+    g.gain.setValueAtTime(0.18,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.05);
+    o.stop(audioCtx.currentTime+0.06);
+  }
+
+  // 첫 사용자 제스처에서 오디오 허용 + 배경시작
+  const unlock = ()=>{ ensureAudio(); document.removeEventListener('pointerdown', unlock); };
+  document.addEventListener('pointerdown', unlock, {once:true});
+
+  /* ===== UI 흐름 ===== */
   const overlay=document.getElementById('overlay');
   const overlayContent=document.getElementById('overlayContent');
   const startBtn=document.getElementById('startBtn');
   const goodnight=document.getElementById('goodnight');
 
   function crossfadeUpdate(html,nextAction){
-    overlayContent.classList.add('hidden');          
+    overlayContent.classList.add('hidden');
     setTimeout(()=>{
       overlayContent.innerHTML=html;
-      overlayContent.classList.remove('hidden');     
+      overlayContent.classList.remove('hidden');
       nextAction && nextAction();
     },450);
   }
@@ -230,6 +280,9 @@
   }
 
   startBtn.addEventListener('click', ()=>{
+    ensureAudio();  // 일부 브라우저에서 확실히 시작
+    playClick();
+
     const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
     const introHTML = `
       ${line('<b>INTRODUCTION</b>')}
@@ -242,12 +295,16 @@
         <span class="line">THE DOOR WILL OPEN IN <span id="countNum">60</span> SECONDS.</span>
       </div>
     `;
+
     crossfadeUpdate(introHTML, ()=>{
       let count = 60;
       const numEl = document.getElementById('countNum');
       const timer = setInterval(()=>{
         count--;
-        if(count>=0){ numEl.textContent = count; }
+        if(count>=0){
+          numEl.textContent = count;
+          playTick(); // 초 줄어들 때 소리
+        }
         if(count<=0){
           clearInterval(timer);
           overlay.classList.add('hidden');
@@ -265,8 +322,7 @@
     try{
       const a=document.createElement('a');
       a.download=`capture_${Date.now()}.png`;
-      a.href=view.toDataURL('image/png');
-      a.click();
+      a.href=view.toDataURL('image/png'); a.click();
     }catch(e){ console.warn('캡쳐 실패', e); }
   });
 })();
