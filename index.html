@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Camera+Stream – BW Trail (No UI Mix)</title>
+<title>Camera+Stream – BW Trail (Stable Frame, PWA Safe)</title>
 
+<!-- iOS PWA -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Camera Trail">
@@ -14,37 +15,71 @@
 
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden}
+  /* 메인 캔버스 */
   #view{position:fixed;inset:0;display:block;z-index:0}
 
+  /* 프레임: CSS 오버레이(깨짐 방지) */
+  #frame{
+    position:fixed; left:40px; top:40px; right:40px; bottom:40px;
+    border:1px solid rgba(255,255,255,0.95);
+    pointer-events:none; z-index:110;
+  }
+  @supports(padding:max(0px)){
+    #frame{
+      left:calc(40px + env(safe-area-inset-left));
+      right:calc(40px + env(safe-area-inset-right));
+      top:calc(40px + env(safe-area-inset-top));
+      bottom:calc(40px + env(safe-area-inset-bottom));
+    }
+  }
+
+  /* 컨트롤(줌만) */
   .controls{
     position:fixed;right:12px;bottom:12px;z-index:120;
     display:flex;gap:8px;align-items:center;
     background:rgba(0,0,0,.45);padding:8px;border-radius:12px;
     font:14px/1 system-ui,-apple-system,sans-serif;color:#fff
   }
-  .btn{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);
-       color:#fff;padding:6px 10px;border-radius:8px;font-weight:700;cursor:pointer}
+  .btn{
+    border:1px solid rgba(255,255,255,.25);
+    background:rgba(255,255,255,.08);
+    color:#fff;padding:6px 10px;border-radius:8px;font-weight:700;cursor:pointer
+  }
   .readout{min-width:64px;text-align:center;opacity:.9}
-  .btn-capture{position:fixed;left:12px;bottom:12px;z-index:150;
+
+  /* 캡쳐 */
+  .btn-capture{
+    position:fixed;left:12px;bottom:12px;z-index:150;
     border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);
-    color:#fff;padding:10px 16px;border-radius:8px;font-weight:700;cursor:pointer}
+    color:#fff;padding:10px 16px;border-radius:8px;font-weight:700;cursor:pointer
+  }
 
-  #hint{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+  /* 중앙 안내 */
+  #hint{
+    position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
     background:rgba(0,0,0,.75);color:#fff;padding:14px 20px;border-radius:12px;
-    font:15px/1.6 system-ui,-apple-system,sans-serif;z-index:200;text-align:center;max-width:80%}
+    font:15px/1.6 system-ui,-apple-system,sans-serif;z-index:200;text-align:center;max-width:80%
+  }
 
-  #preview{position:fixed;inset:0;z-index:300;display:none;background:rgba(0,0,0,.92);
-    color:#fff;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:16px}
+  /* 캡쳐 미리보기(페이지 이탈 방지) */
+  #preview{
+    position:fixed;inset:0;z-index:300;display:none;
+    background:rgba(0,0,0,.92);color:#fff;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:16px
+  }
   #preview img{max-width:90vw;max-height:70vh;display:block}
   #preview .row{display:flex;gap:8px}
 
-  #hud{position:fixed;left:12px;top:12px;z-index:250;background:rgba(0,0,0,.55);color:#fff;
-    padding:8px 10px;border-radius:8px;font:12px/1.4 system-ui,-apple-system,sans-serif;
-    max-width:72vw;white-space:pre-wrap;pointer-events:none}
+  /* 디버그 HUD (필요시 유지/불필요하면 display:none) */
+  #hud{
+    position:fixed;left:12px;top:12px;z-index:250;
+    background:rgba(0,0,0,.55);color:#fff;padding:8px 10px;border-radius:8px;
+    font:12px/1.4 system-ui,-apple-system,sans-serif;max-width:72vw;white-space:pre-wrap;pointer-events:none;
+  }
 </style>
 </head>
 <body>
   <canvas id="view"></canvas>
+  <div id="frame"></div>
 
   <div class="controls">
     <button class="btn" id="zoomOut">–</button>
@@ -55,7 +90,9 @@
   <button id="captureBtn" class="btn-capture">캡쳐</button>
 
   <div id="hint">
-    1. 공유 버튼 클릭<br>2. 홈 화면 추가 버튼 클릭<br>3. 전체 화면 모드로 전환
+    1. 공유 버튼 클릭<br>
+    2. 홈 화면 추가 버튼 클릭<br>
+    3. 전체 화면 모드로 전환
   </div>
 
   <div id="preview">
@@ -72,12 +109,14 @@
 
   <div id="hud"></div>
 
+  <!-- HLS.js (for non-Safari browsers) -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <script>
 (async ()=>{
   // ===== 스트림 URL만 교체 =====
   const STREAM_URL = "https://customer-e1rhmg8edq32stcl.cloudflarestream.com/0561f69cdb850354620ce2f93cbb05ce/manifest/video.m3u8?protocol=llhlsbeta";
 
+  // ===== 기본 DOM =====
   const view = document.getElementById('view');
   const vctx = view.getContext('2d',{alpha:false});
   const hint = document.getElementById('hint');
@@ -91,8 +130,7 @@
 
   // 파라미터
   const PROC_SCALE=0.6, TRAIL_ALPHA=0.12, GLOBAL_ALPHA=0.7;
-  const STREAM_ALPHA=0.85;                 // 고정: 스트림 레이어 투명도
-  const FRAME_MARGIN=40, FRAME_COLOR="#fff", FRAME_WIDTH=0.5;
+  const STREAM_ALPHA=0.85;                 // 고정 불투명도
   let ZOOM=1.2, ZOOM_MIN=0.5, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
 
   // 줌 UI
@@ -112,13 +150,13 @@
     const dpr=window.devicePixelRatio||1;
     const w=window.innerWidth,h=window.innerHeight;
     view.width=w*dpr; view.height=h*dpr;
-    vctx.setTransform(dpr,0,0,dpr,0,0);
+    vctx.setTransform(dpr,0,0,dpr,0,0);      // CSS 좌표계 유지
     proc.width=Math.floor(w*PROC_SCALE);
     proc.height=Math.floor(h*PROC_SCALE);
   }
   resizeAll(); addEventListener('resize',()=>setTimeout(resizeAll,50));
 
-  // ===== 두 소스 항상 켜두기 =====
+  // ===== 두 소스 항상 ON =====
   // 1) 카메라
   const camVideo=document.createElement('video');
   camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
@@ -152,13 +190,13 @@
           if(dur<=0.2){ setHUD('스트림 대기 중…'); }
         });
         hls.on(Hls.Events.ERROR, (evt, data)=>{
-          setHUD(`HLS 오류: ${data?.type||''}/${data?.details||''} (자동복구)`);
+          setHUD(`HLS 오류: ${data?.type||''}/${data?.details||''} (자동복구 시도)`);
           try{ hls.recoverMediaError?.(); }catch(_){}
         });
       } else if (strVideo.canPlayType('application/vnd.apple.mpegurl')){
         strVideo.src = STREAM_URL; hlsReady=true;
       } else {
-        setHUD('브라우저 HLS 미지원 → 스트림 표시 불가(카메라만 표시)');
+        setHUD('브라우저 HLS 미지원 → 스트림은 비표시(카메라만 표시)');
       }
       await strVideo.play().catch(()=>{});
     }catch(e){ setHUD('스트림 연결 실패'); console.error(e); }
@@ -167,7 +205,7 @@
   await attachCamera();
   await attachStream();
 
-  // 사용자 탭으로 재생 정책 해제
+  // 사용자 탭으로 자동재생 정책 해제
   document.addEventListener('click', ()=>{
     camVideo.play().catch(()=>{});
     strVideo.play().catch(()=>{});
@@ -207,20 +245,20 @@
     const H=view.height/(window.devicePixelRatio||1);
     const PW=proc.width, PH=proc.height;
 
-    // 잔영 페이드
+    // 1) 잔영 페이드
     pctx.globalCompositeOperation="source-over";
     pctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`;
     pctx.fillRect(0,0,PW,PH);
 
-    // 카메라(바닥)
+    // 2) 카메라(바닥)
     drawSource(camVideo, GLOBAL_ALPHA);
 
-    // 스트림(위 레이어) — 준비됐을 때만
+    // 3) 스트림(위 레이어) — 준비됐을 때만
     if (strVideo.readyState>=2 && strVideo.videoWidth>0 && strVideo.videoHeight>0){
       drawSource(strVideo, GLOBAL_ALPHA * STREAM_ALPHA);
     }
 
-    // 흑백 변환
+    // 4) 흑백 변환
     const frame=pctx.getImageData(0,0,PW,PH);
     const d=frame.data;
     for(let i=0;i<d.length;i+=4){
@@ -229,16 +267,12 @@
     }
     pctx.putImageData(frame,0,0);
 
-    // 업스케일
+    // 5) 업스케일
     vctx.drawImage(proc,0,0,W,H);
-
-    // 프레임
-    vctx.strokeStyle="#fff"; vctx.lineWidth=0.5;
-    vctx.strokeRect(FRAME_MARGIN,FRAME_MARGIN,W-2*FRAME_MARGIN,H-2*FRAME_MARGIN);
   }
   loop();
 
-  // 캡쳐(페이지 이탈 최소화)
+  // ===== 캡쳐(페이지 이탈 최소화) =====
   const capBtn=document.getElementById('captureBtn');
   const preview=document.getElementById('preview');
   const previewImg=document.getElementById('previewImg');
@@ -259,10 +293,6 @@
     },"image/png");
   };
   btnClose.onclick=()=>{ preview.style.display='none'; resumeAll(); };
-
-  // 리사이즈
-  function onResize(){ setTimeout(resizeAll,50); }
-  addEventListener('resize', onResize);
 })();
 </script>
 </body>
