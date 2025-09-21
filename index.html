@@ -3,27 +3,23 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Camera – Fullscreen</title>
+<title>Camera – Fullscreen Stable</title>
 
-<!-- iOS 풀스크린 모드 -->
+<!-- iOS PWA / 풀스크린 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Camera Trail">
 <meta name="theme-color" content="#000000">
-
-<!-- PWA -->
 <link rel="manifest" href="app.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 
 <style>
   :root { color-scheme: dark; }
   html,body{ margin:0; height:100%; background:#000; overflow:hidden; }
+  /* 패딩/마진 없이 화면 = 캔버스 1:1 대응 */
   #app{
-    position:fixed; inset:0; width:100vw; height:100svh; background:#000; touch-action:none;
-    padding-top:env(safe-area-inset-top);
-    padding-right:env(safe-area-inset-right);
-    padding-bottom:env(safe-area-inset-bottom);
-    padding-left:env(safe-area-inset-left);
+    position:fixed; inset:0; width:100vw; height:100svh;
+    background:#000; touch-action:none; overscroll-behavior:none;
   }
   #view{ width:100%; height:100%; display:block; }
   #start{
@@ -45,15 +41,14 @@
     <canvas id="view"></canvas>
     <button id="start">카메라 시작</button>
     <div id="a2hs">
-      <b>주소창 완전 제거하려면</b><br>
-      iOS 사파리 공유버튼 → <b>홈 화면에 추가</b>로 설치 후 실행하세요.
+      <b>주소창 완전 제거</b>하려면 iOS 사파리 → <b>공유</b> → <b>홈 화면에 추가</b> 후 실행하세요.
     </div>
   </div>
 
 <script>
 (async ()=>{
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-                    || window.navigator.standalone === true;
+  const isStandalone = matchMedia('(display-mode: standalone)').matches
+                    || navigator.standalone === true;
   const a2hs = document.getElementById('a2hs');
   if (!isStandalone) a2hs.style.display = 'block';
 
@@ -66,31 +61,45 @@
   const vctx = view.getContext('2d', { alpha:false });
   const startBtn = document.getElementById('start');
 
-  const PROC_SCALE   = 0.6;
-  const TRAIL_ALPHA  = 0.004;
-  const FRAME_MARGIN = 40;
-  const FRAME_COLOR  = "#ffffff";
-  const FRAME_WIDTH  = 0.5;
+  // ====== 설정 ======
+  const PROC_SCALE   = 0.6;       // 내부 처리 해상도(0.4~0.8)
+  const TRAIL_ALPHA  = 0.004;     // 잔상 강도(낮을수록 오래 남음)
+  const FRAME_MARGIN = 40;        // 프레임 여백(px)
+  const FRAME_COLOR  = "#ffffff"; // 흰색
+  const FRAME_WIDTH  = 0.5;       // 얇은 선(px)
 
+  // ====== 비디오/처리 캔버스 ======
   const camVideo = document.createElement('video');
   camVideo.autoplay = true; camVideo.playsInline = true; camVideo.muted = true;
 
   const proc = document.createElement('canvas');
   const pctx = proc.getContext('2d', { alpha:false });
 
+  // ✅ iOS PWA에서 가장 안정적인 사이즈: window.innerWidth/innerHeight
   function resizeAll(){
     const dpr = Math.max(1, window.devicePixelRatio || 1);
-    const r = app.getBoundingClientRect();
-    const w = Math.max(1, Math.floor(r.width));
-    const h = Math.max(1, Math.floor(r.height));
-    view.style.width = w+'px'; view.style.height = h+'px';
-    view.width = Math.floor(w * dpr); view.height = Math.floor(h * dpr);
+    const w = Math.max(1, Math.floor(window.innerWidth));
+    const h = Math.max(1, Math.floor(window.innerHeight));
+
+    // 메인 캔버스
+    view.style.width = w+'px';
+    view.style.height = h+'px';
+    view.width  = Math.floor(w * dpr);
+    view.height = Math.floor(h * dpr);
     vctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // 처리 캔버스
     proc.width  = Math.max(1, Math.floor(w * PROC_SCALE));
     proc.height = Math.max(1, Math.floor(h * PROC_SCALE));
   }
-  addEventListener('resize', resizeAll);
-  addEventListener('orientationchange', ()=>setTimeout(resizeAll, 200));
+
+  // 회전/주소창 애니메이션/키보드 등 다양한 케이스에서 재계산
+  const reqResize = (delay=50)=>setTimeout(resizeAll, delay);
+  addEventListener('resize', ()=>reqResize(50));
+  addEventListener('orientationchange', ()=>reqResize(120));
+  if (window.visualViewport){
+    visualViewport.addEventListener('resize', ()=>reqResize(50));
+  }
   resizeAll();
 
   async function attachCamera(){
@@ -109,35 +118,48 @@
   async function goFullscreen(){
     try{
       if (!document.fullscreenElement && app.requestFullscreen) await app.requestFullscreen();
-      setTimeout(()=>scrollTo(0,1), 50);
+      setTimeout(()=>scrollTo(0,1), 50); // 구형 iOS 최소화 트릭
     }catch(e){}
   }
 
   let raf = 0;
   function loop(){
     raf = requestAnimationFrame(loop);
-    const r = app.getBoundingClientRect();
-    const W = r.width, H = r.height, PW = proc.width, PH = proc.height;
-    pctx.fillStyle = `rgba(0,0,0,${TRAIL_ALPHA})`; pctx.fillRect(0,0,PW,PH);
+
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const W = view.width / dpr;
+    const H = view.height / dpr;
+    const PW = proc.width, PH = proc.height;
+
+    // 🔁 잔상: 페이드만 사용(왜곡 없음)
+    pctx.globalCompositeOperation = 'source-over';
+    pctx.fillStyle = `rgba(0,0,0,${TRAIL_ALPHA})`;
+    pctx.fillRect(0,0,PW,PH);
+
+    // 🎥 카메라 → 처리 캔버스 (그레이스케일 필터)
     if (camVideo.readyState >= 2){
-      const vw = camVideo.videoWidth||0, vh = camVideo.videoHeight||0;
+      const vw = camVideo.videoWidth || 0, vh = camVideo.videoHeight || 0;
       if (vw && vh){
-        const sc = Math.max(PW/vw, PH/vh);
-        const dw = vw*sc, dh = vh*sc, dx=(PW-dw)/2, dy=(PH-dh)/2;
+        const scale = Math.max(PW / vw, PH / vh); // cover
+        const dw = vw * scale, dh = vh * scale;
+        const dx = (PW - dw) / 2, dy = (PH - dh) / 2;
+
+        // 퍼픽셀 연산 제거: 캔버스 필터 사용
+        pctx.filter = 'grayscale(100%)';
         pctx.drawImage(camVideo, dx, dy, dw, dh);
-        const fr = pctx.getImageData(0,0,PW,PH), d = fr.data;
-        for (let i=0;i<d.length;i+=4){
-          const r=d[i], g=d[i+1], b=d[i+2];
-          const gray=(0.299*r+0.587*g+0.114*b)|0;
-          d[i]=d[i+1]=d[i+2]=gray;
-        }
-        pctx.putImageData(fr,0,0);
+        pctx.filter = 'none';
       }
     }
+
+    // 메인 캔버스 업스케일
     vctx.clearRect(0,0,W,H);
-    vctx.drawImage(proc,0,0,W,H);
+    vctx.drawImage(proc, 0, 0, W, H);
+
+    // ◻️ 프레임 (세로/가로 동일 좌표 기준)
     vctx.save();
-    vctx.strokeStyle = FRAME_COLOR; vctx.lineWidth = FRAME_WIDTH;
+    vctx.strokeStyle = FRAME_COLOR;
+    vctx.lineWidth = FRAME_WIDTH;
+    vctx.setLineDash([]);
     vctx.strokeRect(FRAME_MARGIN, FRAME_MARGIN, W-2*FRAME_MARGIN, H-2*FRAME_MARGIN);
     vctx.restore();
   }
@@ -148,15 +170,21 @@
       await goFullscreen();
       startBtn.style.display = 'none';
       if (!raf) loop();
-    }catch(e){ startBtn.style.display = 'inline-block'; }
+    }catch(e){
+      startBtn.style.display = 'inline-block';
+    }
   }
 
+  // 자동 시도 + 제스처 훅
   startAll();
-  const trig = async ()=>{ await startAll(); window.removeEventListener('pointerdown', trig, {once:true}); };
-  window.addEventListener('pointerdown', trig, { once:true, passive:true });
+  const trig = async ()=>{ await startAll(); removeEventListener('pointerdown', trig, {once:true}); };
+  addEventListener('pointerdown', trig, { once:true, passive:true });
+
+  // 복귀 시 재생/리사이즈
   document.addEventListener('visibilitychange', ()=>{
-    if (!document.hidden){ camVideo.play().catch(()=>{}); setTimeout(resizeAll,120); }
+    if (!document.hidden){ camVideo.play().catch(()=>{}); reqResize(120); }
   });
+
   startBtn.addEventListener('click', startAll, { once:true });
 })();
 </script>
