@@ -1,61 +1,85 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-  <title>Live Stream</title>
-  <!-- hls.js: Safari 외 브라우저 재생 지원 -->
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <style>
-    html,body{
-      margin:0;
-      height:100%;
-      background:#000;
-      overflow:hidden;
-    }
-    #player{
-      position:fixed;
-      inset:0;
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      background:#000;
-    }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Camera + Stream Overlay</title>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;}
+  #wrap{position:fixed;inset:0;background:#000}
+  canvas, video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  #camCanvas{z-index:1;}
+  #stream{z-index:2;pointer-events:none;}
+</style>
 </head>
 <body>
-  <!-- 관객이 보는 영상 -->
-  <video id="player" autoplay playsinline muted controls></video>
+<div id="wrap">
+  <!-- 관객 카메라를 그리는 캔버스 -->
+  <canvas id="camCanvas"></canvas>
+  <!-- Resolume → OBS → Cloudflare Stream -->
+  <video id="stream" autoplay playsinline muted></video>
+</div>
 
-  <script>
-    (function(){
-      // ✅ Cloudflare HLS Manifest URL (잘 뜨는 주소 그대로)
-      const STREAM_URL = "https://customer-e1rhmg8edq32stcl.cloudflarestream.com/0561f69cdb850354620ce2f93cbb05ce/manifest/video.m3u8";
+<script>
+(async ()=>{
+  // ✅ Cloudflare HLS Manifest URL
+  const STREAM_URL = "https://customer-e1rhmg8edq32stcl.cloudflarestream.com/0561f69cdb850354620ce2f93cbb05ce/manifest/video.m3u8";
 
-      const video = document.getElementById('player');
+  const camCanvas = document.getElementById('camCanvas');
+  const ctx = camCanvas.getContext('2d');
+  const streamEl = document.getElementById('stream');
+  const hiddenCam = document.createElement('video'); // 실제 카메라 입력용 비디오
+  hiddenCam.autoplay = true;
+  hiddenCam.playsinline = true;
+  hiddenCam.muted = true;
 
-      if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        // iOS Safari → 네이티브 HLS 지원
-        video.src = STREAM_URL;
-        video.addEventListener('loadedmetadata', () => {
-          video.play().catch(()=>{});
-        });
-      } else if (Hls.isSupported()) {
-        // 크롬/파이어폭스 등 → hls.js 사용
-        const hls = new Hls({lowLatencyMode:true});
-        hls.loadSource(STREAM_URL);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.play().catch(()=>{});
-        });
-      } else {
-        // 구형 브라우저 fallback
-        video.src = STREAM_URL;
-        video.addEventListener('loadedmetadata', () => {
-          video.play().catch(()=>{});
-        });
-      }
-    })();
-  </script>
+  // 카메라 시작
+  try {
+    const camStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } }, audio:false
+    });
+    hiddenCam.srcObject = camStream;
+  } catch(e){ console.error("카메라 실패:", e); }
+
+  // 캔버스 리사이즈
+  function resizeCanvas(){
+    camCanvas.width = window.innerWidth;
+    camCanvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  // 카메라 드로잉 루프 (흑백 + 잔상)
+  function drawCam(){
+    requestAnimationFrame(drawCam);
+    if(hiddenCam.readyState >= 2){
+      ctx.save();
+      ctx.filter = "grayscale(100%)"; // 흑백
+      // 잔상 효과: 이전 프레임에 투명한 검은 레이어 씌우기
+      ctx.fillStyle = "rgba(0,0,0,0.05)";
+      ctx.fillRect(0,0,camCanvas.width,camCanvas.height);
+      ctx.drawImage(hiddenCam, 0,0,camCanvas.width,camCanvas.height);
+      ctx.restore();
+    }
+  }
+  drawCam();
+
+  // 스트림 붙이기
+  if (streamEl.canPlayType('application/vnd.apple.mpegurl')) {
+    streamEl.src = STREAM_URL; // iOS Safari
+    streamEl.play().catch(()=>{});
+  } else if (window.Hls && Hls.isSupported()) {
+    const hls = new Hls({lowLatencyMode:true});
+    hls.loadSource(STREAM_URL);
+    hls.attachMedia(streamEl);
+    hls.on(Hls.Events.MANIFEST_PARSED, ()=> streamEl.play().catch(()=>{}));
+  } else {
+    streamEl.src = STREAM_URL;
+    streamEl.play().catch(()=>{});
+  }
+
+})();
+</script>
 </body>
 </html>
