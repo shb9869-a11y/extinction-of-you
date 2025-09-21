@@ -3,23 +3,27 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Camera + Stream Overlay</title>
+<title>Camera + Stream Composite</title>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <style>
-  html,body{margin:0;height:100%;background:#000;overflow:hidden;}
-  #wrap{position:fixed;inset:0;background:#000}
-  canvas, video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
-  #camCanvas{z-index:1;}
-  #stream{z-index:2;pointer-events:none;}
+  html,body{
+    margin:0;
+    height:100%;
+    background:#000;
+    overflow:hidden;
+  }
+  #camCanvas{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    background:#000;
+  }
 </style>
 </head>
 <body>
-<div id="wrap">
-  <!-- 관객 카메라를 그리는 캔버스 -->
-  <canvas id="camCanvas"></canvas>
-  <!-- Resolume → OBS → Cloudflare Stream -->
-  <video id="stream" autoplay playsinline muted></video>
-</div>
+<canvas id="camCanvas"></canvas>
 
 <script>
 (async ()=>{
@@ -28,19 +32,16 @@
 
   const camCanvas = document.getElementById('camCanvas');
   const ctx = camCanvas.getContext('2d');
-  const streamEl = document.getElementById('stream');
-  const hiddenCam = document.createElement('video'); // 실제 카메라 입력용 비디오
+
+  const hiddenCam = document.createElement('video'); // 관객 카메라
   hiddenCam.autoplay = true;
   hiddenCam.playsinline = true;
   hiddenCam.muted = true;
 
-  // 카메라 시작
-  try {
-    const camStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" } }, audio:false
-    });
-    hiddenCam.srcObject = camStream;
-  } catch(e){ console.error("카메라 실패:", e); }
+  const streamEl = document.createElement('video'); // Cloudflare 스트림
+  streamEl.autoplay = true;
+  streamEl.playsinline = true;
+  streamEl.muted = true;
 
   // 캔버스 리사이즈
   function resizeCanvas(){
@@ -50,20 +51,13 @@
   window.addEventListener('resize', resizeCanvas);
   resizeCanvas();
 
-  // 카메라 드로잉 루프 (흑백 + 잔상)
-  function drawCam(){
-    requestAnimationFrame(drawCam);
-    if(hiddenCam.readyState >= 2){
-      ctx.save();
-      ctx.filter = "grayscale(100%)"; // 흑백
-      // 잔상 효과: 이전 프레임에 투명한 검은 레이어 씌우기
-      ctx.fillStyle = "rgba(0,0,0,0.05)";
-      ctx.fillRect(0,0,camCanvas.width,camCanvas.height);
-      ctx.drawImage(hiddenCam, 0,0,camCanvas.width,camCanvas.height);
-      ctx.restore();
-    }
-  }
-  drawCam();
+  // 관객 카메라 시작
+  try {
+    const camStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } }, audio:false
+    });
+    hiddenCam.srcObject = camStream;
+  } catch(e){ console.error("카메라 실패:", e); }
 
   // 스트림 붙이기
   if (streamEl.canPlayType('application/vnd.apple.mpegurl')) {
@@ -78,6 +72,31 @@
     streamEl.src = STREAM_URL;
     streamEl.play().catch(()=>{});
   }
+
+  // 드로잉 루프: 카메라(흑백+잔상) + 스트림 합성
+  function drawLoop(){
+    requestAnimationFrame(drawLoop);
+
+    // 잔상 효과
+    ctx.fillStyle = "rgba(0,0,0,0.05)";
+    ctx.fillRect(0,0,camCanvas.width,camCanvas.height);
+
+    // 카메라 (흑백 처리)
+    if(hiddenCam.readyState >= 2){
+      ctx.save();
+      ctx.filter = "grayscale(100%)";
+      ctx.drawImage(hiddenCam, 0,0,camCanvas.width,camCanvas.height);
+      ctx.restore();
+    }
+
+    // 스트림 (투명도 합성)
+    if(streamEl.readyState >= 2){
+      ctx.globalAlpha = 0.7; // 스트림 투명도 (0~1 조절)
+      ctx.drawImage(streamEl, 0,0,camCanvas.width,camCanvas.height);
+      ctx.globalAlpha = 1;
+    }
+  }
+  drawLoop();
 
 })();
 </script>
