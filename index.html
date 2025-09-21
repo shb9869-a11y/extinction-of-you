@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Camera – BW + Afterimage + Zoom + Capture (Stable)</title>
+<title>Camera – BW + Afterimage + Zoom + Capture (Stable, Safe Save)</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -80,7 +80,6 @@
     <div class="row">
       <button class="btn" id="btnClose">닫기</button>
       <a class="btn" id="btnOpenNew" target="_blank" rel="noopener">새 창 열기</a>
-      <a class="btn" id="btnDownload" download>다운로드</a>
     </div>
     <div style="opacity:.8;font-size:12px;text-align:center;">
       iOS 앱 모드에서는 “새 창 열기” 후 <b>길게 눌러 저장</b>이 가장 안정적입니다.
@@ -200,7 +199,6 @@
   const previewImg=document.getElementById('previewImg');
   const btnClose=document.getElementById('btnClose');
   const btnOpenNew=document.getElementById('btnOpenNew');
-  const btnDownload=document.getElementById('btnDownload');
 
   capBtn.onclick=()=>{
     view.toBlob(async (blob)=>{
@@ -208,17 +206,11 @@
       const url=URL.createObjectURL(blob);
       previewImg.src=url;
       btnOpenNew.href=url;
-      btnDownload.href=url;
       preview.style.display='flex';
     },"image/png");
   };
 
   btnClose.onclick=()=>{ preview.style.display='none'; resumeCam(); };
-
-  // 다운로드 후에도 자동 재시작
-  btnDownload.onclick=()=>{
-    setTimeout(()=>{ resumeCam(); },1500);
-  };
 })();
 </script>
 </body>
