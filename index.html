@@ -12,7 +12,7 @@
 
 <style>
   :root{
-    --frame: 40px;            /* 프로시니엄 여백 */
+    --frame: 40px;            
     --ui-gap: 8px;
     --font-body: clamp(14px, 2.2vw, 18px);
     --font-strong: clamp(16px, 2.6vw, 20px);
@@ -24,11 +24,11 @@
   .frameBox{
     position:fixed;left:var(--frame);top:var(--frame);
     right:var(--frame);bottom:var(--frame);
-    border:1px solid #000; /* 검정색 라인 */
+    border:1px solid #000;
     pointer-events:none; z-index:50;
   }
 
-  /* 컨트롤: 프레임 안쪽 정렬 */
+  /* 컨트롤 */
   .controls{
     position:fixed;
     right:calc(var(--frame) + var(--ui-gap));
@@ -51,7 +51,7 @@
     color:#fff;padding:10px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-family:"Courier New",monospace;
   }
 
-  /* 오버레이(배경 없음) */
+  /* 오버레이 */
   #overlay{
     position:fixed;inset:0;z-index:200;
     display:flex;align-items:center;justify-content:center;
@@ -67,12 +67,12 @@
 
   /* 시작 버튼 */
   #startBtn{
-    background:#000;color:#fff;border:1px solid #fff;
+    background:#000;color:#fff;border:1px solid #000; /* ✅ 테두리도 검정 */
     font-size:var(--font-strong);padding:10px 20px;cursor:pointer;
     font-family:"Courier New",monospace;border-radius:0; display:block; margin:0 auto;
   }
 
-  /* 안내문 각 줄 하이라이트 */
+  /* 안내문 각 줄 */
   .line{
     display:inline; background:#000; color:#fff; padding:6px 8px;
     box-decoration-break:clone; -webkit-box-decoration-break:clone;
@@ -88,6 +88,7 @@
     position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
     z-index:250;color:#fff;font-weight:bold;display:none;text-align:center;
     font-family:"Courier New",monospace;font-size:6vw;max-width:90%;
+    background:#000; padding:20px 40px; /* ✅ 검정 배경 박스 */
     transition:opacity .6s ease;
   }
   #goodnight.show{display:block;opacity:1}
@@ -131,7 +132,6 @@
   const view=document.getElementById('view');
   const vctx=view.getContext('2d',{alpha:false});
 
-  // 카메라 + 효과
   const PROC_SCALE=0.6, TRAIL_ALPHA=0.10, GLOBAL_ALPHA=0.7;
   let ZOOM=1.2, ZOOM_MIN=0.5, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
 
@@ -258,7 +258,7 @@
     });
   });
 
-  // 캡쳐 저장
+  // 캡쳐
   document.getElementById('captureBtn').addEventListener('click',()=>{
     try{
       const a=document.createElement('a');
