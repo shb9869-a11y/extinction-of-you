@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Camera – Motion-Reactive Audio + Haptics</title>
+<title>Camera – Motion Volume/Pan + Haptics</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -65,7 +65,7 @@
 
 <script>
 (async ()=>{
-  /* ===== 카메라 (흑백+잔상) ===== */
+  /* ========= 카메라(흑백+잔상) ========= */
   const view=document.getElementById('view');
   const vctx=view.getContext('2d',{alpha:false});
   const PROC_SCALE=0.60, TRAIL_ALPHA=0.12, GLOBAL_ALPHA=0.7;
@@ -126,10 +126,68 @@
   }
   await attachCamera(); loop();
 
-  /* ===== 오디오(드론) + 모션 매핑 + 지속 햅틱 ===== */
+  /* ========= 오디오(드론) + 기울기 매핑 + 햅틱 ========= */
   let audioCtx=null, masterGain=null;
   let bgOsc=null, bgGain=null, panner=null;
   let hapticTimer=null;
+
+  // 파라미터(감도/범위/평활)
+  const VOL_BASE=0.12;               // 기본 볼륨
+  const VOL_MAX_ADD=0.5;             // 추가 볼륨 최대치
+  const VOL_TILT_LIMIT=60;           // |pitch(β)| 0~60도 구간 사용
+  const PAN_LIMIT_DEG=45;            // |roll(γ)| 0~45도 → -1..+1로 매핑
+  const SMOOTH_TC=0.06;              // setTargetAtTime time-constant (초) → 지지직 완화
+  const CTRL_SMOOTH_ALPHA=0.12;      // 1차 저역통과용 알파(값 작을수록 부드러움)
+  const DEADZONE_VOL_DEG=5;          // 볼륨 데드존(미세 흔들림 무시)
+  const DEADZONE_PAN_DEG=3;          // 패닝 데드존
+
+  // 최신 기울기(orientation) 이벤트 값을 저장하고, RAF에서만 적용(스로틀링)
+  let latestOri = {beta:0, gamma:0}; // pitch/front-back, roll/left-right
+  function getScreenAngle(){
+    const o = (screen.orientation && screen.orientation.angle)??window.orientation??0;
+    // iOS는 90 / -90 / 0 / 180
+    return (typeof o==='number') ? o : 0;
+  }
+
+  // 스크린 회전에 따른 축 보정: (β,γ) → (volTilt, panTilt)
+  function mapOrientation(beta, gamma){
+    const ang = ((getScreenAngle()%360)+360)%360; // 0,90,180,270
+    let volTilt=0, panTilt=0;
+    if(ang===0){            // 세로(기본)
+      volTilt = beta;       // 위/아래 = 볼륨
+      panTilt = gamma;      // 좌/우 = 패닝
+    }else if(ang===90){     // 가로(우로 회전)
+      volTilt = -gamma;
+      panTilt = beta;
+    }else if(ang===180){    // 뒤집힌 세로
+      volTilt = -beta;
+      panTilt = -gamma;
+    }else if(ang===270){    // 가로(좌로 회전)
+      volTilt = gamma;
+      panTilt = -beta;
+    }
+    return {volTilt, panTilt};
+  }
+
+  // 데드존 + 범위 맵핑
+  function tiltToVolume(volTilt){
+    const t = Math.min(VOL_TILT_LIMIT, Math.max(-VOL_TILT_LIMIT, volTilt||0));
+    const a = Math.max(0, Math.abs(t) - DEADZONE_VOL_DEG) / (VOL_TILT_LIMIT - DEADZONE_VOL_DEG);
+    return VOL_BASE + VOL_MAX_ADD * a; // 0.12 ~ 0.62
+  }
+  function tiltToPan(panTilt){
+    const t = Math.min(PAN_LIMIT_DEG, Math.max(-PAN_LIMIT_DEG, panTilt||0));
+    const s = Math.max(-1, Math.min(1,
+      (Math.abs(t) < DEADZONE_PAN_DEG) ? 0 : (t / PAN_LIMIT_DEG)
+    ));
+    return s; // -1..+1
+  }
+
+  // 제어용 저역통과
+  let smVol=VOL_BASE, smPan=0;
+  function smoothStep(target, current, alpha=CTRL_SMOOTH_ALPHA){
+    return current + (target - current) * alpha;
+  }
 
   function initAudio(){
     if(audioCtx) return;
@@ -137,7 +195,7 @@
       audioCtx = new (window.AudioContext||window.webkitAudioContext)();
       masterGain = audioCtx.createGain(); masterGain.gain.value=0.7;
       panner = (audioCtx.createStereoPanner) ? audioCtx.createStereoPanner() : audioCtx.createGain();
-      if(panner.pan===undefined) panner.pan={value:0}; // 대체
+      if(panner.pan===undefined) panner.pan={ value:0, setTargetAtTime: ()=>{} }; // 대체
       panner.connect(masterGain); masterGain.connect(audioCtx.destination);
     }catch(e){ console.warn('Audio init 실패:', e); }
   }
@@ -147,33 +205,34 @@
     bgOsc = audioCtx.createOscillator();
     bgGain = audioCtx.createGain();
     bgOsc.type='sine';
-    bgOsc.frequency.value=55; // 더 낮게
+    bgOsc.frequency.value=55; // 낮은 드론
+    // 팝 방지
     bgGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-    bgGain.gain.exponentialRampToValueAtTime(0.25, audioCtx.currentTime+0.6);
+    bgGain.gain.setTargetAtTime(VOL_BASE, audioCtx.currentTime, 0.25);
+
     bgOsc.connect(bgGain).connect(panner);
     bgOsc.start();
   }
 
-  function playClick(){
-    if(!audioCtx) return;
-    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-    o.type='sine'; o.frequency.setValueAtTime(200,audioCtx.currentTime);
-    g.gain.setValueAtTime(0.35,audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.22);
-    o.connect(g).connect(masterGain); o.start(); o.stop(audioCtx.currentTime+0.24);
+  // 지지직 최소화를 위해 AudioParam은 setTargetAtTime으로 천천히 수렴
+  function applyAudioParams(vol, pan){
+    if(!audioCtx||!bgGain||!panner) return;
+    const now = audioCtx.currentTime;
+    try{
+      bgGain.gain.setTargetAtTime(vol, now, SMOOTH_TC);
+    }catch(e){
+      // 일부 구현에서 setTargetAtTime 미지원 시 폴백
+      bgGain.gain.cancelScheduledValues(now);
+      bgGain.gain.linearRampToValueAtTime(vol, now + 0.08);
+    }
+    if(panner.pan && typeof panner.pan.setTargetAtTime==='function'){
+      panner.pan.setTargetAtTime(pan, now, SMOOTH_TC);
+    }else if(panner.gain){ // 구형 대체(완전한 패닝은 불가)
+      // 모노 유지(무시)
+    }
   }
 
-  function playTick(){
-    if(!audioCtx) return;
-    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-    o.type='square'; o.frequency.value=420;
-    g.gain.value=0.18; o.connect(g).connect(masterGain);
-    o.start(); g.gain.setValueAtTime(0.18,audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.07);
-    o.stop(audioCtx.currentTime+0.09);
-  }
-
-  // 지속 햅틱(가능한 브라우저에서): 페이지 로드 직후부터 유지
+  // 지속 햅틱(노터치)
   function startHapticsPulse(intervalMs=600, burstMs=35){
     stopHapticsPulse();
     if('vibrate' in navigator){
@@ -185,62 +244,65 @@
     if('vibrate' in navigator){ navigator.vibrate(0); }
   }
 
-  // 모션 → 게인(움직임 크면 커짐)
-  let moveLP = 0;
-  function motionToGain(acc){
-    const mag = Math.min(30, Math.sqrt((acc.x||0)**2 + (acc.y||0)**2 + (acc.z||0)**2));
-    const alpha = 0.1; const prev = moveLP;
-    moveLP = (1-alpha)*moveLP + alpha*mag;
-    const delta = Math.max(0, mag - prev);
-    return 0.12 + Math.min(0.5, delta * 0.05); // 0.12~0.62
-  }
-  // 기울기 → 팬(-45°~+45° → -1..+1)
-  function angleToPan(gamma){
-    const g = Math.max(-45, Math.min(45, gamma||0));
-    return g/45;
-  }
-
-  function tryEnableMotion(){
-    if(typeof DeviceMotionEvent!=='undefined'){
-      if(typeof DeviceMotionEvent.requestPermission==='function'){
-        DeviceMotionEvent.requestPermission().catch(()=>{});
-      }
-      window.addEventListener('devicemotion',(e)=>{
-        if(!audioCtx||!bgGain) return;
-        const g = motionToGain(e.accelerationIncludingGravity||{});
-        const now = audioCtx.currentTime;
-        bgGain.gain.cancelScheduledValues(now);
-        bgGain.gain.linearRampToValueAtTime(g, now+0.08);
-      }, {passive:true});
-    }
-    if(typeof DeviceOrientationEvent!=='undefined'){
-      if(typeof DeviceOrientationEvent.requestPermission==='function'){
-        DeviceOrientationEvent.requestPermission().catch(()=>{});
-      }
-      window.addEventListener('deviceorientation',(e)=>{
-        if(!audioCtx||!panner) return;
-        const pan = angleToPan(e.gamma);
-        if(panner.pan && typeof panner.pan.setValueAtTime==='function'){
-          panner.pan.setValueAtTime(pan, audioCtx.currentTime);
-        }
-      }, {passive:true});
-    }
-  }
-
-  // 완전 자동 시작(사용자 터치 없이 최대한 시도 + 주기 재시도)
+  // 자동 시작 루프(브라우저 정책 회피용)
   function autoStart(){
     initAudio();
     if(audioCtx && audioCtx.state==='suspended'){ audioCtx.resume().catch(()=>{}); }
     startDrone();
     startHapticsPulse(600,35);
-    tryEnableMotion();
   }
   autoStart();
   document.addEventListener('visibilitychange', autoStart);
   window.addEventListener('focus', autoStart);
   setInterval(autoStart, 3000);
 
-  /* ===== 오버레이/카운트다운 ===== */
+  // orientation 이벤트 수집(이벤트 핸들러에서는 값만 저장)
+  if(typeof DeviceOrientationEvent!=='undefined'){
+    if(typeof DeviceOrientationEvent.requestPermission==='function'){
+      DeviceOrientationEvent.requestPermission().catch(()=>{});
+    }
+    window.addEventListener('deviceorientation', (e)=>{
+      latestOri.beta = e.beta ?? 0;
+      latestOri.gamma = e.gamma ?? 0;
+    }, {passive:true});
+  }
+
+  // 제어 적용은 RAF에서만(스로틀 + 평활화로 지지직 방지)
+  function controlLoop(){
+    requestAnimationFrame(controlLoop);
+    // 축 보정
+    const {volTilt, panTilt} = mapOrientation(latestOri.beta, latestOri.gamma);
+    // 목표값
+    const volTarget = tiltToVolume(volTilt);
+    const panTarget = tiltToPan(panTilt);
+    // 저역통과
+    smVol = smoothStep(volTarget, smVol);
+    smPan = smoothStep(panTarget, smPan);
+    // 오디오 매개변수 적용(부드럽게)
+    applyAudioParams(smVol, smPan);
+  }
+  controlLoop();
+
+  // 버튼/틱(저역 성향)
+  function playClick(){
+    if(!audioCtx) return;
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type='sine'; o.frequency.setValueAtTime(200,audioCtx.currentTime);
+    g.gain.setValueAtTime(0.3,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.22);
+    o.connect(g).connect(masterGain); o.start(); o.stop(audioCtx.currentTime+0.24);
+  }
+  function playTick(){
+    if(!audioCtx) return;
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type='square'; o.frequency.value=420; g.gain.value=0.16;
+    o.connect(g).connect(masterGain); o.start();
+    g.gain.setValueAtTime(0.16,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.07);
+    o.stop(audioCtx.currentTime+0.09);
+  }
+
+  /* ========= 오버레이/카운트다운 ========= */
   const overlay=document.getElementById('overlay');
   const overlayContent=document.getElementById('overlayContent');
   const startBtn=document.getElementById('startBtn');
@@ -251,7 +313,6 @@
     overlayContent.classList.add('hidden');
     setTimeout(()=>{ overlayContent.innerHTML=html; overlayContent.classList.remove('hidden'); nextAction&&nextAction(); },450);
   }
-
   function showGoodNight15s(){
     goodnight.classList.add('show');
     setTimeout(()=>{ goodnight.classList.add('fadeout');
