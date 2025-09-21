@@ -9,6 +9,7 @@
   html,body{margin:0;height:100%;background:#000;overflow:hidden}
   #view{width:100%;height:100%;display:block;position:fixed;left:0;top:0;z-index:0}
 
+  /* 컨트롤 */
   .controls{position:fixed;right:12px;bottom:12px;z-index:100;
     display:flex;gap:8px;align-items:center;
     background:rgba(0,0,0,.45);padding:8px;border-radius:12px;
@@ -21,45 +22,55 @@
     border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);
     color:#fff;padding:10px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-family:"Courier New",monospace}
 
-  /* 안내 오버레이 */
+  /* 오버레이: 카메라 계속 보이게 배경 없음 */
   #overlay{
     position:fixed;inset:0;z-index:200;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     text-align:center;padding:20px;font-family:"Courier New",monospace;
-    background:transparent; /* 카메라 영상 보이도록 */
+    pointer-events:none; /* 텍스트만, 버튼만 클릭 허용 */
+    color:#fff;
   }
-
+  /* 실제 콘텐츠 래퍼(배경 없음) */
   #overlayContent{
-    background:#000;color:#fff;
-    padding:20px 30px;
-    max-width:80%;
-    border-radius:0; /* 직각 */
-    line-height:1.6;font-size:16px;
+    max-width:90vw;
+    line-height:1.7;font-size:16px;
+    pointer-events:auto; /* 버튼은 클릭 가능 */
   }
-
-  #overlay button{
+  /* 시작 버튼(검정 박스 + 흰 글자) */
+  #startBtn{
     background:#000;color:#fff;border:1px solid #fff;
     font-size:18px;padding:10px 20px;cursor:pointer;
-    font-family:"Courier New",monospace;
+    font-family:"Courier New",monospace;border-radius:0;
   }
 
-  #countdown{
-    margin-top:20px;font-size:20px;font-weight:bold
-  }
+  /* 페이드 전환 */
+  .fade{opacity:1;transition:opacity .45s ease}
+  .fade.hidden{opacity:0}
 
-  /* GOOD NIGHT */
+  /* GOOD NIGHT (배경 없이, 중앙 표시) */
   #goodnight{
     position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
     z-index:250;color:#fff;font-weight:bold;
-    background:#000;padding:20px 40px;border-radius:0; /* 직각 */
     display:none;text-align:center;
     font-family:"Courier New",monospace;
     font-size:6vw;max-width:90%;
+    transition:opacity .6s ease;
   }
+  #goodnight.show{display:block;opacity:1}
+  #goodnight.fadeout{opacity:0}
+
+  /* 화면 프레임(얇은 흰색 실선) */
+  .frame{pointer-events:none;position:fixed;inset:0;z-index:50}
 </style>
 </head>
 <body>
   <canvas id="view"></canvas>
+
+  <!-- 화면 프레임을 svg로 얇게 -->
+  <svg class="frame" aria-hidden="true">
+    <rect x="40" y="40" width="calc(100% - 80px)" height="calc(100% - 80px)"
+          fill="none" stroke="white" stroke-width="0.5" vector-effect="non-scaling-stroke"/>
+  </svg>
 
   <!-- 줌 컨트롤 -->
   <div class="controls">
@@ -70,9 +81,9 @@
   <!-- 캡쳐 버튼 -->
   <button id="captureBtn" class="btn-capture">캡쳐</button>
 
-  <!-- 안내 오버레이 -->
-  <div id="overlay">
-    <div id="overlayContent">
+  <!-- 안내 오버레이(배경 없음 + 페이드) -->
+  <div id="overlay" class="fade">
+    <div id="overlayContent" class="fade">
       <button id="startBtn">Press the button to start</button>
     </div>
   </div>
@@ -86,8 +97,7 @@
   const vctx=view.getContext('2d',{alpha:false});
 
   // ==== 카메라 + 효과 ====
-  const PROC_SCALE=0.6, TRAIL_ALPHA=0.08, GLOBAL_ALPHA=0.7;
-  const FRAME_MARGIN=40, FRAME_COLOR="#fff", FRAME_WIDTH=0.5;
+  const PROC_SCALE=0.6, TRAIL_ALPHA=0.10, GLOBAL_ALPHA=0.7;
   let ZOOM=1.2, ZOOM_MIN=0.5, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
 
   const zoomVal=document.getElementById('zoomVal');
@@ -125,6 +135,8 @@
     const W=view.width/(window.devicePixelRatio||1);
     const H=view.height/(window.devicePixelRatio||1);
     const PW=proc.width, PH=proc.height;
+
+    // 잔상 만들기
     pctx.globalCompositeOperation="source-over";
     pctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`;
     pctx.fillRect(0,0,PW,PH);
@@ -136,9 +148,12 @@
         const sc=base*ZOOM;
         const dw=vw*sc, dh=vh*sc;
         const dx=(PW-dw)/2, dy=(PH-dh)/2;
+
         pctx.globalAlpha=GLOBAL_ALPHA;
         pctx.drawImage(camVideo,dx,dy,dw,dh);
         pctx.globalAlpha=1.0;
+
+        // 흑백 변환
         const frame=pctx.getImageData(0,0,PW,PH);
         const d=frame.data;
         for(let i=0;i<d.length;i+=4){
@@ -149,42 +164,83 @@
       }
     }
     vctx.drawImage(proc,0,0,W,H);
-    vctx.strokeStyle=FRAME_COLOR; vctx.lineWidth=FRAME_WIDTH;
-    vctx.strokeRect(FRAME_MARGIN,FRAME_MARGIN,W-2*FRAME_MARGIN,H-2*FRAME_MARGIN);
   }
   await attachCamera(); loop();
 
-  // ==== 오버레이 & 카운트다운 ====
+  // ==== UI 흐름(페이드 전환) ====
   const overlay=document.getElementById('overlay');
   const overlayContent=document.getElementById('overlayContent');
   const startBtn=document.getElementById('startBtn');
   const goodnight=document.getElementById('goodnight');
 
-  startBtn.onclick=()=>{
-    overlayContent.innerHTML=`
-      <div style="text-align:left;max-width:500px;">
-      <p><b>Introduction</b></p>
-      <p>1. 당신은 ‘너’가 사라진 세상 속에서 살아가고 있다.</p>
-      <p>2. 당신은 잠시 후 당신 속에서 죽어버린 ‘너’들의 공동 묘지로 들어선다.</p>
-      <p>3. 이곳엔 ‘그것’이 되어버린 ‘너’들의 중얼거림만이 존재할 뿐이다.</p>
-      <p>4. 앞으로 당신에게는 4단계에 걸친 미션이 부여된다.</p>
-      <p>5. 당신은 부여되는 미션에 따라 헤드폰으로 들려오는 ‘너’들의 소리에 귀를 기울이며, 핸드폰을 활용해 당신 속에서 사라져버린 ‘너’를 포착한다.</p>
+  function crossfadeUpdate(html,nextAction){
+    // 페이드 아웃
+    overlayContent.classList.add('hidden');
+    setTimeout(()=>{
+      overlayContent.innerHTML=html;
+      // 페이드 인
+      overlayContent.classList.remove('hidden');
+      // 후속 동작이 필요하면 실행
+      nextAction && nextAction();
+    },450); // CSS 전환시간과 동일
+  }
+
+  function showGoodNight15s(){
+    goodnight.classList.add('show'); // 페이드 인
+    // 15초 후 페이드 아웃
+    setTimeout(()=>{
+      goodnight.classList.add('fadeout');
+      setTimeout(()=>{
+        goodnight.classList.remove('show','fadeout');
+        goodnight.style.display='none';
+      },600);
+    },15000);
+  }
+
+  startBtn.addEventListener('click', ()=>{
+    const introHTML = `
+      <div style="text-align:left;margin:0 auto;max-width:640px">
+        <p style="margin:0 0 8px 0"><b>Introduction</b></p>
+        <p style="margin:0 0 6px 0">1. 당신은 ‘너’가 사라진 세상 속에서 살아가고 있다.</p>
+        <p style="margin:0 0 6px 0">2. 당신은 잠시 후 당신 속에서 죽어버린 ‘너’들의 공동 묘지로 들어선다.</p>
+        <p style="margin:0 0 6px 0">3. 이곳엔 ‘그것’이 되어버린 ‘너’들의 중얼거림만이 존재할 뿐이다.</p>
+        <p style="margin:0 0 6px 0">4. 앞으로 당신에게는 4단계에 걸친 미션이 부여된다.</p>
+        <p style="margin:0">5. 당신은 부여되는 미션에 따라 헤드폰으로 들려오는 ‘너’들의 소리에 귀를 기울이며, 핸드폰을 활용해 당신 속에서 사라져버린 ‘너’를 포착한다.</p>
       </div>
-      <div id="countdown">The door will open in <span id="countNum">60</span> seconds.</div>
+      <div id="countdown" style="margin-top:18px;font-size:18px;font-weight:bold">
+        The door will open in <span id="countNum">60</span> seconds.
+      </div>
     `;
-    let count=60;
-    const numEl=document.getElementById('countNum');
-    const timer=setInterval(()=>{
-      count--;
-      if(count>=0){ numEl.textContent=count; }
-      if(count<=0){
-        clearInterval(timer);
-        overlay.style.display="none";
-        goodnight.style.display="block";
-        setTimeout(()=>{goodnight.style.display="none";},15000);
-      }
-    },1000);
-  };
+
+    crossfadeUpdate(introHTML, ()=>{
+      // 카운트다운 시작
+      let count = 60;
+      const numEl = document.getElementById('countNum');
+      const timer = setInterval(()=>{
+        count--;
+        if(count>=0){ numEl.textContent = count; }
+        if(count<=0){
+          clearInterval(timer);
+          // 오버레이 전체를 페이드 아웃
+          overlay.classList.add('hidden');
+          setTimeout(()=>{
+            overlay.style.display='none';
+            showGoodNight15s();
+          },450);
+        }
+      },1000);
+    });
+  });
+
+  // 캡쳐 버튼(기능은 원 코드 그대로 placeholder)
+  document.getElementById('captureBtn').addEventListener('click',()=>{
+    try{
+      const tmp=document.createElement('a');
+      tmp.download=`capture_${Date.now()}.png`;
+      tmp.href=view.toDataURL('image/png');
+      tmp.click();
+    }catch(e){ console.warn('캡쳐 실패', e); }
+  });
 })();
 </script>
 </body>
