@@ -38,7 +38,7 @@
   // 🎛️ 조절값
   const PROC_SCALE = 0.6;     // 내부 처리 해상도 스케일
   const TRAIL_ALPHA = 0.03;   // 잔상 길이 (작을수록 더 오래 남음)
-  const FRAME_MARGIN = 40;    // 흰색 점선 프레임과 화면 사이 여백(px)
+  const FRAME_MARGIN = 40;    // 흰색 프레임과 화면 사이 여백(px)
 
   const camVideo = document.createElement('video');
   camVideo.autoplay = true; camVideo.playsInline = true; camVideo.muted = true;
@@ -121,11 +121,11 @@
     // 3) 처리용 → 메인 캔버스 업스케일
     vctx.drawImage(proc, 0, 0, W, H);
 
-    // 4) 흰색 점선 프레임
+    // 4) 흰색 실선 프레임
     vctx.save();
     vctx.strokeStyle = "white";
-    vctx.lineWidth = 3;
-    vctx.setLineDash([12, 8]); // 점선 패턴
+    vctx.lineWidth = 1;
+    vctx.setLineDash([]); // 실선
     vctx.strokeRect(FRAME_MARGIN, FRAME_MARGIN, W-2*FRAME_MARGIN, H-2*FRAME_MARGIN);
     vctx.restore();
   }
