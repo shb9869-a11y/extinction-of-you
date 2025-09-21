@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Camera – 80Hz Drone + Wind-Tamed Mic</title>
+<title>Camera – Mic Focus + Motion Pan/Volume + 80Hz Fade</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -85,7 +85,6 @@
       camVideo.srcObject=s; await camVideo.play().catch(()=>{});
     }catch(e){console.warn("카메라 실패:", e);}
   }
-
   function resizeAll(){
     const dpr=window.devicePixelRatio||1;
     const w=window.innerWidth,h=window.innerHeight;
@@ -103,7 +102,6 @@
 
     pctx.globalCompositeOperation="source-over";
     pctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`; pctx.fillRect(0,0,PW,PH);
-
     if(camVideo.readyState>=2){
       const vw=camVideo.videoWidth, vh=camVideo.videoHeight;
       if(vw && vh){
@@ -122,33 +120,205 @@
   }
   await attachCamera(); loop();
 
-  /* ========= 오디오: 80Hz 드론 + 마이크(바람 억제) + 패닝/볼륨 ========= */
+  /* ========= 오디오: 80Hz 드론 + (크게) 마이크 + 모션 볼륨/패닝 ========= */
   let audioCtx=null, masterGain=null;
-  let bgOsc=null, bgGain=null, panner=null;
-  let micStream=null, micChainOut=null;
-  let hapticTimer=null;
+  let panner=null, motionGain=null;     // ← 공통(드론/마이크 모두 거침)
+  let bgOsc=null, bgGain=null;          // 80Hz 드론
+  let micStream=null, micOut=null;      // 마이크 체인 출력
+  let limiter=null;
 
-  // 믹스/제어 파라미터
-  const DRONE_FREQ=80;                 // 요청: 80Hz 드론
-  const VOL_BASE=0.14, VOL_MAX_ADD=0.42; // 드론 볼륨 범위(기울기)
-  const SMOOTH_TC=0.08, CTRL_SMOOTH_ALPHA=0.12;
+  // -------- 파라미터 --------
+  const DRONE_FREQ=80;                  // 80Hz 바닥
+  const DRONE_BASE=0.08;                // 드론 기본 레벨(낮게)
+  const DRONE_MAX_ADD=0.10;             // 모션에 의해 추가될 드론 기여(작게)
+
+  const VOL_BASE=0.18;                  // 전체 볼륨의 저변(모션 없이도 이 정도)
+  const VOL_MAX_ADD=0.50;               // 위/아래 기울기로 추가되는 전체 볼륨
+
+  const SMOOTH_TC=0.08;                 // AudioParam 평활
+  const CTRL_SMOOTH_ALPHA=0.12;         // 소프트 평활(저역통과)
   const DEADZONE_VOL_DEG=5, DEADZONE_PAN_DEG=3;
   const VOL_TILT_LIMIT=60, PAN_LIMIT_DEG=45;
 
-  // 마이크 바람 억제 필터값
-  const MIC_HP=160;        // 바람 저역 컷
-  const MIC_LOWSHELF_FREQ=200, MIC_LOWSHELF_GAIN=-9; // 200Hz 아래 -9dB
-  const NOTCH_FREQ=300, NOTCH_Q=3.5;   // 추가 럼블/공진 컷
-  const COMP_THRESHOLD=-18, COMP_RATIO=3.5, COMP_ATTACK=0.006, COMP_RELEASE=0.12;
-  const MIC_WET=0.55, MIC_DRY=0.07;    // 리버브 비중 / 원음 약간
+  // 마이크(바람 억제 + 메이크업 + 리미터)
+  const MIC_HP=220;                      // 바람 저역 컷
+  const MIC_LOWSHELF_FREQ=200, MIC_LOWSHELF_GAIN=-12;
+  const NOTCH_FREQ=300, NOTCH_Q=3.5;
+  const COMP_THRESHOLD=-20, COMP_RATIO=3.5, COMP_ATTACK=0.006, COMP_RELEASE=0.12;
+  const MAKEUP_GAIN=3.2;                 // ≈ +10dB
+  const MIC_WET=0.55, MIC_DRY=0.08;
 
-  // 입력이 너무 작을 때 자동 감쇠(소프트 게이트)
-  const GATE_OPEN_DB=-48;  // 이 이상이면 열림
-  const GATE_CLOSE_DB=-56; // 이하면 닫힘(히스/바람 억제)
+  // 게이트(아주 작은 잡음/바람 닫기)
+  const GATE_OPEN_DB=-50, GATE_CLOSE_DB=-58;
   const GATE_ATTACK=0.06, GATE_RELEASE=0.25;
 
-  // 기울기 매핑
-  let latestOri={beta:0,gamma:0}, smVol=VOL_BASE, smPan=0;
+  // -------- 오디오 그래프 초기화 --------
+  function initAudio(){
+    if(audioCtx) return;
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+
+    // 마스터 체인: [공통 Panner] → [모션 Gain] → [Limiter] → [Master]
+    panner=(audioCtx.createStereoPanner)?audioCtx.createStereoPanner():audioCtx.createGain();
+    if(!panner.pan){ panner.pan={ value:0, setTargetAtTime:()=>{} }; } // 폴백
+
+    motionGain=audioCtx.createGain(); motionGain.gain.value=VOL_BASE;
+
+    limiter=audioCtx.createDynamicsCompressor();
+    limiter.threshold.value=-3; limiter.knee.value=0; limiter.ratio.value=20;
+    limiter.attack.value=0.002; limiter.release.value=0.10;
+
+    masterGain=audioCtx.createGain(); masterGain.gain.value=0.9;
+
+    panner.connect(motionGain);
+    motionGain.connect(limiter);
+    limiter.connect(masterGain);
+    masterGain.connect(audioCtx.destination);
+  }
+
+  // -------- 80Hz 드론 --------
+  function startDrone(){
+    if(!audioCtx || bgOsc) return;
+    bgOsc=audioCtx.createOscillator(); bgGain=audioCtx.createGain();
+    bgOsc.type='sine'; bgOsc.frequency.value=DRONE_FREQ;
+    bgGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    // 드론은 낮게: 모션의 영향을 조금만 받도록 DRONE_BASE만 설정
+    bgGain.gain.setTargetAtTime(DRONE_BASE, audioCtx.currentTime, 0.25);
+    bgOsc.connect(bgGain).connect(panner); // ← 공통 패너로 가서 패닝도 같이 영향
+    bgOsc.start();
+  }
+
+  // GOOD NIGHT 때 3초 페이드아웃
+  function fadeOutDrone3s(){
+    if(!audioCtx || !bgGain || !bgOsc) return;
+    const now=audioCtx.currentTime;
+    try{ bgGain.gain.setTargetAtTime(0.0001, now, 0.5); }catch{
+      bgGain.gain.cancelScheduledValues(now);
+      bgGain.gain.linearRampToValueAtTime(0.0001, now+3.0);
+    }
+    // 3.2초 뒤 완전 정지
+    setTimeout(()=>{
+      try{ bgOsc.stop(); }catch{}
+      bgOsc=null; bgGain=null;
+    }, 3200);
+  }
+
+  // -------- 마이크 체인 --------
+  async function startMic(){
+    if(micStream) return;
+    if(!navigator.mediaDevices?.getUserMedia) return;
+
+    // 3초 타임아웃 + 브라우저 억제 활성화
+    const ctrl=new AbortController();
+    const to=setTimeout(()=>{ try{ctrl.abort();}catch{} }, 3000);
+    try{
+      micStream=await navigator.mediaDevices.getUserMedia({
+        audio:{ echoCancellation:false, noiseSuppression:true, autoGainControl:false },
+        video:false, signal:ctrl.signal
+      });
+    }catch(e){
+      clearTimeout(to); console.warn('Mic denied/timeout → continue without mic', e); return;
+    }
+    clearTimeout(to);
+
+    const src=audioCtx.createMediaStreamSource(micStream);
+
+    // 바람 억제 필터
+    const hpf=audioCtx.createBiquadFilter(); hpf.type='highpass'; hpf.frequency.value=MIC_HP; hpf.Q.value=0.707;
+    const lowshelf=audioCtx.createBiquadFilter(); lowshelf.type='lowshelf'; lowshelf.frequency.value=MIC_LOWSHELF_FREQ; lowshelf.gain.value=MIC_LOWSHELF_GAIN;
+    const notch=audioCtx.createBiquadFilter(); notch.type='notch'; notch.frequency.value=NOTCH_FREQ; notch.Q.value=NOTCH_Q;
+
+    // 컴프레서(+ 안전 리미터 전에)
+    const comp=audioCtx.createDynamicsCompressor();
+    comp.threshold.value=COMP_THRESHOLD; comp.ratio.value=COMP_RATIO;
+    comp.attack.value=COMP_ATTACK; comp.release.value=COMP_RELEASE;
+
+    // 리버브(간이 IR + 멀티탭)
+    const convolver=audioCtx.createConvolver(); convolver.buffer=makeIR(2.6,2.4);
+    const tapA=audioCtx.createDelay(); tapA.delayTime.value=0.11;
+    const tapB=audioCtx.createDelay(); tapB.delayTime.value=0.19;
+    const tapC=audioCtx.createDelay(); tapC.delayTime.value=0.27;
+    const fbA=audioCtx.createGain(); fbA.gain.value=0.28; tapA.connect(fbA).connect(tapA);
+    const fbB=audioCtx.createGain(); fbB.gain.value=0.22; tapB.connect(fbB).connect(tapB);
+    const fbC=audioCtx.createGain(); fbC.gain.value=0.18; tapC.connect(fbC).connect(tapC);
+
+    const dry=audioCtx.createGain(); dry.gain.value=MIC_DRY;
+    const wet=audioCtx.createGain(); wet.gain.value=MIC_WET;
+
+    // 게이트(작은 소음 닫기)
+    const analyser=audioCtx.createAnalyser(); analyser.fftSize=512;
+    const gateGain=audioCtx.createGain(); gateGain.gain.value=0;
+
+    // 메이크업 + 패너로
+    const makeup=audioCtx.createGain(); makeup.gain.value=MAKEUP_GAIN;
+
+    // 체인 결선
+    src.connect(hpf).connect(lowshelf).connect(notch).connect(comp);
+    comp.connect(analyser);
+
+    // DRY
+    comp.connect(dry);
+    // WET
+    const wetSplit=audioCtx.createGain();
+    comp.connect(wetSplit);
+    wetSplit.connect(convolver);
+    wetSplit.connect(tapA); wetSplit.connect(tapB); wetSplit.connect(tapC);
+    const wetSum=audioCtx.createGain();
+    convolver.connect(wetSum); tapA.connect(wetSum); tapB.connect(wetSum); tapC.connect(wetSum);
+    wetSum.connect(wet);
+
+    // Dry+Wet → Gate → Makeup → (공통) Panner
+    const micSum=audioCtx.createGain();
+    dry.connect(micSum); wet.connect(micSum);
+    micSum.connect(gateGain).connect(makeup).connect(panner);
+
+    // 게이트 루프 시작
+    gateLoop(analyser, gateGain);
+
+    micOut=makeup;
+  }
+
+  // 게이트 제어
+  function gateLoop(analyser, gate){
+    const buf=new Uint8Array(analyser.fftSize);
+    let open=false;
+    function step(){
+      requestAnimationFrame(step);
+      analyser.getByteTimeDomainData(buf);
+      let sum=0; for(let i=0;i<buf.length;i++){ const v=(buf[i]-128)/128; sum+=v*v; }
+      const rms=Math.sqrt(sum/buf.length);
+      const db=20*Math.log10(Math.max(1e-6,rms));
+      const now=audioCtx?.currentTime ?? 0;
+      const shouldOpen = db>GATE_OPEN_DB || (open && db>GATE_CLOSE_DB);
+      if(shouldOpen!==open){
+        open=shouldOpen;
+        const tc=open?GATE_ATTACK:GATE_RELEASE;
+        try{ gate.gain.setTargetAtTime(open?1:0, now, tc); }
+        catch{
+          gate.gain.cancelScheduledValues(now);
+          gate.gain.linearRampToValueAtTime(open?1:0, now+tc);
+        }
+      }
+    }
+    step();
+  }
+
+  // 인공 IR
+  function makeIR(seconds=2.6, decay=2.4){
+    const rate=audioCtx.sampleRate, len=Math.floor(rate*seconds);
+    const ir=audioCtx.createBuffer(2, len, rate);
+    for(let ch=0; ch<2; ch++){
+      const v=ir.getChannelData(ch);
+      for(let i=0;i<len;i++){
+        const t=i/len, env=Math.pow(1-t, decay);
+        v[i]=(Math.random()*2-1)*env*0.55;
+      }
+    }
+    return ir;
+  }
+
+  // -------- 모션 매핑(위/아래=볼륨, 좌/우=패닝, 가로/세로 자동보정) --------
+  let latestOri={beta:0,gamma:0}, smPan=0, smVol=VOL_BASE;
+
   function getScreenAngle(){
     const o=(screen.orientation&&screen.orientation.angle)??window.orientation??0;
     return (typeof o==='number')?o:0;
@@ -162,188 +332,50 @@
     else if(ang===270){volTilt=gamma; panTilt=-beta;}
     return {volTilt, panTilt};
   }
-  const smoothStep=(t,c,a=CTRL_SMOOTH_ALPHA)=>c+(t-c)*a;
-  function tiltToVolume(volTilt){
-    const t=Math.min(VOL_TILT_LIMIT,Math.max(-VOL_TILT_LIMIT,volTilt||0));
-    const a=Math.max(0, Math.abs(t)-DEADZONE_VOL_DEG)/(VOL_TILT_LIMIT-DEADZONE_VOL_DEG);
-    return VOL_BASE + VOL_MAX_ADD*a;
-  }
   function tiltToPan(panTilt){
-    const t=Math.min(PAN_LIMIT_DEG,Math.max(-PAN_LIMIT_DEG, panTilt||0));
+    const t=Math.min(PAN_LIMIT_DEG, Math.max(-PAN_LIMIT_DEG, panTilt||0));
     if(Math.abs(t)<DEADZONE_PAN_DEG) return 0;
-    return t/PAN_LIMIT_DEG;
+    return t/PAN_LIMIT_DEG; // -1..+1
   }
-
-  function initAudio(){
-    if(audioCtx) return;
-    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-    masterGain=audioCtx.createGain(); masterGain.gain.value=0.85;
-    panner=(audioCtx.createStereoPanner)?audioCtx.createStereoPanner():audioCtx.createGain();
-    if(!panner.pan){ panner.pan={ value:0, setTargetAtTime:()=>{} }; }
-    panner.connect(masterGain); masterGain.connect(audioCtx.destination);
+  function tiltToVol(volTilt){
+    const t=Math.min(VOL_TILT_LIMIT, Math.max(-VOL_TILT_LIMIT, volTilt||0));
+    const a=Math.max(0, Math.abs(t)-DEADZONE_VOL_DEG)/(VOL_TILT_LIMIT-DEADZONE_VOL_DEG);
+    return VOL_BASE + VOL_MAX_ADD*a; // 0.18~0.68
   }
+  function smoothStep(t,c,a=CTRL_SMOOTH_ALPHA){ return c+(t-c)*a; }
 
-  function startDrone(){
-    if(!audioCtx||bgOsc) return;
-    bgOsc=audioCtx.createOscillator(); bgGain=audioCtx.createGain();
-    bgOsc.type='sine'; bgOsc.frequency.value=DRONE_FREQ; // 80Hz
-    bgGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-    bgGain.gain.setTargetAtTime(VOL_BASE, audioCtx.currentTime, 0.25);
-    bgOsc.connect(bgGain).connect(panner);
-    bgOsc.start();
-  }
-
-  // 마이크 체인(바람 억제)
-  async function startMic(){
-    if(micStream) return;
-    if(!navigator.mediaDevices?.getUserMedia) return;
-
-    // 3초 타임아웃 + 브라우저 노이즈 억제 활성화
-    const ctrl=new AbortController();
-    const to=setTimeout(()=>{try{ctrl.abort();}catch{}},3000);
-    try{
-      micStream=await navigator.mediaDevices.getUserMedia({
-        audio:{
-          echoCancellation:false,
-          noiseSuppression:true,    // 바람 억제 도움
-          autoGainControl:false
-        }, video:false, signal:ctrl.signal
-      });
-    }catch(e){
-      clearTimeout(to); console.warn('Mic denied/timeout, continue without mic:', e); return;
-    }
-    clearTimeout(to);
-
-    const src=audioCtx.createMediaStreamSource(micStream);
-
-    // 필터들
-    const hpf=audioCtx.createBiquadFilter(); hpf.type='highpass'; hpf.frequency.value=MIC_HP; hpf.Q.value=0.707;
-    const ls=audioCtx.createBiquadFilter(); ls.type='lowshelf'; ls.frequency.value=MIC_LOWSHELF_FREQ; ls.gain.value=MIC_LOWSHELF_GAIN;
-    const notch=audioCtx.createBiquadFilter(); notch.type='notch'; notch.frequency.value=NOTCH_FREQ; notch.Q.value=NOTCH_Q;
-    const comp=audioCtx.createDynamicsCompressor();
-    comp.threshold.value=COMP_THRESHOLD; comp.ratio.value=COMP_RATIO;
-    comp.attack.value=COMP_ATTACK; comp.release.value=COMP_RELEASE;
-
-    // 리버브
-    const convolver=audioCtx.createConvolver(); convolver.buffer=makeReverbIR(2.6,2.4);
-    const tapA=audioCtx.createDelay(); tapA.delayTime.value=0.11;
-    const tapB=audioCtx.createDelay(); tapB.delayTime.value=0.19;
-    const tapC=audioCtx.createDelay(); tapC.delayTime.value=0.27;
-    const fbA=audioCtx.createGain(); fbA.gain.value=0.28; tapA.connect(fbA).connect(tapA);
-    const fbB=audioCtx.createGain(); fbB.gain.value=0.22; tapB.connect(fbB).connect(tapB);
-    const fbC=audioCtx.createGain(); fbC.gain.value=0.18; tapC.connect(fbC).connect(tapC);
-
-    // Wet/Dry
-    const micDry=audioCtx.createGain(); micDry.gain.value=MIC_DRY;
-    const micWet=audioCtx.createGain(); micWet.gain.value=MIC_WET;
-
-    // 게이트: RMS 기반
-    const analyser=audioCtx.createAnalyser(); analyser.fftSize=512;
-    const micGate=audioCtx.createGain(); micGate.gain.value=0; // 기본 닫힘
-    gateLoop(analyser, micGate);
-
-    // 체인 결선
-    src.connect(hpf).connect(ls).connect(notch).connect(comp);
-    comp.connect(analyser); // 게이트 검출용 분기
-
-    // DRY
-    comp.connect(micDry);
-
-    // WET
-    const wetSplit=audioCtx.createGain();
-    comp.connect(wetSplit);
-    wetSplit.connect(convolver);
-    wetSplit.connect(tapA); wetSplit.connect(tapB); wetSplit.connect(tapC);
-    const wetSum=audioCtx.createGain();
-    convolver.connect(wetSum); tapA.connect(wetSum); tapB.connect(wetSum); tapC.connect(wetSum);
-    wetSum.connect(micWet);
-
-    // Dry+Wet → Gate → Panner
-    const micSum=audioCtx.createGain();
-    micDry.connect(micSum); micWet.connect(micSum);
-    micSum.connect(micGate).connect(panner);
-
-    micChainOut=micGate;
-  }
-
-  // 게이트 루프
-  function gateLoop(analyser, gate){
-    const buf=new Uint8Array(analyser.fftSize);
-    let open=false, last=0;
-    function dbFromByte(b){ // 0..255 → ≈ dBFS 근사
-      const p=b/255; return 20*Math.log10(Math.max(1e-6,p));
-    }
-    function step(){
-      requestAnimationFrame(step);
-      analyser.getByteTimeDomainData(buf);
-      // 간단 RMS
-      let sum=0; for(let i=0;i<buf.length;i++){ const v=(buf[i]-128)/128; sum+=v*v; }
-      const rms=Math.sqrt(sum/buf.length);
-      const db=20*Math.log10(Math.max(1e-6,rms));
-
-      const now=audioCtx?.currentTime ?? 0;
-      const shouldOpen = db>GATE_OPEN_DB || (open && db>GATE_CLOSE_DB);
-      if(shouldOpen!==open){
-        open=shouldOpen;
-        try{
-          const tc = open? GATE_ATTACK : GATE_RELEASE;
-          gate.gain.setTargetAtTime(open?1:0, now, tc);
-        }catch{
-          gate.gain.cancelScheduledValues(now);
-          gate.gain.linearRampToValueAtTime(open?1:0, now + (open?GATE_ATTACK:GATE_RELEASE));
-        }
-      }
-      last=db;
-    }
-    step();
-  }
-
-  // 인공 IR
-  function makeReverbIR(seconds=2.6, decay=2.4){
-    const rate=audioCtx.sampleRate, length=Math.floor(rate*seconds);
-    const ir=audioCtx.createBuffer(2, length, rate);
-    for(let ch=0; ch<2; ch++){
-      const v=ir.getChannelData(ch);
-      for(let i=0;i<length;i++){
-        const t=i/length, env=Math.pow(1-t, decay);
-        v[i]=(Math.random()*2-1)*env*0.55;
-      }
-    }
-    return ir;
-  }
-
-  // 파라미터 적용
-  function applyAudioParams(vol, pan){
+  function applyPanVol(pan, vol){
     if(!audioCtx) return;
     const now=audioCtx.currentTime;
-    if(bgGain){
-      try{ bgGain.gain.setTargetAtTime(vol, now, SMOOTH_TC); }
-      catch{ bgGain.gain.cancelScheduledValues(now); bgGain.gain.linearRampToValueAtTime(vol, now+0.08); }
-    }
-    if(panner?.pan && typeof panner.pan.setTargetAtTime==='function'){
+    // 패닝
+    if(panner?.pan?.setTargetAtTime){
       panner.pan.setTargetAtTime(pan, now, SMOOTH_TC);
     }
-  }
-
-  // 햅틱(지속)
-  function startHapticsPulse(intervalMs=600, burstMs=35){
-    stopHapticsPulse();
-    if('vibrate' in navigator){
-      hapticTimer=setInterval(()=>navigator.vibrate(burstMs), intervalMs);
+    // 전체 모션 게인
+    if(motionGain){
+      try{ motionGain.gain.setTargetAtTime(vol, now, SMOOTH_TC); }
+      catch{
+        motionGain.gain.cancelScheduledValues(now);
+        motionGain.gain.linearRampToValueAtTime(vol, now+0.08);
+      }
+    }
+    // 드론도 살짝 따라오게 (너무 크지 않게)
+    if(bgGain){
+      const droneVol = DRONE_BASE + DRONE_MAX_ADD * ((vol - VOL_BASE) / (VOL_MAX_ADD||1));
+      try{ bgGain.gain.setTargetAtTime(droneVol, now, SMOOTH_TC); }
+      catch{
+        bgGain.gain.cancelScheduledValues(now);
+        bgGain.gain.linearRampToValueAtTime(droneVol, now+0.08);
+      }
     }
   }
-  function stopHapticsPulse(){
-    if(hapticTimer){ clearInterval(hapticTimer); hapticTimer=null; }
-    if('vibrate' in navigator){ navigator.vibrate(0); }
-  }
 
-  // 자동 시작 & 재시도
+  // -------- 자동 시작 / 재시도 --------
   function autoStart(){
     try{
       initAudio();
-      if(audioCtx && audioCtx.state==='suspended'){ audioCtx.resume().catch(()=>{}); }
+      if(audioCtx.state==='suspended'){ audioCtx.resume().catch(()=>{}); }
       startDrone();
-      startHapticsPulse(600,35);
     }catch(e){ console.warn('autoStart err', e); }
   }
   autoStart();
@@ -351,50 +383,31 @@
   window.addEventListener('focus', autoStart);
   setInterval(autoStart, 3000);
 
-  // 기울기 수집
+  // Orientation 이벤트 수집
   if(typeof DeviceOrientationEvent!=='undefined'){
     try{
       if(typeof DeviceOrientationEvent.requestPermission==='function'){
         DeviceOrientationEvent.requestPermission().catch(()=>{});
       }
     }catch{}
-    window.addEventListener('deviceorientation',(e)=>{
+    window.addEventListener('deviceorientation', (e)=>{
       latestOri.beta=e.beta??0; latestOri.gamma=e.gamma??0;
-    },{passive:true});
+    }, {passive:true});
   }
 
-  // 제어 루프
+  // 제어 루프(지지직 방지: RAF에서만 적용)
   function controlLoop(){
     requestAnimationFrame(controlLoop);
     const {volTilt, panTilt}=mapOrientation(latestOri.beta, latestOri.gamma);
-    const volTarget=tiltToVolume(volTilt);
+    const volTarget=tiltToVol(volTilt);
     const panTarget=tiltToPan(panTilt);
     smVol=smoothStep(volTarget, smVol);
     smPan=smoothStep(panTarget, smPan);
-    applyAudioParams(smVol, smPan);
+    applyPanVol(smPan, smVol);
   }
   controlLoop();
 
-  // 클릭/틱
-  function playClick(){
-    if(!audioCtx) return;
-    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-    o.type='sine'; o.frequency.setValueAtTime(200,audioCtx.currentTime);
-    g.gain.setValueAtTime(0.3,audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.22);
-    o.connect(g).connect(masterGain); o.start(); o.stop(audioCtx.currentTime+0.24);
-  }
-  function playTick(){
-    if(!audioCtx) return;
-    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-    o.type='square'; o.frequency.value=420; g.gain.value=0.16;
-    o.connect(g).connect(masterGain); o.start();
-    g.gain.setValueAtTime(0.16,audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.07);
-    o.stop(audioCtx.currentTime+0.09);
-  }
-
-  /* ========= 오버레이 & 카운트다운 ========= */
+  // -------- UI/플로우 --------
   const overlay=document.getElementById('overlay');
   const overlayContent=document.getElementById('overlayContent');
   const startBtn=document.getElementById('startBtn');
@@ -405,16 +418,20 @@
     overlayContent.classList.add('hidden');
     setTimeout(()=>{ overlayContent.innerHTML=html; overlayContent.classList.remove('hidden'); nextAction&&nextAction(); },450);
   }
-  function showGoodNight15s(){
+  function showGoodNight(){
     goodnight.classList.add('show');
-    setTimeout(()=>{ goodnight.classList.add('fadeout');
+    // 80Hz 드론 3초 페이드아웃
+    fadeOutDrone3s();
+    // 15초 후 텍스트 페이드
+    setTimeout(()=>{
+      goodnight.classList.add('fadeout');
       setTimeout(()=>{ goodnight.classList.remove('show','fadeout'); goodnight.style.display='none'; },600);
     },15000);
   }
 
-  // UI는 즉시 진행, 마이크는 비동기 시도
+  // 시작(마이크는 비동기 시도, UI는 즉시 진행)
   startBtn.addEventListener('click', ()=>{
-    try{ autoStart(); }catch{} try{ playClick(); }catch{}
+    try{ autoStart(); }catch{}
     try{ startMic().catch(err=>console.warn('Mic start failed (non-blocking):', err)); }catch{}
 
     const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
@@ -424,7 +441,7 @@
       ${line('2. 곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.')}
       ${line('3. 그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.')}
       ${line('4. 이제 당신에게는 네 단계의 미션이 주어진다.')}
-      ${line('5. 미션에 따라 ‘너’들의 목소리에 귀 기울이며, 휴대폰으로 잃어버린 ‘너’를 포착하라.')}
+      ${line('5. 미션에 따라 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착해야 한다.')}
       <div id="countdown" class="lineWrap">
         <span class="line">THE DOOR WILL OPEN IN <span id="countNum">60</span> SECONDS.</span>
       </div>
@@ -433,20 +450,22 @@
       let count=60; const numEl=document.getElementById('countNum');
       const timer=setInterval(()=>{
         count--;
-        if(count>=0){ try{ numEl.textContent=count; playTick(); }catch{} }
+        if(count>=0){ numEl.textContent=count; }
         if(count<=0){
           clearInterval(timer);
           overlay.classList.add('hidden');
-          setTimeout(()=>{overlay.style.display='none'; showGoodNight15s();},450);
+          setTimeout(()=>{ overlay.style.display='none'; showGoodNight(); },450);
         }
       },1000);
     });
   });
 
   captureBtn.addEventListener('click',()=>{
-    playClick(); if('vibrate' in navigator){ navigator.vibrate(30); }
-    try{ const a=document.createElement('a'); a.download=`capture_${Date.now()}.png`; a.href=view.toDataURL('image/png'); a.click(); }
-    catch(e){ console.warn('CAPTURE 실패', e); }
+    try{
+      const a=document.createElement('a');
+      a.download=`capture_${Date.now()}.png`;
+      a.href=view.toDataURL('image/png'); a.click();
+    }catch(e){ console.warn('CAPTURE 실패', e); }
   });
 
 })();
