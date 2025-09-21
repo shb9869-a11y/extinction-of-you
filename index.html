@@ -1,126 +1,92 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Camera (B/W + Trails) + Cloudflare Stream Overlay</title>
-  <style>
-    html, body { margin:0; padding:0; height:100%; background:#000; overflow:hidden; }
-    /* 흑백은 CSS 필터로 확실히 적용 */
-    #camCanvas {
-      position: fixed;
-      inset: 0;
-      width: 100vw;
-      height: 100vh;
-      display: block;
-      /* 흑백 + 약간 대비 */
-      filter: grayscale(100%) contrast(110%);
-    }
-    /* 스트림은 오파시티/블렌드 제거 (Resolume에서 조절) */
-    #cfStream {
-      position: fixed;
-      inset: 0;
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover;
-      pointer-events: none;
-    }
-    @supports (height: 100svh) {
-      #camCanvas, #cfStream { height: 100svh; }
-    }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Live Stream</title>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;}
+  #wrap{position:fixed;inset:0;background:#000;}
+  #v{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;}
+  #wait{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+        color:#fff;font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+        opacity:.8;text-align:center}
+  #unmute{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+          background:#12a150;color:#fff;border:0;border-radius:999px;padding:10px 16px;
+          font-weight:700;display:none}
+</style>
 </head>
 <body>
-  <!-- 카메라 처리용 캔버스 (흑백+잔상) -->
-  <canvas id="camCanvas"></canvas>
+<div id="wrap">
+  <video id="v" autoplay playsinline muted></video>
+  <div id="wait">스트림 신호 대기 중…</div>
+  <button id="unmute">소리 켜기</button>
+</div>
 
-  <!-- Cloudflare Stream (HLS/LL-HLS) 오버레이 -->
-  <video id="cfStream" autoplay playsinline muted></video>
+<script>
+(async ()=>{
+  // Cloudflare Stream의 HLS Manifest URL로 교체
+  const STREAM_URL = "https://customer-XXXX.cloudflarestream.com/XXXXXXXX/manifest/video.m3u8";
 
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <script>
-  // ====== 설정 ======
-  const HLS_URL = "https://customer-e1rhmg8edq32stcl.cloudflarestream.com/0561f69cdb850354620ce2f93cbb05ce/manifest/video.m3u8?protocol=llhlsbeta";
-  const CAM_CONSTRAINTS = { video: { facingMode: { ideal: "environment" } }, audio: false };
+  const video = document.getElementById('v');
+  const wait  = document.getElementById('wait');
+  const unmuteBtn = document.getElementById('unmute');
 
-  // 잔상 파라미터: 알파만 서서히 지우기(화면 전체 어두워지지 않음)
-  // eraseAlpha: 한 프레임마다 지우는 알파 강도 (0.03~0.15 추천)
-  // drawAlpha : 새 프레임을 덧그릴 알파 (0.2~0.5)
-  const TRAIL = { eraseAlpha: 0.07, drawAlpha: 0.30 };
+  // iOS 자동재생 정책 대응: 처음엔 muted 상태로 재생, 버튼으로만 소리 켤 수 있음
+  function showWaiting(msg="스트림 신호 대기 중…"){ wait.textContent = msg; wait.style.display='block'; }
+  function hideWaiting(){ wait.style.display='none'; }
 
-  const canvas = document.getElementById('camCanvas');
-  const ctx = canvas.getContext('2d', { alpha: true }); // 알파 켬(잔상용)
-  const camVideo = document.createElement('video');
-  camVideo.playsInline = true;
-  camVideo.muted = true;
-  camVideo.autoplay = true;
-
-  function fitCanvas() {
-    const w = window.innerWidth || document.documentElement.clientWidth;
-    const h = window.innerHeight || document.documentElement.clientHeight;
-    canvas.width = w;
-    canvas.height = h;
-  }
-  window.addEventListener('resize', fitCanvas, { passive: true });
-  fitCanvas();
-
-  function drawLoop() {
-    const W = canvas.width, H = canvas.height;
-
-    // 1) 이전 프레임을 "알파로 조금씩 지우는" 방식 → 실제 밝기는 유지, 잔상만 사라짐
-    ctx.globalCompositeOperation = "destination-out";
-    ctx.globalAlpha = TRAIL.eraseAlpha;
-    ctx.fillStyle = "rgba(0,0,0,1)";
-    ctx.fillRect(0, 0, W, H);
-
-    // 2) 현재 카메라 프레임 그리기 (알파로 덧그림)
-    if (camVideo.readyState >= 2) {
-      ctx.globalCompositeOperation = "source-over";
-      ctx.globalAlpha = TRAIL.drawAlpha;
-
-      const vw = camVideo.videoWidth, vh = camVideo.videoHeight;
-      if (vw && vh) {
-        const canvasRatio = W / H;
-        const videoRatio = vw / vh;
-        let dw = W, dh = H, dx = 0, dy = 0;
-        if (videoRatio > canvasRatio) {
-          dh = H; dw = H * videoRatio; dx = (W - dw) / 2;
-        } else {
-          dw = W; dh = W / videoRatio; dy = (H - dh) / 2;
-        }
-        ctx.drawImage(camVideo, dx, dy, dw, dh);
+  async function attach(){
+    try{
+      if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = STREAM_URL;               // iOS Safari 네이티브 HLS
+      } else if (window.Hls && Hls.isSupported()) {
+        const hls = new Hls({ lowLatencyMode:true });
+        hls.loadSource(STREAM_URL);
+        hls.attachMedia(video);
+      } else {
+        video.src = STREAM_URL;               // 구형 브라우저 fallback
       }
+      await video.play().catch(()=>{});
+      pollReady();
+    }catch(e){
+      showWaiting("재생 준비 중…");
     }
-
-    requestAnimationFrame(drawLoop);
   }
 
-  // 카메라 시작
-  navigator.mediaDevices.getUserMedia(CAM_CONSTRAINTS)
-    .then(stream => {
-      camVideo.srcObject = stream;
-      camVideo.onloadedmetadata = () => {
-        camVideo.play().catch(()=>{});
-        drawLoop(); // 메타데이터 로드 후 시작
-      };
-    })
-    .catch(err => {
-      console.error("카메라 실패:", err);
-      // 실패해도 루프는 돌려 캔버스가 투명 검정 상태로 유지
-      drawLoop();
-    });
-
-  // Cloudflare HLS 붙이기 (블렌드/오파시티 없음)
-  const streamEl = document.getElementById('cfStream');
-  if (streamEl.canPlayType('application/vnd.apple.mpegURL')) {
-    streamEl.src = HLS_URL; // iOS 사파리
-  } else if (window.Hls && window.Hls.isSupported()) {
-    const hls = new Hls({ lowLatencyMode: true });
-    hls.loadSource(HLS_URL);
-    hls.attachMedia(streamEl);
-  } else {
-    streamEl.src = HLS_URL; // 일부 브라우저 폴백
+  // 신호가 들어오면 canplay/playing 상태가 되고, 없으면 계속 재시도
+  function pollReady(){
+    let tries = 0;
+    const timer = setInterval(()=>{
+      const ready = video.readyState >= 2; // HAVE_CURRENT_DATA
+      if (ready && video.videoWidth>0){
+        hideWaiting();
+        clearInterval(timer);
+      } else {
+        showWaiting("스트림 신호 대기 중…");
+        if (++tries % 10 === 0) {
+          // 주기적으로 play 재시도
+          video.play().catch(()=>{});
+        }
+      }
+    }, 1500);
   }
-  </script>
+
+  // 소리 켜기 버튼 (관객이 눌러야만 가능)
+  unmuteBtn.addEventListener('click', ()=>{
+    video.muted = false;
+    video.play().catch(()=>{});
+    unmuteBtn.style.display = 'none';
+  });
+
+  // 처음엔 음소거 자동재생 → 화면 탭하면 소리 버튼 노출
+  document.addEventListener('click', ()=>{
+    if (video.muted) unmuteBtn.style.display = 'inline-block';
+  }, { once:true });
+
+  await attach();
+})();
+</script>
 </body>
 </html>
