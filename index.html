@@ -5,49 +5,79 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Camera – BW + Afterimage + Mission Flow</title>
 
-<!-- iOS/Android: 홈 화면 추가 시 전체화면 -->
+<!-- PWA: 홈 화면 추가 시 브라우저 UI 제거 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="app.webmanifest">
 
 <style>
+  :root{
+    --frame: 40px;            /* 프로시니엄 여백 */
+    --ui-gap: 8px;
+    --font-body: clamp(14px, 2.2vw, 18px);
+    --font-strong: clamp(16px, 2.6vw, 20px);
+  }
   html,body{margin:0;height:100%;background:#000;overflow:hidden}
   #view{width:100%;height:100%;display:block;position:fixed;left:0;top:0;z-index:0}
 
-  /* 프로시니엄 프레임: iOS SVG calc 이슈 회피 위해 div로 처리 */
+  /* 프로시니엄 프레임 (검정 라인) */
   .frameBox{
-    position:fixed;left:40px;top:40px;right:40px;bottom:40px;
-    border:1px solid #fff; pointer-events:none; z-index:50;
+    position:fixed;left:var(--frame);top:var(--frame);
+    right:var(--frame);bottom:var(--frame);
+    border:1px solid #000; /* ← 요청대로 검정 */
+    pointer-events:none; z-index:50;
   }
 
-  /* 컨트롤 */
-  .controls{position:fixed;right:12px;bottom:12px;z-index:100;
-    display:flex;gap:8px;align-items:center;
-    background:rgba(0,0,0,.45);padding:8px;border-radius:12px;
-    font:14px/1 system-ui,-apple-system,sans-serif;color:#fff}
+  /* 컨트롤: 프레임 안쪽 정렬 */
+  .controls{
+    position:fixed;
+    right:calc(var(--frame) + var(--ui-gap));
+    bottom:calc(var(--frame) + var(--ui-gap));
+    z-index:100; display:flex; gap:8px; align-items:center;
+    background:rgba(0,0,0,.45); padding:8px; border-radius:12px;
+    font:14px/1 system-ui,-apple-system,sans-serif; color:#fff;
+  }
   .btn{border:1px solid rgba(255,255,255,.25);
     background:rgba(255,255,255,.08);color:#fff;padding:6px 10px;
     border-radius:8px;font-weight:700;cursor:pointer;font-family:"Courier New",monospace}
   .readout{min-width:64px;text-align:center;opacity:.9;font-family:"Courier New",monospace}
-  .btn-capture{position:fixed;left:12px;bottom:12px;z-index:150;
+
+  .btn-capture{
+    position:fixed;
+    left:calc(var(--frame) + var(--ui-gap));
+    bottom:calc(var(--frame) + var(--ui-gap));
+    z-index:150;
     border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);
-    color:#fff;padding:10px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-family:"Courier New",monospace}
+    color:#fff;padding:10px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-family:"Courier New",monospace;
+  }
 
   /* 오버레이(배경 없음) */
   #overlay{
     position:fixed;inset:0;z-index:200;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    text-align:center;padding:20px;font-family:"Courier New",monospace;
-    pointer-events:none;color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;font-family:"Courier New",monospace;color:#fff;
+    pointer-events:none;
   }
-  #overlayContent{max-width:90vw;line-height:1.7;font-size:16px;pointer-events:auto}
+  #overlayContent{
+    pointer-events:auto; line-height:1.7; font-size:var(--font-body);
+    max-width:min(680px, calc(100vw - (var(--frame)*2)));
+    max-height:calc(100vh - (var(--frame)*2));
+    overflow:auto; text-align:left;
+  }
 
   /* 시작 버튼 */
   #startBtn{
     background:#000;color:#fff;border:1px solid #fff;
-    font-size:18px;padding:10px 20px;cursor:pointer;
-    font-family:"Courier New",monospace;border-radius:0;
+    font-size:var(--font-strong);padding:10px 20px;cursor:pointer;
+    font-family:"Courier New",monospace;border-radius:0; display:block; margin:0 auto;
   }
+
+  /* 안내문 각 줄 하이라이트 */
+  .line{
+    display:inline; background:#000; color:#fff; padding:6px 8px;
+    box-decoration-break:clone; -webkit-box-decoration-break:clone;
+  }
+  .lineWrap{ margin:6px 0 }
 
   /* 페이드 */
   .fade{opacity:1;transition:opacity .45s ease}
@@ -62,12 +92,15 @@
   }
   #goodnight.show{display:block;opacity:1}
   #goodnight.fadeout{opacity:0}
+
+  /* 가로모드에서 프레임 약간 축소 */
+  @media (orientation:landscape){
+    :root{ --frame: 32px; }
+  }
 </style>
 </head>
 <body>
   <canvas id="view"></canvas>
-
-  <!-- 프로시니엄 프레임 -->
   <div class="frameBox" aria-hidden="true"></div>
 
   <!-- 줌 컨트롤 -->
@@ -76,7 +109,7 @@
     <div class="readout"><span id="zoomVal">1.2×</span></div>
     <button class="btn" id="zoomIn">+</button>
   </div>
-  <!-- 캡쳐 -->
+  <!-- 캡쳐 버튼 -->
   <button id="captureBtn" class="btn-capture">캡쳐</button>
 
   <!-- 오버레이 -->
@@ -94,7 +127,7 @@
   const view=document.getElementById('view');
   const vctx=view.getContext('2d',{alpha:false});
 
-  // ==== 카메라 + 효과 ====
+  // 카메라 + 효과
   const PROC_SCALE=0.6, TRAIL_ALPHA=0.10, GLOBAL_ALPHA=0.7;
   let ZOOM=1.2, ZOOM_MIN=0.5, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
 
@@ -134,7 +167,6 @@
     const H=view.height/(window.devicePixelRatio||1);
     const PW=proc.width, PH=proc.height;
 
-    // 잔상
     pctx.globalCompositeOperation="source-over";
     pctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`;
     pctx.fillRect(0,0,PW,PH);
@@ -151,7 +183,7 @@
         pctx.drawImage(camVideo,dx,dy,dw,dh);
         pctx.globalAlpha=1.0;
 
-        // 흑백
+        // 흑백 변환
         const frame=pctx.getImageData(0,0,PW,PH);
         const d=frame.data;
         for(let i=0;i<d.length;i+=4){
@@ -165,25 +197,25 @@
   }
   await attachCamera(); loop();
 
-  // ==== UI 흐름 ====
+  // UI 흐름
   const overlay=document.getElementById('overlay');
   const overlayContent=document.getElementById('overlayContent');
   const startBtn=document.getElementById('startBtn');
   const goodnight=document.getElementById('goodnight');
 
   function crossfadeUpdate(html,nextAction){
-    overlayContent.classList.add('hidden');           // fade out
+    overlayContent.classList.add('hidden');          // fade out
     setTimeout(()=>{
       overlayContent.innerHTML=html;
-      overlayContent.classList.remove('hidden');      // fade in
+      overlayContent.classList.remove('hidden');     // fade in
       nextAction && nextAction();
     },450);
   }
 
   function showGoodNight15s(){
-    goodnight.classList.add('show');                  // fade in
+    goodnight.classList.add('show');
     setTimeout(()=>{
-      goodnight.classList.add('fadeout');             // fade out
+      goodnight.classList.add('fadeout');
       setTimeout(()=>{
         goodnight.classList.remove('show','fadeout');
         goodnight.style.display='none';
@@ -192,23 +224,19 @@
   }
 
   startBtn.addEventListener('click', ()=>{
-    const line = s => `<p style="background:#000;color:#fff;padding:6px;margin:6px 0">${s}</p>`;
+    const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
     const introHTML = `
-      <div style="text-align:left;margin:0 auto;max-width:640px">
-        ${line('<b>INTRODUCTION</b>')}
-        ${line('1. 당신은 ‘너’가 사라진 세상 속에서 살아가고 있다.')}
-        ${line('2. 당신은 잠시 후 당신 속에서 죽어버린 ‘너’들의 공동 묘지로 들어선다.')}
-        ${line('3. 이곳엔 ‘그것’이 되어버린 ‘너’들의 중얼거림만이 존재할 뿐이다.')}
-        ${line('4. 앞으로 당신에게는 4단계에 걸친 미션이 부여된다.')}
-        ${line('5. 당신은 부여되는 미션에 따라 헤드폰으로 들려오는 ‘너’들의 소리에 귀를 기울이며, 핸드폰을 활용해 당신 속에서 사라져버린 ‘너’를 포착한다.')}
-      </div>
-      <div id="countdown" style="margin-top:18px;font-size:18px;font-weight:bold;display:inline-block;background:#000;color:#fff;padding:8px">
-        THE DOOR WILL OPEN IN <span id="countNum">60</span> SECONDS.
+      ${line('<b>INTRODUCTION</b>')}
+      ${line('1. 이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.')}
+      ${line('2. 곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.')}
+      ${line('3. 그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.')}
+      ${line('4. 이제 당신에게는 네 단계의 미션이 주어진다.')}
+      ${line('5. 당신은 미션에 따라 헤드폰으로 들려오는 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착해야 한다.')}
+      <div id="countdown" class="lineWrap">
+        <span class="line">THE DOOR WILL OPEN IN <span id="countNum">60</span> SECONDS.</span>
       </div>
     `;
-
     crossfadeUpdate(introHTML, ()=>{
-      // 카운트다운
       let count = 60;
       const numEl = document.getElementById('countNum');
       const timer = setInterval(()=>{
