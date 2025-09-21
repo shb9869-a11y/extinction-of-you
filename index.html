@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Camera – BW + Afterimage + Mission Flow</title>
+<title>Camera – Motion-Reactive Audio + Haptics</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -11,85 +11,32 @@
 
 <style>
   :root{
-    --frame: 40px;
-    --ui-gap: 8px;
-    --font-body: 16px;
-    --font-strong: 18px;
+    --frame: 40px; --ui-gap: 8px;
+    --fs-body: clamp(12px, 2.2vmin, 16px);
+    --fs-strong: clamp(14px, 2.8vmin, 20px);
+    --fs-small: clamp(11px, 1.8vmin, 14px);
+    --pad-line: clamp(4px, 0.9vmin, 8px);
+    --pad-btn-y: clamp(6px, 1.1vmin, 10px);
+    --pad-btn-x: clamp(10px, 1.8vmin, 20px);
   }
   html,body{margin:0;height:100%;background:#000;overflow:hidden}
   #view{width:100%;height:100%;display:block;position:fixed;left:0;top:0;z-index:0}
-
-  /* 프로시니엄 프레임 */
-  .frameBox{
-    position:fixed;left:var(--frame);top:var(--frame);
-    right:var(--frame);bottom:var(--frame);
-    border:1px solid #000;
-    pointer-events:none; z-index:50;
-  }
-
-  /* 공통 버튼 디자인 */
-  .uiBtn{
-    background:#000; color:#fff; border:1px solid #000;
-    font-size:var(--font-strong); padding:10px 20px;
-    font-family:"Courier New",monospace; border-radius:0;
-    white-space:nowrap; cursor:pointer; user-select:none;
-  }
-  .uiBtn.small{
-    font-size:14px; padding:4px 10px;
-  }
-
-  /* 컨트롤 */
-  .controls{
-    position:fixed;
-    right:calc(var(--frame) + var(--ui-gap));
-    bottom:calc(var(--frame) + var(--ui-gap));
-    z-index:100; display:flex; gap:6px; align-items:center;
-    background:transparent;
-  }
-  .readout{min-width:48px;text-align:center;opacity:.9;font-family:"Courier New",monospace;font-size:12px}
-
-  /* CAPTURE */
-  .btn-capture{
-    position:fixed;
-    left:calc(var(--frame) + var(--ui-gap));
-    bottom:calc(var(--frame) + var(--ui-gap));
-    z-index:150;
-  }
-
-  /* 오버레이 */
-  #overlay{
-    position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
-    padding:20px;font-family:"Courier New",monospace;color:#fff;pointer-events:none;
-  }
-  #overlayContent{
-    pointer-events:auto; line-height:1.7; font-size:var(--font-body);
-    max-width:min(680px, calc(100vw - (var(--frame)*2)));
-    max-height:calc(100vh - (var(--frame)*2));
-    overflow:hidden; text-align:left;
-  }
-
-  .line{display:inline; background:#000; color:#fff; padding:6px 8px;
-    box-decoration-break:clone; -webkit-box-decoration-break:clone;}
-  .lineWrap{ margin:6px 0 }
-
+  .frameBox{position:fixed;left:var(--frame);top:var(--frame);right:var(--frame);bottom:var(--frame);border:1px solid #000;pointer-events:none;z-index:50}
+  .uiBtn{background:#000;color:#fff;border:1px solid #000;font-size:var(--fs-strong);padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",monospace;border-radius:0;white-space:nowrap;cursor:pointer;user-select:none}
+  .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
+  .controls{position:fixed;right:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:100;display:flex;gap:6px;align-items:center}
+  .readout{min-width:48px;text-align:center;opacity:.9;font-family:"Courier New",monospace;font-size:var(--fs-small)}
+  .btn-capture{position:fixed;left:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:150}
+  #overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;font-family:"Courier New",monospace;color:#fff;pointer-events:none}
+  #overlayContent{pointer-events:auto;line-height:1.7;font-size:var(--fs-body);max-width:min(72ch, calc(100vw - (var(--frame)*2)));max-height:calc(100vh - (var(--frame)*2));overflow:hidden;text-align:left}
+  .line{display:inline;background:#000;color:#fff;padding:calc(var(--pad-line)*0.8) var(--pad-line);box-decoration-break:clone;-webkit-box-decoration-break:clone}
+  .lineWrap{margin:6px 0}
   .fade{opacity:1;transition:opacity .45s ease}
   .fade.hidden{opacity:0}
-
-  /* GOOD NIGHT */
-  #goodnight{
-    position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
-    z-index:250;display:none;text-align:center;
-    font-family:"Courier New",monospace;
-    font-size:var(--font-strong); color:#fff;
-    background:#000; padding:10px 20px; white-space:nowrap;
-    transition:opacity .6s ease;
-  }
+  #goodnight{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:250;display:none;text-align:center;font-family:"Courier New",monospace;font-size:var(--fs-strong);color:#fff;background:#000;padding:var(--pad-btn-y) var(--pad-btn-x);white-space:nowrap;transition:opacity .6s ease}
   #goodnight.show{display:block;opacity:1}
   #goodnight.fadeout{opacity:0}
-
-  @media (orientation:landscape){
-    :root{ --frame: 32px; }
-  }
+  @media (orientation:landscape){ :root{ --frame: 32px; } }
 </style>
 </head>
 <body>
@@ -118,10 +65,10 @@
 
 <script>
 (async ()=>{
-  /* ===== 카메라 ===== */
+  /* ===== 카메라 (흑백+잔상) ===== */
   const view=document.getElementById('view');
   const vctx=view.getContext('2d',{alpha:false});
-  const PROC_SCALE=0.6, TRAIL_ALPHA=0.10, GLOBAL_ALPHA=0.7;
+  const PROC_SCALE=0.60, TRAIL_ALPHA=0.12, GLOBAL_ALPHA=0.7;
   let ZOOM=1.2, ZOOM_MIN=0.5, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
 
   const zoomVal=document.getElementById('zoomVal');
@@ -147,7 +94,8 @@
     const dpr=window.devicePixelRatio||1;
     const w=window.innerWidth,h=window.innerHeight;
     view.width=w*dpr; view.height=h*dpr; vctx.setTransform(dpr,0,0,dpr,0,0);
-    proc.width=Math.floor(w*PROC_SCALE); proc.height=Math.floor(h*PROC_SCALE);
+    const scale = (window.matchMedia('(orientation: landscape)').matches) ? PROC_SCALE*0.9 : PROC_SCALE;
+    proc.width=Math.floor(w*scale); proc.height=Math.floor(h*scale);
   }
   resizeAll(); addEventListener('resize',()=>setTimeout(resizeAll,50));
 
@@ -178,56 +126,121 @@
   }
   await attachCamera(); loop();
 
-  /* ===== 오디오 ===== */
+  /* ===== 오디오(드론) + 모션 매핑 + 지속 햅틱 ===== */
   let audioCtx=null, masterGain=null;
-  let bgOsc=null; // 배경음 오실레이터
+  let bgOsc=null, bgGain=null, panner=null;
+  let hapticTimer=null;
 
-  function ensureAudio(){
+  function initAudio(){
     if(audioCtx) return;
-    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    masterGain = audioCtx.createGain();
-    masterGain.gain.value=0.5;
-    masterGain.connect(audioCtx.destination);
+    try{
+      audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      masterGain = audioCtx.createGain(); masterGain.gain.value=0.7;
+      panner = (audioCtx.createStereoPanner) ? audioCtx.createStereoPanner() : audioCtx.createGain();
+      if(panner.pan===undefined) panner.pan={value:0}; // 대체
+      panner.connect(masterGain); masterGain.connect(audioCtx.destination);
+    }catch(e){ console.warn('Audio init 실패:', e); }
   }
 
-  function startBackgroundTone(){
+  function startDrone(){
     if(!audioCtx || bgOsc) return;
     bgOsc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
+    bgGain = audioCtx.createGain();
     bgOsc.type='sine';
-    bgOsc.frequency.value=80; // 80Hz 저음
-    gain.gain.value=0.15;
-    bgOsc.connect(gain).connect(masterGain);
+    bgOsc.frequency.value=55; // 더 낮게
+    bgGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    bgGain.gain.exponentialRampToValueAtTime(0.25, audioCtx.currentTime+0.6);
+    bgOsc.connect(bgGain).connect(panner);
     bgOsc.start();
   }
 
-  // 버튼 소리 (저음 "쿵")
   function playClick(){
     if(!audioCtx) return;
     const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-    o.type='sine'; o.frequency.setValueAtTime(250,audioCtx.currentTime);
-    g.gain.setValueAtTime(0.3,audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.2);
-    o.connect(g).connect(masterGain);
-    o.start(); o.stop(audioCtx.currentTime+0.21);
+    o.type='sine'; o.frequency.setValueAtTime(200,audioCtx.currentTime);
+    g.gain.setValueAtTime(0.35,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.22);
+    o.connect(g).connect(masterGain); o.start(); o.stop(audioCtx.currentTime+0.24);
   }
 
-  // 틱 소리 (메트로놈틱)
   function playTick(){
     if(!audioCtx) return;
     const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-    o.type='triangle'; o.frequency.value=600;
-    g.gain.value=0.2;
-    o.connect(g).connect(masterGain);
-    o.start();
-    g.gain.setValueAtTime(0.2,audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.08);
-    o.stop(audioCtx.currentTime+0.1);
+    o.type='square'; o.frequency.value=420;
+    g.gain.value=0.18; o.connect(g).connect(masterGain);
+    o.start(); g.gain.setValueAtTime(0.18,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.07);
+    o.stop(audioCtx.currentTime+0.09);
   }
 
-  document.addEventListener('pointerdown', ()=>{ensureAudio();}, {once:true});
+  // 지속 햅틱(가능한 브라우저에서): 페이지 로드 직후부터 유지
+  function startHapticsPulse(intervalMs=600, burstMs=35){
+    stopHapticsPulse();
+    if('vibrate' in navigator){
+      hapticTimer=setInterval(()=>navigator.vibrate(burstMs), intervalMs);
+    }
+  }
+  function stopHapticsPulse(){
+    if(hapticTimer){ clearInterval(hapticTimer); hapticTimer=null; }
+    if('vibrate' in navigator){ navigator.vibrate(0); }
+  }
 
-  /* ===== UI ===== */
+  // 모션 → 게인(움직임 크면 커짐)
+  let moveLP = 0;
+  function motionToGain(acc){
+    const mag = Math.min(30, Math.sqrt((acc.x||0)**2 + (acc.y||0)**2 + (acc.z||0)**2));
+    const alpha = 0.1; const prev = moveLP;
+    moveLP = (1-alpha)*moveLP + alpha*mag;
+    const delta = Math.max(0, mag - prev);
+    return 0.12 + Math.min(0.5, delta * 0.05); // 0.12~0.62
+  }
+  // 기울기 → 팬(-45°~+45° → -1..+1)
+  function angleToPan(gamma){
+    const g = Math.max(-45, Math.min(45, gamma||0));
+    return g/45;
+  }
+
+  function tryEnableMotion(){
+    if(typeof DeviceMotionEvent!=='undefined'){
+      if(typeof DeviceMotionEvent.requestPermission==='function'){
+        DeviceMotionEvent.requestPermission().catch(()=>{});
+      }
+      window.addEventListener('devicemotion',(e)=>{
+        if(!audioCtx||!bgGain) return;
+        const g = motionToGain(e.accelerationIncludingGravity||{});
+        const now = audioCtx.currentTime;
+        bgGain.gain.cancelScheduledValues(now);
+        bgGain.gain.linearRampToValueAtTime(g, now+0.08);
+      }, {passive:true});
+    }
+    if(typeof DeviceOrientationEvent!=='undefined'){
+      if(typeof DeviceOrientationEvent.requestPermission==='function'){
+        DeviceOrientationEvent.requestPermission().catch(()=>{});
+      }
+      window.addEventListener('deviceorientation',(e)=>{
+        if(!audioCtx||!panner) return;
+        const pan = angleToPan(e.gamma);
+        if(panner.pan && typeof panner.pan.setValueAtTime==='function'){
+          panner.pan.setValueAtTime(pan, audioCtx.currentTime);
+        }
+      }, {passive:true});
+    }
+  }
+
+  // 완전 자동 시작(사용자 터치 없이 최대한 시도 + 주기 재시도)
+  function autoStart(){
+    initAudio();
+    if(audioCtx && audioCtx.state==='suspended'){ audioCtx.resume().catch(()=>{}); }
+    startDrone();
+    startHapticsPulse(600,35);
+    tryEnableMotion();
+  }
+  autoStart();
+  document.addEventListener('visibilitychange', autoStart);
+  window.addEventListener('focus', autoStart);
+  setInterval(autoStart, 3000);
+
+  /* ===== 오버레이/카운트다운 ===== */
   const overlay=document.getElementById('overlay');
   const overlayContent=document.getElementById('overlayContent');
   const startBtn=document.getElementById('startBtn');
@@ -236,29 +249,18 @@
 
   function crossfadeUpdate(html,nextAction){
     overlayContent.classList.add('hidden');
-    setTimeout(()=>{
-      overlayContent.innerHTML=html;
-      overlayContent.classList.remove('hidden');
-      nextAction && nextAction();
-    },450);
+    setTimeout(()=>{ overlayContent.innerHTML=html; overlayContent.classList.remove('hidden'); nextAction&&nextAction(); },450);
   }
 
   function showGoodNight15s(){
     goodnight.classList.add('show');
-    setTimeout(()=>{
-      goodnight.classList.add('fadeout');
-      setTimeout(()=>{
-        goodnight.classList.remove('show','fadeout');
-        goodnight.style.display='none';
-      },600);
+    setTimeout(()=>{ goodnight.classList.add('fadeout');
+      setTimeout(()=>{ goodnight.classList.remove('show','fadeout'); goodnight.style.display='none'; },600);
     },15000);
   }
 
   startBtn.addEventListener('click', ()=>{
-    ensureAudio(); 
-    startBackgroundTone(); // 80Hz 드론 시작
-    playClick();
-
+    autoStart(); playClick();
     const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
     const introHTML = `
       ${line('<b>INTRODUCTION</b>')}
@@ -266,14 +268,13 @@
       ${line('2. 곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.')}
       ${line('3. 그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.')}
       ${line('4. 이제 당신에게는 네 단계의 미션이 주어진다.')}
-      ${line('5. 당신은 미션에 따라 헤드폰으로 들려오는 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착해야 한다.')}
+      ${line('5. 미션에 따라 ‘너’들의 목소리에 귀 기울이며, 휴대폰으로 잃어버린 ‘너’를 포착하라.')}
       <div id="countdown" class="lineWrap">
         <span class="line">THE DOOR WILL OPEN IN <span id="countNum">60</span> SECONDS.</span>
       </div>
     `;
     crossfadeUpdate(introHTML, ()=>{
-      let count = 60;
-      const numEl = document.getElementById('countNum');
+      let count = 60; const numEl = document.getElementById('countNum');
       const timer = setInterval(()=>{
         count--;
         if(count>=0){ numEl.textContent=count; playTick(); }
@@ -287,13 +288,11 @@
   });
 
   captureBtn.addEventListener('click',()=>{
-    playClick();
-    try{
-      const a=document.createElement('a');
-      a.download=`capture_${Date.now()}.png`;
-      a.href=view.toDataURL('image/png'); a.click();
-    }catch(e){ console.warn('CAPTURE 실패', e); }
+    playClick(); if('vibrate' in navigator){ navigator.vibrate(30); }
+    try{ const a=document.createElement('a'); a.download=`capture_${Date.now()}.png`; a.href=view.toDataURL('image/png'); a.click(); }
+    catch(e){ console.warn('CAPTURE 실패', e); }
   });
+
 })();
 </script>
 </body>
