@@ -3,72 +3,80 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Camera + Stream Composite</title>
+<title>Camera (BW + Trail) + Stream Overlay</title>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden}
-  #stage{
-    position:fixed; inset:0; background:#000;
-  }
-  /* 흑백은 CSS 필터로 처리(사파리 호환 ↑) */
-  #canvas{
+  #stage{position:fixed;inset:0;background:#000}
+  #view{
     position:absolute; inset:0; width:100%; height:100%;
-    background:#000; filter:grayscale(100%);
-    touch-action:none;
+    background:#000; touch-action:none;
   }
   #start{
     position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
     padding:12px 18px; border:0; border-radius:999px;
     font:700 16px/1 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-    color:#fff; background:#12a150; display:none; z-index:10;
+    color:#fff; background:#12a150; z-index:10; display:none;
   }
   #hint{
     position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
-    color:#fff; background:rgba(0,0,0,.5); padding:8px 12px; border-radius:8px;
+    color:#fff; background:rgba(0,0,0,.55); padding:8px 12px; border-radius:8px;
     font:13px/1.3 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; display:none;
   }
 </style>
 </head>
 <body>
   <div id="stage">
-    <canvas id="canvas"></canvas>
+    <!-- 최종 합성 결과를 그리는 메인 캔버스 -->
+    <canvas id="view"></canvas>
     <button id="start">시작</button>
-    <div id="hint">권한/자동재생 때문에 시작 버튼이 필요할 수 있어요</div>
+    <div id="hint">iOS 자동재생/권한 때문에 시작 버튼이 필요할 수 있어요</div>
   </div>
 
 <script>
 (async ()=>{
-  // ✅ 잘 뜨는 HLS 주소(LL-HLS 파라미터 없이)
+  // ✅ Cloudflare HLS (검증된 주소; llhlsbeta 제거)
   const STREAM_URL = "https://customer-e1rhmg8edq32stcl.cloudflarestream.com/0561f69cdb850354620ce2f93cbb05ce/manifest/video.m3u8";
 
-  const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d', { alpha:false });
+  // 🎛️ 효과/겹침 조절값
+  const TRAIL_ALPHA = 0.06;   // 잔상 길이(작을수록 오래 남음, 0.03~0.12 권장)
+  const STREAM_ALPHA = 0.70;  // 스트림 겹침 강도(0~1)
+
+  const view = document.getElementById('view');
+  const vctx = view.getContext('2d', { alpha:false });
   const startBtn = document.getElementById('start');
   const hint = document.getElementById('hint');
 
-  // 내부 비디오 요소(표시는 안 함)
-  const camVideo = document.createElement('video');
+  // 비디오 요소(렌더링용으로만, 화면에 안 보임)
+  const camVideo = document.createElement('video'); // 관객 카메라
   camVideo.autoplay = true; camVideo.playsInline = true; camVideo.muted = true;
 
-  const streamVideo = document.createElement('video');
+  const streamVideo = document.createElement('video'); // 스트림
   streamVideo.autoplay = true; streamVideo.playsInline = true; streamVideo.muted = true;
 
-  // 캔버스 리사이즈 (DPR 대응)
-  function resizeCanvas(){
+  // 오프스크린 캔버스(카메라 전용: 흑백+잔상 누적)
+  let camCanvas = document.createElement('canvas');
+  let camCtx = camCanvas.getContext('2d', { alpha:false });
+
+  // DPR 대응 리사이즈
+  function resizeAll(){
     const dpr = window.devicePixelRatio || 1;
     const w = Math.max(1, Math.floor(window.innerWidth));
     const h = Math.max(1, Math.floor(window.innerHeight));
-    canvas.style.width = w + 'px';
-    canvas.style.height = h + 'px';
-    canvas.width = Math.floor(w * dpr);
-    canvas.height = Math.floor(h * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // 메인
+    view.style.width = w+'px'; view.style.height = h+'px';
+    view.width = Math.floor(w * dpr); view.height = Math.floor(h * dpr);
+    vctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // 카메라 오프스크린
+    camCanvas.width = Math.floor(w * dpr);
+    camCanvas.height = Math.floor(h * dpr);
+    camCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
-  window.addEventListener('resize', resizeCanvas);
-  window.addEventListener('orientationchange', ()=>setTimeout(resizeCanvas, 200));
-  resizeCanvas();
+  window.addEventListener('resize', resizeAll);
+  window.addEventListener('orientationchange', ()=>setTimeout(resizeAll, 200));
+  resizeAll();
 
-  // 비디오를 캔버스에 'cover'로 그리기(가로세로비 유지)
+  // 비디오를 object-fit: cover 처럼 그리기
   function drawCover(video, ctx, w, h){
     const vw = video.videoWidth || 0, vh = video.videoHeight || 0;
     if (!vw || !vh) return;
@@ -79,6 +87,95 @@
   }
 
   // 스트림 붙이기
-  async function attachStream(){
+  function attachStream(){
     return new Promise((resolve)=>{
-      if (streamVideo.canPlayType('appli
+      if (streamVideo.canPlayType('application/vnd.apple.mpegurl')) {
+        streamVideo.src = STREAM_URL;
+        streamVideo.addEventListener('loadedmetadata', ()=>{ streamVideo.play().catch(()=>{}); resolve(); }, { once:true });
+      } else if (window.Hls && Hls.isSupported()){
+        const hls = new Hls({ lowLatencyMode:true });
+        hls.loadSource(STREAM_URL);
+        hls.attachMedia(streamVideo);
+        hls.on(Hls.Events.MANIFEST_PARSED, ()=>{ streamVideo.play().catch(()=>{}); resolve(); });
+      } else {
+        streamVideo.src = STREAM_URL;
+        streamVideo.addEventListener('loadedmetadata', ()=>{ streamVideo.play().catch(()=>{}); resolve(); }, { once:true });
+      }
+    });
+  }
+
+  // 카메라 붙이기: 후면 실패 시 전면으로 폴백
+  async function attachCamera(){
+    try{
+      const s = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' } }, audio:false });
+      camVideo.srcObject = s;
+      await camVideo.play().catch(()=>{});
+    }catch(e1){
+      // 폴백: 전면
+      const s2 = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
+      camVideo.srcObject = s2;
+      await camVideo.play().catch(()=>{});
+    }
+  }
+
+  // 렌더 루프
+  let rafId = 0;
+  function loop(){
+    rafId = requestAnimationFrame(loop);
+
+    const W = view.width / (window.devicePixelRatio||1);
+    const H = view.height / (window.devicePixelRatio||1);
+
+    // 1) 카메라 오프스크린에 잔상 페이드
+    camCtx.fillStyle = `rgba(0,0,0,${TRAIL_ALPHA})`;
+    camCtx.fillRect(0,0,W,H);
+
+    // 2) 카메라(흑백 필터)
+    if (camVideo.readyState >= 2){
+      camCtx.save();
+      camCtx.filter = 'grayscale(100%)';
+      drawCover(camVideo, camCtx, W, H);
+      camCtx.restore();
+    }
+
+    // 3) 메인 캔버스 초기화 후, 카메라 캔버스 복사
+    vctx.drawImage(camCanvas, 0, 0, W, H);
+
+    // 4) 스트림 오버레이(투명도 적용)
+    if (streamVideo.readyState >= 2){
+      vctx.save();
+      vctx.globalAlpha = STREAM_ALPHA;
+      drawCover(streamVideo, vctx, W, H);
+      vctx.restore();
+    }
+  }
+
+  // 자동 시작 → 막히면 버튼 노출
+  async function startAll(){
+    try{
+      await attachCamera();
+      await attachStream();
+      startBtn.style.display = 'none';
+      hint.style.display = 'none';
+      if (!rafId) loop();
+    }catch(e){
+      startBtn.style.display = 'inline-block';
+      hint.style.display = 'block';
+    }
+  }
+
+  startBtn.addEventListener('click', startAll, { once:true });
+  // iOS에서 자동 시작이 막히면 버튼이 뜸
+  startAll();
+
+  // 탭 복귀 시 재생 보정
+  document.addEventListener('visibilitychange', ()=>{
+    if (!document.hidden){
+      camVideo.play().catch(()=>{});
+      streamVideo.play().catch(()=>{});
+    }
+  });
+})();
+</script>
+</body>
+</html>
