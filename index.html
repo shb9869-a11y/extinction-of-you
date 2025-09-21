@@ -3,10 +3,29 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Camera – BW + Afterimage (Stable)</title>
+<title>Camera – BW + Afterimage + Zoom</title>
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Camera Trail">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="app.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden}
   #view{width:100%;height:100%;display:block}
+
+  .controls{
+    position:fixed;right:12px;bottom:12px;z-index:30;
+    display:flex;gap:8px;align-items:center;
+    background:rgba(0,0,0,.45);padding:8px;border-radius:12px;
+    font:14px/1 system-ui,-apple-system,sans-serif;color:#fff
+  }
+  .btn{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);
+       color:#fff;padding:6px 10px;border-radius:8px;font-weight:700}
+  .readout{min-width:64px;text-align:center;opacity:.9}
+
   #hint{
     position:fixed;left:50%;bottom:20px;transform:translateX(-50%);
     background:rgba(0,0,0,.7);color:#fff;padding:10px 16px;border-radius:10px;
@@ -17,6 +36,15 @@
 </head>
 <body>
   <canvas id="view"></canvas>
+
+  <!-- 확대/축소 버튼 -->
+  <div class="controls">
+    <button class="btn" id="zoomOut">–</button>
+    <div class="readout"><span id="zoomVal">1.2×</span></div>
+    <button class="btn" id="zoomIn">+</button>
+  </div>
+
+  <!-- 안내문 -->
   <div id="hint">📱 iOS 사파리에서 <b>공유 → 홈 화면에 추가</b>로 실행하면 전체화면 모드!</div>
 
 <script>
@@ -25,15 +53,31 @@
   const vctx=view.getContext('2d',{alpha:false});
   const hint=document.getElementById('hint');
 
-  // 앱모드 감지
+  // 앱모드 감지 → 안내 숨김
   const isStandalone = window.navigator.standalone === true 
                     || window.matchMedia('(display-mode: standalone)').matches;
   if(isStandalone){ hint.style.display="none"; }
 
-  const PROC_SCALE=0.5;
-  const TRAIL_ALPHA=0.15;   // ⭐ 잔상 길이 조절 (0.05=길게, 0.2=짧게)
+  // 설정값
+  const PROC_SCALE=0.6;
+  const TRAIL_ALPHA=0.08;   // ⭐ 잔영 강도 (낮을수록 잔영 오래, 높을수록 금방 사라짐)
+  const GLOBAL_ALPHA=0.7;   // ⭐ 새 프레임 누적 투명도 (낮을수록 꼬리 부드럽게)
   const FRAME_MARGIN=40, FRAME_COLOR="#fff", FRAME_WIDTH=0.5;
 
+  let ZOOM=1.2;
+  const ZOOM_MIN=0.5, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
+
+  // 줌 UI
+  const zoomVal=document.getElementById('zoomVal');
+  const btnIn=document.getElementById('zoomIn');
+  const btnOut=document.getElementById('zoomOut');
+  function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+  function updateZoom(){zoomVal.textContent=ZOOM.toFixed(1)+'×'}
+  btnIn.onclick=()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom()};
+  btnOut.onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom()};
+  updateZoom();
+
+  // 카메라
   const camVideo=document.createElement('video');
   camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
 
@@ -62,23 +106,36 @@
     const H=view.height/(window.devicePixelRatio||1);
     const PW=proc.width, PH=proc.height;
 
-    // 1. 어둡게 덮어서 이전 프레임 서서히 지움
+    // 1. 잔영 페이드
+    pctx.globalCompositeOperation="source-over";
     pctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`;
     pctx.fillRect(0,0,PW,PH);
 
-    // 2. 카메라 → 흑백 변환
+    // 2. 카메라 프레임
     if(camVideo.readyState>=2){
-      pctx.drawImage(camVideo,0,0,PW,PH);
-      const frame=pctx.getImageData(0,0,PW,PH);
-      const d=frame.data;
-      for(let i=0;i<d.length;i+=4){
-        const gray=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0;
-        d[i]=d[i+1]=d[i+2]=gray;
+      const vw=camVideo.videoWidth, vh=camVideo.videoHeight;
+      if(vw && vh){
+        const base=Math.max(PW/vw,PH/vh);
+        const sc=base*ZOOM;
+        const dw=vw*sc, dh=vh*sc;
+        const dx=(PW-dw)/2, dy=(PH-dh)/2;
+
+        // 흑백 + 알파 누적
+        pctx.globalAlpha=GLOBAL_ALPHA;
+        pctx.drawImage(camVideo,dx,dy,dw,dh);
+        pctx.globalAlpha=1.0;
+
+        const frame=pctx.getImageData(0,0,PW,PH);
+        const d=frame.data;
+        for(let i=0;i<d.length;i+=4){
+          const gray=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0;
+          d[i]=d[i+1]=d[i+2]=gray;
+        }
+        pctx.putImageData(frame,0,0);
       }
-      pctx.putImageData(frame,0,0);
     }
 
-    // 3. 업스케일
+    // 3. 메인 업스케일
     vctx.drawImage(proc,0,0,W,H);
 
     // 4. 프레임
