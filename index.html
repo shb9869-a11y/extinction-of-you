@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Camera – BW + Afterimage + Zoom + Capture (HLS In + PWA Safe + Debug)</title>
+<title>Camera+Stream Blend – BW Trail + PWA Safe</title>
 
-<!-- iOS PWA / theming -->
+<!-- iOS PWA -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Camera Trail">
@@ -18,86 +18,71 @@
   #view{width:100%;height:100%;display:block;position:fixed;left:0;top:0;z-index:0}
 
   .controls{
-    position:fixed;right:12px;bottom:12px;z-index:100;
-    display:flex;gap:8px;align-items:center;
+    position:fixed;right:12px;bottom:12px;z-index:120;
+    display:flex;gap:8px;align-items:center;flex-wrap:wrap;
     background:rgba(0,0,0,.45);padding:8px;border-radius:12px;
     font:14px/1 system-ui,-apple-system,sans-serif;color:#fff
   }
   .btn{
     border:1px solid rgba(255,255,255,.25);
     background:rgba(255,255,255,.08);
-    color:#fff;
-    padding:6px 10px;
-    border-radius:8px;
-    font-weight:700;
-    cursor:pointer;
+    color:#fff;padding:6px 10px;border-radius:8px;font-weight:700;cursor:pointer
   }
   .readout{min-width:64px;text-align:center;opacity:.9}
 
   .btn-capture{
-    position:fixed;
-    left:12px; bottom:12px;
-    z-index:150;
-    border:1px solid rgba(255,255,255,.25);
-    background:rgba(255,255,255,.08);
-    color:#fff;
-    padding:10px 16px;
-    border-radius:8px;
-    font-weight:700;
-    cursor:pointer;
+    position:fixed;left:12px;bottom:12px;z-index:150;
+    border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);
+    color:#fff;padding:10px 16px;border-radius:8px;font-weight:700;cursor:pointer
   }
 
   #hint{
-    position:fixed; left:50%; top:50%;
-    transform:translate(-50%,-50%);
-    background:rgba(0,0,0,.75); color:#fff;
-    padding:14px 20px; border-radius:12px;
-    font:15px/1.6 system-ui,-apple-system,sans-serif;
-    z-index:200; text-align:center; line-height:1.6; max-width:80%;
+    position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+    background:rgba(0,0,0,.75);color:#fff;padding:14px 20px;border-radius:12px;
+    font:15px/1.6 system-ui,-apple-system,sans-serif;z-index:200;text-align:center;max-width:80%
   }
 
-  /* 캡쳐 미리보기 오버레이 */
+  /* 캡쳐 미리보기 */
   #preview{
-    position:fixed; inset:0; z-index:300; display:none;
-    background:rgba(0,0,0,.92); color:#fff;
-    align-items:center; justify-content:center; flex-direction:column; gap:12px;
-    padding:16px;
+    position:fixed;inset:0;z-index:300;display:none;
+    background:rgba(0,0,0,.92);color:#fff;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:16px
   }
-  #preview img{max-width:90vw; max-height:70vh; display:block}
-  #preview .row{display:flex; gap:8px}
+  #preview img{max-width:90vw;max-height:70vh;display:block}
+  #preview .row{display:flex;gap:8px}
 
-  /* 디버그 HUD */
+  /* HUD */
   #hud{
-    position:fixed; left:12px; top:12px; z-index:250;
-    background:rgba(0,0,0,.55); color:#fff;
-    padding:8px 10px; border-radius:8px;
-    font:12px/1.4 system-ui,-apple-system,sans-serif;
-    max-width:72vw; white-space:pre-wrap;
-    pointer-events:none;
+    position:fixed;left:12px;top:12px;z-index:250;
+    background:rgba(0,0,0,.55);color:#fff;padding:8px 10px;border-radius:8px;
+    font:12px/1.4 system-ui,-apple-system,sans-serif;max-width:72vw;white-space:pre-wrap;pointer-events:none
   }
 </style>
 </head>
 <body>
   <canvas id="view"></canvas>
 
-  <!-- 확대/축소 버튼 -->
+  <!-- 컨트롤 -->
   <div class="controls">
+    <div class="readout">합성: <span id="mixLabel">스트림↑ + 카메라</span></div>
+    <button class="btn" id="mixDown">스트림↓</button>
+    <div class="readout" style="min-width:86px">α=<span id="mixVal">0.85</span></div>
+    <button class="btn" id="mixUp">스트림↑</button>
     <button class="btn" id="zoomOut">–</button>
     <div class="readout"><span id="zoomVal">1.2×</span></div>
     <button class="btn" id="zoomIn">+</button>
   </div>
 
-  <!-- 캡쳐 버튼 -->
+  <!-- 캡쳐 -->
   <button id="captureBtn" class="btn-capture">캡쳐</button>
 
-  <!-- 중앙 안내문 -->
+  <!-- 안내문 -->
   <div id="hint">
     1. 공유 버튼 클릭<br>
     2. 홈 화면 추가 버튼 클릭<br>
     3. 전체 화면 모드로 전환
   </div>
 
-  <!-- 캡쳐 미리보기 -->
+  <!-- 미리보기 -->
   <div id="preview">
     <img id="previewImg" alt="capture preview">
     <div class="row">
@@ -105,156 +90,184 @@
       <a class="btn" id="btnOpenNew" target="_blank" rel="noopener">새 창 열기</a>
       <a class="btn" id="btnDownload" download>다운로드</a>
     </div>
-    <div style="opacity:.8; font-size:12px; text-align:center;">
+    <div style="opacity:.8;font-size:12px;text-align:center;">
       iOS 앱 모드에서는 “새 창 열기” 후 <b>길게 눌러 이미지 저장</b>이 가장 안정적입니다.
     </div>
   </div>
 
-  <!-- 디버그 HUD -->
   <div id="hud"></div>
 
-  <!-- HLS.js (for non-Safari browsers) -->
+  <!-- HLS.js -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <script>
 (async ()=>{
-  // ===== 레졸룸(Cloudflare Stream) HLS 주소 =====
+  // ===== 설정 =====
   const STREAM_URL = "https://customer-e1rhmg8edq32stcl.cloudflarestream.com/0561f69cdb850354620ce2f93cbb05ce/manifest/video.m3u8?protocol=llhlsbeta";
 
-  // ===== 기본 DOM =====
-  const view = document.getElementById('view');
-  const vctx = view.getContext('2d',{alpha:false});
-  const hint = document.getElementById('hint');
-  const hud  = document.getElementById('hud');
-  const setHUD = (s)=>{ hud.textContent = s; };
+  const PROC_SCALE=0.6, TRAIL_ALPHA=0.12, GLOBAL_ALPHA=0.7;
+  const FRAME_MARGIN=40, FRAME_COLOR="#fff", FRAME_WIDTH=0.5;
 
-  // 앱모드 감지 → 안내 숨김
+  let ZOOM=1.2, ZOOM_MIN=0.5, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
+
+  // 스트림 합성 알파 (0=안보임, 1=완전 덮기)
+  let STREAM_ALPHA = 0.85;
+  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+
+  // ===== DOM =====
+  const view=document.getElementById('view');
+  const vctx=view.getContext('2d',{alpha:false});
+  const hint=document.getElementById('hint');
+  const hud=document.getElementById('hud');
+  const setHUD=(s)=>{hud.textContent=s};
+
+  const btnIn=document.getElementById('zoomIn');
+  const btnOut=document.getElementById('zoomOut');
+  const zoomVal=document.getElementById('zoomVal');
+
+  const mixUp=document.getElementById('mixUp');
+  const mixDown=document.getElementById('mixDown');
+  const mixVal=document.getElementById('mixVal');
+  const mixLabel=document.getElementById('mixLabel');
+
+  const capBtn=document.getElementById('captureBtn');
+  const preview=document.getElementById('preview');
+  const previewImg=document.getElementById('previewImg');
+  const btnClose=document.getElementById('btnClose');
+  const btnOpenNew=document.getElementById('btnOpenNew');
+  const btnDownload=document.getElementById('btnDownload');
+
+  // PWA 안내 숨김
   const isStandalone = window.navigator.standalone === true 
                     || window.matchMedia('(display-mode: standalone)').matches;
   if(isStandalone){ hint.style.display="none"; }
 
-  // 처리 파라미터
-  const PROC_SCALE=0.6;
-  const TRAIL_ALPHA=0.12;   // 잔영 강도
-  const GLOBAL_ALPHA=0.7;   // 새 프레임 투명도
-  const FRAME_MARGIN=40, FRAME_COLOR="#fff", FRAME_WIDTH=0.5;
-
-  let ZOOM=1.2;
-  const ZOOM_MIN=0.5, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
-
   // 줌 UI
-  const zoomVal=document.getElementById('zoomVal');
-  const btnIn=document.getElementById('zoomIn');
-  const btnOut=document.getElementById('zoomOut');
-  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const updateZoom=()=>{zoomVal.textContent=ZOOM.toFixed(1)+'×'};
   btnIn.onclick=()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom()};
   btnOut.onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom()};
   updateZoom();
 
-  // ===== HLS 입력 비디오 =====
-  const camVideo=document.createElement('video');
-  camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
-  camVideo.crossOrigin="anonymous"; // 캔버스 드로잉용
-
-  let hls=null, hlsAttached=false, retryTimer=null;
-  let lastW=0, lastH=0;
-
-  function scheduleRetry(ms=1500){
-    clearTimeout(retryTimer);
-    retryTimer=setTimeout(()=>attachStream(true), ms);
+  // 합성 UI
+  function updateMixUI(){
+    mixVal.textContent = STREAM_ALPHA.toFixed(2);
+    mixLabel.textContent = STREAM_ALPHA>0 ? '스트림↑ + 카메라' : '카메라 전용';
   }
+  mixUp.onclick = ()=>{ STREAM_ALPHA = clamp(STREAM_ALPHA+0.05,0,1); updateMixUI(); };
+  mixDown.onclick = ()=>{ STREAM_ALPHA = clamp(STREAM_ALPHA-0.05,0,1); updateMixUI(); };
+  updateMixUI();
 
-  async function attachStream(isRetry=false){
-    try{
-      if(hls){ try{hls.destroy();}catch{} hls=null; hlsAttached=false; }
-
-      setHUD((isRetry?'재시도: ':'')+'스트림 연결 중…');
-
-      if (window.Hls && Hls.isSupported()){
-        hls=new Hls({
-          lowLatencyMode:true,
-          liveSyncDurationCount:2,
-          backBufferLength:0
-        });
-        hls.loadSource(STREAM_URL);
-        hls.attachMedia(camVideo);
-
-        hls.on(Hls.Events.MEDIA_ATTACHED, ()=>{
-          hlsAttached=true;
-          setHUD('HLS 연결됨. 재생 시도…');
-          camVideo.play().catch(()=>{});
-        });
-
-        hls.on(Hls.Events.LEVEL_LOADED, (_, data)=>{
-          // 세그먼트가 없을 때는 duration이 0 근처 → 라이브 미시작
-          const dur = data?.details?.totalduration ?? 0;
-          if (dur <= 0.2){
-            setHUD('스트림이 아직 시작되지 않았습니다. 대기 중…');
-            scheduleRetry(2000);
-          }
-        });
-
-        hls.on(Hls.Events.ERROR, (evt, data)=>{
-          console.warn('HLS Error', data);
-          setHUD(`HLS 오류: ${data?.type||''} / ${data?.details||''}\n자동 복구 시도…`);
-          if (data && (data.type==='networkError' || data.type==='mediaError')){
-            try{ hls.recoverMediaError?.(); }catch{}
-            scheduleRetry(1500);
-          }
-        });
-
-      } else if (camVideo.canPlayType('application/vnd.apple.mpegurl')) {
-        // iOS Safari 네이티브 HLS
-        camVideo.src = STREAM_URL;
-      } else {
-        setHUD('이 브라우저는 HLS를 지원하지 않습니다.');
-        return;
-      }
-
-      await camVideo.play().catch(()=>{});
-    }catch(e){
-      console.error('attachStream 실패', e);
-      setHUD('스트림 연결 실패. 잠시 후 재시도…');
-      scheduleRetry(2000);
-    }
-  }
-
-  // 사용자 탭으로 강제 재생(모바일 자동재생 정책 대응)
-  document.addEventListener('click', async ()=>{
-    try{
-      await camVideo.play();
-      setHUD('재생 시도(탭) 완료/진행 중…');
-    }catch{}
-  });
-
-  // 해상도 이벤트
-  function updateVideoSizeHUD(){
-    lastW = camVideo.videoWidth;
-    lastH = camVideo.videoHeight;
-    setHUD(`영상 해상도: ${lastW}×${lastH}`);
-  }
-  camVideo.addEventListener('loadedmetadata', updateVideoSizeHUD);
-  camVideo.addEventListener('resize', updateVideoSizeHUD);
-  camVideo.addEventListener('playing', ()=>setHUD('재생 중…'));
-  camVideo.addEventListener('waiting', ()=>setHUD('버퍼링… 재생 재시도'));
-  camVideo.addEventListener('stalled', ()=>{ setHUD('정체 감지… 재시도'); resumeVideo(); });
-
-  // ===== 버퍼/리사이즈 =====
+  // 버퍼 캔버스
   const proc=document.createElement('canvas');
   const pctx=proc.getContext('2d',{willReadFrequently:true});
-
   function resizeAll(){
     const dpr=window.devicePixelRatio||1;
-    const w=window.innerWidth, h=window.innerHeight;
+    const w=window.innerWidth,h=window.innerHeight;
     view.width=w*dpr; view.height=h*dpr;
     vctx.setTransform(dpr,0,0,dpr,0,0);
     proc.width=Math.floor(w*PROC_SCALE);
     proc.height=Math.floor(h*PROC_SCALE);
   }
-  resizeAll();
-  addEventListener('resize',()=>setTimeout(resizeAll,50));
+  resizeAll(); addEventListener('resize',()=>setTimeout(resizeAll,50));
 
-  // ===== 렌더 루프 =====
+  // ===== 두 소스 생성 (항상 동시에 존재) =====
+  // 카메라
+  const camVideo=document.createElement('video');
+  camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
+
+  let camStream=null;
+  async function attachCamera(){
+    try{
+      camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}, audio:false});
+      camVideo.srcObject = camStream;
+      await camVideo.play().catch(()=>{});
+      setHUD('카메라 재생 중');
+    }catch(e){
+      setHUD('카메라 접근 실패: 권한/장치 확인'); console.error(e);
+    }
+  }
+
+  // 스트림(HLS)
+  const strVideo=document.createElement('video');
+  strVideo.autoplay=true; strVideo.playsInline=true; strVideo.muted=true;
+  strVideo.crossOrigin="anonymous";
+
+  let hls=null, hlsReady=false;
+  async function attachStream(){
+    try{
+      hlsReady=false;
+      if (window.Hls && Hls.isSupported()){
+        if(hls){ try{hls.destroy();}catch{} }
+        hls=new Hls({lowLatencyMode:true, liveSyncDurationCount:2, backBufferLength:0});
+        hls.loadSource(STREAM_URL);
+        hls.attachMedia(strVideo);
+        hls.on(Hls.Events.MEDIA_ATTACHED, ()=>{ strVideo.play().catch(()=>{}); });
+        hls.on(Hls.Events.LEVEL_LOADED,(_,data)=>{
+          const dur=data?.details?.totalduration??0;
+          if(dur<=0.2){ setHUD('스트림 대기 중…'); } else { setHUD('스트림 로드됨'); }
+        });
+        hls.on(Hls.Events.MANIFEST_PARSED, ()=>{ hlsReady=true; });
+        hls.on(Hls.Events.ERROR, (evt, data)=>{
+          setHUD(`HLS 오류: ${data?.type||''}/${data?.details||''} (자동복구 시도)`);
+          try{ hls.recoverMediaError?.(); }catch(_){}
+        });
+      } else if (strVideo.canPlayType('application/vnd.apple.mpegurl')){
+        strVideo.src = STREAM_URL;
+        hlsReady=true;
+      } else {
+        setHUD('브라우저 HLS 미지원 → 스트림은 표시 불가 (카메라만 표시)');
+      }
+      await strVideo.play().catch(()=>{});
+    }catch(e){
+      setHUD('스트림 연결 실패'); console.error(e);
+    }
+  }
+
+  // 최초 시작: 둘 다 붙임
+  await attachCamera();
+  await attachStream();
+
+  // 사용자 탭으로 자동재생 정책 해제
+  document.addEventListener('click', ()=>{
+    camVideo.play().catch(()=>{});
+    strVideo.play().catch(()=>{});
+  });
+
+  // 복귀/재개
+  async function resumeAll(){
+    try{
+      camVideo.play().catch(()=>{});
+      strVideo.play().catch(()=>{});
+      if (hls && !hlsReady){
+        await attachStream();
+      }
+      if (!camVideo.srcObject){
+        await attachCamera();
+      }
+    }catch{}
+  }
+  document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) resumeAll(); });
+  window.addEventListener("focus", resumeAll);
+  window.addEventListener("pageshow", resumeAll);
+  strVideo.addEventListener('stalled', ()=>{ setHUD('스트림 정체…'); });
+  strVideo.addEventListener('waiting', ()=>{ setHUD('스트림 버퍼링…'); });
+  strVideo.addEventListener('playing', ()=>{ setHUD('스트림 재생 중'); });
+
+  // ===== 렌더 루프 (카메라 바닥 + 스트림 오버레이) =====
+  function drawSource(video, alpha){
+    if(!(video.readyState>=2 && video.videoWidth>0 && video.videoHeight>0)) return false;
+    const PW=proc.width, PH=proc.height;
+    const vw=video.videoWidth, vh=video.videoHeight;
+    const base=Math.max(PW/vw,PH/vh);
+    const sc=base*ZOOM;
+    const dw=vw*sc, dh=vh*sc;
+    const dx=(PW-dw)/2, dy=(PH-dh)/2;
+
+    pctx.globalAlpha=alpha;
+    pctx.drawImage(video,dx,dy,dw,dh);
+    pctx.globalAlpha=1.0;
+    return true;
+  }
+
   function loop(){
     requestAnimationFrame(loop);
     const W=view.width/(window.devicePixelRatio||1);
@@ -266,89 +279,47 @@
     pctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`;
     pctx.fillRect(0,0,PW,PH);
 
-    // 2) 프레임 드로우 (videoWidth > 0일 때만) + 흑백
-    if(camVideo.readyState>=2 && camVideo.videoWidth>0 && camVideo.videoHeight>0){
-      const vw=camVideo.videoWidth, vh=camVideo.videoHeight;
-      const base=Math.max(PW/vw,PH/vh);
-      const sc=base*ZOOM;
-      const dw=vw*sc, dh=vh*sc;
-      const dx=(PW-dw)/2, dy=(PH-dh)/2;
+    // 2) 카메라(바닥) 그리기
+    const camDrawn = drawSource(camVideo, GLOBAL_ALPHA);
 
-      pctx.globalAlpha=GLOBAL_ALPHA;
-      pctx.drawImage(camVideo,dx,dy,dw,dh);
-      pctx.globalAlpha=1.0;
-
-      const frame=pctx.getImageData(0,0,PW,PH);
-      const d=frame.data;
-      for(let i=0;i<d.length;i+=4){
-        const g=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0;
-        d[i]=d[i+1]=d[i+2]=g;
-      }
-      pctx.putImageData(frame,0,0);
+    // 3) 스트림(위 레이어) 그리기 — 준비됐을 때만
+    const streamOK = (strVideo.readyState>=2 && strVideo.videoWidth>0 && strVideo.videoHeight>0);
+    if(streamOK && STREAM_ALPHA>0){
+      drawSource(strVideo, GLOBAL_ALPHA * STREAM_ALPHA);
     }
 
-    // 3) 업스케일
+    // 4) 흑백 변환
+    const frame=pctx.getImageData(0,0,PW,PH);
+    const d=frame.data;
+    for(let i=0;i<d.length;i+=4){
+      const g=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0;
+      d[i]=d[i+1]=d[i+2]=g;
+    }
+    pctx.putImageData(frame,0,0);
+
+    // 5) 업스케일
     vctx.drawImage(proc,0,0,W,H);
 
-    // 4) 프레임
+    // 6) 프레임
     vctx.strokeStyle=FRAME_COLOR; vctx.lineWidth=FRAME_WIDTH;
     vctx.strokeRect(FRAME_MARGIN,FRAME_MARGIN,W-2*FRAME_MARGIN,H-2*FRAME_MARGIN);
   }
+  loop();
 
-  // ===== 복귀/재개 보정 =====
-  async function resumeVideo(){
-    try{
-      await camVideo.play().catch(()=>{});
-      if ((window.Hls && Hls.isSupported() && !hlsAttached) || camVideo.readyState < 2){
-        await attachStream(true);
-      }
-    }catch(e){
-      console.warn("resumeVideo 실패:", e);
-    }
-  }
-  document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) resumeVideo(); });
-  window.addEventListener("focus", resumeVideo);
-  window.addEventListener("pageshow", resumeVideo);
-
-  // ===== 캡쳐(페이지 이탈 최소화) =====
-  const capBtn=document.getElementById('captureBtn');
-  const preview=document.getElementById('preview');
-  const previewImg=document.getElementById('previewImg');
-  const btnClose=document.getElementById('btnClose');
-  const btnOpenNew=document.getElementById('btnOpenNew');
-  const btnDownload=document.getElementById('btnDownload');
-
-  capBtn.onclick=async ()=>{
+  // ===== 캡쳐 (페이지 이탈 최소화) =====
+  capBtn.onclick=()=>{
     view.toBlob(async (blob)=>{
       if(!blob) return;
-      const file = new File([blob], `capture-${Date.now()}.png`, {type:'image/png'});
-
-      // 1) Web Share API 우선
-      if (navigator.canShare && navigator.canShare({ files:[file] })){
-        try{
-          await navigator.share({ files:[file], title:'capture' });
-          resumeVideo();
-          return;
-        }catch(e){ /* 취소 시 폴백 */ }
+      const file=new File([blob],`capture-${Date.now()}.png`,{type:'image/png'});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        try{ await navigator.share({files:[file],title:'capture'}); resumeAll(); return; }catch{}
       }
-
-      // 2) 폴백: 오버레이 미리보기
-      const url = URL.createObjectURL(blob);
-      previewImg.src = url;
-      btnOpenNew.href = url;   // 새 창 → 길게 눌러 저장
-      btnDownload.href = url;  // 일부 브라우저에서만 동작
-      preview.style.display = 'flex';
+      const url=URL.createObjectURL(blob);
+      previewImg.src=url; btnOpenNew.href=url; btnDownload.href=url;
+      preview.style.display='flex';
     },"image/png");
   };
-
-  btnClose.onclick=()=>{
-    preview.style.display='none';
-    resumeVideo();
-  };
-
-  // 시작
-  await attachStream();
-  loop();
+  btnClose.onclick=()=>{ preview.style.display='none'; resumeAll(); };
 })();
 </script>
 </body>
