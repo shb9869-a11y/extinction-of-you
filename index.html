@@ -4,6 +4,13 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Camera – BW + Trail + Frame</title>
+
+<!-- iOS 풀스크린(홈 화면 추가 시 주소창 숨김 준비) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b0b0b">
+<link rel="manifest" href="app.webmanifest">
+
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden}
   #view{
@@ -36,13 +43,17 @@
   const hint = document.getElementById('hint');
 
   // 🎛️ 조절값
-  const PROC_SCALE = 0.6;     // 내부 처리 해상도 스케일
-  const TRAIL_ALPHA = 0.03;   // 잔상 길이 (작을수록 더 오래 남음)
-  const FRAME_MARGIN = 40;    // 흰색 프레임과 화면 사이 여백(px)
+  const PROC_SCALE  = 0.6;      // 처리 해상도 (낮출수록 발열↓)
+  const TRAIL_ALPHA = 0.015;    // 잔상 길이 ↑ (작을수록 오래 남음: 0.01~0.02 추천)
+  const FRAME_MARGIN= 40;       // 프레임 여백(px)
+  const FRAME_COLOR = "#6b0d0d"; // 검붉은색
+  const FRAME_WIDTH = 0.5;      // 아주 얇은 실선(px) — 고DPR에서도 얇게 렌더
 
+  // 카메라 비디오
   const camVideo = document.createElement('video');
   camVideo.autoplay = true; camVideo.playsInline = true; camVideo.muted = true;
 
+  // 처리용(다운스케일) 캔버스
   const proc = document.createElement('canvas');
   const pctx = proc.getContext('2d', { alpha:false });
 
@@ -51,25 +62,18 @@
     const w = Math.max(1, Math.floor(window.innerWidth));
     const h = Math.max(1, Math.floor(window.innerHeight));
 
+    // 표시용 캔버스(DPR 보정)
     view.style.width = w+'px'; view.style.height = h+'px';
     view.width = Math.floor(w * dpr); view.height = Math.floor(h * dpr);
     vctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
+    // 처리용 캔버스(다운스케일)
     proc.width  = Math.max(1, Math.floor(w * PROC_SCALE));
     proc.height = Math.max(1, Math.floor(h * PROC_SCALE));
   }
   window.addEventListener('resize', resizeAll);
   window.addEventListener('orientationchange', ()=>setTimeout(resizeAll, 200));
   resizeAll();
-
-  function drawCover(video, ctx, w, h){
-    const vw = video.videoWidth || 0, vh = video.videoHeight || 0;
-    if (!vw || !vh) return;
-    const scale = Math.max(w / vw, h / vh);
-    const dw = vw * scale, dh = vh * scale;
-    const dx = (w - dw) / 2, dy = (h - dh) / 2;
-    ctx.drawImage(video, dx, dy, dw, dh);
-  }
 
   async function attachCamera(){
     try{
@@ -89,15 +93,16 @@
   function loop(){
     rafId = requestAnimationFrame(loop);
 
-    const W = view.width / (window.devicePixelRatio||1);
-    const H = view.height / (window.devicePixelRatio||1);
+    const dpr = window.devicePixelRatio || 1;
+    const W = view.width / dpr;
+    const H = view.height / dpr;
     const PW = proc.width, PH = proc.height;
 
-    // 1) 잔상 페이드
+    // 1) 잔상 페이드 (더 작을수록 잔상 길어짐)
     pctx.fillStyle = `rgba(0,0,0,${TRAIL_ALPHA})`;
     pctx.fillRect(0,0,PW,PH);
 
-    // 2) 카메라 그리기
+    // 2) 카메라 프레임을 cover로 그리기
     if (camVideo.readyState >= 2){
       const vw = camVideo.videoWidth || 0, vh = camVideo.videoHeight || 0;
       if (vw && vh){
@@ -107,9 +112,9 @@
         pctx.drawImage(camVideo, dx, dy, dw, dh);
       }
 
-      // 흑백 변환
-      let frame = pctx.getImageData(0,0,PW,PH);
-      let d = frame.data;
+      // 3) 흑백 변환 (픽셀 처리: 사파리 호환 안전)
+      const frame = pctx.getImageData(0,0,PW,PH);
+      const d = frame.data;
       for (let i=0; i<d.length; i+=4){
         const r=d[i], g=d[i+1], b=d[i+2];
         const gray = (0.299*r + 0.587*g + 0.114*b)|0;
@@ -118,13 +123,13 @@
       pctx.putImageData(frame,0,0);
     }
 
-    // 3) 처리용 → 메인 캔버스 업스케일
+    // 4) 처리용 → 메인 캔버스 업스케일
     vctx.drawImage(proc, 0, 0, W, H);
 
-    // 4) 흰색 실선 프레임
+    // 5) 얇은 검붉은 실선 프레임
     vctx.save();
-    vctx.strokeStyle = "white";
-    vctx.lineWidth = 1;
+    vctx.strokeStyle = FRAME_COLOR;
+    vctx.lineWidth = FRAME_WIDTH; // px 단위 (DPR 보정되어 얇게 유지)
     vctx.setLineDash([]); // 실선
     vctx.strokeRect(FRAME_MARGIN, FRAME_MARGIN, W-2*FRAME_MARGIN, H-2*FRAME_MARGIN);
     vctx.restore();
