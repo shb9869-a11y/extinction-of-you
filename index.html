@@ -6,32 +6,96 @@
 <title>Live Stream</title>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <style>
-  html,body{margin:0;height:100%;background:#000;overflow:hidden;}
-  #wrap{position:fixed;inset:0;background:#000;}
-  #v{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;}
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  #wrap{position:fixed;inset:0;background:#000}
+  #v{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+  #overlay{position:absolute;inset:0;display:grid;place-items:center;color:#fff;background:rgba(0,0,0,.35)}
+  #msg{padding:10px 14px;border-radius:10px;background:rgba(0,0,0,.5)}
+  #unmute{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);
+          background:#12a150;border:0;color:#fff;padding:10px 16px;border-radius:999px;font-weight:700;display:none}
 </style>
 </head>
 <body>
 <div id="wrap">
-  <video id="v" autoplay playsinline muted controls></video>
+  <video id="v" autoplay playsinline muted></video>
+  <div id="overlay"><div id="msg">스트림 신호 대기 중…</div></div>
+  <button id="unmute">소리 켜기</button>
 </div>
 
 <script>
 (async ()=>{
+  // ✅ Cloudflare HLS Manifest URL (당신이 준 주소 고정)
   const STREAM_URL = "https://customer-e1rhmg8edq32stcl.cloudflarestream.com/0561f69cdb850354620ce2f93cbb05ce/manifest/video.m3u8?protocol=llhlsbeta";
-  const video = document.getElementById('v');
 
-  if (video.canPlayType('application/vnd.apple.mpegurl')) {
-    video.src = STREAM_URL; // iOS Safari
-  } else if (window.Hls && Hls.isSupported()) {
-    const hls = new Hls({ lowLatencyMode:true });
-    hls.loadSource(STREAM_URL);
-    hls.attachMedia(video);
-  } else {
-    video.src = STREAM_URL; // fallback
+  const video = document.getElementById('v');
+  const overlay = document.getElementById('overlay');
+  const msg = document.getElementById('msg');
+  const unmuteBtn = document.getElementById('unmute');
+
+  function showOverlay(text){ msg.textContent = text; overlay.style.display='grid'; }
+  function hideOverlay(){ overlay.style.display='none'; }
+
+  // iOS/macOS 자동재생 정책 대응
+  document.addEventListener('click', ()=>{
+    if (video.muted) unmuteBtn.style.display = 'inline-block';
+  }, { once:true });
+
+  unmuteBtn.addEventListener('click', ()=>{
+    video.muted = false;
+    video.play().catch(()=>{});
+    unmuteBtn.style.display = 'none';
+  });
+
+  // HLS 소스 붙이기
+  async function attachSource(){
+    try { video.pause(); } catch {}
+    video.removeAttribute('src'); video.load();
+    video.muted = true;
+    showOverlay('스트림 신호 대기 중…');
+
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = STREAM_URL; // iOS Safari
+    } else if (window.Hls && Hls.isSupported()) {
+      const hls = new Hls({ lowLatencyMode:true, backBufferLength:30 });
+      hls.loadSource(STREAM_URL);
+      hls.attachMedia(video);
+    } else {
+      video.src = STREAM_URL; // fallback
+    }
+
+    await video.play().catch(()=>{});
+    waitForReady();
   }
 
-  await video.play().catch(()=>{});
+  function waitForReady(){
+    let tries = 0;
+    const t = setInterval(async ()=>{
+      if (video.readyState >= 2 && video.videoWidth > 0 && !video.paused){
+        hideOverlay();
+        clearInterval(t);
+        return;
+      }
+      if ((++tries % 10) === 0) {
+        showOverlay('스트림 신호 대기 중…');
+        video.play().catch(()=>{});
+      }
+      if (tries === 60) { // 약 90초
+        showOverlay('연결 재시도 중…');
+        clearInterval(t);
+        attachSource();
+      }
+    }, 1500);
+  }
+
+  document.addEventListener('visibilitychange', ()=>{
+    if (!document.hidden) { video.play().catch(()=>{}); }
+  });
+
+  window.addEventListener('orientationchange', ()=>{
+    video.style.objectFit = 'cover';
+  });
+
+  await attachSource();
 })();
 </script>
 </body>
