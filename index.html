@@ -3,13 +3,11 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Camera (BW + Trail) + Stream Overlay</title>
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<title>Camera – BW + Trail</title>
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden}
-  #stage{position:fixed;inset:0;background:#000}
   #view{
-    position:absolute; inset:0; width:100%; height:100%;
+    position:fixed; inset:0; width:100%; height:100%;
     background:#000; touch-action:none;
   }
   #start{
@@ -26,57 +24,49 @@
 </style>
 </head>
 <body>
-  <div id="stage">
-    <!-- 최종 합성 결과를 그리는 메인 캔버스 -->
-    <canvas id="view"></canvas>
-    <button id="start">시작</button>
-    <div id="hint">iOS 자동재생/권한 때문에 시작 버튼이 필요할 수 있어요</div>
-  </div>
+  <canvas id="view"></canvas>
+  <button id="start">카메라 시작</button>
+  <div id="hint">iOS 권한/자동재생 때문에 버튼이 필요할 수 있어요</div>
 
 <script>
 (async ()=>{
-  // ✅ Cloudflare HLS (검증된 주소; llhlsbeta 제거)
-  const STREAM_URL = "https://customer-e1rhmg8edq32stcl.cloudflarestream.com/0561f69cdb850354620ce2f93cbb05ce/manifest/video.m3u8";
-
-  // 🎛️ 효과/겹침 조절값
-  const TRAIL_ALPHA = 0.06;   // 잔상 길이(작을수록 오래 남음, 0.03~0.12 권장)
-  const STREAM_ALPHA = 0.70;  // 스트림 겹침 강도(0~1)
-
   const view = document.getElementById('view');
   const vctx = view.getContext('2d', { alpha:false });
   const startBtn = document.getElementById('start');
   const hint = document.getElementById('hint');
 
-  // 비디오 요소(렌더링용으로만, 화면에 안 보임)
-  const camVideo = document.createElement('video'); // 관객 카메라
+  // 내부 처리 해상도 스케일 (0.5~0.75 권장) — 낮출수록 배터리/발열↓
+  const PROC_SCALE = 0.6;
+  // 잔상 길이(작을수록 더 오래 남음)
+  const TRAIL_ALPHA = 0.08;
+
+  // 카메라 비디오(화면엔 안 보임)
+  const camVideo = document.createElement('video');
   camVideo.autoplay = true; camVideo.playsInline = true; camVideo.muted = true;
 
-  const streamVideo = document.createElement('video'); // 스트림
-  streamVideo.autoplay = true; streamVideo.playsInline = true; streamVideo.muted = true;
+  // 처리용 오프스크린(낮은 해상도)
+  const proc = document.createElement('canvas');
+  const pctx = proc.getContext('2d', { alpha:false });
 
-  // 오프스크린 캔버스(카메라 전용: 흑백+잔상 누적)
-  let camCanvas = document.createElement('canvas');
-  let camCtx = camCanvas.getContext('2d', { alpha:false });
-
-  // DPR 대응 리사이즈
   function resizeAll(){
     const dpr = window.devicePixelRatio || 1;
     const w = Math.max(1, Math.floor(window.innerWidth));
     const h = Math.max(1, Math.floor(window.innerHeight));
-    // 메인
+
+    // 표시용 캔버스
     view.style.width = w+'px'; view.style.height = h+'px';
     view.width = Math.floor(w * dpr); view.height = Math.floor(h * dpr);
     vctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    // 카메라 오프스크린
-    camCanvas.width = Math.floor(w * dpr);
-    camCanvas.height = Math.floor(h * dpr);
-    camCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // 처리용 캔버스(다운스케일)
+    proc.width  = Math.max(1, Math.floor(w * PROC_SCALE));
+    proc.height = Math.max(1, Math.floor(h * PROC_SCALE));
   }
   window.addEventListener('resize', resizeAll);
   window.addEventListener('orientationchange', ()=>setTimeout(resizeAll, 200));
   resizeAll();
 
-  // 비디오를 object-fit: cover 처럼 그리기
+  // object-fit: cover 처럼 그리기
   function drawCover(video, ctx, w, h){
     const vw = video.videoWidth || 0, vh = video.videoHeight || 0;
     if (!vw || !vh) return;
@@ -86,75 +76,67 @@
     ctx.drawImage(video, dx, dy, dw, dh);
   }
 
-  // 스트림 붙이기
-  function attachStream(){
-    return new Promise((resolve)=>{
-      if (streamVideo.canPlayType('application/vnd.apple.mpegurl')) {
-        streamVideo.src = STREAM_URL;
-        streamVideo.addEventListener('loadedmetadata', ()=>{ streamVideo.play().catch(()=>{}); resolve(); }, { once:true });
-      } else if (window.Hls && Hls.isSupported()){
-        const hls = new Hls({ lowLatencyMode:true });
-        hls.loadSource(STREAM_URL);
-        hls.attachMedia(streamVideo);
-        hls.on(Hls.Events.MANIFEST_PARSED, ()=>{ streamVideo.play().catch(()=>{}); resolve(); });
-      } else {
-        streamVideo.src = STREAM_URL;
-        streamVideo.addEventListener('loadedmetadata', ()=>{ streamVideo.play().catch(()=>{}); resolve(); }, { once:true });
-      }
-    });
-  }
-
-  // 카메라 붙이기: 후면 실패 시 전면으로 폴백
   async function attachCamera(){
     try{
-      const s = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' } }, audio:false });
+      const s = await navigator.mediaDevices.getUserMedia({
+        video:{ facingMode:{ ideal:'environment' } }, audio:false
+      });
       camVideo.srcObject = s;
-      await camVideo.play().catch(()=>{});
-    }catch(e1){
-      // 폴백: 전면
+      await camVideo.play();
+    }catch(e){
+      // 후면 실패 → 전면 폴백
       const s2 = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
       camVideo.srcObject = s2;
-      await camVideo.play().catch(()=>{});
+      await camVideo.play();
     }
   }
 
-  // 렌더 루프
   let rafId = 0;
   function loop(){
     rafId = requestAnimationFrame(loop);
 
     const W = view.width / (window.devicePixelRatio||1);
     const H = view.height / (window.devicePixelRatio||1);
+    const PW = proc.width, PH = proc.height;
 
-    // 1) 카메라 오프스크린에 잔상 페이드
-    camCtx.fillStyle = `rgba(0,0,0,${TRAIL_ALPHA})`;
-    camCtx.fillRect(0,0,W,H);
+    // 1) 처리용 캔버스에 잔상 페이드
+    pctx.fillStyle = `rgba(0,0,0,${TRAIL_ALPHA})`;
+    pctx.fillRect(0,0,PW,PH);
 
-    // 2) 카메라(흑백 필터)
+    // 2) 카메라 프레임을 처리용 캔버스에 cover로 그리기
     if (camVideo.readyState >= 2){
-      camCtx.save();
-      camCtx.filter = 'grayscale(100%)';
-      drawCover(camVideo, camCtx, W, H);
-      camCtx.restore();
+      // 먼저 임시 캔버스에 cover 비율로 맞춘 뒤, 처리용으로 축소 복사
+      // (직접 cover로 그려도 되지만, 여기선 단순화를 위해 한 번에 처리)
+      pctx.save();
+      // drawCover를 처리용 기준으로
+      const vw = camVideo.videoWidth || 0, vh = camVideo.videoHeight || 0;
+      if (vw && vh){
+        const scale = Math.max(PW / vw, PH / vh);
+        const dw = vw * scale, dh = vh * scale;
+        const dx = (PW - dw) / 2, dy = (PH - dh) / 2;
+        pctx.drawImage(camVideo, dx, dy, dw, dh);
+      }
+      pctx.restore();
+
+      // 3) 픽셀을 흑백으로 변환
+      let frame = pctx.getImageData(0,0,PW,PH);
+      let d = frame.data;
+      for (let i=0; i<d.length; i+=4){
+        const r=d[i], g=d[i+1], b=d[i+2];
+        const gray = (0.299*r + 0.587*g + 0.114*b)|0;
+        d[i]=d[i+1]=d[i+2]=gray; // R=G=B=gray
+      }
+      pctx.putImageData(frame,0,0);
     }
 
-    // 3) 메인 캔버스 초기화 후, 카메라 캔버스 복사
-    vctx.drawImage(camCanvas, 0, 0, W, H);
-
-    // 4) 스트림 오버레이(투명도 적용)
-    if (streamVideo.readyState >= 2){
-      vctx.save();
-      vctx.globalAlpha = STREAM_ALPHA;
-      drawCover(streamVideo, vctx, W, H);
-      vctx.restore();
-    }
+    // 4) 처리용(저해상도) 이미지를 표시용 캔버스에 업스케일
+    vctx.drawImage(proc, 0, 0, W, H);
   }
 
   // 자동 시작 → 막히면 버튼 노출
   async function startAll(){
     try{
       await attachCamera();
-      await attachStream();
       startBtn.style.display = 'none';
       hint.style.display = 'none';
       if (!rafId) loop();
@@ -172,7 +154,6 @@
   document.addEventListener('visibilitychange', ()=>{
     if (!document.hidden){
       camVideo.play().catch(()=>{});
-      streamVideo.play().catch(()=>{});
     }
   });
 })();
