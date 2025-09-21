@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Camera – BW + Afterimage + Zoom + Capture (PWA Safe)</title>
+<title>Camera – BW + Afterimage + Zoom + Capture (HLS In + PWA Safe)</title>
 
+<!-- iOS PWA / theming -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Camera Trail">
@@ -69,35 +70,30 @@
 <body>
   <canvas id="view"></canvas>
 
+  <!-- 확대/축소 버튼 -->
   <div class="controls">
     <button class="btn" id="zoomOut">–</button>
     <div class="readout"><span id="zoomVal">1.2×</span></div>
     <button class="btn" id="zoomIn">+</button>
   </div>
 
+  <!-- 캡쳐 버튼 -->
   <button id="captureBtn" class="btn-capture">캡쳐</button>
 
+  <!-- 중앙 안내문 -->
   <div id="hint">
     1. 공유 버튼 클릭<br>
     2. 홈 화면 추가 버튼 클릭<br>
     3. 전체 화면 모드로 전환
   </div>
 
-  <!-- 캡쳐 미리보기 -->
-  <div id="preview">
-    <img id="previewImg" alt="capture preview">
-    <div class="row">
-      <button class="btn" id="btnClose">닫기</button>
-      <a class="btn" id="btnOpenNew" target="_blank" rel="noopener">새 창 열기</a>
-      <a class="btn" id="btnDownload" download>다운로드</a>
-    </div>
-    <div style="opacity:.8; font-size:12px; text-align:center;">
-      iOS 앱 모드에서는 “새 창 열기” 후 <b>길게 눌러 이미지 저장</b>이 가장 안정적입니다.
-    </div>
-  </div>
-
+  <!-- HLS.js (for non-Safari browsers) -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <script>
 (async ()=>{
+  // ====== 레졸룸(Cloudflare Stream) HLS 주소 ======
+  const STREAM_URL = "https://customer-e1rhmg8edq32stcl.cloudflarestream.com/0561f69cdb850354620ce2f93cbb05ce/manifest/video.m3u8?protocol=llhlsbeta";
+
   const view=document.getElementById('view');
   const vctx=view.getContext('2d',{alpha:false});
   const hint=document.getElementById('hint');
@@ -109,7 +105,7 @@
 
   // 처리 파라미터
   const PROC_SCALE=0.6;
-  const TRAIL_ALPHA=0.08;   // 잔영 강도
+  const TRAIL_ALPHA=0.12;   // 잔영 강도(요청대로 조금 더 강)
   const GLOBAL_ALPHA=0.7;   // 새 프레임 투명도
   const FRAME_MARGIN=40, FRAME_COLOR="#fff", FRAME_WIDTH=0.5;
 
@@ -126,26 +122,48 @@
   btnOut.onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom()};
   updateZoom();
 
-  // 카메라(기기) 설정
+  // ====== 입력: HLS 스트림 비디오 ======
   const camVideo=document.createElement('video');
   camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
+  camVideo.crossOrigin="anonymous"; // 캔버스 드로잉 허용
+  let hls = null;
+  let hlsAttached = false;
 
-  let currentStream=null;
-  async function attachCamera(){
+  async function attachStream(){
     try{
-      // 기존 스트림 정리
-      if (currentStream){
-        currentStream.getTracks().forEach(t=>t.stop());
-        currentStream=null;
+      // 기존 Hls 인스턴스 정리
+      if (hls){
+        try{ hls.destroy(); }catch(_){}
+        hls = null;
+        hlsAttached = false;
       }
-      const s=await navigator.mediaDevices.getUserMedia({
-        video:{facingMode:'environment'}, audio:false
-      });
-      currentStream = s;
-      camVideo.srcObject = s;
+
+      if (window.Hls && Hls.isSupported()){
+        hls=new Hls({
+          lowLatencyMode:true,
+          liveSyncDurationCount:2,
+          backBufferLength:0
+        });
+        hls.loadSource(STREAM_URL);
+        hls.attachMedia(camVideo);
+        hls.on(Hls.Events.MEDIA_ATTACHED, ()=>{ hlsAttached=true; camVideo.play().catch(()=>{}); });
+        hls.on(Hls.Events.ERROR, (evt, data)=>{
+          console.warn("HLS Error:", data?.type, data?.details);
+          // 네트워크/미디어 오류는 재시도
+          if (data && (data.type==='networkError' || data.type==='mediaError')){
+            try{ hls.recoverMediaError?.(); }catch(_){}
+          }
+        });
+      } else if (camVideo.canPlayType('application/vnd.apple.mpegurl')) {
+        // iOS Safari 네이티브 HLS
+        camVideo.src=STREAM_URL;
+      } else {
+        console.warn("이 브라우저는 HLS를 지원하지 않습니다.");
+      }
+
       await camVideo.play().catch(()=>{});
     }catch(e){
-      console.error("카메라 접근 실패:", e);
+      console.error("스트림 연결 실패:", e);
     }
   }
 
@@ -175,7 +193,7 @@
     pctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`;
     pctx.fillRect(0,0,PW,PH);
 
-    // 2) 프레임 드로우 + 흑백
+    // 2) 스트림 프레임 드로우 + 흑백
     if(camVideo.readyState>=2){
       const vw=camVideo.videoWidth, vh=camVideo.videoHeight;
       if(vw && vh){
@@ -206,17 +224,17 @@
     vctx.strokeRect(FRAME_MARGIN,FRAME_MARGIN,W-2*FRAME_MARGIN,H-2*FRAME_MARGIN);
   }
 
-  await attachCamera();
+  await attachStream();
   loop();
 
-  // ===== 복귀/재개 보정 (핵심) =====
+  // ===== 복귀/재개 보정 (HLS용) =====
   async function resumeVideo(){
     try{
-      if (camVideo.srcObject && camVideo.readyState >= 2){
-        await camVideo.play().catch(()=>{});
-      } else {
-        // 스트림이 끊겼다면 다시 붙이기
-        await attachCamera();
+      // 재생 시도
+      await camVideo.play().catch(()=>{});
+      // 스트림 요소가 끊겼거나 Hls가 없는 경우 재부착
+      if ((window.Hls && Hls.isSupported() && !hlsAttached) || camVideo.readyState < 2){
+        await attachStream();
       }
     }catch(e){
       console.warn("resumeVideo 실패:", e);
@@ -224,9 +242,11 @@
   }
   document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) resumeVideo(); });
   window.addEventListener("focus", resumeVideo);
-  window.addEventListener("pageshow", (e)=>{ resumeVideo(); });
+  window.addEventListener("pageshow", resumeVideo);
+  camVideo.addEventListener('stalled', resumeVideo);
+  camVideo.addEventListener('waiting', ()=>{ camVideo.play().catch(()=>{}); });
 
-  // ===== 캡쳐(페이지 이탈 없이 저장) =====
+  // ===== 캡쳐(페이지 이탈 최소화) =====
   const capBtn=document.getElementById('captureBtn');
   const preview=document.getElementById('preview');
   const previewImg=document.getElementById('previewImg');
@@ -235,37 +255,32 @@
   const btnDownload=document.getElementById('btnDownload');
 
   capBtn.onclick=async ()=>{
-    // 캔버스 → Blob
     view.toBlob(async (blob)=>{
       if(!blob) return;
-
-      // 1) 가능하면 Web Share API(앱 이탈 최소화)
       const file = new File([blob], `capture-${Date.now()}.png`, {type:'image/png'});
+
+      // 1) Web Share API 우선
       if (navigator.canShare && navigator.canShare({ files:[file] })){
         try{
           await navigator.share({ files:[file], title:'capture' });
-          // 공유 시트 후 복귀 시 재개
           resumeVideo();
           return;
         }catch(e){
-          // 사용자가 취소했어도 미리보기로 폴백
+          // 취소 시 폴백
         }
       }
 
-      // 2) 폴백: 오버레이 미리보기(다운로드/새창 열기 제공)
+      // 2) 폴백: 미리보기 오버레이
       const url = URL.createObjectURL(blob);
       previewImg.src = url;
-      btnOpenNew.href = url;         // 새 창 열기 → 길게 눌러 저장
-      btnDownload.href = url;        // 일부 브라우저에서만 동작
+      btnOpenNew.href = url;   // 새 창 → 길게 눌러 저장
+      btnDownload.href = url;  // 일부 브라우저에서 동작
       preview.style.display = 'flex';
     },"image/png");
   };
 
   btnClose.onclick=()=>{
-    // 미리보기 닫기
-    // (주의) URL.revokeObjectURL은 사용자가 저장을 끝낸 뒤에 수행하는 게 안전
     preview.style.display='none';
-    // 재개 보정
     resumeVideo();
   };
 })();
