@@ -5,9 +5,20 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Camera – BW + Afterimage + Mission Flow</title>
 
+<!-- iOS/Android: 홈 화면 추가 시 전체화면 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="app.webmanifest">
+
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden}
   #view{width:100%;height:100%;display:block;position:fixed;left:0;top:0;z-index:0}
+
+  /* 프로시니엄 프레임: iOS SVG calc 이슈 회피 위해 div로 처리 */
+  .frameBox{
+    position:fixed;left:40px;top:40px;right:40px;bottom:40px;
+    border:1px solid #fff; pointer-events:none; z-index:50;
+  }
 
   /* 컨트롤 */
   .controls{position:fixed;right:12px;bottom:12px;z-index:100;
@@ -51,19 +62,13 @@
   }
   #goodnight.show{display:block;opacity:1}
   #goodnight.fadeout{opacity:0}
-
-  /* 얇은 흰 프레임 */
-  .frame{pointer-events:none;position:fixed;inset:0;z-index:50}
 </style>
 </head>
 <body>
   <canvas id="view"></canvas>
 
-  <!-- 화면 프레임 -->
-  <svg class="frame" aria-hidden="true">
-    <rect x="40" y="40" width="calc(100% - 80px)" height="calc(100% - 80px)"
-          fill="none" stroke="white" stroke-width="0.5" vector-effect="non-scaling-stroke"/>
-  </svg>
+  <!-- 프로시니엄 프레임 -->
+  <div class="frameBox" aria-hidden="true"></div>
 
   <!-- 줌 컨트롤 -->
   <div class="controls">
@@ -77,7 +82,7 @@
   <!-- 오버레이 -->
   <div id="overlay" class="fade">
     <div id="overlayContent" class="fade">
-      <button id="startBtn">Press here to SLEEP</button>
+      <button id="startBtn">PRESS HERE TO SLEEP</button>
     </div>
   </div>
 
@@ -94,8 +99,8 @@
   let ZOOM=1.2, ZOOM_MIN=0.5, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
 
   const zoomVal=document.getElementById('zoomVal');
-  function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
-  function updateZoom(){zoomVal.textContent=ZOOM.toFixed(1)+'×'}
+  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+  const updateZoom=()=>zoomVal.textContent=ZOOM.toFixed(1)+'×';
   document.getElementById('zoomIn').onclick=()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom()};
   document.getElementById('zoomOut').onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom()};
   updateZoom();
@@ -187,17 +192,18 @@
   }
 
   startBtn.addEventListener('click', ()=>{
+    const line = s => `<p style="background:#000;color:#fff;padding:6px;margin:6px 0">${s}</p>`;
     const introHTML = `
       <div style="text-align:left;margin:0 auto;max-width:640px">
-        <p style="background:#000;color:#fff;padding:6px;margin:6px 0"><b>Introduction</b></p>
-        <p style="background:#000;color:#fff;padding:6px;margin:6px 0">1. 당신은 ‘너’가 사라진 세상 속에서 살아가고 있다.</p>
-        <p style="background:#000;color:#fff;padding:6px;margin:6px 0">2. 당신은 잠시 후 당신 속에서 죽어버린 ‘너’들의 공동 묘지로 들어선다.</p>
-        <p style="background:#000;color:#fff;padding:6px;margin:6px 0">3. 이곳엔 ‘그것’이 되어버린 ‘너’들의 중얼거림만이 존재할 뿐이다.</p>
-        <p style="background:#000;color:#fff;padding:6px;margin:6px 0">4. 앞으로 당신에게는 4단계에 걸친 미션이 부여된다.</p>
-        <p style="background:#000;color:#fff;padding:6px;margin:6px 0">5. 당신은 부여되는 미션에 따라 헤드폰으로 들려오는 ‘너’들의 소리에 귀를 기울이며, 핸드폰을 활용해 당신 속에서 사라져버린 ‘너’를 포착한다.</p>
+        ${line('<b>INTRODUCTION</b>')}
+        ${line('1. 당신은 ‘너’가 사라진 세상 속에서 살아가고 있다.')}
+        ${line('2. 당신은 잠시 후 당신 속에서 죽어버린 ‘너’들의 공동 묘지로 들어선다.')}
+        ${line('3. 이곳엔 ‘그것’이 되어버린 ‘너’들의 중얼거림만이 존재할 뿐이다.')}
+        ${line('4. 앞으로 당신에게는 4단계에 걸친 미션이 부여된다.')}
+        ${line('5. 당신은 부여되는 미션에 따라 헤드폰으로 들려오는 ‘너’들의 소리에 귀를 기울이며, 핸드폰을 활용해 당신 속에서 사라져버린 ‘너’를 포착한다.')}
       </div>
       <div id="countdown" style="margin-top:18px;font-size:18px;font-weight:bold;display:inline-block;background:#000;color:#fff;padding:8px">
-        The door will open in <span id="countNum">60</span> seconds.
+        THE DOOR WILL OPEN IN <span id="countNum">60</span> SECONDS.
       </div>
     `;
 
