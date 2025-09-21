@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Camera – BW + Afterimage + Zoom + Capture</title>
+<title>Camera – BW + Afterimage + Zoom + Capture (Stable)</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -34,32 +34,27 @@
   .readout{min-width:64px;text-align:center;opacity:.9}
 
   .btn-capture{
-    position:fixed;
-    left:12px; bottom:12px;
-    z-index:150;
+    position:fixed;left:12px;bottom:12px;z-index:150;
     border:1px solid rgba(255,255,255,.25);
     background:rgba(255,255,255,.08);
-    color:#fff;
-    padding:10px 16px;
-    border-radius:8px;
-    font-weight:700;
-    cursor:pointer;
+    color:#fff;padding:10px 16px;border-radius:8px;font-weight:700;cursor:pointer
   }
 
   #hint{
-    position:fixed;
-    left:50%; top:50%;
+    position:fixed;left:50%;top:50%;
     transform:translate(-50%,-50%);
-    background:rgba(0,0,0,.75);
-    color:#fff;
-    padding:14px 20px;
-    border-radius:12px;
-    font:15px/1.6 system-ui,-apple-system,sans-serif;
-    z-index:200;
-    text-align:center;
-    line-height:1.6;
-    max-width:80%;
+    background:rgba(0,0,0,.75);color:#fff;padding:14px 20px;border-radius:12px;
+    font:15px/1.6 system-ui,-apple-system,sans-serif;z-index:200;text-align:center;max-width:80%
   }
+
+  /* 캡쳐 미리보기 */
+  #preview{
+    position:fixed;inset:0;z-index:300;display:none;
+    background:rgba(0,0,0,.9);color:#fff;
+    align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:16px
+  }
+  #preview img{max-width:90vw;max-height:70vh;display:block}
+  #preview .row{display:flex;gap:8px}
 </style>
 </head>
 <body>
@@ -77,9 +72,20 @@
 
   <!-- 중앙 안내문 -->
   <div id="hint">
-    1. 공유 버튼 클릭<br>
-    2. 홈 화면 추가 버튼 클릭<br>
-    3. 전체 화면 모드로 전환
+    1. 공유 버튼 클릭<br>2. 홈 화면 추가 버튼 클릭<br>3. 전체 화면 모드로 전환
+  </div>
+
+  <!-- 미리보기 -->
+  <div id="preview">
+    <img id="previewImg" alt="capture preview">
+    <div class="row">
+      <button class="btn" id="btnClose">닫기</button>
+      <a class="btn" id="btnOpenNew" target="_blank" rel="noopener">새 창 열기</a>
+      <a class="btn" id="btnDownload" download>다운로드</a>
+    </div>
+    <div style="opacity:.8;font-size:12px;text-align:center;">
+      iOS 앱 모드에서는 “새 창 열기” 후 <b>길게 눌러 저장</b>이 가장 안정적입니다.
+    </div>
   </div>
 
 <script>
@@ -88,15 +94,14 @@
   const vctx=view.getContext('2d',{alpha:false});
   const hint=document.getElementById('hint');
 
-  // 앱모드 감지 → 안내 숨김
   const isStandalone = window.navigator.standalone === true 
                     || window.matchMedia('(display-mode: standalone)').matches;
   if(isStandalone){ hint.style.display="none"; }
 
   // 설정값
   const PROC_SCALE=0.6;
-  const TRAIL_ALPHA=0.08;   // 잔영 강도
-  const GLOBAL_ALPHA=0.7;   // 새 프레임 투명도
+  const TRAIL_ALPHA=0.08;
+  const GLOBAL_ALPHA=0.7;
   const FRAME_MARGIN=40, FRAME_COLOR="#fff", FRAME_WIDTH=0.5;
 
   let ZOOM=1.2;
@@ -123,7 +128,7 @@
     try{
       const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
       camVideo.srcObject=s;
-      await camVideo.play();
+      await camVideo.play().catch(()=>{});
     }catch(e){
       console.error("카메라 접근 실패:", e);
     }
@@ -146,12 +151,12 @@
     const H=view.height/(window.devicePixelRatio||1);
     const PW=proc.width, PH=proc.height;
 
-    // 1. 잔영 페이드
+    // 잔영 페이드
     pctx.globalCompositeOperation="source-over";
     pctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`;
     pctx.fillRect(0,0,PW,PH);
 
-    // 2. 카메라 프레임
+    // 카메라 프레임
     if(camVideo.readyState>=2){
       const vw=camVideo.videoWidth, vh=camVideo.videoHeight;
       if(vw && vh){
@@ -160,7 +165,6 @@
         const dw=vw*sc, dh=vh*sc;
         const dx=(PW-dw)/2, dy=(PH-dh)/2;
 
-        // 흑백 + 알파 누적
         pctx.globalAlpha=GLOBAL_ALPHA;
         pctx.drawImage(camVideo,dx,dy,dw,dh);
         pctx.globalAlpha=1.0;
@@ -175,10 +179,10 @@
       }
     }
 
-    // 3. 메인 업스케일
+    // 메인 업스케일
     vctx.drawImage(proc,0,0,W,H);
 
-    // 4. 프레임
+    // 프레임
     vctx.strokeStyle=FRAME_COLOR; vctx.lineWidth=FRAME_WIDTH;
     vctx.strokeRect(FRAME_MARGIN,FRAME_MARGIN,W-2*FRAME_MARGIN,H-2*FRAME_MARGIN);
   }
@@ -186,31 +190,40 @@
   await attachCamera();
   loop();
 
-  // 백그라운드 → 복귀 시 카메라 재시작
-  document.addEventListener("visibilitychange", ()=>{
-    if (!document.hidden){
-      if (camVideo.srcObject){
+  // 복귀 시 카메라 재시작
+  async function resumeCam(){
+    try{
+      if(camVideo.srcObject){
         camVideo.play().catch(()=>{});
-      } else {
-        attachCamera();
+      }else{
+        await attachCamera();
       }
-    }
-  });
+    }catch{}
+  }
+  document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) resumeCam(); });
+  window.addEventListener("focus", resumeCam);
+  window.addEventListener("pageshow", resumeCam);
 
-  // 캡쳐 버튼 동작
+  // 캡쳐 미리보기
   const capBtn=document.getElementById('captureBtn');
+  const preview=document.getElementById('preview');
+  const previewImg=document.getElementById('previewImg');
+  const btnClose=document.getElementById('btnClose');
+  const btnOpenNew=document.getElementById('btnOpenNew');
+  const btnDownload=document.getElementById('btnDownload');
+
   capBtn.onclick=()=>{
-    const now=new Date();
-    const ts=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,"0")}${String(now.getDate()).padStart(2,"0")}-${String(now.getHours()).padStart(2,"0")}${String(now.getMinutes()).padStart(2,"0")}${String(now.getSeconds()).padStart(2,"0")}`;
-    view.toBlob(blob=>{
+    view.toBlob(async (blob)=>{
+      if(!blob) return;
       const url=URL.createObjectURL(blob);
-      const a=document.createElement('a');
-      a.href=url;
-      a.download=`capture-${ts}.png`;
-      a.click();
-      URL.revokeObjectURL(url);
+      previewImg.src=url;
+      btnOpenNew.href=url;
+      btnDownload.href=url;
+      preview.style.display='flex';
     },"image/png");
   };
+
+  btnClose.onclick=()=>{ preview.style.display='none'; resumeCam(); };
 })();
 </script>
 </body>
