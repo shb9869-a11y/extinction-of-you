@@ -6,99 +6,79 @@
 <title>Camera + Stream Composite</title>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <style>
-  html,body{
-    margin:0;
-    height:100%;
-    background:#000;
-    overflow:hidden;
+  html,body{margin:0;height:100%;background:#000;overflow:hidden}
+  #stage{
+    position:fixed; inset:0; background:#000;
   }
-  #camCanvas{
-    position:fixed;
-    inset:0;
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    background:#000;
+  /* 흑백은 CSS 필터로 처리(사파리 호환 ↑) */
+  #canvas{
+    position:absolute; inset:0; width:100%; height:100%;
+    background:#000; filter:grayscale(100%);
+    touch-action:none;
+  }
+  #start{
+    position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
+    padding:12px 18px; border:0; border-radius:999px;
+    font:700 16px/1 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    color:#fff; background:#12a150; display:none; z-index:10;
+  }
+  #hint{
+    position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+    color:#fff; background:rgba(0,0,0,.5); padding:8px 12px; border-radius:8px;
+    font:13px/1.3 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; display:none;
   }
 </style>
 </head>
 <body>
-<canvas id="camCanvas"></canvas>
+  <div id="stage">
+    <canvas id="canvas"></canvas>
+    <button id="start">시작</button>
+    <div id="hint">권한/자동재생 때문에 시작 버튼이 필요할 수 있어요</div>
+  </div>
 
 <script>
 (async ()=>{
-  // ✅ Cloudflare HLS Manifest URL
+  // ✅ 잘 뜨는 HLS 주소(LL-HLS 파라미터 없이)
   const STREAM_URL = "https://customer-e1rhmg8edq32stcl.cloudflarestream.com/0561f69cdb850354620ce2f93cbb05ce/manifest/video.m3u8";
 
-  const camCanvas = document.getElementById('camCanvas');
-  const ctx = camCanvas.getContext('2d');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d', { alpha:false });
+  const startBtn = document.getElementById('start');
+  const hint = document.getElementById('hint');
 
-  const hiddenCam = document.createElement('video'); // 관객 카메라
-  hiddenCam.autoplay = true;
-  hiddenCam.playsinline = true;
-  hiddenCam.muted = true;
+  // 내부 비디오 요소(표시는 안 함)
+  const camVideo = document.createElement('video');
+  camVideo.autoplay = true; camVideo.playsInline = true; camVideo.muted = true;
 
-  const streamEl = document.createElement('video'); // Cloudflare 스트림
-  streamEl.autoplay = true;
-  streamEl.playsinline = true;
-  streamEl.muted = true;
+  const streamVideo = document.createElement('video');
+  streamVideo.autoplay = true; streamVideo.playsInline = true; streamVideo.muted = true;
 
-  // 캔버스 리사이즈
+  // 캔버스 리사이즈 (DPR 대응)
   function resizeCanvas(){
-    camCanvas.width = window.innerWidth;
-    camCanvas.height = window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.max(1, Math.floor(window.innerWidth));
+    const h = Math.max(1, Math.floor(window.innerHeight));
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
   window.addEventListener('resize', resizeCanvas);
+  window.addEventListener('orientationchange', ()=>setTimeout(resizeCanvas, 200));
   resizeCanvas();
 
-  // 관객 카메라 시작
-  try {
-    const camStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" } }, audio:false
-    });
-    hiddenCam.srcObject = camStream;
-  } catch(e){ console.error("카메라 실패:", e); }
+  // 비디오를 캔버스에 'cover'로 그리기(가로세로비 유지)
+  function drawCover(video, ctx, w, h){
+    const vw = video.videoWidth || 0, vh = video.videoHeight || 0;
+    if (!vw || !vh) return;
+    const scale = Math.max(w / vw, h / vh);
+    const dw = vw * scale, dh = vh * scale;
+    const dx = (w - dw) / 2, dy = (h - dh) / 2;
+    ctx.drawImage(video, dx, dy, dw, dh);
+  }
 
   // 스트림 붙이기
-  if (streamEl.canPlayType('application/vnd.apple.mpegurl')) {
-    streamEl.src = STREAM_URL; // iOS Safari
-    streamEl.play().catch(()=>{});
-  } else if (window.Hls && Hls.isSupported()) {
-    const hls = new Hls({lowLatencyMode:true});
-    hls.loadSource(STREAM_URL);
-    hls.attachMedia(streamEl);
-    hls.on(Hls.Events.MANIFEST_PARSED, ()=> streamEl.play().catch(()=>{}));
-  } else {
-    streamEl.src = STREAM_URL;
-    streamEl.play().catch(()=>{});
-  }
-
-  // 드로잉 루프: 카메라(흑백+잔상) + 스트림 합성
-  function drawLoop(){
-    requestAnimationFrame(drawLoop);
-
-    // 잔상 효과
-    ctx.fillStyle = "rgba(0,0,0,0.05)";
-    ctx.fillRect(0,0,camCanvas.width,camCanvas.height);
-
-    // 카메라 (흑백 처리)
-    if(hiddenCam.readyState >= 2){
-      ctx.save();
-      ctx.filter = "grayscale(100%)";
-      ctx.drawImage(hiddenCam, 0,0,camCanvas.width,camCanvas.height);
-      ctx.restore();
-    }
-
-    // 스트림 (투명도 합성)
-    if(streamEl.readyState >= 2){
-      ctx.globalAlpha = 0.7; // 스트림 투명도 (0~1 조절)
-      ctx.drawImage(streamEl, 0,0,camCanvas.width,camCanvas.height);
-      ctx.globalAlpha = 1;
-    }
-  }
-  drawLoop();
-
-})();
-</script>
-</body>
-</html>
+  async function attachStream(){
+    return new Promise((resolve)=>{
+      if (streamVideo.canPlayType('appli
