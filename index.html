@@ -47,7 +47,6 @@
     font:15px/1.6 system-ui,-apple-system,sans-serif;z-index:200;text-align:center;max-width:80%
   }
 
-  /* 캡쳐 미리보기 */
   #preview{
     position:fixed;inset:0;z-index:300;display:none;
     background:rgba(0,0,0,.9);color:#fff;
@@ -75,7 +74,7 @@
     1. 공유 버튼 클릭<br>2. 홈 화면 추가 버튼 클릭<br>3. 전체 화면 모드로 전환
   </div>
 
-  <!-- 미리보기 -->
+  <!-- 캡쳐 미리보기 -->
   <div id="preview">
     <img id="previewImg" alt="capture preview">
     <div class="row">
@@ -98,7 +97,6 @@
                     || window.matchMedia('(display-mode: standalone)').matches;
   if(isStandalone){ hint.style.display="none"; }
 
-  // 설정값
   const PROC_SCALE=0.6;
   const TRAIL_ALPHA=0.08;
   const GLOBAL_ALPHA=0.7;
@@ -107,7 +105,6 @@
   let ZOOM=1.2;
   const ZOOM_MIN=0.5, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
 
-  // 줌 UI
   const zoomVal=document.getElementById('zoomVal');
   const btnIn=document.getElementById('zoomIn');
   const btnOut=document.getElementById('zoomOut');
@@ -117,7 +114,6 @@
   btnOut.onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom()};
   updateZoom();
 
-  // 카메라
   const camVideo=document.createElement('video');
   camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
 
@@ -151,12 +147,10 @@
     const H=view.height/(window.devicePixelRatio||1);
     const PW=proc.width, PH=proc.height;
 
-    // 잔영 페이드
     pctx.globalCompositeOperation="source-over";
     pctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`;
     pctx.fillRect(0,0,PW,PH);
 
-    // 카메라 프레임
     if(camVideo.readyState>=2){
       const vw=camVideo.videoWidth, vh=camVideo.videoHeight;
       if(vw && vh){
@@ -179,10 +173,8 @@
       }
     }
 
-    // 메인 업스케일
     vctx.drawImage(proc,0,0,W,H);
 
-    // 프레임
     vctx.strokeStyle=FRAME_COLOR; vctx.lineWidth=FRAME_WIDTH;
     vctx.strokeRect(FRAME_MARGIN,FRAME_MARGIN,W-2*FRAME_MARGIN,H-2*FRAME_MARGIN);
   }
@@ -190,7 +182,6 @@
   await attachCamera();
   loop();
 
-  // 복귀 시 카메라 재시작
   async function resumeCam(){
     try{
       if(camVideo.srcObject){
@@ -204,7 +195,6 @@
   window.addEventListener("focus", resumeCam);
   window.addEventListener("pageshow", resumeCam);
 
-  // 캡쳐 미리보기
   const capBtn=document.getElementById('captureBtn');
   const preview=document.getElementById('preview');
   const previewImg=document.getElementById('previewImg');
@@ -224,6 +214,11 @@
   };
 
   btnClose.onclick=()=>{ preview.style.display='none'; resumeCam(); };
+
+  // 다운로드 후에도 자동 재시작
+  btnDownload.onclick=()=>{
+    setTimeout(()=>{ resumeCam(); },1500);
+  };
 })();
 </script>
 </body>
