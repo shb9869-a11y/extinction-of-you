@@ -5,13 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Camera – BW + Afterimage + Mission Flow</title>
 
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Camera Trail">
-<meta name="theme-color" content="#000000">
-<link rel="manifest" href="app.webmanifest">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden}
   #view{width:100%;height:100%;display:block;position:fixed;left:0;top:0;z-index:0}
@@ -22,33 +15,46 @@
     font:14px/1 system-ui,-apple-system,sans-serif;color:#fff}
   .btn{border:1px solid rgba(255,255,255,.25);
     background:rgba(255,255,255,.08);color:#fff;padding:6px 10px;
-    border-radius:8px;font-weight:700;cursor:pointer}
-  .readout{min-width:64px;text-align:center;opacity:.9}
+    border-radius:8px;font-weight:700;cursor:pointer;font-family:"Courier New",monospace}
+  .readout{min-width:64px;text-align:center;opacity:.9;font-family:"Courier New",monospace}
   .btn-capture{position:fixed;left:12px;bottom:12px;z-index:150;
     border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);
-    color:#fff;padding:10px 16px;border-radius:8px;font-weight:700;cursor:pointer}
+    color:#fff;padding:10px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-family:"Courier New",monospace}
 
-  /* 안내 오버레이 */
+  /* 안내 오버레이 컨테이너 (카메라 위에 떠 있음) */
   #overlay{
     position:fixed;inset:0;z-index:200;
-    background:#000;           /* 완전 검정 */
-    color:#fff;                /* 흰색 글자 */
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    text-align:center;padding:20px;line-height:1.6;font-size:16px
+    text-align:center;padding:20px;font-family:"Courier New",monospace
   }
-  #overlay button{margin-top:20px;font-size:18px;padding:10px 20px;cursor:pointer}
+
+  #overlayContent{
+    background:#000;color:#fff;
+    padding:20px 30px;
+    max-width:80%;border-radius:0; /* 직각 */
+    line-height:1.6;font-size:16px;
+  }
+
+  #overlay button{
+    background:#000;color:#fff;border:1px solid #fff;
+    font-size:18px;padding:10px 20px;cursor:pointer;
+    font-family:"Courier New",monospace;
+  }
 
   #countdown{
-    margin-top:20px;font-size:22px;font-weight:bold
+    margin-top:20px;font-size:20px;font-weight:bold
   }
 
   /* GOOD NIGHT */
   #goodnight{
     position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
-    z-index:250;color:#fff;font-size:32px;font-weight:bold;
-    background:#000;           /* 검정 배경 */
-    padding:20px 30px;border-radius:12px;
+    z-index:250;color:#fff;font-weight:bold;
+    background:#000;padding:20px 40px;border-radius:0; /* 직각 */
     display:none;
+    text-align:center;
+    font-family:"Courier New",monospace;
+    font-size:6vw; /* 가로세로 관계없이 적당히 커짐 */
+    max-width:90%;
   }
 </style>
 </head>
@@ -157,7 +163,7 @@
   startBtn.onclick=()=>{
     overlayContent.innerHTML=`
       <div style="text-align:left;max-width:500px;">
-      <p>들어가며,</p>
+      <p><b>Introduction</b></p>
       <p>1. 당신은 ‘너’가 사라진 세상 속에서 살아가고 있다.</p>
       <p>2. 당신은 잠시 후 당신 속에서 죽어버린 ‘너’들의 공동 묘지로 들어선다.</p>
       <p>3. 이곳엔 ‘그것’이 되어버린 ‘너’들의 중얼거림만이 존재할 뿐이다.</p>
