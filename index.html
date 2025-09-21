@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Camera – BW + Trail</title>
+<title>Camera – BW + Trail + Frame</title>
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden}
   #view{
@@ -35,16 +35,14 @@
   const startBtn = document.getElementById('start');
   const hint = document.getElementById('hint');
 
-  // 내부 처리 해상도 스케일 (0.5~0.75 권장) — 낮출수록 배터리/발열↓
-  const PROC_SCALE = 0.6;
-  // 잔상 길이(작을수록 더 오래 남음)
-  const TRAIL_ALPHA = 0.08;
+  // 🎛️ 조절값
+  const PROC_SCALE = 0.6;     // 내부 처리 해상도 스케일
+  const TRAIL_ALPHA = 0.03;   // 잔상 길이 (작을수록 더 오래 남음)
+  const FRAME_MARGIN = 40;    // 흰색 점선 프레임과 화면 사이 여백(px)
 
-  // 카메라 비디오(화면엔 안 보임)
   const camVideo = document.createElement('video');
   camVideo.autoplay = true; camVideo.playsInline = true; camVideo.muted = true;
 
-  // 처리용 오프스크린(낮은 해상도)
   const proc = document.createElement('canvas');
   const pctx = proc.getContext('2d', { alpha:false });
 
@@ -53,12 +51,10 @@
     const w = Math.max(1, Math.floor(window.innerWidth));
     const h = Math.max(1, Math.floor(window.innerHeight));
 
-    // 표시용 캔버스
     view.style.width = w+'px'; view.style.height = h+'px';
     view.width = Math.floor(w * dpr); view.height = Math.floor(h * dpr);
     vctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // 처리용 캔버스(다운스케일)
     proc.width  = Math.max(1, Math.floor(w * PROC_SCALE));
     proc.height = Math.max(1, Math.floor(h * PROC_SCALE));
   }
@@ -66,7 +62,6 @@
   window.addEventListener('orientationchange', ()=>setTimeout(resizeAll, 200));
   resizeAll();
 
-  // object-fit: cover 처럼 그리기
   function drawCover(video, ctx, w, h){
     const vw = video.videoWidth || 0, vh = video.videoHeight || 0;
     if (!vw || !vh) return;
@@ -84,7 +79,6 @@
       camVideo.srcObject = s;
       await camVideo.play();
     }catch(e){
-      // 후면 실패 → 전면 폴백
       const s2 = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
       camVideo.srcObject = s2;
       await camVideo.play();
@@ -99,16 +93,12 @@
     const H = view.height / (window.devicePixelRatio||1);
     const PW = proc.width, PH = proc.height;
 
-    // 1) 처리용 캔버스에 잔상 페이드
+    // 1) 잔상 페이드
     pctx.fillStyle = `rgba(0,0,0,${TRAIL_ALPHA})`;
     pctx.fillRect(0,0,PW,PH);
 
-    // 2) 카메라 프레임을 처리용 캔버스에 cover로 그리기
+    // 2) 카메라 그리기
     if (camVideo.readyState >= 2){
-      // 먼저 임시 캔버스에 cover 비율로 맞춘 뒤, 처리용으로 축소 복사
-      // (직접 cover로 그려도 되지만, 여기선 단순화를 위해 한 번에 처리)
-      pctx.save();
-      // drawCover를 처리용 기준으로
       const vw = camVideo.videoWidth || 0, vh = camVideo.videoHeight || 0;
       if (vw && vh){
         const scale = Math.max(PW / vw, PH / vh);
@@ -116,24 +106,30 @@
         const dx = (PW - dw) / 2, dy = (PH - dh) / 2;
         pctx.drawImage(camVideo, dx, dy, dw, dh);
       }
-      pctx.restore();
 
-      // 3) 픽셀을 흑백으로 변환
+      // 흑백 변환
       let frame = pctx.getImageData(0,0,PW,PH);
       let d = frame.data;
       for (let i=0; i<d.length; i+=4){
         const r=d[i], g=d[i+1], b=d[i+2];
         const gray = (0.299*r + 0.587*g + 0.114*b)|0;
-        d[i]=d[i+1]=d[i+2]=gray; // R=G=B=gray
+        d[i]=d[i+1]=d[i+2]=gray;
       }
       pctx.putImageData(frame,0,0);
     }
 
-    // 4) 처리용(저해상도) 이미지를 표시용 캔버스에 업스케일
+    // 3) 처리용 → 메인 캔버스 업스케일
     vctx.drawImage(proc, 0, 0, W, H);
+
+    // 4) 흰색 점선 프레임
+    vctx.save();
+    vctx.strokeStyle = "white";
+    vctx.lineWidth = 3;
+    vctx.setLineDash([12, 8]); // 점선 패턴
+    vctx.strokeRect(FRAME_MARGIN, FRAME_MARGIN, W-2*FRAME_MARGIN, H-2*FRAME_MARGIN);
+    vctx.restore();
   }
 
-  // 자동 시작 → 막히면 버튼 노출
   async function startAll(){
     try{
       await attachCamera();
@@ -147,10 +143,8 @@
   }
 
   startBtn.addEventListener('click', startAll, { once:true });
-  // iOS에서 자동 시작이 막히면 버튼이 뜸
   startAll();
 
-  // 탭 복귀 시 재생 보정
   document.addEventListener('visibilitychange', ()=>{
     if (!document.hidden){
       camVideo.play().catch(()=>{});
