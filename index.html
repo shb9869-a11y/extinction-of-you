@@ -37,13 +37,14 @@
     position:fixed;
     left:50%; top:50%;
     transform:translate(-50%,-50%);
-    background:rgba(0,0,0,.7);
+    background:rgba(0,0,0,.75);
     color:#fff;
-    padding:12px 18px;
+    padding:14px 20px;
     border-radius:12px;
-    font:15px/1.4 system-ui,-apple-system,sans-serif;
+    font:15px/1.6 system-ui,-apple-system,sans-serif;
     z-index:200;
     text-align:center;
+    line-height:1.6;
     max-width:80%;
   }
 </style>
@@ -59,7 +60,11 @@
   </div>
 
   <!-- 중앙 안내문 -->
-  <div id="hint">📱 Safari: <b>공유 → 홈 화면에 추가 → 전체 화면 모드</b></div>
+  <div id="hint">
+    1. 공유 버튼 클릭<br>
+    2. 홈 화면 추가 버튼 클릭<br>
+    3. 전체 화면 모드로 전환
+  </div>
 
 <script>
 (async ()=>{
