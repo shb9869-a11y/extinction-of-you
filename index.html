@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Camera – BW + Afterimage + Zoom</title>
+<title>Camera – BW + Afterimage + Zoom + Capture</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -33,6 +33,19 @@
   }
   .readout{min-width:64px;text-align:center;opacity:.9}
 
+  .btn-capture{
+    position:fixed;
+    left:12px; bottom:12px;
+    z-index:150;
+    border:1px solid rgba(255,255,255,.25);
+    background:rgba(255,255,255,.08);
+    color:#fff;
+    padding:10px 16px;
+    border-radius:8px;
+    font-weight:700;
+    cursor:pointer;
+  }
+
   #hint{
     position:fixed;
     left:50%; top:50%;
@@ -58,6 +71,9 @@
     <div class="readout"><span id="zoomVal">1.2×</span></div>
     <button class="btn" id="zoomIn">+</button>
   </div>
+
+  <!-- 캡쳐 버튼 -->
+  <button id="captureBtn" class="btn-capture">캡쳐</button>
 
   <!-- 중앙 안내문 -->
   <div id="hint">
@@ -164,6 +180,21 @@
 
   await attachCamera();
   loop();
+
+  // 캡쳐 버튼 동작
+  const capBtn=document.getElementById('captureBtn');
+  capBtn.onclick=()=>{
+    const now=new Date();
+    const ts=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,"0")}${String(now.getDate()).padStart(2,"0")}-${String(now.getHours()).padStart(2,"0")}${String(now.getMinutes()).padStart(2,"0")}${String(now.getSeconds()).padStart(2,"0")}`;
+    view.toBlob(blob=>{
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;
+      a.download=`capture-${ts}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    },"image/png");
+  };
 })();
 </script>
 </body>
