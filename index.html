@@ -438,7 +438,7 @@
   const micToggleBtn = document.getElementById('micToggle');
 
   // secure-context check (iOS/Android require https for camera)
-  const isLocal = /^(localhost|127\.0\.0\.1)/.test(location.hostname);
+  const isLocal = /^(localhost|127\.0\.0\.1)/.test(location.hostname); // secure-context helper
   const isSecure = location.protocol==='https:' || isLocal;
   if(!isSecure){
     overlayContent.insertAdjacentHTML('beforeend', '<div class="tip">⚠️ 카메라 권한을 받으려면 https에서 열어야 합니다. GitHub Pages/https로 다시 접속해 주세요.</div>');
@@ -773,6 +773,17 @@
       run();
     }, 3000);
   }
+function showDiag(msg){ const box=document.getElementById('diag'); if(!box) return; box.style.display='block'; box.textContent += `
+${new Date().toISOString()} ${msg}`; box.scrollTop=box.scrollHeight; }
+  const diagBtn=document.getElementById('diagBtn'); diagBtn?.addEventListener('click',()=>{ const box=document.getElementById('diag'); box.style.display = (box.style.display==='none')?'block':'none'; });
+
+  // initial capability log
+  showDiag(`secure:${location.protocol} host:${location.host}`);
+  showDiag(`mediaDevices:${!!navigator.mediaDevices}`);
+  showDiag(`getUserMedia:${!!navigator.mediaDevices?.getUserMedia}`);
+  try{ if(navigator.permissions?.query){ navigator.permissions.query({name:'camera'}).then(r=>showDiag('perm(camera):'+r.state)).catch(()=>{});} }catch{}
 </script>
+  <button id="diagBtn" class="uiBtn small" style="position:fixed;left:var(--ui-gap);top:var(--ui-gap);z-index:500;opacity:.6">DIAG</button>
+  <div id="diag" style="position:fixed;left:var(--ui-gap);top:40px;z-index:500;background:#000;color:#0f0;font-family:monospace;font-size:12px;max-width:90vw;max-height:40vh;overflow:auto;padding:8px;display:none;border:1px solid #0f0"></div>
 </body>
 </html>
