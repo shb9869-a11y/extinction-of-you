@@ -1,172 +1,135 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-  <title>Camera – Motion Pan/Vol + Mic Focus (App/WebView safe)</title>
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#000000"/>
-  <style>
-    :root{
-      --frame: 40px; --ui-gap: 8px;
-      --fs-body: clamp(12px, 2.2vmin, 16px);
-      --fs-strong: clamp(14px, 2.8vmin, 20px);
-      --fs-small: clamp(11px, 1.8vmin, 14px);
-      --pad-line: clamp(4px, 0.9vmin, 8px);
-      --pad-btn-y: clamp(6px, 1.1vmin, 10px);
-      --pad-btn-x: clamp(10px, 1.8vmin, 20px);
-    }
-    html,body{margin:0;height:100%;background:#000;overflow:hidden}
-    #view{width:100%;height:100%;display:block;position:fixed;left:0;top:0;z-index:0}
-    .frameBox{position:fixed;left:var(--frame);top:var(--frame);right:var(--frame);bottom:var(--frame);border:1px solid #000;pointer-events:none;z-index:50}
-    .uiBtn{background:#000;color:#fff;border:1px solid #000;font-size:var(--fs-strong);padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",monospace;white-space:nowrap;cursor:pointer;user-select:none}
-    .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
-    .controls{position:fixed;right:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:100;display:flex;gap:6px;align-items:center}
-    .readout{min-width:48px;text-align:center;opacity:.9;font-family:"Courier New",monospace;font-size:var(--fs-small)}
-    .btn-capture{position:fixed;left:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:150}
-    #overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;font-family:"Courier New",monospace;color:#fff;pointer-events:auto}
-    #overlayContent{pointer-events:auto;line-height:1.7;font-size:var(--fs-body);max-width:min(72ch, calc(100vw - (var(--frame)*2)));max-height:calc(100vh - (var(--frame)*2));overflow:hidden;text-align:left}
-    .line{display:inline;background:#000;color:#fff;padding:calc(var(--pad-line)*0.8) var(--pad-line);box-decoration-break:clone;-webkit-box-decoration-break:clone}
-    .lineWrap{margin:6px 0}
-    .fade{opacity:1;transition:opacity .45s ease}
-    .fade.hidden{opacity:0}
-    #goodnight{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:250;display:none;text-align:center;font-family:"Courier New",monospace;font-size:var(--fs-strong);color:#fff;background:#000;padding:var(--pad-btn-y) var(--pad-btn-x);white-space:nowrap;transition:opacity .6s ease}
-    #goodnight.show{display:block;opacity:1}
-    #goodnight.fadeout{opacity:0}
-    @media (orientation:landscape){ :root{ --frame: 32px; } }
-    .tip{opacity:.7;font-size:var(--fs-small);margin-top:8px}
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Camera – Motion Pan/Vol + Mic Focus (App/WebView safe)</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root{
+    --frame: 40px; --ui-gap: 8px;
+    --fs-body: clamp(12px, 2.2vmin, 16px);
+    --fs-strong: clamp(14px, 2.8vmin, 20px);
+    --fs-small: clamp(11px, 1.8vmin, 14px);
+    --pad-line: clamp(4px, 0.9vmin, 8px);
+    --pad-btn-y: clamp(6px, 1.1vmin, 10px);
+    --pad-btn-x: clamp(10px, 1.8vmin, 20px);
+  }
+  html,body{margin:0;height:100%;background:#000;overflow:hidden}
+  #view{width:100%;height:100%;display:block;position:fixed;left:0;top:0;z-index:0}
+  .frameBox{position:fixed;left:var(--frame);top:var(--frame);right:var(--frame);bottom:var(--frame);border:1px solid #000;pointer-events:none;z-index:50}
+  .uiBtn{background:#000;color:#fff;border:1px solid #000;font-size:var(--fs-strong);padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",monospace;white-space:nowrap;cursor:pointer;user-select:none}
+  .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
+  .controls{position:fixed;right:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:100;display:flex;gap:6px;align-items:center}
+  .readout{min-width:48px;text-align:center;opacity:.9;font-family:"Courier New",monospace;font-size:var(--fs-small)}
+  .btn-capture{position:fixed;left:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:150}
+  #overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;font-family:"Courier New",monospace;color:#fff;pointer-events:none}
+  #overlayContent{pointer-events:auto;line-height:1.7;font-size:var(--fs-body);max-width:min(72ch, calc(100vw - (var(--frame)*2)));max-height:calc(100vh - (var(--frame)*2));overflow:hidden;text-align:left}
+  .line{display:inline;background:#000;color:#fff;padding:calc(var(--pad-line)*0.8) var(--pad-line);box-decoration-break:clone;-webkit-box-decoration-break:clone}
+  .lineWrap{margin:6px 0}
+  .fade{opacity:1;transition:opacity .45s ease}
+  .fade.hidden{opacity:0}
+  #goodnight{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:250;display:none;text-align:center;font-family:"Courier New",monospace;font-size:var(--fs-strong);color:#fff;background:#000;padding:var(--pad-btn-y) var(--pad-btn-x);white-space:nowrap;transition:opacity .6s ease}
+  #goodnight.show{display:block;opacity:1}
+  #goodnight.fadeout{opacity:0}
+  @media (orientation:landscape){ :root{ --frame: 32px; } }
+  .tip{opacity:.7;font-size:var(--fs-small);margin-top:8px}
+</style>
 </head>
 <body>
-  <!-- Main processed camera canvas -->
-  <canvas id="view" aria-label="processed camera view (grayscale with trails)"></canvas>
+  <canvas id="view"></canvas>
   <div class="frameBox" aria-hidden="true"></div>
 
-  <!-- Zoom controls (UI right-bottom) -->
-  <div class="controls" aria-label="zoom controls">
-    <button class="uiBtn small" id="zoomOut" aria-label="zoom out">–</button>
+  <div class="controls">
+    <button class="uiBtn small" id="zoomOut">–</button>
     <div class="readout"><span id="zoomVal">1.2×</span></div>
-    $1
-    <button class="uiBtn small" id="micToggle" aria-pressed="true" aria-label="toggle microphone">MIC ON</button>
+    <button class="uiBtn small" id="zoomIn">+</button>
   </div>
 
-  <!-- Capture button (UI left-bottom) -->
-  $1
-  <button id="camSwitch" class="uiBtn small btn-capture" style="left:auto;right:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));transform:translateX(0);" aria-label="switch camera">SWITCH</button>
+  <button id="captureBtn" class="uiBtn small btn-capture">CAPTURE</button>
 
-  <!-- Intro/Instruction overlay -->
-  <div id="overlay" class="fade" role="dialog" aria-modal="true">
+  <div id="overlay" class="fade">
     <div id="overlayContent" class="fade">
-      <button id="startBtn" class="uiBtn" aria-label="start experience">Welcome to ‘Dialogue into Silence’</button>
+      <button id="startBtn" class="uiBtn">PRESS HERE TO SLEEP</button>
       <div class="tip" id="sensorTip" style="display:none">센서 권한 필요: 시작을 누르면 허용 팝업이 뜹니다.</div>
     </div>
   </div>
 
-  <!-- GOOD NIGHT banner -->
   <div id="goodnight">GOOD NIGHT</div>
 
 <script>
-'use strict';
 (async ()=>{
-  /* =============================================================
-   * SECTION 1. Camera processing (grayscale + trail + zoom)
-   * ===========================================================*/
-  const view = document.getElementById('view');
-  const vctx = view.getContext('2d', { alpha:false });
-  const PROC_SCALE = 0.60, TRAIL_ALPHA = 0.12, GLOBAL_ALPHA = 0.7;
-  let ZOOM = 1.2, ZOOM_MIN = 0.5, ZOOM_MAX = 3.0, ZOOM_STEP = 0.1;
+  /* ========= 카메라(흑백+잔상) ========= */
+  const view=document.getElementById('view');
+  const vctx=view.getContext('2d',{alpha:false});
+  const PROC_SCALE=0.60, TRAIL_ALPHA=0.12, GLOBAL_ALPHA=0.7;
+  let ZOOM=1.2, ZOOM_MIN=0.5, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
 
-  const zoomVal = document.getElementById('zoomVal');
-  const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
-  const updateZoom = ()=> zoomVal.textContent = ZOOM.toFixed(1)+'×';
-  document.getElementById('zoomIn').onclick = ()=>{ ZOOM = clamp(ZOOM+ZOOM_STEP, ZOOM_MIN, ZOOM_MAX); updateZoom(); };
-  document.getElementById('zoomOut').onclick= ()=>{ ZOOM = clamp(ZOOM-ZOOM_STEP, ZOOM_MIN, ZOOM_MAX); updateZoom(); };
+  const zoomVal=document.getElementById('zoomVal');
+  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+  const updateZoom=()=>zoomVal.textContent=ZOOM.toFixed(1)+'×';
+  document.getElementById('zoomIn').onclick=()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom();};
+  document.getElementById('zoomOut').onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom();};
   updateZoom();
 
-  const camVideo = document.createElement('video');
-  camVideo.autoplay = true; camVideo.playsInline = true; camVideo.muted = true;
-  const proc = document.createElement('canvas');
-  const pctx = proc.getContext('2d', { willReadFrequently:true });
+  const camVideo=document.createElement('video'); camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
+  const proc=document.createElement('canvas'); const pctx=proc.getContext('2d',{willReadFrequently:true});
 
-  // === camera state ===
-  let currentStream=null;
-  let currentVideoDeviceId=null;
-  let availableVideoDevices=[];
-  let facingModePref='environment'; // fallback when deviceId switch not available
-
-  async function attachCamera(constraints){
+  async function attachCamera(){
     try{
-      if(currentStream){ currentStream.getTracks().forEach(t=>{ try{t.stop();}catch{} }); currentStream=null; }
-      const base = constraints || { video: currentVideoDeviceId ? { deviceId:{ exact: currentVideoDeviceId } } : { facingMode: facingModePref }, audio:false };
-      const s = await navigator.mediaDevices.getUserMedia(base);
-      currentStream = s;
-      camVideo.srcObject = s; await camVideo.play().catch(()=>{});
-    }catch(e){ console.warn('카메라 실패:', e); }
-  }, audio:false });
-      camVideo.srcObject = s; await camVideo.play().catch(()=>{});
-    }catch(e){ console.warn('카메라 실패:', e); }
+      const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+      camVideo.srcObject=s; await camVideo.play().catch(()=>{});
+    }catch(e){console.warn("카메라 실패:", e);}
   }
-
   function resizeAll(){
-    const dpr = window.devicePixelRatio || 1;
-    const w = window.innerWidth, h = window.innerHeight;
-    view.width = w*dpr; view.height = h*dpr; vctx.setTransform(dpr,0,0,dpr,0,0);
-    const scale = (window.matchMedia('(orientation: landscape)').matches) ? PROC_SCALE*0.9 : PROC_SCALE;
-    proc.width = Math.floor(w*scale); proc.height = Math.floor(h*scale);
+    const dpr=window.devicePixelRatio||1;
+    const w=window.innerWidth,h=window.innerHeight;
+    view.width=w*dpr; view.height=h*dpr; vctx.setTransform(dpr,0,0,dpr,0,0);
+    const scale=(window.matchMedia('(orientation: landscape)').matches)? PROC_SCALE*0.9 : PROC_SCALE;
+    proc.width=Math.floor(w*scale); proc.height=Math.floor(h*scale);
   }
-  resizeAll(); addEventListener('resize', ()=> setTimeout(resizeAll, 50), { passive:true });
+  resizeAll(); addEventListener('resize',()=>setTimeout(resizeAll,50));
 
   function loop(){
     requestAnimationFrame(loop);
-    const W = view.width/(window.devicePixelRatio||1);
-    const H = view.height/(window.devicePixelRatio||1);
-    const PW = proc.width, PH = proc.height;
-
-    // trail fade
-    pctx.globalCompositeOperation = 'source-over';
-    pctx.fillStyle = `rgba(0,0,0,${TRAIL_ALPHA})`;
-    pctx.fillRect(0,0,PW,PH);
-
-    // draw camera frame
-    if (camVideo.readyState >= 2){
-      const vw = camVideo.videoWidth, vh = camVideo.videoHeight;
-      if (vw && vh){
-        const base = Math.max(PW/vw, PH/vh), sc = base * ZOOM;
-        const dw = vw*sc, dh = vh*sc, dx = (PW-dw)/2, dy = (PH-dh)/2;
-        pctx.globalAlpha = GLOBAL_ALPHA; pctx.drawImage(camVideo, dx, dy, dw, dh);
-        pctx.globalAlpha = 1.0;
-
-        // grayscale conversion
-        const frame = pctx.getImageData(0,0,PW,PH); const d = frame.data;
-        for (let i=0;i<d.length;i+=4){
-          const g = (0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2])|0;
-          d[i]=d[i+1]=d[i+2]=g;
+    const W=view.width/(window.devicePixelRatio||1);
+    const H=view.height/(window.devicePixelRatio||1);
+    const PW=proc.width, PH=proc.height;
+    pctx.globalCompositeOperation="source-over";
+    pctx.fillStyle=rgba(0,0,0,${TRAIL_ALPHA}); pctx.fillRect(0,0,PW,PH);
+    if(camVideo.readyState>=2){
+      const vw=camVideo.videoWidth, vh=camVideo.videoHeight;
+      if(vw && vh){
+        const base=Math.max(PW/vw,PH/vh), sc=base*ZOOM;
+        const dw=vw*sc, dh=vh*sc, dx=(PW-dw)/2, dy=(PH-dh)/2;
+        pctx.globalAlpha=GLOBAL_ALPHA; pctx.drawImage(camVideo,dx,dy,dw,dh);
+        pctx.globalAlpha=1.0;
+        const frame=pctx.getImageData(0,0,PW,PH); const d=frame.data;
+        for(let i=0;i<d.length;i+=4){
+          const g=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0; d[i]=d[i+1]=d[i+2]=g;
         }
         pctx.putImageData(frame,0,0);
       }
     }
-    // upscale to screen
     vctx.drawImage(proc,0,0,W,H);
   }
   await attachCamera(); loop();
 
-  /* =============================================================
-   * SECTION 2. Audio graph: mix bus, 80Hz drone, mic FX, motion volume/pan
-   * ===========================================================*/
+  /* ========= 오디오: 스테레오 안전 + 80Hz 드론 + 마이크 + 모션 ========= */
   let audioCtx=null, masterGain=null, limiter=null;
-  let motionGain=null;         // overall volume (motion controlled)
-  let bgOsc=null, bgGain=null; // 80Hz drone
-  let micStream=null, micMasterGain=null;
-  let dronePermanentlyStopped=false; // after GOOD NIGHT
+  let motionGain=null;         // 전체 볼륨
+  let bgOsc=null, bgGain=null; // 80Hz 드론
+  let micStream=null;
+  let dronePermanentlyStopped=false; // GOOD NIGHT 이후 재시작 금지
 
-  // constants
-  const DRONE_FREQ=60, DRONE_BASE=0.08, DRONE_MAX_ADD=0.10;
+  // 파라미터
+  const DRONE_FREQ=80, DRONE_BASE=0.08, DRONE_MAX_ADD=0.10;
   const VOL_BASE=0.20, VOL_MAX_ADD=0.55;
   const SMOOTH_TC=0.08, CTRL_SMOOTH_ALPHA=0.12;
   const DEADZONE_VOL_DEG=5, DEADZONE_PAN_DEG=3, VOL_TILT_LIMIT=60, PAN_LIMIT_DEG=45;
 
-  // mic tone-shaping
+  // 마이크(바람 억제 + 크게)
   const MIC_HP=220, MIC_LOWSHELF_FREQ=200, MIC_LOWSHELF_GAIN=-12;
   const NOTCH_FREQ=300, NOTCH_Q=3.5;
   const COMP_THRESHOLD=-20, COMP_RATIO=3.5, COMP_ATTACK=0.006, COMP_RELEASE=0.12;
@@ -176,8 +139,7 @@
   function initAudio(){
     if(audioCtx) return;
     audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-
-    // try enforce stereo output (platform-dependent)
+    // 목적지 스테레오 보장 시도
     try{
       const dest = audioCtx.destination;
       if (dest.maxChannelCount && dest.maxChannelCount >= 2) dest.channelCount = 2;
@@ -185,7 +147,7 @@
       if (dest.channelInterpretation) dest.channelInterpretation = 'discrete';
     }catch{}
 
-    // mix bus + stereo pan (native / fallback)
+    // 믹스 버스 & 패너(네이티브/커스텀)
     const mixBus = audioCtx.createGain(); window.__mixBus__ = mixBus;
     let panSetter=null, panOutNode=null;
     if (audioCtx.createStereoPanner) {
@@ -207,12 +169,12 @@
     }
     window.__setPan__ = panSetter;
 
-    // motion -> limiter -> makeup -> master -> out
+    // 모션 게인 → 리미터 → 메이크업 → 마스터 → 출력
     motionGain = audioCtx.createGain(); motionGain.gain.value = VOL_BASE;
     limiter = audioCtx.createDynamicsCompressor();
     limiter.threshold.value=-3; limiter.knee.value=0; limiter.ratio.value=20;
     limiter.attack.value=0.002; limiter.release.value=0.10;
-    const outMakeup = audioCtx.createGain(); outMakeup.gain.value = 1.6; // small-phone boost
+    const outMakeup = audioCtx.createGain(); outMakeup.gain.value = 1.6; // 앱에서 출력 작은 문제 보정
     masterGain = audioCtx.createGain(); masterGain.gain.value=1.0;
 
     panOutNode.connect(motionGain);
@@ -224,15 +186,13 @@
 
   function startDrone(){
     if(!audioCtx || bgOsc || dronePermanentlyStopped) return;
-    bgOsc = audioCtx.createOscillator();
-    bgGain = audioCtx.createGain();
+    bgOsc=audioCtx.createOscillator(); bgGain=audioCtx.createGain();
     bgOsc.type='sine'; bgOsc.frequency.value=DRONE_FREQ;
     bgGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
     bgGain.gain.setTargetAtTime(DRONE_BASE, audioCtx.currentTime, 0.25);
     bgOsc.connect(bgGain).connect(window.__mixBus__);
     bgOsc.start();
   }
-
   function fadeOutDronePermanently(){
     if(!audioCtx || !bgGain || !bgOsc) { dronePermanentlyStopped=true; return; }
     const now=audioCtx.currentTime;
@@ -242,33 +202,44 @@
   }
 
   async function startMic(){
-    if(micStream || !navigator.mediaDevices?.getUserMedia) return;
+    if(micStream) return;
+    if(!navigator.mediaDevices?.getUserMedia) return;
+    const ctrl=new AbortController(); const to=setTimeout(()=>{try{ctrl.abort();}catch{}},3000);
     try{
-      micStream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:false, noiseSuppression:true, autoGainControl:false }, video:false });
-    }catch(e){ console.warn('Mic denied', e); return; }
+      micStream=await navigator.mediaDevices.getUserMedia({
+        audio:{ echoCancellation:false, noiseSuppression:true, autoGainControl:false },
+        video:false, signal:ctrl.signal
+      });
+    }catch(e){ clearTimeout(to); console.warn('Mic denied/timeout', e); return; }
+    clearTimeout(to);
 
     const src=audioCtx.createMediaStreamSource(micStream);
     const hpf=audioCtx.createBiquadFilter(); hpf.type='highpass'; hpf.frequency.value=MIC_HP; hpf.Q.value=0.707;
     const lowshelf=audioCtx.createBiquadFilter(); lowshelf.type='lowshelf'; lowshelf.frequency.value=MIC_LOWSHELF_FREQ; lowshelf.gain.value=MIC_LOWSHELF_GAIN;
     const notch=audioCtx.createBiquadFilter(); notch.type='notch'; notch.frequency.value=NOTCH_FREQ; notch.Q.value=NOTCH_Q;
     const comp=audioCtx.createDynamicsCompressor();
-    comp.threshold.value=COMP_THRESHOLD; comp.ratio.value=COMP_RATIO; comp.attack.value=COMP_ATTACK; comp.release.value=COMP_RELEASE;
+    comp.threshold.value=COMP_THRESHOLD; comp.ratio.value=COMP_RATIO;
+    comp.attack.value=COMP_ATTACK; comp.release.value=COMP_RELEASE;
 
     const convolver=audioCtx.createConvolver(); convolver.buffer=makeIR(2.6,2.4);
-    const tapA=audioCtx.createDelay(); tapA.delayTime.value=0.11; const fbA=audioCtx.createGain(); fbA.gain.value=0.28; tapA.connect(fbA).connect(tapA);
-    const tapB=audioCtx.createDelay(); tapB.delayTime.value=0.19; const fbB=audioCtx.createGain(); fbB.gain.value=0.22; tapB.connect(fbB).connect(tapB);
-    const tapC=audioCtx.createDelay(); tapC.delayTime.value=0.27; const fbC=audioCtx.createGain(); fbC.gain.value=0.18; tapC.connect(fbC).connect(tapC);
+    const tapA=audioCtx.createDelay(); tapA.delayTime.value=0.11;
+    const tapB=audioCtx.createDelay(); tapB.delayTime.value=0.19;
+    const tapC=audioCtx.createDelay(); tapC.delayTime.value=0.27;
+    const fbA=audioCtx.createGain(); fbA.gain.value=0.28; tapA.connect(fbA).connect(tapA);
+    const fbB=audioCtx.createGain(); fbB.gain.value=0.22; tapB.connect(fbB).connect(tapB);
+    const fbC=audioCtx.createGain(); fbC.gain.value=0.18; tapC.connect(fbC).connect(tapC);
 
     const dry=audioCtx.createGain(); dry.gain.value=MIC_DRY;
     const wet=audioCtx.createGain(); wet.gain.value=MIC_WET;
+
     const micSum=audioCtx.createGain();
     const makeup=audioCtx.createGain(); makeup.gain.value=MAKEUP_GAIN;
 
-    // noise gate
+    // 게이트
     const analyser=audioCtx.createAnalyser(); analyser.fftSize=512;
     const gateGain=audioCtx.createGain(); gateGain.gain.value=0; gateLoop(analyser, gateGain);
 
-    // routing
+    // 결선
     src.connect(hpf).connect(lowshelf).connect(notch).connect(comp);
     comp.connect(analyser);
     comp.connect(dry);
@@ -280,8 +251,7 @@
     wetSum.connect(wet);
 
     dry.connect(micSum); wet.connect(micSum);
-    micMasterGain = audioCtx.createGain(); micMasterGain.gain.value = 1.0;
-    micSum.connect(gateGain).connect(makeup).connect(micMasterGain).connect(window.__mixBus__);
+    micSum.connect(gateGain).connect(makeup).connect(window.__mixBus__);
   }
 
   function gateLoop(analyser, gate){
@@ -318,22 +288,22 @@
     return ir;
   }
 
-  /* =============================================================
-   * SECTION 3. Sensor permissions + motion mapping (tilt → pan/vol)
-   * ===========================================================*/
+  /* ========= 센서 권한/감지 ========= */
   let sensorsReady=false;
   const sensorTip=document.getElementById('sensorTip');
 
   async function requestMotionPermissions(){
+    // iOS 13+ 전용 권한 요청
     try{
       if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
         const r=await DeviceOrientationEvent.requestPermission();
         if(r==='granted') sensorsReady=true;
       }else{
-        sensorsReady=true; // non-iOS
+        // 안드로이드/일반 브라우저는 별도 요청 없고 바로 가능
+        sensorsReady=true;
       }
     }catch(e){ console.warn('Orientation permission error:', e); }
-
+    // 추가로 DeviceMotion도 시도(일부 환경에서 따로 필요)
     try{
       if(typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function'){
         const r=await DeviceMotionEvent.requestPermission();
@@ -345,8 +315,8 @@
     return sensorsReady;
   }
 
-  // smoothing state
-  let latestOri={ beta:0, gamma:0 }, smVol=VOL_BASE, smPan=0;
+  // 모션 매핑(권한 없으면 pan=0 / vol=기본치 유지)
+  let latestOri={beta:0,gamma:0}, smVol=VOL_BASE, smPan=0;
 
   function getScreenAngle(){
     const o=(screen.orientation&&screen.orientation.angle)??window.orientation??0;
@@ -371,7 +341,7 @@
     const a=Math.max(0, Math.abs(t)-DEADZONE_VOL_DEG)/(VOL_TILT_LIMIT-DEADZONE_VOL_DEG);
     return VOL_BASE + VOL_MAX_ADD*a;
   }
-  function smoothStep(target,current,alpha=CTRL_SMOOTH_ALPHA){ return current + (target-current)*alpha; }
+  function smoothStep(t,c,a=CTRL_SMOOTH_ALPHA){ return c+(t-c)*a; }
 
   function applyPanVol(pan, vol){
     if(!audioCtx) return;
@@ -382,192 +352,78 @@
       catch{ motionGain.gain.cancelScheduledValues(now); motionGain.gain.linearRampToValueAtTime(vol, now+0.08); }
     }
     if(bgGain && !dronePermanentlyStopped){
-      const amt = (VOL_MAX_ADD ? (vol - VOL_BASE) / VOL_MAX_ADD : 0);
-      const droneVol = DRONE_BASE + DRONE_MAX_ADD * Math.max(0, Math.min(1, amt));
+      const droneVol = DRONE_BASE + DRONE_MAX_ADD * ((vol - VOL_BASE) / (VOL_MAX_ADD||1));
       try{ bgGain.gain.setTargetAtTime(droneVol, now, SMOOTH_TC); }
       catch{ bgGain.gain.cancelScheduledValues(now); bgGain.gain.linearRampToValueAtTime(droneVol, now+0.08); }
     }
   }
 
+  // 센서 이벤트 구독
   function initOrientationListener(){
     if(typeof DeviceOrientationEvent==='undefined') return;
-    window.addEventListener('deviceorientation', (e)=>{
-      latestOri.beta = e.beta ?? 0; latestOri.gamma = e.gamma ?? 0;
-    }, { passive:true });
+    window.addEventListener('deviceorientation',(e)=>{
+      latestOri.beta=e.beta??0; latestOri.gamma=e.gamma??0;
+    },{passive:true});
   }
 
   function controlLoop(){
     requestAnimationFrame(controlLoop);
     let pan=0, vol=VOL_BASE;
     if(sensorsReady){
-      const {volTilt, panTilt} = mapOrientation(latestOri.beta, latestOri.gamma);
-      vol = smoothStep(tiltToVol(volTilt), smVol);
-      pan = smoothStep(tiltToPan(panTilt), smPan);
+      const {volTilt, panTilt}=mapOrientation(latestOri.beta, latestOri.gamma);
+      vol=smoothStep(tiltToVol(volTilt), smVol);
+      pan=smoothStep(tiltToPan(panTilt), smPan);
       smVol=vol; smPan=pan;
     }else{
-      vol = smoothStep(VOL_BASE, smVol);
-      pan = smoothStep(0, smPan);
+      // 권한 없으면 고정값 유지
+      vol=smoothStep(VOL_BASE, smVol); pan=smoothStep(0, smPan);
       smVol=vol; smPan=pan;
     }
     applyPanVol(pan, vol);
   }
 
-  /* =============================================================
-   * SECTION 4. UX: auto(start), overlay, countdown, capture
-   * ===========================================================*/
+  /* ========= 자동 시작/버튼/GOOD NIGHT ========= */
   function autoStart(){
     try{
       initAudio();
       if(audioCtx.state==='suspended'){ audioCtx.resume().catch(()=>{}); }
-      if(!dronePermanentlyStopped) startDrone();
-      requestWakeLock();
-    }catch(e){ console.warn('autoStart err', e); }
-  }); }
+      // 드론은 GOOD NIGHT 이후엔 다시 시작하지 않음
       if(!dronePermanentlyStopped) startDrone();
     }catch(e){ console.warn('autoStart err', e); }
   }
   autoStart();
-  document.addEventListener('visibilitychange', autoStart, { passive:true });
-  window.addEventListener('focus', autoStart, { passive:true });
+  document.addEventListener('visibilitychange', autoStart);
+  window.addEventListener('focus', autoStart);
 
   const overlay=document.getElementById('overlay');
   const overlayContent=document.getElementById('overlayContent');
   const startBtn=document.getElementById('startBtn');
   const goodnight=document.getElementById('goodnight');
-  const camSwitchBtn = document.getElementById('camSwitch');
-  const micToggleBtn = document.getElementById('micToggle');
+  const captureBtn=document.getElementById('captureBtn');
 
-  // secure-context check (iOS/Android require https for camera)
-  const isLocal = /^(localhost|127\.0\.0\.1)/.test(location.hostname); // secure-context helper
-  const isSecure = location.protocol==='https:' || isLocal;
-  if(!isSecure){
-    overlayContent.insertAdjacentHTML('beforeend', '<div class="tip">⚠️ 카메라 권한을 받으려면 https에서 열어야 합니다. GitHub Pages/https로 다시 접속해 주세요.</div>');
-  }
-
-  function crossfadeUpdate(html,next){
+  function crossfadeUpdate(html,nextAction){
     overlayContent.classList.add('hidden');
-    setTimeout(()=>{ overlayContent.innerHTML=html; overlayContent.classList.remove('hidden'); next&&next(); },450);
+    setTimeout(()=>{ overlayContent.innerHTML=html; overlayContent.classList.remove('hidden'); nextAction&&nextAction(); },450);
   }
   function showGoodNight(){
-    // Update goodnight message
-    goodnight.textContent = 'GOOD NIGHT, HAVE A NICE DREAM';
     goodnight.classList.add('show');
-    fadeOutDronePermanently(); // 60Hz 드론 영구 종료
+    fadeOutDronePermanently(); // GOOD NIGHT 이후 80Hz는 영구히 꺼짐
     setTimeout(()=>{
       goodnight.classList.add('fadeout');
-      setTimeout(()=>{
-        goodnight.classList.remove('show','fadeout');
-        goodnight.style.display='none';
-        // proceed to FIRST SILENCE sequence
-        runSilenceSequence();
-      },600);
-    },15000);
-  },600);
+      setTimeout(()=>{ goodnight.classList.remove('show','fadeout'); goodnight.style.display='none'; },600);
     },15000);
   }
 
-  function onStart(){
-    // 1st stage: Welcome → show "PRESS HERE TO SLEEP" button
-    const stage2 = `<button id="sleepBtn" class="uiBtn" aria-label="press to sleep">PRESS HERE TO SLEEP</button><div class="tip" id="sensorTip" style="display:none">센서 권한 필요: 누르면 허용 팝업이 뜹니다.</div>`;
-    crossfadeUpdate(stage2, ()=>{
-      const sleepBtn = document.getElementById('sleepBtn');
-      sleepBtn?.addEventListener('click', async ()=>{
-        // user gesture: try camera immediately
-        try{ await attachCamera(); }catch{}
-        autoStart();
-        try{ await startMic(); }catch{}
-        initOrientationListener();
-        const ok=await requestMotionPermissions();
-        if(!ok){ document.getElementById('sensorTip').style.display='block'; }
-
-        try{ await getDevices(); camSwitchBtn.style.display = (availableVideoDevices.length>1)?'inline-block':'none'; }catch{}
-        vibrate([30]);
-
-        const line = s => `<div class=\"lineWrap\"><span class=\"line\">${s}</span></div>`;
-        const introHTML = `
-          ${line('<b>INTRODUCTION</b>')}
-          ${line('1. 이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.')}
-          ${line('2. 곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.')}
-          ${line('3. 그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.')}
-          ${line('4. 이제 당신에게는 네 단계의 미션이 주어진다.')}
-          ${line('5. 미션에 따라 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착할 수 있다.')}
-          <div id=\"countdown\" class=\"lineWrap\">
-            <span class=\"line\">THE DOOR WILL CLOSE IN <span id=\"countNum\">60</span> SECONDS.</span>
-          </div>
-          <div class=\"tip\" ${ok?'style=\"display:none\"':''}>패닝이 안 들리면, 센서 권한을 허용해 주세요.</div>
-        `;
-
-        crossfadeUpdate(introHTML, ()=>{
-          let count=60; const numEl=document.getElementById('countNum');
-          const timer=setInterval(()=>{
-            count--; if(count>=0){ numEl.textContent=count; }
-            if(count<=3 && count>0){ vibrate([40]); }
-            if(count<=0){ clearInterval(timer); overlay.classList.add('hidden'); setTimeout(()=>{ overlay.style.display='none'; showGoodNight(); },450); vibrate([70,40,70]); }
-          },1000);
-        });
-
-        controlLoop();
-      }, { once:true });
-    });
-  }
-  // attach both direct and delegated listeners to avoid any binding race
-  startBtn?.addEventListener('click', onStart);
-  document.addEventListener('click', (e)=>{ if((e.target)?.id==='startBtn'){ onStart(); } }, true);
-      sleepBtn.addEventListener('click', async ()=>{ await attachCamera();
-        autoStart();
-        try{ await startMic(); }catch{}
-        initOrientationListener();
-        const ok=await requestMotionPermissions();
-        if(!ok){ document.getElementById('sensorTip').style.display='block'; }
-
-        // enumerate devices after permission so labels are available
-        try{ await getDevices(); const camSwitchBtn = document.getElementById('camSwitch'); if(camSwitchBtn) camSwitchBtn.style.display = (availableVideoDevices.length>1)?'inline-block':'none'; }catch{}
-
-        vibrate([30]);
-
-        const line = s => `<div class=\"lineWrap\"><span class=\"line\">${s}</span></div>`;
-        const introHTML = `
-          ${line('<b>INTRODUCTION</b>')}
-          ${line('1. 이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.')}
-          ${line('2. 곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.')}
-          ${line('3. 그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.')}
-          ${line('4. 이제 당신에게는 네 단계의 미션이 주어진다.')}
-          ${line('5. 미션에 따라 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착할 수 있다.')}
-          <div id=\"countdown\" class=\"lineWrap\">
-            <span class=\"line\">THE DOOR WILL CLOSE IN <span id=\"countNum\">60</span> SECONDS.</span>
-          </div>
-          <div class=\"tip\" ${ok?'style=\"display:none\"':''}>패닝이 안 들리면, 센서 권한을 허용해 주세요.</div>
-        `;
-
-        crossfadeUpdate(introHTML, ()=>{
-          let count=60; const numEl=document.getElementById('countNum');
-          const timer=setInterval(()=>{
-            count--; if(count>=0){ numEl.textContent=count; }
-            if(count<=3 && count>0){ vibrate([40]); }
-            if(count<=0){
-              clearInterval(timer);
-              overlay.classList.add('hidden');
-              setTimeout(()=>{ overlay.style.display='none'; showGoodNight(); },450);
-              vibrate([70,40,70]);
-            }
-          },1000);
-        });
-
-        controlLoop();
-      }, { once:true });
-    });
-  });
-    try{ await startMic(); }catch{}
+  // 시작 버튼: 오디오 + 마이크 + 센서 권한 요청
+  startBtn.addEventListener('click', async ()=>{
+    autoStart();
+    try{ startMic().catch(()=>{}); }catch{}
     initOrientationListener();
     const ok=await requestMotionPermissions();
     if(!ok){ document.getElementById('sensorTip').style.display='block'; }
 
-    try{ await getDevices(); camSwitchBtn.style.display = (availableVideoDevices.length>1)?'inline-block':'none'; }catch{}
-
-    vibrate([30]);
-
-    const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
-    const introHTML = `
+    const line = s => <div class="lineWrap"><span class="line">${s}</span></div>;
+    const introHTML = 
       ${line('<b>INTRODUCTION</b>')}
       ${line('1. 이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.')}
       ${line('2. 곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.')}
@@ -578,212 +434,29 @@
         <span class="line">THE DOOR WILL OPEN IN <span id="countNum">60</span> SECONDS.</span>
       </div>
       <div class="tip" ${ok?'style="display:none"':''}>패닝이 안 들리면, 센서 권한을 허용해 주세요.</div>
-    `;
-
+    ;
     crossfadeUpdate(introHTML, ()=>{
       let count=60; const numEl=document.getElementById('countNum');
       const timer=setInterval(()=>{
-        count--; if(count>=0){ numEl.textContent=count; }
-        if(count<=3 && count>0){ vibrate([40]); }
-        if(count<=0){ clearInterval(timer); overlay.classList.add('hidden'); setTimeout(()=>{ overlay.style.display='none'; showGoodNight(); },450); vibrate([70,40,70]); }
+        count--;
+        if(count>=0){ numEl.textContent=count; }
+        if(count<=0){
+          clearInterval(timer);
+          overlay.classList.add('hidden');
+          setTimeout(()=>{ overlay.style.display='none'; showGoodNight(); },450);
+        }
       },1000);
     });
 
-    controlLoop();
-  });
-    try{ await startMic(); }catch{}
-    initOrientationListener();
-    const ok=await requestMotionPermissions();
-    if(!ok){ document.getElementById('sensorTip').style.display='block'; }
-
-    const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
-    const introHTML = `
-      ${line('<b>INTRODUCTION</b>')}
-      ${line('1. 이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.')}
-      ${line('2. 곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.')}
-      ${line('3. 그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.')}
-      ${line('4. 이제 당신에게는 네 단계의 미션이 주어진다.')}
-      ${line('5. 미션에 따라 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착해야 한다.')}
-      <div id="countdown" class="lineWrap">
-        <span class="line">THE DOOR WILL OPEN IN <span id="countNum">60</span> SECONDS.</span>
-      </div>
-      <div class="tip" ${ok?'style="display:none"':''}>패닝이 안 들리면, 센서 권한을 허용해 주세요.</div>
-    `;
-
-    crossfadeUpdate(introHTML, ()=>{
-      let count=60; const numEl=document.getElementById('countNum');
-      const timer=setInterval(()=>{
-        count--; if(count>=0) numEl.textContent=count;
-        if(count<=0){ clearInterval(timer); overlay.classList.add('hidden'); setTimeout(()=>{ overlay.style.display='none'; showGoodNight(); },450); }
-      },1000);
-    });
-
-    controlLoop();
+    controlLoop(); // 시작
   });
 
-  // capture still from processed canvas
+  // 캡처
   document.getElementById('captureBtn').addEventListener('click',()=>{
-    try{
-      const a=document.createElement('a'); a.download=`capture_${Date.now()}.png`; a.href=view.toDataURL('image/png'); a.click();
-      vibrate([20,30]);
-    }catch(e){ console.warn('CAPTURE 실패', e); }
-  });
-
-  camSwitchBtn.addEventListener('click', async ()=>{
-    try{ await switchCamera(); vibrate([25]); }catch(e){ console.warn('switch err', e); }
-  });
-
-  let micOn=true;
-  micToggleBtn.addEventListener('click', ()=>{
-    micOn=!micOn; if(micMasterGain){ try{ micMasterGain.gain.setValueAtTime(micOn?1.0:0.0, audioCtx.currentTime); }catch{ micMasterGain.gain.value = micOn?1.0:0.0; }}
-    micToggleBtn.textContent = micOn? 'MIC ON':'MIC OFF';
-    micToggleBtn.setAttribute('aria-pressed', micOn?'true':'false');
-    vibrate([15]);
-  });
-      a.download=`capture_${Date.now()}.png`;
-      a.href=view.toDataURL('image/png');
-      a.click();
-    }catch(e){ console.warn('CAPTURE 실패', e); }
+    try{ const a=document.createElement('a'); a.download=capture_${Date.now()}.png; a.href=view.toDataURL('image/png'); a.click(); }
+    catch(e){ console.warn('CAPTURE 실패', e); }
   });
 })();
-// helpers: wake lock, vibration, devices
-  let wakeLock=null;
-  async function requestWakeLock(){
-    try{ if('wakeLock' in navigator){ wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener?.('release',()=>{ wakeLock=null; }); } }
-    catch(e){}
-  }
-  function vibrate(pattern){ try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch{} }
-
-  async function getDevices(){
-    if(!navigator.mediaDevices?.enumerateDevices) return [];
-    const list = await navigator.mediaDevices.enumerateDevices();
-    availableVideoDevices = list.filter(d=>d.kind==='videoinput');
-    // set current id if possible
-    const track = currentStream?.getVideoTracks?.()[0];
-    const settings = track?.getSettings?.();
-    if(settings?.deviceId) currentVideoDeviceId = settings.deviceId;
-    return availableVideoDevices;
-  }
-  async function switchCamera(){
-    if(availableVideoDevices.length<2){
-      facingModePref = (facingModePref==='environment')? 'user':'environment';
-      await attachCamera(); return;
-    }
-    const idx = availableVideoDevices.findIndex(d=>d.deviceId===currentVideoDeviceId);
-    const next = availableVideoDevices[(idx+1+availableVideoDevices.length)%availableVideoDevices.length];
-    currentVideoDeviceId = next.deviceId;
-    await attachCamera({ video:{ deviceId:{ exact: currentVideoDeviceId } }, audio:false });
-  }
-// === helpers: wake lock, vibration, devices
-  let wakeLock=null;
-  async function requestWakeLock(){
-    try{ if('wakeLock' in navigator){ wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener?.('release',()=>{ wakeLock=null; }); } }
-    catch(e){}
-  }
-  function vibrate(pattern){ try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch{} }
-
-  async function getDevices(){
-    if(!navigator.mediaDevices?.enumerateDevices) return [];
-    const list = await navigator.mediaDevices.enumerateDevices();
-    availableVideoDevices = list.filter(d=>d.kind==='videoinput');
-    const track = currentStream?.getVideoTracks?.()[0];
-    const settings = track?.getSettings?.();
-    if(settings?.deviceId) currentVideoDeviceId = settings.deviceId;
-    return availableVideoDevices;
-  }
-  async function switchCamera(){
-    if(availableVideoDevices.length<2){
-      facingModePref = (facingModePref==='environment')? 'user':'environment';
-      await attachCamera(); return;
-    }
-    const idx = availableVideoDevices.findIndex(d=>d.deviceId===currentVideoDeviceId);
-    const next = availableVideoDevices[(idx+1+availableVideoDevices.length)%availableVideoDevices.length];
-    currentVideoDeviceId = next.deviceId;
-    await attachCamera({ video:{ deviceId:{ exact: currentVideoDeviceId } }, audio:false });
-  }
-
-  // === FIRST/SECOND SILENCE + Korean narrative slides ===
-  function showFullOverlay(html, {cutIn=false, fadeOutMs=600}={}){
-    overlay.style.display='flex';
-    if(cutIn){ overlay.classList.remove('hidden'); overlayContent.classList.remove('hidden'); }
-    overlayContent.innerHTML = html;
-    if(!cutIn){ overlayContent.classList.remove('hidden'); }
-    return new Promise(res=>{
-      if(fadeOutMs<=0) return res();
-      setTimeout(()=>{ overlayContent.classList.add('hidden'); setTimeout(()=>{ overlay.classList.add('hidden'); setTimeout(()=>{ overlay.style.display='none'; res(); }, fadeOutMs); }, fadeOutMs); }, 0);
-    });
-  }
-
-  function runSilenceSequence(){
-    // FIRST SILENCE (컷 인, 3초 유지, 이후 한국어 슬라이드 시퀀스)
-    const titleHTML = `<div class='lineWrap' style='text-align:center'><span class='line' style='font-size:clamp(18px,5.5vmin,44px)'>FIRST SILENCE</span></div>`;
-    overlay.classList.remove('hidden'); overlayContent.classList.remove('hidden');
-    overlayContent.innerHTML = titleHTML;
-    overlay.style.display='flex';
-    setTimeout(()=>{
-      // start Korean slides (each 3s, fade)
-      const slides = [
-        '자욱한 안개가 너를 맞이했다.<br>거대한 비석을 너는 마주했다.<br>거대한 비석들의 웅얼거림을 너는 들을 수 있었다.',
-        '어디선가 잔잔한 종소리가 들려온다.<br>어디선가 께름칙한 울음소리가 들려온다.<br>어디선가 아이들의 웃음소리가 들려온다.',
-        '너는 비석 사이를 거닐고 있다.<br>너를 스쳐 지나가며 웅얼거리는 소리에 귀를 기울인다.',
-        '비석마다 다른 목소리가 담겨 있다.<br>어떤 것은 꿈을 이야기하고,<br>어떤 것은 기억을 읊고,<br>또 어떤 것은 아직 말하지 못한 언어로 중얼거린다.',
-        '너는 발걸음을 늦춘다.<br>너는 생각한다.<br>이곳엔 분명 누군가가 존재하고 있었다.',
-        '그리고, 지금도 여전히<br>그들의 호흡은 돌 틈에 스며 있고,<br>그들의 그림자는 안개 속에 머물며,<br>그들의 말하지 못한 시간은<br>너의 귀끝을 잡아당긴다.',
-        '너는 발걸음을 멈춘다.<br>왜인지 이곳에 머물러야 한다는 느낌을 받는다.',
-        '너는 그곳으로 발을 옮긴다.<br>그곳엔, 이곳에 존재했던 누군가의 ‘목소리’가 있다.',
-        '너는 비석에 등을 기대고 앉는다.<br>그리고 서서히, 그것의 진동을 느낀다.'
-      ];
-
-      const showSlide = (html)=>{
-        overlay.style.display='flex'; overlay.classList.remove('hidden');
-        overlayContent.style.textAlign='left';
-        overlayContent.innerHTML = `<div class='lineWrap'><span class='line' style='font-size:var(--fs-body)'>${html}</span></div>`;
-        overlayContent.classList.remove('hidden');
-      };
-      const fadeSlide = (ms=600)=> new Promise(r=>{ overlayContent.classList.add('hidden'); setTimeout(r, ms); });
-
-      let i=0;
-      showSlide(slides[i]);
-      const run = ()=>{
-        setTimeout(async ()=>{
-          await fadeSlide();
-          i++;
-          if(i<slides.length){ showSlide(slides[i]); run(); }
-          else{
-            // end of slides: fade out overlay, then SECOND SILENCE
-            setTimeout(async ()=>{
-              overlay.classList.add('hidden');
-              setTimeout(async ()=>{
-                overlay.style.display='none';
-                // 1초 후 SECOND SILENCE 컷 인 및 3초 페이드아웃
-                setTimeout(()=>{
-                  overlay.classList.remove('hidden'); overlayContent.classList.remove('hidden');
-                  overlay.style.display='flex';
-                  overlayContent.innerHTML = `<div class='lineWrap' style='text-align:center'><span class='line' style='font-size:clamp(18px,5.5vmin,44px)'>SECOND SILENCE</span></div>`;
-                  setTimeout(()=>{
-                    overlayContent.classList.add('hidden');
-                    setTimeout(()=>{ overlay.classList.add('hidden'); setTimeout(()=>{ overlay.style.display='none'; }, 3000); }, 3000);
-                  }, 3000);
-                }, 1000);
-              }, 600);
-            }, 3000);
-          }
-        }, 3000);
-      };
-      run();
-    }, 3000);
-  }
-function showDiag(msg){ const box=document.getElementById('diag'); if(!box) return; box.style.display='block'; box.textContent += `
-${new Date().toISOString()} ${msg}`; box.scrollTop=box.scrollHeight; }
-  const diagBtn=document.getElementById('diagBtn'); diagBtn?.addEventListener('click',()=>{ const box=document.getElementById('diag'); box.style.display = (box.style.display==='none')?'block':'none'; });
-
-  // initial capability log
-  showDiag(`secure:${location.protocol} host:${location.host}`);
-  showDiag(`mediaDevices:${!!navigator.mediaDevices}`);
-  showDiag(`getUserMedia:${!!navigator.mediaDevices?.getUserMedia}`);
-  try{ if(navigator.permissions?.query){ navigator.permissions.query({name:'camera'}).then(r=>showDiag('perm(camera):'+r.state)).catch(()=>{});} }catch{}
 </script>
-  <button id="diagBtn" class="uiBtn small" style="position:fixed;left:var(--ui-gap);top:var(--ui-gap);z-index:500;opacity:.6">DIAG</button>
-  <div id="diag" style="position:fixed;left:var(--ui-gap);top:40px;z-index:500;background:#000;color:#0f0;font-family:monospace;font-size:12px;max-width:90vw;max-height:40vh;overflow:auto;padding:8px;display:none;border:1px solid #0f0"></div>
 </body>
 </html>
