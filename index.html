@@ -97,7 +97,7 @@
     const H=view.height/(window.devicePixelRatio||1);
     const PW=proc.width, PH=proc.height;
     pctx.globalCompositeOperation="source-over";
-    pctx.fillStyle=rgba(0,0,0,${TRAIL_ALPHA}); pctx.fillRect(0,0,PW,PH);
+    pctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`; pctx.fillRect(0,0,PW,PH);
     if(camVideo.readyState>=2){
       const vw=camVideo.videoWidth, vh=camVideo.videoHeight;
       if(vw && vh){
@@ -422,8 +422,8 @@
     const ok=await requestMotionPermissions();
     if(!ok){ document.getElementById('sensorTip').style.display='block'; }
 
-    const line = s => <div class="lineWrap"><span class="line">${s}</span></div>;
-    const introHTML = 
+    const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
+    const introHTML = `
       ${line('<b>INTRODUCTION</b>')}
       ${line('1. 이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.')}
       ${line('2. 곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.')}
@@ -434,7 +434,7 @@
         <span class="line">THE DOOR WILL OPEN IN <span id="countNum">60</span> SECONDS.</span>
       </div>
       <div class="tip" ${ok?'style="display:none"':''}>패닝이 안 들리면, 센서 권한을 허용해 주세요.</div>
-    ;
+    `;
     crossfadeUpdate(introHTML, ()=>{
       let count=60; const numEl=document.getElementById('countNum');
       const timer=setInterval(()=>{
@@ -453,7 +453,7 @@
 
   // 캡처
   document.getElementById('captureBtn').addEventListener('click',()=>{
-    try{ const a=document.createElement('a'); a.download=capture_${Date.now()}.png; a.href=view.toDataURL('image/png'); a.click(); }
+    try{ const a=document.createElement('a'); a.download=`capture_${Date.now()}.png`; a.href=view.toDataURL('image/png'); a.click(); }
     catch(e){ console.warn('CAPTURE 실패', e); }
   });
 })();
