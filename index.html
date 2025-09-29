@@ -25,7 +25,7 @@
     .controls{position:fixed;right:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:100;display:flex;gap:6px;align-items:center}
     .readout{min-width:48px;text-align:center;opacity:.9;font-family:"Courier New",monospace;font-size:var(--fs-small)}
     .btn-capture{position:fixed;left:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:150}
-    #overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;font-family:"Courier New",monospace;color:#fff;pointer-events:none}
+    #overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;font-family:"Courier New",monospace;color:#fff;pointer-events:auto}
     #overlayContent{pointer-events:auto;line-height:1.7;font-size:var(--fs-body);max-width:min(72ch, calc(100vw - (var(--frame)*2)));max-height:calc(100vh - (var(--frame)*2));overflow:hidden;text-align:left}
     .line{display:inline;background:#000;color:#fff;padding:calc(var(--pad-line)*0.8) var(--pad-line);box-decoration-break:clone;-webkit-box-decoration-break:clone}
     .lineWrap{margin:6px 0}
@@ -464,7 +464,7 @@
     const stage2 = `<button id="sleepBtn" class="uiBtn" aria-label="press to sleep">PRESS HERE TO SLEEP</button><div class="tip" id="sensorTip" style="display:none">센서 권한 필요: 누르면 허용 팝업이 뜹니다.</div>`;
     crossfadeUpdate(stage2, ()=>{
       const sleepBtn = document.getElementById('sleepBtn');
-      sleepBtn.addEventListener('click', async ()=>{
+      sleepBtn.addEventListener('click', async ()=>{ await attachCamera();
         autoStart();
         try{ await startMic(); }catch{}
         initOrientationListener();
