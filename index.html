@@ -9,6 +9,7 @@
 <style>
   :root{
     --frame: 40px; --ui-gap: 8px;
+    /* vmin 기준으로 고정 → 가로/세로 회전해도 비율 유지 */
     --fs-body: clamp(12px, 2.2vmin, 16px);
     --fs-strong: clamp(14px, 2.8vmin, 20px);
     --fs-small: clamp(11px, 1.8vmin, 14px);
@@ -43,7 +44,9 @@
   }
   #cutin.show{display:flex; opacity:1; transition:opacity .45s ease}
   #cutin.fadeout{opacity:0}
-  #cutinText{font-size:clamp(24px, 8vmin, 64px); letter-spacing:.02em; line-height:1.2}
+  #cutinText{font-size:clamp(24px, 8vmin, 64px); letter-spacing:.02em; line-height:1.2; padding:0 .2em}
+  /* INTRODUCTION도 동일 크기로 강제 */
+  .introTitle{font-weight:400; letter-spacing:.02em}
 </style>
 </head>
 <body>
@@ -83,8 +86,8 @@
   const zoomVal=document.getElementById('zoomVal');
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const updateZoom=()=>zoomVal.textContent=ZOOM.toFixed(1)+'×';
-  document.getElementById('zoomIn').onclick=()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom();};
-  document.getElementById('zoomOut').onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom();};
+  document.getElementById('zoomIn').onclick=()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom(); playClick();};
+  document.getElementById('zoomOut').onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom(); playClick();};
   updateZoom();
 
   const camVideo=document.createElement('video'); camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
@@ -130,7 +133,7 @@
   }
   await attachCamera(); loop();
 
-  /* ========= 오디오: 스테레오 안전 + 80Hz 드론 + 마이크 + 모션 ========= */
+  /* ========= 오디오: 스테레오 안전 + 80Hz 드론 + 마이크 + 모션 + SFX ========= */
   let audioCtx=null, masterGain=null, limiter=null;
   let motionGain=null;         // 전체 볼륨
   let bgOsc=null, bgGain=null; // 80Hz 드론
@@ -196,6 +199,46 @@
     limiter.connect(outMakeup);
     outMakeup.connect(masterGain);
     masterGain.connect(audioCtx.destination);
+
+    // 효과음 버스
+    const sfxBus = audioCtx.createGain(); sfxBus.gain.value = 0.6;
+    sfxBus.connect(window.__mixBus__);
+    window.__sfxBus__ = sfxBus;
+  }
+
+  // 클릭 효과음(짧은 톤)
+  function playClick(){
+    try{
+      initAudio();
+      const t = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type='square'; osc.frequency.setValueAtTime(880, t);
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.5, t+0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t+0.12);
+      osc.connect(gain).connect(window.__sfxBus__); osc.start(t); osc.stop(t+0.14);
+    }catch{}
+  }
+
+  // 전환 효과음(짧은 우쉬)
+  function playFlip(){
+    try{
+      initAudio();
+      const t = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const filt = audioCtx.createBiquadFilter();
+      osc.type='triangle';
+      osc.frequency.setValueAtTime(200, t);
+      osc.frequency.exponentialRampToValueAtTime(900, t+0.25);
+      filt.type='bandpass'; filt.frequency.setValueAtTime(800, t);
+      filt.Q.value=1.2;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.6, t+0.04);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t+0.35);
+      osc.connect(filt).connect(gain).connect(window.__sfxBus__); osc.start(t); osc.stop(t+0.38);
+    }catch{}
   }
 
   function startDrone(){
@@ -419,6 +462,7 @@
   function crossfadeUpdate(html,nextAction){
     overlayContent.classList.add('hidden');
     setTimeout(()=>{ overlayContent.innerHTML=html; overlayContent.classList.remove('hidden'); nextAction&&nextAction(); },450);
+    playFlip(); // 전환 효과음
   }
 
   function showGoodNight(next){
@@ -436,11 +480,19 @@
     },15000);
   }
 
-  // 컷인: 풀스크린 텍스트
-  function showCutIn(text, holdMs=3000, after){
+  // 컷인: 풀스크린 텍스트 (transparent 옵션 추가)
+  function showCutIn(text, holdMs=3000, after, transparent=false){
     cutinText.textContent=text;
+    cutin.style.background = transparent ? 'transparent' : '#000'; // 첫 침묵 투명 처리
+    if(transparent){
+      // 투명 배경에서는 가독성 위해 약간의 텍스트 그림자
+      cutinText.style.textShadow = '0 0 8px rgba(0,0,0,.6)';
+    }else{
+      cutinText.style.textShadow = 'none';
+    }
     cutin.classList.remove('fadeout');
     cutin.classList.add('show');
+    playFlip(); // 표시 순간 효과음
     setTimeout(()=>{
       cutin.classList.add('fadeout');
       setTimeout(()=>{
@@ -451,7 +503,7 @@
     }, holdMs);
   }
 
-  // 한국어 시퀀스(3초 간격, 페이드 전환)
+  // 한국어 시퀀스(5초 간격, 페이드 전환) ← 요구사항 반영
   const narrative = [
     '자욱한 안개가 너를 맞이했다. 거대한 비석을 너는 마주했다. 거대한 비석들의 웅얼거림을 너는 들을 수 있었다.',
     '어디선가 잔잔한 종소리가 들려온다. 어디선가 께름칙한 울음소리가 들려온다. 어디선가 아이들의 웃음소리가 들려온다.',
@@ -483,21 +535,23 @@
       setTimeout(()=>{
         overlayContent.innerHTML = line(narrative[idx++]);
         overlayContent.classList.remove('hidden');
-        setTimeout(next, 3000);
+        playFlip(); // 각 문장 전환 효과음
+        setTimeout(next, 5000); // 5초 간격으로 전환
       }, 450);
     }
     next();
   }
 
   function firstSilenceFlow(){
+    // 첫 번째 침묵: 검정 배경 없이(transparent=true)
     showCutIn('FIRST SILENCE', 3000, ()=>{
       showNarrativeSequence(()=>{
-        // 1초 뒤 두 번째 침묵 컷인, 3초 페이드아웃
+        // 1초 뒤 두 번째 침묵 컷인(검정 배경 유지), 3초 페이드아웃
         setTimeout(()=>{
-          showCutIn('SECOND SILENCE', 3000, ()=>{ /* 여기서 이후 단계 연결 가능 */ });
+          showCutIn('SECOND SILENCE', 3000, ()=>{ /* 이어지는 단계 연결 지점 */ }, false);
         }, 1000);
       });
-    });
+    }, true);
   }
 
   // 웰컴 → SLEEP 버튼 → INTRO → 카운트다운
@@ -506,7 +560,7 @@
                   <div class="tip" id="sensorTip2" style="display:none">센서 권한 필요: 시작을 누르면 허용 팝업이 뜹니다.</div>`;
     crossfadeUpdate(html, ()=>{
       const startBtn=document.getElementById('startBtn');
-      startBtn.addEventListener('click', onStartPressed);
+      startBtn.addEventListener('click', ()=>{ playClick(); onStartPressed(); });
     });
   }
 
@@ -520,7 +574,7 @@
 
     const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
     const introHTML = `
-      ${line('<b>INTRODUCTION</b>')}
+      ${line('<span class="introTitle">INTRODUCTION</span>')}
       ${line('이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.')}
       ${line('곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.')}
       ${line('그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.')}
@@ -552,12 +606,11 @@
 
   // 환영 버튼 핸들
   const welcomeBtn = document.getElementById('welcomeBtn');
-  welcomeBtn.addEventListener('click', ()=>{
-    mountPressToSleep();
-  });
+  welcomeBtn.addEventListener('click', ()=>{ playClick(); mountPressToSleep(); });
 
   // 캡처
   document.getElementById('captureBtn').addEventListener('click',()=>{
+    playClick();
     try{ const a=document.createElement('a'); a.download=`capture_${Date.now()}.png`; a.href=view.toDataURL('image/png'); a.click(); }
     catch(e){ console.warn('CAPTURE 실패', e); }
   });
