@@ -437,6 +437,13 @@
   const camSwitchBtn = document.getElementById('camSwitch');
   const micToggleBtn = document.getElementById('micToggle');
 
+  // secure-context check (iOS/Android require https for camera)
+  const isLocal = /^(localhost|127\.0\.0\.1)/.test(location.hostname);
+  const isSecure = location.protocol==='https:' || isLocal;
+  if(!isSecure){
+    overlayContent.insertAdjacentHTML('beforeend', '<div class="tip">⚠️ 카메라 권한을 받으려면 https에서 열어야 합니다. GitHub Pages/https로 다시 접속해 주세요.</div>');
+  }
+
   function crossfadeUpdate(html,next){
     overlayContent.classList.add('hidden');
     setTimeout(()=>{ overlayContent.innerHTML=html; overlayContent.classList.remove('hidden'); next&&next(); },450);
@@ -459,11 +466,53 @@
     },15000);
   }
 
-  startBtn.addEventListener('click', async ()=>{
+  function onStart(){
     // 1st stage: Welcome → show "PRESS HERE TO SLEEP" button
     const stage2 = `<button id="sleepBtn" class="uiBtn" aria-label="press to sleep">PRESS HERE TO SLEEP</button><div class="tip" id="sensorTip" style="display:none">센서 권한 필요: 누르면 허용 팝업이 뜹니다.</div>`;
     crossfadeUpdate(stage2, ()=>{
       const sleepBtn = document.getElementById('sleepBtn');
+      sleepBtn?.addEventListener('click', async ()=>{
+        // user gesture: try camera immediately
+        try{ await attachCamera(); }catch{}
+        autoStart();
+        try{ await startMic(); }catch{}
+        initOrientationListener();
+        const ok=await requestMotionPermissions();
+        if(!ok){ document.getElementById('sensorTip').style.display='block'; }
+
+        try{ await getDevices(); camSwitchBtn.style.display = (availableVideoDevices.length>1)?'inline-block':'none'; }catch{}
+        vibrate([30]);
+
+        const line = s => `<div class=\"lineWrap\"><span class=\"line\">${s}</span></div>`;
+        const introHTML = `
+          ${line('<b>INTRODUCTION</b>')}
+          ${line('1. 이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.')}
+          ${line('2. 곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.')}
+          ${line('3. 그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.')}
+          ${line('4. 이제 당신에게는 네 단계의 미션이 주어진다.')}
+          ${line('5. 미션에 따라 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착할 수 있다.')}
+          <div id=\"countdown\" class=\"lineWrap\">
+            <span class=\"line\">THE DOOR WILL CLOSE IN <span id=\"countNum\">60</span> SECONDS.</span>
+          </div>
+          <div class=\"tip\" ${ok?'style=\"display:none\"':''}>패닝이 안 들리면, 센서 권한을 허용해 주세요.</div>
+        `;
+
+        crossfadeUpdate(introHTML, ()=>{
+          let count=60; const numEl=document.getElementById('countNum');
+          const timer=setInterval(()=>{
+            count--; if(count>=0){ numEl.textContent=count; }
+            if(count<=3 && count>0){ vibrate([40]); }
+            if(count<=0){ clearInterval(timer); overlay.classList.add('hidden'); setTimeout(()=>{ overlay.style.display='none'; showGoodNight(); },450); vibrate([70,40,70]); }
+          },1000);
+        });
+
+        controlLoop();
+      }, { once:true });
+    });
+  }
+  // attach both direct and delegated listeners to avoid any binding race
+  startBtn?.addEventListener('click', onStart);
+  document.addEventListener('click', (e)=>{ if((e.target)?.id==='startBtn'){ onStart(); } }, true);
       sleepBtn.addEventListener('click', async ()=>{ await attachCamera();
         autoStart();
         try{ await startMic(); }catch{}
