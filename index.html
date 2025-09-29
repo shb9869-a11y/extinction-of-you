@@ -35,6 +35,15 @@
   #goodnight.fadeout{opacity:0}
   @media (orientation:landscape){ :root{ --frame: 32px; } }
   .tip{opacity:.7;font-size:var(--fs-small);margin-top:8px}
+
+  /* 컷인(침묵)용 */
+  #cutin{
+    position:fixed; inset:0; z-index:260; display:none; align-items:center; justify-content:center;
+    background:#000; color:#fff; font-family:"Courier New",monospace; text-align:center;
+  }
+  #cutin.show{display:flex; opacity:1; transition:opacity .45s ease}
+  #cutin.fadeout{opacity:0}
+  #cutinText{font-size:clamp(24px, 8vmin, 64px); letter-spacing:.02em; line-height:1.2}
 </style>
 </head>
 <body>
@@ -51,12 +60,17 @@
 
   <div id="overlay" class="fade">
     <div id="overlayContent" class="fade">
-      <button id="startBtn" class="uiBtn">PRESS HERE TO SLEEP</button>
+      <!-- 1단계: 환영 버튼 -->
+      <button id="welcomeBtn" class="uiBtn">Welcome to ‘Dialogue into Silence’</button>
       <div class="tip" id="sensorTip" style="display:none">센서 권한 필요: 시작을 누르면 허용 팝업이 뜹니다.</div>
     </div>
   </div>
 
-  <div id="goodnight">GOOD NIGHT</div>
+  <!-- GOOD NIGHT 문구 -->
+  <div id="goodnight">GOOD NIGHT, HAVE A NICE DREAM</div>
+
+  <!-- 컷인(침묵) 화면 -->
+  <div id="cutin"><div id="cutinText">FIRST SILENCE</div></div>
 
 <script>
 (async ()=>{
@@ -382,7 +396,7 @@
     applyPanVol(pan, vol);
   }
 
-  /* ========= 자동 시작/버튼/GOOD NIGHT ========= */
+  /* ========= 자동 시작/버튼/GOOD NIGHT/컷인 & 시퀀스 ========= */
   function autoStart(){
     try{
       initAudio();
@@ -397,41 +411,123 @@
 
   const overlay=document.getElementById('overlay');
   const overlayContent=document.getElementById('overlayContent');
-  const startBtn=document.getElementById('startBtn');
   const goodnight=document.getElementById('goodnight');
   const captureBtn=document.getElementById('captureBtn');
+  const cutin=document.getElementById('cutin');
+  const cutinText=document.getElementById('cutinText');
 
   function crossfadeUpdate(html,nextAction){
     overlayContent.classList.add('hidden');
     setTimeout(()=>{ overlayContent.innerHTML=html; overlayContent.classList.remove('hidden'); nextAction&&nextAction(); },450);
   }
-  function showGoodNight(){
+
+  function showGoodNight(next){
+    goodnight.textContent='GOOD NIGHT, HAVE A NICE DREAM';
     goodnight.classList.add('show');
     fadeOutDronePermanently(); // GOOD NIGHT 이후 80Hz는 영구히 꺼짐
+    // 15초 노출 후 페이드아웃(기존 유지)
     setTimeout(()=>{
       goodnight.classList.add('fadeout');
-      setTimeout(()=>{ goodnight.classList.remove('show','fadeout'); goodnight.style.display='none'; },600);
+      setTimeout(()=>{
+        goodnight.classList.remove('show','fadeout');
+        goodnight.style.display='none';
+        next && next();
+      },600);
     },15000);
   }
 
-  // 시작 버튼: 오디오 + 마이크 + 센서 권한 요청
-  startBtn.addEventListener('click', async ()=>{
+  // 컷인: 풀스크린 텍스트
+  function showCutIn(text, holdMs=3000, after){
+    cutinText.textContent=text;
+    cutin.classList.remove('fadeout');
+    cutin.classList.add('show');
+    setTimeout(()=>{
+      cutin.classList.add('fadeout');
+      setTimeout(()=>{
+        cutin.classList.remove('show','fadeout');
+        cutin.style.display='none';
+        after && after();
+      }, 3000); // 페이드아웃 3초
+    }, holdMs);
+  }
+
+  // 한국어 시퀀스(3초 간격, 페이드 전환)
+  const narrative = [
+    '자욱한 안개가 너를 맞이했다. 거대한 비석을 너는 마주했다. 거대한 비석들의 웅얼거림을 너는 들을 수 있었다.',
+    '어디선가 잔잔한 종소리가 들려온다. 어디선가 께름칙한 울음소리가 들려온다. 어디선가 아이들의 웃음소리가 들려온다.',
+    '너는 비석 사이를 거닐고 있다. 너를 스쳐 지나가며 웅얼거리는 소리에 귀를 기울인다.',
+    '비석마다 다른 목소리가 담겨 있다. 어떤 것은 꿈을 이야기하고, 어떤 것은 기억을 읊고, 또 어떤 것은 아직 말하지 못한 언어로 중얼거린다.',
+    '너는 발걸음을 늦춘다. 너는 생각한다. 이곳엔 분명 누군가가 존재하고 있었다.',
+    '그리고, 지금도 여전히 그들의 호흡은 돌 틈에 스며 있고, 그들의 그림자는 안개 속에 머물며, 그들의 말하지 못한 시간은 너의 귀끝을 잡아당긴다.',
+    '너는 발걸음을 멈춘다. 왜인지 이곳에 머물러야 한다는 느낌을 받는다.',
+    '너는 그곳으로 발을 옮긴다. 그곳엔, 이곳에 존재했던 누군가의 ‘목소리’가 있다.',
+    '너는 비석에 등을 기대고 앉는다. 그리고 서서히, 그것의 진동을 느낀다.'
+  ];
+
+  function showNarrativeSequence(done){
+    // 오버레이 보이게 만들고 한 줄씩 페이드 교체
+    overlay.style.display='flex';
+    overlay.classList.remove('hidden');
+    const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
+    let idx = 0;
+
+    function next(){
+      if(idx >= narrative.length){
+        // 전부 끝나면 서서히 사라짐
+        overlay.classList.add('hidden');
+        setTimeout(()=>{ overlay.style.display='none'; done && done(); }, 600);
+        return;
+      }
+      // 교체 페이드
+      overlayContent.classList.add('hidden');
+      setTimeout(()=>{
+        overlayContent.innerHTML = line(narrative[idx++]);
+        overlayContent.classList.remove('hidden');
+        setTimeout(next, 3000);
+      }, 450);
+    }
+    next();
+  }
+
+  function firstSilenceFlow(){
+    showCutIn('FIRST SILENCE', 3000, ()=>{
+      showNarrativeSequence(()=>{
+        // 1초 뒤 두 번째 침묵 컷인, 3초 페이드아웃
+        setTimeout(()=>{
+          showCutIn('SECOND SILENCE', 3000, ()=>{ /* 여기서 이후 단계 연결 가능 */ });
+        }, 1000);
+      });
+    });
+  }
+
+  // 웰컴 → SLEEP 버튼 → INTRO → 카운트다운
+  function mountPressToSleep(){
+    const html = `<button id="startBtn" class="uiBtn">PRESS HERE TO SLEEP</button>
+                  <div class="tip" id="sensorTip2" style="display:none">센서 권한 필요: 시작을 누르면 허용 팝업이 뜹니다.</div>`;
+    crossfadeUpdate(html, ()=>{
+      const startBtn=document.getElementById('startBtn');
+      startBtn.addEventListener('click', onStartPressed);
+    });
+  }
+
+  async function onStartPressed(){
     autoStart();
     try{ startMic().catch(()=>{}); }catch{}
     initOrientationListener();
     const ok=await requestMotionPermissions();
-    if(!ok){ document.getElementById('sensorTip').style.display='block'; }
+    const tipEl = document.getElementById('sensorTip2') || document.getElementById('sensorTip');
+    if(tipEl) tipEl.style.display = ok? 'none':'block';
 
     const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
     const introHTML = `
       ${line('<b>INTRODUCTION</b>')}
-      ${line('1. 이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.')}
-      ${line('2. 곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.')}
-      ${line('3. 그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.')}
-      ${line('4. 이제 당신에게는 네 단계의 미션이 주어진다.')}
-      ${line('5. 미션에 따라 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착해야 한다.')}
+      ${line('이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.')}
+      ${line('곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.')}
+      ${line('그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.')}
+      ${line('이제 당신에게는 네 단계의 미션이 주어진다.')}
+      ${line('당신은 미션에 따라 헤드폰으로 들려오는 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착할 수 있다.')}
       <div id="countdown" class="lineWrap">
-        <span class="line">THE DOOR WILL OPEN IN <span id="countNum">60</span> SECONDS.</span>
+        <span class="line">THE DOOR WILL CLOSE IN <span id="countNum">60</span> SECONDS.</span>
       </div>
       <div class="tip" ${ok?'style="display:none"':''}>패닝이 안 들리면, 센서 권한을 허용해 주세요.</div>
     `;
@@ -443,12 +539,21 @@
         if(count<=0){
           clearInterval(timer);
           overlay.classList.add('hidden');
-          setTimeout(()=>{ overlay.style.display='none'; showGoodNight(); },450);
+          setTimeout(()=>{
+            overlay.style.display='none';
+            showGoodNight(firstSilenceFlow); // GOOD NIGHT 후 첫 번째 침묵 플로우
+          },450);
         }
       },1000);
     });
 
-    controlLoop(); // 시작
+    controlLoop(); // 모션 제어 시작
+  }
+
+  // 환영 버튼 핸들
+  const welcomeBtn = document.getElementById('welcomeBtn');
+  welcomeBtn.addEventListener('click', ()=>{
+    mountPressToSleep();
   });
 
   // 캡처
