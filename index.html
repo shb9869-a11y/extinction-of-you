@@ -21,7 +21,7 @@
   .frameBox{position:fixed;left:var(--frame);top:var(--frame);right:var(--frame);bottom:var(--frame);border:1px solid #000;pointer-events:none;z-index:50}
   .uiBtn{background:#000;color:#fff;border:1px solid #000;font-size:var(--fs-strong);padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",monospace;white-space:nowrap;cursor:pointer;user-select:none}
   .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
-  .controls{position:fixed;right:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:100;display:flex;gap:6px;align-items:center;flex-wrap:wrap;max-width:50vw}
+  .controls{position:fixed;right:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:100;display:flex;gap:6px;align-items:center}
   .readout{min-width:48px;text-align:center;opacity:.9;font-family:"Courier New",monospace;font-size:var(--fs-small)}
   .btn-capture{position:fixed;left:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:150}
   #overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;font-family:"Courier New",monospace;color:#fff;pointer-events:none}
@@ -52,15 +52,9 @@
   <div class="frameBox" aria-hidden="true"></div>
 
   <div class="controls">
-    <!-- ZOOM -->
     <button class="uiBtn small" id="zoomOut">–</button>
     <div class="readout"><span id="zoomVal">1.2×</span></div>
     <button class="uiBtn small" id="zoomIn">+</button>
-
-    <!-- MIC BOOST -->
-    <button class="uiBtn small" id="micDown">MIC –</button>
-    <div class="readout"><span id="micGainVal">4.0×</span></div>
-    <button class="uiBtn small" id="micUp">MIC +</button>
   </div>
 
   <button id="captureBtn" class="uiBtn small btn-capture">CAPTURE</button>
@@ -73,6 +67,8 @@
   </div>
 
   <div id="goodnight">GOOD NIGHT, HAVE A NICE DREAM</div>
+
+  <!-- 컷인(침묵) 화면 -->
   <div id="cutin"><div id="cutinText">FIRST SILENCE</div></div>
 
 <script>
@@ -138,29 +134,25 @@
   let motionGain=null;
   let bgOsc=null, bgGain=null;
   let micStream=null;
-  let micPreGain=null, micMakeup=null; // ★ 추가: 프리게인/메이크업
+  let micPreGain=null, micMakeup=null; // 프리게인/메이크업
   let dronePermanentlyStopped=false;
 
-  // 파라미터(마이크 관련 상향)
+  // 파라미터(마이크 포함)
   const DRONE_FREQ=80, DRONE_BASE=0.08, DRONE_MAX_ADD=0.10;
   const VOL_BASE=0.20, VOL_MAX_ADD=0.55;
   const SMOOTH_TC=0.08, CTRL_SMOOTH_ALPHA=0.12;
   const DEADZONE_VOL_DEG=5, DEADZONE_PAN_DEG=3, VOL_TILT_LIMIT=60, PAN_LIMIT_DEG=45;
 
   // 마이크 톤/다이내믹
-  const MIC_HP=180;                 // 살짝 더 아래로 내려 저역 살림
-  const MIC_LOWSHELF_FREQ=180, MIC_LOWSHELF_GAIN=-6; // 저역 컷 완화
+  const MIC_HP=180;
+  const MIC_LOWSHELF_FREQ=180, MIC_LOWSHELF_GAIN=-6;
   const NOTCH_FREQ=300, NOTCH_Q=3.5;
-  const COMP_THRESHOLD=-28, COMP_RATIO=4.2, COMP_ATTACK=0.004, COMP_RELEASE=0.14; // 더 민감
-  const MIC_WET=0.60, MIC_DRY=0.12; // 존재감↑
+  const COMP_THRESHOLD=-28, COMP_RATIO=4.2, COMP_ATTACK=0.004, COMP_RELEASE=0.14;
+  const MIC_WET=0.60, MIC_DRY=0.12;
 
-  // 부스트(실시간 조절 가능)
-  let MIC_BOOST_X = 4.0;           // ★ 기본 4배
-  const MIC_BOOST_MIN = 1.0;       // 1× ~ 12×
-  const MIC_BOOST_MAX = 12.0;
-  const MIC_MAKEUP_BASE = 5.0;     // ★ 메이크업 기본↑
-
-  function dBToLinear(db){ return Math.pow(10, db/20); }
+  // ★ 고정 부스트 (UI 없음)
+  const MIC_BOOST_X = 6.0;       // 필요시 4.0~10.0 사이로 조정
+  const MIC_MAKEUP_BASE = 5.0;
 
   function initAudio(){
     if(audioCtx) return;
@@ -261,18 +253,6 @@
     setTimeout(()=>{ try{ bgOsc.stop(); }catch{} bgOsc=null; bgGain=null; dronePermanentlyStopped=true; }, 3200);
   }
 
-  // ★ MIC BOOST UI
-  const micGainVal = document.getElementById('micGainVal');
-  function updateMicBoostDisplay(){ micGainVal.textContent = MIC_BOOST_X.toFixed(1)+'×'; }
-  document.getElementById('micUp').onclick = ()=>{ MIC_BOOST_X = clamp(MIC_BOOST_X+0.5, MIC_BOOST_MIN, MIC_BOOST_MAX); setMicBoost(); updateMicBoostDisplay(); playClick(); };
-  document.getElementById('micDown').onclick = ()=>{ MIC_BOOST_X = clamp(MIC_BOOST_X-0.5, MIC_BOOST_MIN, MIC_BOOST_MAX); setMicBoost(); updateMicBoostDisplay(); playClick(); };
-  updateMicBoostDisplay();
-
-  function setMicBoost(){
-    if(micPreGain)  micPreGain.gain.setTargetAtTime(MIC_BOOST_X, audioCtx.currentTime, 0.05);
-    if(micMakeup)   micMakeup.gain.setTargetAtTime(MIC_MAKEUP_BASE, audioCtx.currentTime, 0.05);
-  }
-
   async function startMic(){
     if(micStream) return;
     if(!navigator.mediaDevices?.getUserMedia) return;
@@ -287,9 +267,9 @@
 
     const src=audioCtx.createMediaStreamSource(micStream);
 
-    // ★ 프리게인(부스트)
+    // 프리게인(고정 부스트)
     micPreGain = audioCtx.createGain();
-    micPreGain.gain.value = MIC_BOOST_X; // 기본 4×
+    micPreGain.gain.value = MIC_BOOST_X;
 
     // 필터/컴프
     const hpf=audioCtx.createBiquadFilter(); hpf.type='highpass'; hpf.frequency.value=MIC_HP; hpf.Q.value=0.707;
@@ -311,14 +291,14 @@
     const wet=audioCtx.createGain(); wet.gain.value=MIC_WET;
 
     const micSum=audioCtx.createGain();
-    micMakeup=audioCtx.createGain(); micMakeup.gain.value=MIC_MAKEUP_BASE; // ★ 메이크업↑
+    micMakeup=audioCtx.createGain(); micMakeup.gain.value=MIC_MAKEUP_BASE;
 
-    // 게이트 민감도 완화
+    // 게이트 (민감, 기본 오픈)
     const analyser=audioCtx.createAnalyser(); analyser.fftSize=512;
-    const gateGain=audioCtx.createGain(); gateGain.gain.value=1; // 기본 오픈
+    const gateGain=audioCtx.createGain(); gateGain.gain.value=1;
     gateLoop(analyser, gateGain);
 
-    // 결선: src → PreGain → HPF → LowShelf → Notch → Comp → (dry/wet) → Sum → Gate → Makeup → MixBus
+    // 결선
     src.connect(micPreGain).connect(hpf).connect(lowshelf).connect(notch).connect(comp);
     comp.connect(analyser);
 
@@ -332,14 +312,12 @@
 
     dry.connect(micSum); wet.connect(micSum);
     micSum.connect(gateGain).connect(micMakeup).connect(window.__mixBus__);
-
-    setMicBoost(); // 현재 UI 값 적용
   }
 
   function gateLoop(analyser, gate){
     const buf=new Uint8Array(analyser.fftSize);
-    let open=true; // 기본 오픈
-    const GATE_OPEN_DB=-62, GATE_CLOSE_DB=-68; // ★ 더 민감
+    let open=true;
+    const GATE_OPEN_DB=-62, GATE_CLOSE_DB=-68;
     const ATT=0.04, REL=0.20;
     function step(){
       requestAnimationFrame(step);
@@ -394,125 +372,7 @@
     return sensorsReady;
   }
 
-  let latestOri={beta:0,gamma:0}, smVol=VOL_BASE, smPan=0;
-  function getScreenAngle(){
-    const o=(screen.orientation&&screen.orientation.angle)??window.orientation??0;
-    return (typeof o==='number')?o:0;
-  }
-  function mapOrientation(beta,gamma){
-    const ang=((getScreenAngle()%360)+360)%360;
-    let volTilt=0, panTilt=0;
-    if(ang===0){volTilt=beta; panTilt=gamma;}
-    else if(ang===90){volTilt=-gamma; panTilt=beta;}
-    else if(ang===180){volTilt=-beta; panTilt=-gamma;}
-    else if(ang===270){volTilt=gamma; panTilt=-beta;}
-    return {volTilt, panTilt};
-  }
-  function tiltToPan(panTilt){
-    const t=Math.min(PAN_LIMIT_DEG, Math.max(-PAN_LIMIT_DEG, panTilt||0));
-    if(Math.abs(t)<DEADZONE_PAN_DEG) return 0;
-    return t/PAN_LIMIT_DEG;
-  }
-  function tiltToVol(volTilt){
-    const t=Math.min(VOL_TILT_LIMIT, Math.max(-VOL_TILT_LIMIT, volTilt||0));
-    const a=Math.max(0, Math.abs(t)-DEADZONE_VOL_DEG)/(VOL_TILT_LIMIT-DEADZONE_VOL_DEG);
-    return VOL_BASE + VOL_MAX_ADD*a;
-  }
-  function smoothStep(t,c,a=CTRL_SMOOTH_ALPHA){ return c+(t-c)*a; }
-
-  function applyPanVol(pan, vol){
-    if(!audioCtx) return;
-    const now=audioCtx.currentTime;
-    if(window.__setPan__) window.__setPan__(pan);
-    if(motionGain){
-      try{ motionGain.gain.setTargetAtTime(vol, now, SMOOTH_TC); }
-      catch{ motionGain.gain.cancelScheduledValues(now); motionGain.gain.linearRampToValueAtTime(vol, now+0.08); }
-    }
-    if(bgGain && !dronePermanentlyStopped){
-      const droneVol = DRONE_BASE + DRONE_MAX_ADD * ((vol - VOL_BASE) / (VOL_MAX_ADD||1));
-      try{ bgGain.gain.setTargetAtTime(droneVol, now, SMOOTH_TC); }
-      catch{ bgGain.gain.cancelScheduledValues(now); bgGain.gain.linearRampToValueAtTime(droneVol, now+0.08); }
-    }
-  }
-
-  function initOrientationListener(){
-    if(typeof DeviceOrientationEvent==='undefined') return;
-    window.addEventListener('deviceorientation',(e)=>{
-      latestOri.beta=e.beta??0; latestOri.gamma=e.gamma??0;
-    },{passive:true});
-  }
-
-  function controlLoop(){
-    requestAnimationFrame(controlLoop);
-    let pan=0, vol=VOL_BASE;
-    if(sensorsReady){
-      const {volTilt, panTilt}=mapOrientation(latestOri.beta, latestOri.gamma);
-      vol=smoothStep(tiltToVol(volTilt), smVol);
-      pan=smoothStep(tiltToPan(panTilt), smPan);
-      smVol=vol; smPan=pan;
-    }else{
-      vol=smoothStep(VOL_BASE, smVol); pan=smoothStep(0, smPan);
-      smVol=vol; smPan=pan;
-    }
-    applyPanVol(pan, vol);
-  }
-
-  /* ========= 자동 시작/버튼/시퀀스 ========= */
-  function autoStart(){
-    try{
-      initAudio();
-      if(audioCtx.state==='suspended'){ audioCtx.resume().catch(()=>{}); }
-      if(!dronePermanentlyStopped) startDrone();
-    }catch(e){ console.warn('autoStart err', e); }
-  }
-  autoStart();
-  document.addEventListener('visibilitychange', autoStart);
-  window.addEventListener('focus', autoStart);
-
-  const overlay=document.getElementById('overlay');
-  const overlayContent=document.getElementById('overlayContent');
-  const goodnight=document.getElementById('goodnight');
-  const captureBtn=document.getElementById('captureBtn');
-  const cutin=document.getElementById('cutin');
-  const cutinText=document.getElementById('cutinText');
-
-  function crossfadeUpdate(html,nextAction){
-    overlayContent.classList.add('hidden');
-    setTimeout(()=>{ overlayContent.innerHTML=html; overlayContent.classList.remove('hidden'); nextAction&&nextAction(); },450);
-    playFlip();
-  }
-
-  function showGoodNight(next){
-    goodnight.textContent='GOOD NIGHT, HAVE A NICE DREAM';
-    goodnight.classList.add('show');
-    fadeOutDronePermanently();
-    setTimeout(()=>{
-      goodnight.classList.add('fadeout');
-      setTimeout(()=>{
-        goodnight.classList.remove('show','fadeout');
-        goodnight.style.display='none';
-        next && next();
-      },600);
-    },15000);
-  }
-
-  function showCutIn(text, holdMs=3000, after, transparent=false){
-    cutinText.textContent=text;
-    cutin.style.background = transparent ? 'transparent' : '#000';
-    cutinText.style.textShadow = transparent ? '0 0 8px rgba(0,0,0,.6)' : 'none';
-    cutin.classList.remove('fadeout');
-    cutin.classList.add('show');
-    playFlip();
-    setTimeout(()=>{
-      cutin.classList.add('fadeout');
-      setTimeout(()=>{
-        cutin.classList.remove('show','fadeout');
-        cutin.style.display='none';
-        after && after();
-      }, 3000);
-    }, holdMs);
-  }
-
+  // ====== 대사(한 줄씩, 5초 유지) ======
   const narrative = [
     '자욱한 안개가 너를 맞이했다.',
     '거대한 비석을 너는 마주했다.',
@@ -540,12 +400,23 @@
     '그리고 서서히, 그것의 진동을 느낀다.'
   ];
 
+  const overlay=document.getElementById('overlay');
+  const overlayContent=document.getElementById('overlayContent');
+  const goodnight=document.getElementById('goodnight');
+  const cutin=document.getElementById('cutin');
+  const cutinText=document.getElementById('cutinText');
+
+  function crossfadeUpdate(html,nextAction){
+    overlayContent.classList.add('hidden');
+    setTimeout(()=>{ overlayContent.innerHTML=html; overlayContent.classList.remove('hidden'); nextAction&&nextAction(); },450);
+    playFlip();
+  }
+
   function showNarrativeSequence(done){
     overlay.style.display='flex';
     overlay.classList.remove('hidden');
     const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
     let idx = 0;
-
     function next(){
       if(idx >= narrative.length){
         overlay.classList.add('hidden');
@@ -557,10 +428,42 @@
         overlayContent.innerHTML = line(narrative[idx++]);
         overlayContent.classList.remove('hidden');
         playFlip();
-        setTimeout(next, 5000);
+        setTimeout(next, 5000); // 5초 유지
       }, 450);
     }
     next();
+  }
+
+  function showGoodNight(next){
+    goodnight.textContent='GOOD NIGHT, HAVE A NICE DREAM';
+    goodnight.classList.add('show');
+    fadeOutDronePermanently();
+    setTimeout(()=>{
+      goodnight.classList.add('fadeout');
+      setTimeout(()=>{
+        goodnight.classList.remove('show','fadeout');
+        goodnight.style.display='none';
+        next && next();
+      },600);
+    },15000);
+  }
+
+  // 컷인: 첫 침묵은 투명 배경
+  function showCutIn(text, holdMs=3000, after, transparent=false){
+    cutinText.textContent=text;
+    cutin.style.background = transparent ? 'transparent' : '#000';
+    cutinText.style.textShadow = transparent ? '0 0 8px rgba(0,0,0,.6)' : 'none';
+    cutin.classList.remove('fadeout');
+    cutin.classList.add('show');
+    playFlip();
+    setTimeout(()=>{
+      cutin.classList.add('fadeout');
+      setTimeout(()=>{
+        cutin.classList.remove('show','fadeout');
+        cutin.style.display='none';
+        after && after();
+      }, 3000);
+    }, holdMs);
   }
 
   function firstSilenceFlow(){
@@ -573,6 +476,84 @@
     }, true);
   }
 
+  // 센서/모션 제어
+  let sensorsReady=false;
+  function initOrientationListener(){
+    if(typeof DeviceOrientationEvent==='undefined') return;
+    window.addEventListener('deviceorientation',(e)=>{
+      latestOri.beta=e.beta??0; latestOri.gamma=e.gamma??0;
+    },{passive:true});
+  }
+  let latestOri={beta:0,gamma:0}, smVol=VOL_BASE, smPan=0;
+  function getScreenAngle(){
+    const o=(screen.orientation&&screen.orientation.angle)??window.orientation??0;
+    return (typeof o==='number')?o:0;
+  }
+  function mapOrientation(beta,gamma){
+    const ang=((getScreenAngle()%360)+360)%360;
+    let volTilt=0, panTilt=0;
+    if(ang===0){volTilt=beta; panTilt=gamma;}
+    else if(ang===90){volTilt=-gamma; panTilt=beta;}
+    else if(ang===180){volTilt=-beta; panTilt=-gamma;}
+    else if(ang===270){volTilt=gamma; panTilt=-beta;}
+    return {volTilt, panTilt};
+  }
+  function tiltToPan(panTilt){
+    const t=Math.min(PAN_LIMIT_DEG, Math.max(-PAN_LIMIT_DEG, panTilt||0));
+    if(Math.abs(t)<DEADZONE_PAN_DEG) return 0;
+    return t/PAN_LIMIT_DEG;
+  }
+  function tiltToVol(volTilt){
+    const t=Math.min(VOL_TILT_LIMIT, Math.max(-VOL_TILT_LIMIT, volTilt||0));
+    const a=Math.max(0, Math.abs(t)-DEADZONE_VOL_DEG)/(VOL_TILT_LIMIT-DEADZONE_VOL_DEG);
+    return VOL_BASE + VOL_MAX_ADD*a;
+  }
+  function smoothStep(t,c,a=CTRL_SMOOTH_ALPHA){ return c+(t-c)*a; }
+  function applyPanVol(pan, vol){
+    if(!audioCtx) return;
+    const now=audioCtx.currentTime;
+    if(window.__setPan__) window.__setPan__(pan);
+    if(motionGain){
+      try{ motionGain.gain.setTargetAtTime(vol, now, SMOOTH_TC); }
+      catch{ motionGain.gain.cancelScheduledValues(now); motionGain.gain.linearRampToValueAtTime(vol, now+0.08); }
+    }
+    if(bgGain && !dronePermanentlyStopped){
+      const droneVol = DRONE_BASE + DRONE_MAX_ADD * ((vol - VOL_BASE) / (VOL_MAX_ADD||1));
+      try{ bgGain.gain.setTargetAtTime(droneVol, now, SMOOTH_TC); }
+      catch{ bgGain.gain.cancelScheduledValues(now); bgGain.gain.linearRampToValueAtTime(droneVol, now+0.08); }
+    }
+  }
+  function controlLoop(){
+    requestAnimationFrame(controlLoop);
+    let pan=0, vol=VOL_BASE;
+    if(sensorsReady){
+      const {volTilt, panTilt}=mapOrientation(latestOri.beta, latestOri.gamma);
+      vol=smoothStep(tiltToVol(volTilt), smVol);
+      pan=smoothStep(tiltToPan(panTilt), smPan);
+      smVol=vol; smPan=pan;
+    }else{
+      vol=smoothStep(VOL_BASE, smVol); pan=smoothStep(0, smPan);
+      smVol=vol; smPan=pan;
+    }
+    applyPanVol(pan, vol);
+  }
+
+  /* ========= 자동 시작/버튼/시퀀스 ========= */
+  function autoStart(){
+    try{
+      initAudio();
+      if(audioCtx.state==='suspended'){ audioCtx.resume().catch(()=>{}); }
+      if(!dronePermanentlyStopped) startDrone();
+    }catch(e){ console.warn('autoStart err', e); }
+  }
+  autoStart();
+  document.addEventListener('visibilitychange', autoStart);
+  window.addEventListener('focus', autoStart);
+
+  const overlayElm=document.getElementById('overlay');
+  const overlayContentElm=document.getElementById('overlayContent');
+  const captureBtn=document.getElementById('captureBtn');
+
   function mountPressToSleep(){
     const html = `<button id="startBtn" class="uiBtn">PRESS HERE TO SLEEP</button>
                   <div class="tip" id="sensorTip2" style="display:none">센서 권한 필요: 시작을 누르면 허용 팝업이 뜹니다.</div>`;
@@ -582,13 +563,30 @@
     });
   }
 
+  async function requestMotionPermissions(){
+    try{
+      if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
+        const r=await DeviceOrientationEvent.requestPermission();
+        if(r==='granted') sensorsReady=true;
+      }else{
+        sensorsReady=true;
+      }
+    }catch(e){ console.warn('Orientation permission error:', e); }
+    try{
+      if(typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function'){
+        const r=await DeviceMotionEvent.requestPermission();
+        if(r==='granted') sensorsReady=true;
+      }
+    }catch(e){}
+    (document.getElementById('sensorTip2')||document.getElementById('sensorTip')).style.display = sensorsReady? 'none':'block';
+    return sensorsReady;
+  }
+
   async function onStartPressed(){
     autoStart();
     try{ startMic().catch(()=>{}); }catch{}
     initOrientationListener();
     const ok=await requestMotionPermissions();
-    const tipEl = document.getElementById('sensorTip2') || document.getElementById('sensorTip');
-    if(tipEl) tipEl.style.display = ok? 'none':'block';
 
     const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
     const introHTML = `
@@ -610,9 +608,9 @@
         if(count>=0){ numEl.textContent=count; }
         if(count<=0){
           clearInterval(timer);
-          overlay.classList.add('hidden');
+          overlayElm.classList.add('hidden');
           setTimeout(()=>{
-            overlay.style.display='none';
+            overlayElm.style.display='none';
             showGoodNight(firstSilenceFlow);
           },450);
         }
@@ -627,7 +625,7 @@
   welcomeBtn.addEventListener('click', ()=>{ playClick(); mountPressToSleep(); });
 
   // 캡처
-  document.getElementById('captureBtn').addEventListener('click',()=>{
+  captureBtn.addEventListener('click',()=>{
     playClick();
     try{ const a=document.createElement('a'); a.download=`capture_${Date.now()}.png`; a.href=view.toDataURL('image/png'); a.click(); }
     catch(e){ console.warn('CAPTURE 실패', e); }
