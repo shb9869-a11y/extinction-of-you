@@ -22,7 +22,6 @@
   .uiBtn{background:#000;color:#fff;border:1px solid #000;font-size:var(--fs-strong);padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",monospace;white-space:nowrap;cursor:pointer;user-select:none}
   .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
   .controls{position:fixed;right:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:100;display:flex;gap:6px;align-items:center}
-  .readout{min-width:48px;text-align:center;opacity:.9;font-family:"Courier New",monospace;font-size:var(--fs-small)}
   .btn-capture{position:fixed;left:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:150}
   #overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;font-family:"Courier New",monospace;color:#fff;pointer-events:none}
   #overlayContent{pointer-events:auto;line-height:1.7;font-size:var(--fs-body);max-width:min(72ch, calc(100vw - (var(--frame)*2)));max-height:calc(100vh - (var(--frame)*2));overflow:hidden;text-align:left}
@@ -45,6 +44,10 @@
   #cutin.fadeout{opacity:0}
   #cutinText{font-size:clamp(24px, 8vmin, 64px); letter-spacing:.02em; line-height:1.2; padding:0 .2em}
   .introTitle{font-weight:400; letter-spacing:.02em}
+
+  /* 카메라 오류 안내 */
+  #camErrorBox{position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:300; background:rgba(0,0,0,.6); color:#fff; font-family:"Courier New",monospace; text-align:left; padding:20px}
+  #camError{max-width:min(72ch, calc(100vw - 80px)); background:#000; padding:14px 18px; line-height:1.6; font-size:var(--fs-body); border:1px solid #222}
 </style>
 </head>
 <body>
@@ -53,7 +56,6 @@
 
   <div class="controls">
     <button class="uiBtn small" id="zoomOut">–</button>
-    <div class="readout"><span id="zoomVal">1.2×</span></div>
     <button class="uiBtn small" id="zoomIn">+</button>
   </div>
 
@@ -71,47 +73,89 @@
   <!-- 컷인(침묵) 화면 -->
   <div id="cutin"><div id="cutinText">FIRST SILENCE</div></div>
 
+  <!-- iOS/WKWebView 신뢰도 향상을 위해 DOM에 붙여둔 비디오(화면엔 안 보임) -->
+  <video id="camProbe" playsinline muted style="position:fixed; left:-9999px; top:-9999px; width:1px; height:1px;"></video>
+
+  <!-- 카메라 오류 안내 -->
+  <div id="camErrorBox"><div id="camError"></div></div>
+
 <script>
 (async ()=>{
+  /* ========= 공통 유틸 ========= */
+  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+
   /* ========= 카메라(흑백+잔상) ========= */
   const view=document.getElementById('view');
   const vctx=view.getContext('2d',{alpha:false});
   const PROC_SCALE=0.60, TRAIL_ALPHA=0.12, GLOBAL_ALPHA=0.7;
   let ZOOM=1.2, ZOOM_MIN=0.5, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
 
-  const zoomVal=document.getElementById('zoomVal');
-  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
-  const updateZoom=()=>zoomVal.textContent=ZOOM.toFixed(1)+'×';
-  document.getElementById('zoomIn').onclick=()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom(); playClick();};
-  document.getElementById('zoomOut').onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom(); playClick();};
-  updateZoom();
+  const zoomInBtn=document.getElementById('zoomIn');
+  const zoomOutBtn=document.getElementById('zoomOut');
+  zoomInBtn.onclick = ()=>{ ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX); playClick(); };
+  zoomOutBtn.onclick= ()=>{ ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX); playClick(); };
 
-  const camVideo=document.createElement('video'); camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
-  const proc=document.createElement('canvas'); const pctx=proc.getContext('2d',{willReadFrequently:true});
+  const camVideo=document.getElementById('camProbe');
+  camVideo.muted=true; camVideo.playsInline=true; camVideo.setAttribute('playsinline','');
 
-  async function attachCamera(){
-    try{
-      const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
-      camVideo.srcObject=s; await camVideo.play().catch(()=>{});
-    }catch(e){console.warn("카메라 실패:", e);}
+  // gUM 폴리필 (구형/웹뷰)
+  if (!navigator.mediaDevices) navigator.mediaDevices = {};
+  if (!navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia = function(constraints){
+      const legacy = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+      return legacy ? new Promise((res,rej)=>legacy.call(navigator, constraints, res, rej))
+                    : Promise.reject(new Error('getUserMedia not supported'));
+    };
   }
+
   function resizeAll(){
     const dpr=window.devicePixelRatio||1;
     const w=window.innerWidth,h=window.innerHeight;
     view.width=w*dpr; view.height=h*dpr; vctx.setTransform(dpr,0,0,dpr,0,0);
     const scale=(window.matchMedia('(orientation: landscape)').matches)? PROC_SCALE*0.9 : PROC_SCALE;
-    proc.width=Math.floor(w*scale); proc.height=Math.floor(h*scale);
+    // 처리 캔버스
+    if(!window.__proc){ window.__proc=document.createElement('canvas'); window.__pctx=__proc.getContext('2d',{willReadFrequently:true}); }
+    __proc.width=Math.floor(w*scale); __proc.height=Math.floor(h*scale);
   }
   resizeAll(); addEventListener('resize',()=>setTimeout(resizeAll,50));
+
+  let camReady=false;
+  async function attachCameraAfterGesture(){
+    // 사용자 제스처 이후에만 호출해야 iOS에서 팝업이 뜸
+    try{
+      const constraintsPrimary   = { video:{ facingMode:{ideal:'environment'} }, audio:false };
+      const constraintsFallback1 = { video:true, audio:false };
+      const constraintsFallback2 = { video:{ facingMode:'user' }, audio:false };
+
+      let stream=null, lastErr=null;
+      for(const c of [constraintsPrimary,constraintsFallback1,constraintsFallback2]){
+        try{ stream = await navigator.mediaDevices.getUserMedia(c); if(stream) break; }
+        catch(e){ lastErr=e; }
+      }
+      if(!stream) throw lastErr || new Error('Camera stream not available');
+
+      camVideo.srcObject=stream;
+      // iOS는 play()도 제스처 직후에
+      await camVideo.play();
+
+      camReady=true;
+      hideCamError();
+    }catch(e){
+      camReady=false;
+      showCamError(e);
+    }
+  }
 
   function loop(){
     requestAnimationFrame(loop);
     const W=view.width/(window.devicePixelRatio||1);
     const H=view.height/(window.devicePixelRatio||1);
-    const PW=proc.width, PH=proc.height;
+    const PW=__proc.width, PH=__proc.height;
+    const pctx=__pctx;
     pctx.globalCompositeOperation="source-over";
     pctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`; pctx.fillRect(0,0,PW,PH);
-    if(camVideo.readyState>=2){
+
+    if(camReady && camVideo.readyState>=2){
       const vw=camVideo.videoWidth, vh=camVideo.videoHeight;
       if(vw && vh){
         const base=Math.max(PW/vw,PH/vh), sc=base*ZOOM;
@@ -125,34 +169,31 @@
         pctx.putImageData(frame,0,0);
       }
     }
-    vctx.drawImage(proc,0,0,W,H);
+    vctx.drawImage(__proc,0,0,W,H);
   }
-  await attachCamera(); loop();
+  loop();
 
   /* ========= 오디오: 스테레오 + 드론 + 마이크 + 모션 + SFX ========= */
   let audioCtx=null, masterGain=null, limiter=null;
   let motionGain=null;
   let bgOsc=null, bgGain=null;
   let micStream=null;
-  let micPreGain=null, micMakeup=null; // 프리게인/메이크업
+  let micPreGain=null, micMakeup=null;
   let dronePermanentlyStopped=false;
 
-  // 파라미터(마이크 포함)
   const DRONE_FREQ=80, DRONE_BASE=0.08, DRONE_MAX_ADD=0.10;
   const VOL_BASE=0.20, VOL_MAX_ADD=0.55;
   const SMOOTH_TC=0.08, CTRL_SMOOTH_ALPHA=0.12;
   const DEADZONE_VOL_DEG=5, DEADZONE_PAN_DEG=3, VOL_TILT_LIMIT=60, PAN_LIMIT_DEG=45;
 
-  // 마이크 톤/다이내믹
   const MIC_HP=180;
   const MIC_LOWSHELF_FREQ=180, MIC_LOWSHELF_GAIN=-6;
   const NOTCH_FREQ=300, NOTCH_Q=3.5;
   const COMP_THRESHOLD=-28, COMP_RATIO=4.2, COMP_ATTACK=0.004, COMP_RELEASE=0.14;
   const MIC_WET=0.60, MIC_DRY=0.12;
 
-  // ★ 고정 부스트 (UI 없음)
-  const MIC_BOOST_X = 6.0;       // 필요시 4.0~10.0 사이로 조정
-  const MIC_MAKEUP_BASE = 5.0;
+  const MIC_BOOST_X = 6.0;       // 고정 프리게인
+  const MIC_MAKEUP_BASE = 5.0;   // 출력 메이크업
 
   function initAudio(){
     if(audioCtx) return;
@@ -204,7 +245,6 @@
     window.__sfxBus__ = sfxBus;
   }
 
-  // 클릭/전환 SFX
   function playClick(){
     try{
       initAudio();
@@ -267,18 +307,15 @@
 
     const src=audioCtx.createMediaStreamSource(micStream);
 
-    // 프리게인(고정 부스트)
     micPreGain = audioCtx.createGain();
     micPreGain.gain.value = MIC_BOOST_X;
 
-    // 필터/컴프
     const hpf=audioCtx.createBiquadFilter(); hpf.type='highpass'; hpf.frequency.value=MIC_HP; hpf.Q.value=0.707;
     const lowshelf=audioCtx.createBiquadFilter(); lowshelf.type='lowshelf'; lowshelf.frequency.value=MIC_LOWSHELF_FREQ; lowshelf.gain.value=MIC_LOWSHELF_GAIN;
     const notch=audioCtx.createBiquadFilter(); notch.type='notch'; notch.frequency.value=NOTCH_FREQ; notch.Q.value=NOTCH_Q;
     const comp=audioCtx.createDynamicsCompressor();
     comp.threshold.value=COMP_THRESHOLD; comp.ratio.value=COMP_RATIO; comp.attack.value=COMP_ATTACK; comp.release.value=COMP_RELEASE;
 
-    // 공간감
     const convolver=audioCtx.createConvolver(); convolver.buffer=makeIR(2.6,2.4);
     const tapA=audioCtx.createDelay(); tapA.delayTime.value=0.11;
     const tapB=audioCtx.createDelay(); tapB.delayTime.value=0.19;
@@ -293,12 +330,10 @@
     const micSum=audioCtx.createGain();
     micMakeup=audioCtx.createGain(); micMakeup.gain.value=MIC_MAKEUP_BASE;
 
-    // 게이트 (민감, 기본 오픈)
     const analyser=audioCtx.createAnalyser(); analyser.fftSize=512;
-    const gateGain=audioCtx.createGain(); gateGain.gain.value=1;
+    const gateGain=audioCtx.createGain(); gateGain.gain.value=1; // 민감/기본 오픈
     gateLoop(analyser, gateGain);
 
-    // 결선
     src.connect(micPreGain).connect(hpf).connect(lowshelf).connect(notch).connect(comp);
     comp.connect(analyser);
 
@@ -349,7 +384,7 @@
     return ir;
   }
 
-  /* ========= 센서 ========= */
+  /* ========= 센서/모션 ========= */
   let sensorsReady=false;
   const sensorTip=document.getElementById('sensorTip');
 
@@ -372,7 +407,74 @@
     return sensorsReady;
   }
 
-  // ====== 대사(한 줄씩, 5초 유지) ======
+  let latestOri={beta:0,gamma:0}, smVol=VOL_BASE, smPan=0;
+  function getScreenAngle(){
+    const o=(screen.orientation&&screen.orientation.angle)??window.orientation??0;
+    return (typeof o==='number')?o:0;
+  }
+  function mapOrientation(beta,gamma){
+    const ang=((getScreenAngle()%360)+360)%360;
+    let volTilt=0, panTilt=0;
+    if(ang===0){volTilt=beta; panTilt=gamma;}
+    else if(ang===90){volTilt=-gamma; panTilt=beta;}
+    else if(ang===180){volTilt=-beta; panTilt=-gamma;}
+    else if(ang===270){volTilt=gamma; panTilt=-beta;}
+    return {volTilt, panTilt};
+  }
+  function tiltToPan(panTilt){
+    const t=Math.min(PAN_LIMIT_DEG, Math.max(-PAN_LIMIT_DEG, panTilt||0));
+    if(Math.abs(t)<DEADZONE_PAN_DEG) return 0;
+    return t/PAN_LIMIT_DEG;
+  }
+  function tiltToVol(volTilt){
+    const t=Math.min(VOL_TILT_LIMIT, Math.max(-VOL_TILT_LIMIT, volTilt||0));
+    const a=Math.max(0, Math.abs(t)-DEADZONE_VOL_DEG)/(VOL_TILT_LIMIT-DEADZONE_VOL_DEG);
+    return VOL_BASE + VOL_MAX_ADD*a;
+  }
+  function smoothStep(t,c,a=CTRL_SMOOTH_ALPHA){ return c+(t-c)*a; }
+  function applyPanVol(pan, vol){
+    if(!audioCtx) return;
+    const now=audioCtx.currentTime;
+    if(window.__setPan__) window.__setPan__(pan);
+    if(motionGain){
+      try{ motionGain.gain.setTargetAtTime(vol, now, SMOOTH_TC); }
+      catch{ motionGain.gain.cancelScheduledValues(now); motionGain.gain.linearRampToValueAtTime(vol, now+0.08); }
+    }
+    if(bgGain && !dronePermanentlyStopped){
+      const droneVol = DRONE_BASE + DRONE_MAX_ADD * ((vol - VOL_BASE) / (VOL_MAX_ADD||1));
+      try{ bgGain.gain.setTargetAtTime(droneVol, now, SMOOTH_TC); }
+      catch{ bgGain.gain.cancelScheduledValues(now); bgGain.gain.linearRampToValueAtTime(droneVol, now+0.08); }
+    }
+  }
+  function initOrientationListener(){
+    if(typeof DeviceOrientationEvent==='undefined') return;
+    window.addEventListener('deviceorientation',(e)=>{
+      latestOri.beta=e.beta??0; latestOri.gamma=e.gamma??0;
+    },{passive:true});
+  }
+  function controlLoop(){
+    requestAnimationFrame(controlLoop);
+    let pan=0, vol=VOL_BASE;
+    if(sensorsReady){
+      const {volTilt, panTilt}=mapOrientation(latestOri.beta, latestOri.gamma);
+      vol=smoothStep(tiltToVol(volTilt), smVol);
+      pan=smoothStep(tiltToPan(panTilt), smPan);
+      smVol=vol; smPan=pan;
+    }else{
+      vol=smoothStep(VOL_BASE, smVol); pan=smoothStep(0, smPan);
+      smVol=vol; smPan=pan;
+    }
+    applyPanVol(pan, vol);
+  }
+
+  /* ========= UI/시퀀스 ========= */
+  const overlay=document.getElementById('overlay');
+  const overlayContent=document.getElementById('overlayContent');
+  const goodnight=document.getElementById('goodnight');
+  const cutin=document.getElementById('cutin');
+  const cutinText=document.getElementById('cutinText');
+  const captureBtn=document.getElementById('captureBtn');
+
   const narrative = [
     '자욱한 안개가 너를 맞이했다.',
     '거대한 비석을 너는 마주했다.',
@@ -399,12 +501,6 @@
     '너는 비석에 등을 기대고 앉는다.',
     '그리고 서서히, 그것의 진동을 느낀다.'
   ];
-
-  const overlay=document.getElementById('overlay');
-  const overlayContent=document.getElementById('overlayContent');
-  const goodnight=document.getElementById('goodnight');
-  const cutin=document.getElementById('cutin');
-  const cutinText=document.getElementById('cutinText');
 
   function crossfadeUpdate(html,nextAction){
     overlayContent.classList.add('hidden');
@@ -476,69 +572,56 @@
     }, true);
   }
 
-  // 센서/모션 제어
-  let sensorsReady=false;
-  function initOrientationListener(){
-    if(typeof DeviceOrientationEvent==='undefined') return;
-    window.addEventListener('deviceorientation',(e)=>{
-      latestOri.beta=e.beta??0; latestOri.gamma=e.gamma??0;
-    },{passive:true});
-  }
-  let latestOri={beta:0,gamma:0}, smVol=VOL_BASE, smPan=0;
-  function getScreenAngle(){
-    const o=(screen.orientation&&screen.orientation.angle)??window.orientation??0;
-    return (typeof o==='number')?o:0;
-  }
-  function mapOrientation(beta,gamma){
-    const ang=((getScreenAngle()%360)+360)%360;
-    let volTilt=0, panTilt=0;
-    if(ang===0){volTilt=beta; panTilt=gamma;}
-    else if(ang===90){volTilt=-gamma; panTilt=beta;}
-    else if(ang===180){volTilt=-beta; panTilt=-gamma;}
-    else if(ang===270){volTilt=gamma; panTilt=-beta;}
-    return {volTilt, panTilt};
-  }
-  function tiltToPan(panTilt){
-    const t=Math.min(PAN_LIMIT_DEG, Math.max(-PAN_LIMIT_DEG, panTilt||0));
-    if(Math.abs(t)<DEADZONE_PAN_DEG) return 0;
-    return t/PAN_LIMIT_DEG;
-  }
-  function tiltToVol(volTilt){
-    const t=Math.min(VOL_TILT_LIMIT, Math.max(-VOL_TILT_LIMIT, volTilt||0));
-    const a=Math.max(0, Math.abs(t)-DEADZONE_VOL_DEG)/(VOL_TILT_LIMIT-DEADZONE_VOL_DEG);
-    return VOL_BASE + VOL_MAX_ADD*a;
-  }
-  function smoothStep(t,c,a=CTRL_SMOOTH_ALPHA){ return c+(t-c)*a; }
-  function applyPanVol(pan, vol){
-    if(!audioCtx) return;
-    const now=audioCtx.currentTime;
-    if(window.__setPan__) window.__setPan__(pan);
-    if(motionGain){
-      try{ motionGain.gain.setTargetAtTime(vol, now, SMOOTH_TC); }
-      catch{ motionGain.gain.cancelScheduledValues(now); motionGain.gain.linearRampToValueAtTime(vol, now+0.08); }
-    }
-    if(bgGain && !dronePermanentlyStopped){
-      const droneVol = DRONE_BASE + DRONE_MAX_ADD * ((vol - VOL_BASE) / (VOL_MAX_ADD||1));
-      try{ bgGain.gain.setTargetAtTime(droneVol, now, SMOOTH_TC); }
-      catch{ bgGain.gain.cancelScheduledValues(now); bgGain.gain.linearRampToValueAtTime(droneVol, now+0.08); }
-    }
-  }
-  function controlLoop(){
-    requestAnimationFrame(controlLoop);
-    let pan=0, vol=VOL_BASE;
-    if(sensorsReady){
-      const {volTilt, panTilt}=mapOrientation(latestOri.beta, latestOri.gamma);
-      vol=smoothStep(tiltToVol(volTilt), smVol);
-      pan=smoothStep(tiltToPan(panTilt), smPan);
-      smVol=vol; smPan=pan;
-    }else{
-      vol=smoothStep(VOL_BASE, smVol); pan=smoothStep(0, smPan);
-      smVol=vol; smPan=pan;
-    }
-    applyPanVol(pan, vol);
+  function mountPressToSleep(){
+    const html = `<button id="startBtn" class="uiBtn">PRESS HERE TO SLEEP</button>
+                  <div class="tip" id="sensorTip2" style="display:none">센서 권한 필요: 시작을 누르면 허용 팝업이 뜹니다.</div>`;
+    crossfadeUpdate(html, ()=>{
+      const startBtn=document.getElementById('startBtn');
+      // ★ 사용자 제스처 직후: 오디오 init + 마이크 + 카메라 + 센서 권한
+      startBtn.addEventListener('click', async ()=>{
+        playClick();
+        autoStart(); // 오디오 초기화/드론
+        try{ await attachCameraAfterGesture(); }catch{}
+        try{ await startMic(); }catch{}
+        initOrientationListener();
+        await requestMotionPermissions();
+
+        // INTRO
+        const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
+        const introHTML = `
+          ${line('<span class="introTitle">INTRODUCTION</span>')}
+          ${line('이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.')}
+          ${line('곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.')}
+          ${line('그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.')}
+          ${line('이제 당신에게는 네 단계의 미션이 주어진다.')}
+          ${line('당신은 미션에 따라 헤드폰으로 들려오는 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착할 수 있다.')}
+          <div id="countdown" class="lineWrap">
+            <span class="line">THE DOOR WILL CLOSE IN <span id="countNum">60</span> SECONDS.</span>
+          </div>
+          <div class="tip" id="sensorTipInfo" style="display:${sensorsReady?'none':'block'}">패닝이 안 들리면, 센서 권한을 허용해 주세요.</div>
+        `;
+        crossfadeUpdate(introHTML, ()=>{
+          let count=60; const numEl=document.getElementById('countNum');
+          const timer=setInterval(()=>{
+            count--;
+            if(count>=0){ numEl.textContent=count; }
+            if(count<=0){
+              clearInterval(timer);
+              overlay.classList.add('hidden');
+              setTimeout(()=>{
+                overlay.style.display='none';
+                showGoodNight(firstSilenceFlow);
+              },450);
+            }
+          },1000);
+        });
+
+        controlLoop();
+      });
+    });
   }
 
-  /* ========= 자동 시작/버튼/시퀀스 ========= */
+  /* ========= 자동 시작(오디오만) ========= */
   function autoStart(){
     try{
       initAudio();
@@ -546,79 +629,8 @@
       if(!dronePermanentlyStopped) startDrone();
     }catch(e){ console.warn('autoStart err', e); }
   }
-  autoStart();
   document.addEventListener('visibilitychange', autoStart);
   window.addEventListener('focus', autoStart);
-
-  const overlayElm=document.getElementById('overlay');
-  const overlayContentElm=document.getElementById('overlayContent');
-  const captureBtn=document.getElementById('captureBtn');
-
-  function mountPressToSleep(){
-    const html = `<button id="startBtn" class="uiBtn">PRESS HERE TO SLEEP</button>
-                  <div class="tip" id="sensorTip2" style="display:none">센서 권한 필요: 시작을 누르면 허용 팝업이 뜹니다.</div>`;
-    crossfadeUpdate(html, ()=>{
-      const startBtn=document.getElementById('startBtn');
-      startBtn.addEventListener('click', ()=>{ playClick(); onStartPressed(); });
-    });
-  }
-
-  async function requestMotionPermissions(){
-    try{
-      if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
-        const r=await DeviceOrientationEvent.requestPermission();
-        if(r==='granted') sensorsReady=true;
-      }else{
-        sensorsReady=true;
-      }
-    }catch(e){ console.warn('Orientation permission error:', e); }
-    try{
-      if(typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function'){
-        const r=await DeviceMotionEvent.requestPermission();
-        if(r==='granted') sensorsReady=true;
-      }
-    }catch(e){}
-    (document.getElementById('sensorTip2')||document.getElementById('sensorTip')).style.display = sensorsReady? 'none':'block';
-    return sensorsReady;
-  }
-
-  async function onStartPressed(){
-    autoStart();
-    try{ startMic().catch(()=>{}); }catch{}
-    initOrientationListener();
-    const ok=await requestMotionPermissions();
-
-    const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
-    const introHTML = `
-      ${line('<span class="introTitle">INTRODUCTION</span>')}
-      ${line('이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.')}
-      ${line('곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.')}
-      ${line('그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.')}
-      ${line('이제 당신에게는 네 단계의 미션이 주어진다.')}
-      ${line('당신은 미션에 따라 헤드폰으로 들려오는 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착할 수 있다.')}
-      <div id="countdown" class="lineWrap">
-        <span class="line">THE DOOR WILL CLOSE IN <span id="countNum">60</span> SECONDS.</span>
-      </div>
-      <div class="tip" ${ok?'style="display:none"':''}>패닝이 안 들리면, 센서 권한을 허용해 주세요.</div>
-    `;
-    crossfadeUpdate(introHTML, ()=>{
-      let count=60; const numEl=document.getElementById('countNum');
-      const timer=setInterval(()=>{
-        count--;
-        if(count>=0){ numEl.textContent=count; }
-        if(count<=0){
-          clearInterval(timer);
-          overlayElm.classList.add('hidden');
-          setTimeout(()=>{
-            overlayElm.style.display='none';
-            showGoodNight(firstSilenceFlow);
-          },450);
-        }
-      },1000);
-    });
-
-    controlLoop();
-  }
 
   // 시작 버튼
   const welcomeBtn = document.getElementById('welcomeBtn');
@@ -630,6 +642,26 @@
     try{ const a=document.createElement('a'); a.download=`capture_${Date.now()}.png`; a.href=view.toDataURL('image/png'); a.click(); }
     catch(e){ console.warn('CAPTURE 실패', e); }
   });
+
+  /* ========= 카메라 오류 안내 ========= */
+  const camErrorBox=document.getElementById('camErrorBox');
+  const camError=document.getElementById('camError');
+  function showCamError(err){
+    const msg = [
+      '카메라를 열 수 없습니다.',
+      '',
+      '가능한 해결 방법:',
+      '- HTTPS(보안 연결)에서 실행하기',
+      '- 브라우저/앱의 카메라 권한 허용',
+      '- iOS: 설정 > Safari(또는 사용중 앱) > 카메라 접근 허용',
+      '- 다른 앱이 카메라를 사용 중인지 확인',
+      '',
+      `오류: ${err && err.message ? err.message : String(err)}`
+    ].join('<br/>');
+    camError.innerHTML=msg;
+    camErrorBox.style.display='flex';
+  }
+  function hideCamError(){ camErrorBox.style.display='none'; camError.innerHTML=''; }
 })();
 </script>
 </body>
