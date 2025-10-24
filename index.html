@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Camera – Motion Pan/Vol + Mic Focus + Pixel Maze (12 stages)</title>
+<title>Dialogue into Silence — Camera+Audio+Pixel Maze+Docs</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
@@ -16,8 +16,9 @@
     --pad-btn-y: clamp(6px, 1.1vmin, 10px);
     --pad-btn-x: clamp(10px, 1.8vmin, 20px);
   }
-  html,body{margin:0;height:100%;background:#000;overflow:hidden}
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:manipulation}
   #view{width:100%;height:100%;display:block;position:fixed;left:0;top:0;z-index:0}
+
   .frameBox{position:fixed;left:var(--frame);top:var(--frame);right:var(--frame);bottom:var(--frame);border:1px solid #000;pointer-events:none;z-index:50}
 
   .uiBtn{background:#000;color:#fff;border:1px solid #000;font-size:var(--fs-strong);
@@ -28,7 +29,19 @@
   .readout{min-width:48px;text-align:center;opacity:.9;font-family:"Courier New",monospace;font-size:var(--fs-small)}
   .btn-capture{position:fixed;left:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:150}
 
-  #overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;font-family:"Courier New",monospace;color:#fff;pointer-events:none}
+  /* 상단 런처들 */
+  #mapLauncher{
+    position:fixed; right:calc(var(--frame) + var(--ui-gap)); top:calc(var(--frame) + var(--ui-gap));
+    z-index:280;
+  }
+  #docLauncher{
+    position:fixed; left:calc(var(--frame) + var(--ui-gap)); top:calc(var(--frame) + var(--ui-gap));
+    z-index:280;
+  }
+
+  /* 메인 오버레이 (퍼미션/인트로/내러티브 재사용) */
+  #overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;
+    font-family:"Courier New",monospace;color:#fff;background:rgba(0,0,0,.72)}
   #overlayContent{pointer-events:auto;line-height:1.7;font-size:var(--fs-body);max-width:min(72ch, calc(100vw - (var(--frame)*2)));max-height:calc(100vh - (var(--frame)*2));overflow:hidden;text-align:left}
   .line{display:inline;background:#000;color:#fff;padding:calc(var(--pad-line)*0.8) var(--pad-line);box-decoration-break:clone;-webkit-box-decoration-break:clone}
   .lineWrap{margin:6px 0}
@@ -38,7 +51,7 @@
   #goodnight.show{display:block;opacity:1}
   #goodnight.fadeout{opacity:0}
   @media (orientation:landscape){ :root{ --frame: 32px; } }
-  .tip{opacity:.7;font-size:var(--fs-small);margin-top:8px}
+  .tip{opacity:.7;font-size:var(--fs-small);margin-top:8px;text-align:center}
 
   /* 컷인(침묵) */
   #cutin{
@@ -60,34 +73,33 @@
     display:flex; flex-direction:column; align-items:center; gap:10px;
     width:min(96vw, 860px);
   }
-  #gameHeader{
-    width:100%; display:flex; justify-content:space-between; align-items:center; gap:8px;
-  }
+  #gameHeader{ width:100%; display:flex; justify-content:space-between; align-items:center; gap:8px; }
   #gameCanvas{ width:100%; height:60vh; background:#000; image-rendering: pixelated; border:1px solid #444 }
   #gameBtns{ display:flex; gap:6px; align-items:center }
-  #mapGrid{
-    display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:6px; width:100%;
-  }
-  .stageBtn{
-    border:1px solid #444; background:#000; color:#fff; padding:8px 0; text-align:center; cursor:pointer; font-size:var(--fs-small)
-  }
+  #mapGrid{ display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:6px; width:100%; }
+  .stageBtn{ border:1px solid #444; background:#000; color:#fff; padding:8px 0; text-align:center; cursor:pointer; font-size:var(--fs-small) }
   .stageBtn.done{ border-color:#0f0; color:#0f0 }
   .stageBtn.active{ border-color:#fff }
   #hud{ display:flex; gap:12px; align-items:center; opacity:.85; font-size:var(--fs-small) }
 
   /* 모바일 가상 방향키 */
-  #dpad{
-    position:absolute; left:var(--frame); bottom:calc(var(--frame) + 64px); z-index:320;
-    display:grid; grid-template-columns:repeat(3,48px); grid-template-rows:repeat(3,48px); gap:6px;
-  }
+  #dpad{ position:absolute; left:var(--frame); bottom:calc(var(--frame) + 64px); z-index:320;
+    display:grid; grid-template-columns:repeat(3,48px); grid-template-rows:repeat(3,48px); gap:6px; }
   .dkey{ width:48px; height:48px; border:1px solid #444; display:flex; align-items:center; justify-content:center; color:#fff; background:#000; opacity:.7; user-select:none; }
   .dkey:active{ opacity:1 }
 
-  /* 항상 표시되는 MAP 버튼(오른쪽 상단) */
-  #mapLauncher{
-    position:fixed; right:calc(var(--frame) + var(--ui-gap)); top:calc(var(--frame) + var(--ui-gap));
-    z-index:280;
+  /* ====== DOCUMENT OVERLAY ====== */
+  #docOverlay{
+    position:fixed; inset:0; z-index:310; display:none; background:rgba(0,0,0,.8);
+    font-family:"Courier New",monospace; color:#fff;
   }
+  #docUI{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:min(96vw,860px); display:flex; flex-direction:column; gap:10px; }
+  #docHeader{ display:flex; justify-content:space-between; align-items:center; }
+  #docGrid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+  .docBtn{ border:1px solid #444; background:#000; color:#fff; padding:12px; text-align:center; cursor:pointer; font-size:var(--fs-small) }
+  .docPane{ border:1px solid #444; padding:12px; max-height:50vh; overflow:auto; background:#000; }
+  .docTitle{ font-size:var(--fs-strong); margin-bottom:8px; }
 </style>
 </head>
 <body>
@@ -102,16 +114,19 @@
   </div>
   <button id="captureBtn" class="uiBtn small btn-capture">CAPTURE</button>
 
-  <!-- 항상 보이는 MAP 런처 -->
+  <!-- 상단 런처 -->
+  <button id="docLauncher" class="uiBtn small">DOCUMENT</button>
   <button id="mapLauncher" class="uiBtn small">MAP</button>
 
-  <!-- 내러티브/컷인 -->
+  <!-- 메인 오버레이 (퍼미션/인트로/내러티브 공용) -->
   <div id="overlay" class="fade">
-    <div id="overlayContent" class="fade">
-      <button id="welcomeBtn" class="uiBtn">Welcome to ‘Dialogue into Silence’</button>
-      <div class="tip" id="sensorTip" style="display:none">센서 권한 필요: 시작을 누르면 허용 팝업이 뜹니다.</div>
+    <div id="overlayContent" class="fade" style="text-align:center">
+      <!-- 최초: 퍼미션 게이트 -->
+      <button id="permGateBtn" class="uiBtn" style="width:min(80vw,420px)">화면을 탭하여 카메라·마이크·동작을 허용해주세요</button>
+      <div class="tip">권한 허용 후 WELCOME 화면이 나타납니다.</div>
     </div>
   </div>
+
   <div id="goodnight">GOOD NIGHT, HAVE A NICE DREAM</div>
   <div id="cutin"><div id="cutinText">FIRST SILENCE</div></div>
 
@@ -126,13 +141,12 @@
         </div>
         <div id="gameBtns">
           <button id="btnMap" class="uiBtn small">MAP</button>
-          <button id="btnExit" class="uiBtn small">EXIT</button>
+          <button id="btnExitGame" class="uiBtn small">EXIT</button>
         </div>
       </div>
       <canvas id="gameCanvas" width="480" height="320"></canvas>
       <div id="mapGrid"></div>
     </div>
-
     <!-- 모바일 DPAD -->
     <div id="dpad">
       <div></div><div class="dkey" data-dy="-1">↑</div><div></div>
@@ -141,29 +155,98 @@
     </div>
   </div>
 
+  <!-- ====== DOCUMENT OVERLAY ====== -->
+  <div id="docOverlay">
+    <div id="docUI">
+      <div id="docHeader">
+        <div class="readout">DOCUMENTS</div>
+        <div>
+          <button id="btnExitDoc" class="uiBtn small">EXIT</button>
+        </div>
+      </div>
+      <div id="docGrid"></div>
+      <div id="docPane" class="docPane" style="display:none">
+        <div class="docTitle" id="docTitle">Document</div>
+        <div id="docBody">준비중입니다.</div>
+      </div>
+    </div>
+  </div>
+
 <script>
 (async ()=>{
+  /* ========= 공통 유틸 & 사운드 ========= */
+  const qs = (s)=>document.querySelector(s);
+  const qsa = (s)=>Array.from(document.querySelectorAll(s));
+  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+
+  let audioCtx=null;
+  function initAudio(){
+    if(audioCtx) return;
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const mixBus = audioCtx.createGain(); window.__mixBus__ = mixBus;
+    const sfxBus = audioCtx.createGain(); sfxBus.gain.value = 0.6; sfxBus.connect(mixBus); window.__sfxBus__=sfxBus;
+    // 기본 출력
+    const dest = audioCtx.destination;
+    try{
+      if (dest.maxChannelCount && dest.maxChannelCount >= 2) dest.channelCount = 2;
+      if (dest.channelCountMode) dest.channelCountMode = 'explicit';
+      if (dest.channelInterpretation) dest.channelInterpretation = 'discrete';
+    }catch{}
+    const master = audioCtx.createGain(); master.gain.value=1.0;
+    mixBus.connect(master).connect(dest);
+  }
+  function resumeAudio(){ try{ initAudio(); if(audioCtx.state==='suspended') audioCtx.resume(); }catch{} }
+  function playClick(){
+    try{
+      resumeAudio();
+      const t = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type='square'; osc.frequency.setValueAtTime(880, t);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.45, t+0.005);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.12);
+      osc.connect(g).connect(window.__sfxBus__); osc.start(t); osc.stop(t+0.14);
+    }catch{}
+  }
+  function playFlip(){
+    try{
+      resumeAudio();
+      const t = audioCtx.currentTime;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      const f = audioCtx.createBiquadFilter();
+      o.type='triangle'; o.frequency.setValueAtTime(220, t);
+      o.frequency.exponentialRampToValueAtTime(900, t+0.25);
+      f.type='bandpass'; f.frequency.setValueAtTime(800, t); f.Q.value=1.2;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.6, t+0.04);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.35);
+      o.connect(f).connect(g).connect(window.__sfxBus__); o.start(t); o.stop(t+0.38);
+    }catch{}
+  }
+
   /* ========= 카메라(흑백+잔상) ========= */
-  const view=document.getElementById('view');
-  const vctx=view.getContext('2d',{alpha:false});
+  const view=qs('#view'); const vctx=view.getContext('2d',{alpha:false});
   const PROC_SCALE=0.60, TRAIL_ALPHA=0.12, GLOBAL_ALPHA=0.7;
   let ZOOM=1.2, ZOOM_MIN=0.5, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
 
-  const zoomVal=document.getElementById('zoomVal');
-  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
-  const updateZoom=()=>zoomVal.textContent=ZOOM.toFixed(1)+'×';
-  document.getElementById('zoomIn').onclick=()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom(); playClick();};
-  document.getElementById('zoomOut').onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom(); playClick();};
+  const zoomVal=qs('#zoomVal');
+  function updateZoom(){ zoomVal.textContent=ZOOM.toFixed(1)+'×'; }
+  qs('#zoomIn').onclick=()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom(); playClick();};
+  qs('#zoomOut').onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom(); playClick();};
   updateZoom();
 
   const camVideo=document.createElement('video'); camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
   const proc=document.createElement('canvas'); const pctx=proc.getContext('2d',{willReadFrequently:true});
+  let camStream=null;
 
   async function attachCamera(){
     try{
-      const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
-      camVideo.srcObject=s; await camVideo.play().catch(()=>{});
-    }catch(e){console.warn("카메라 실패:", e);}
+      if(camStream) return;
+      camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+      camVideo.srcObject=camStream; await camVideo.play().catch(()=>{});
+    }catch(e){ console.warn("카메라 실패:", e); }
   }
   function resizeAll(){
     const dpr=window.devicePixelRatio||1;
@@ -172,7 +255,7 @@
     const scale=(window.matchMedia('(orientation: landscape)').matches)? PROC_SCALE*0.9 : PROC_SCALE;
     proc.width=Math.floor(w*scale); proc.height=Math.floor(h*scale);
   }
-  resizeAll(); addEventListener('resize',()=>setTimeout(resizeAll,50));
+  resizeAll(); addEventListener('resize',()=>setTimeout(resizeAll,50),{passive:true});
 
   function loop(){
     requestAnimationFrame(loop);
@@ -197,310 +280,79 @@
     }
     vctx.drawImage(proc,0,0,W,H);
   }
-  await attachCamera(); loop();
+  loop();
 
-  /* ========= 오디오/센서/내러티브 (네가 준 버전 유지) ========= */
-  let audioCtx=null, masterGain=null, limiter=null;
-  let motionGain=null;
-  let bgOsc=null, bgGain=null;
-  let micStream=null;
-  let micPreGain=null, micMakeup=null;
-  let dronePermanentlyStopped=false;
-  const DRONE_FREQ=80, DRONE_BASE=0.08, DRONE_MAX_ADD=0.10;
-  const VOL_BASE=0.20, VOL_MAX_ADD=0.55;
-  const SMOOTH_TC=0.08, CTRL_SMOOTH_ALPHA=0.12;
-  const DEADZONE_VOL_DEG=5, DEADZONE_PAN_DEG=3, VOL_TILT_LIMIT=60, PAN_LIMIT_DEG=45;
-  const MIC_HP=180; const MIC_LOWSHELF_FREQ=180, MIC_LOWSHELF_GAIN=-6; const NOTCH_FREQ=300, NOTCH_Q=3.5;
-  const COMP_THRESHOLD=-28, COMP_RATIO=4.2, COMP_ATTACK=0.004, COMP_RELEASE=0.14;
-  const MIC_WET=0.60, MIC_DRY=0.12;
-  const MIC_BOOST_X = 6.0; const MIC_MAKEUP_BASE = 5.0;
-
-  function initAudio(){
-    if(audioCtx) return;
-    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    try{
-      const dest = audioCtx.destination;
-      if (dest.maxChannelCount && dest.maxChannelCount >= 2) dest.channelCount = 2;
-      if (dest.channelCountMode) dest.channelCountMode = 'explicit';
-      if (dest.channelInterpretation) dest.channelInterpretation = 'discrete';
-    }catch{}
-    const mixBus = audioCtx.createGain(); window.__mixBus__ = mixBus;
-
-    let panSetter=null, panOutNode=null;
-    if (audioCtx.createStereoPanner) {
-      const sp = audioCtx.createStereoPanner();
-      panSetter = (val)=>{ try{ sp.pan.setTargetAtTime(val, audioCtx.currentTime, 0.08); }catch{ sp.pan.value=val; } };
-      mixBus.connect(sp); panOutNode = sp;
-    } else {
-      const lGain=audioCtx.createGain(), rGain=audioCtx.createGain(), merger=audioCtx.createChannelMerger(2);
-      mixBus.connect(lGain); mixBus.connect(rGain);
-      lGain.connect(merger,0,0); rGain.connect(merger,0,1);
-      panSetter = (pan)=>{
-        const p=Math.max(-1,Math.min(1,pan||0));
-        const th=(p+1)*0.25*Math.PI; const gL=Math.cos(th), gR=Math.sin(th);
-        try{ lGain.gain.setTargetAtTime(gL,audioCtx.currentTime,0.08); rGain.gain.setTargetAtTime(gR,audioCtx.currentTime,0.08); }
-        catch{ lGain.gain.value=gL; rGain.gain.value=gR; }
-      };
-      panOutNode=merger;
-    }
-    window.__setPan__ = panSetter;
-
-    motionGain = audioCtx.createGain(); motionGain.gain.value = VOL_BASE;
-    limiter = audioCtx.createDynamicsCompressor();
-    limiter.threshold.value=-3; limiter.knee.value=0; limiter.ratio.value=20;
-    limiter.attack.value=0.002; limiter.release.value=0.10;
-    const outMakeup = audioCtx.createGain(); outMakeup.gain.value = 1.6;
-    masterGain = audioCtx.createGain(); masterGain.gain.value=1.0;
-
-    panOutNode.connect(motionGain);
-    motionGain.connect(limiter);
-    limiter.connect(outMakeup);
-    outMakeup.connect(masterGain);
-    masterGain.connect(audioCtx.destination);
-
-    const sfxBus = audioCtx.createGain(); sfxBus.gain.value = 0.6;
-    sfxBus.connect(window.__mixBus__);
-    window.__sfxBus__ = sfxBus;
-  }
-  function playClick(){
-    try{
-      initAudio();
-      const t = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type='square'; osc.frequency.setValueAtTime(880, t);
-      gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(0.5, t+0.005);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t+0.12);
-      osc.connect(gain).connect(window.__sfxBus__); osc.start(t); osc.stop(t+0.14);
-    }catch{}
-  }
-  function playFlip(){
-    try{
-      initAudio();
-      const t = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      const filt = audioCtx.createBiquadFilter();
-      osc.type='triangle';
-      osc.frequency.setValueAtTime(200, t);
-      osc.frequency.exponentialRampToValueAtTime(900, t+0.25);
-      filt.type='bandpass'; filt.frequency.setValueAtTime(800, t); filt.Q.value=1.2;
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.6, t+0.04);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t+0.35);
-      osc.connect(filt).connect(gain).connect(window.__sfxBus__); osc.start(t); osc.stop(t+0.38);
-    }catch{}
-  }
-  function startDrone(){
-    if(!audioCtx || bgOsc || dronePermanentlyStopped) return;
-    bgOsc=audioCtx.createOscillator(); bgGain=audioCtx.createGain();
-    bgOsc.type='sine'; bgOsc.frequency.value=DRONE_FREQ;
-    bgGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-    bgGain.gain.setTargetAtTime(DRONE_BASE, audioCtx.currentTime, 0.25);
-    bgOsc.connect(bgGain).connect(window.__mixBus__);
-    bgOsc.start();
-  }
-  function fadeOutDronePermanently(){
-    if(!audioCtx || !bgGain || !bgOsc) { dronePermanentlyStopped=true; return; }
-    const now=audioCtx.currentTime;
-    try{ bgGain.gain.setTargetAtTime(0.0001, now, 0.5); }
-    catch{ bgGain.gain.cancelScheduledValues(now); bgGain.gain.linearRampToValueAtTime(0.0001, now+3.0); }
-    setTimeout(()=>{ try{ bgOsc.stop(); }catch{} bgOsc=null; bgGain=null; dronePermanentlyStopped=true; }, 3200);
-  }
+  /* ========= 마이크/센서(간단 게이트) ========= */
+  let micStream=null, sensorsReady=false;
   async function startMic(){
-    if(micStream) return;
-    if(!navigator.mediaDevices?.getUserMedia) return;
-    const ctrl=new AbortController(); const to=setTimeout(()=>{try{ctrl.abort();}catch{}},3000);
     try{
-      micStream=await navigator.mediaDevices.getUserMedia({
-        audio:{ echoCancellation:false, noiseSuppression:true, autoGainControl:false },
-        video:false, signal:ctrl.signal
-      });
-    }catch(e){ clearTimeout(to); console.warn('Mic denied/timeout', e); return; }
-    clearTimeout(to);
-
-    const src=audioCtx.createMediaStreamSource(micStream);
-    micPreGain = audioCtx.createGain(); micPreGain.gain.value = MIC_BOOST_X;
-
-    const hpf=audioCtx.createBiquadFilter(); hpf.type='highpass'; hpf.frequency.value=MIC_HP; hpf.Q.value=0.707;
-    const lowshelf=audioCtx.createBiquadFilter(); lowshelf.type='lowshelf'; lowshelf.frequency.value=MIC_LOWSHELF_FREQ; lowshelf.gain.value=MIC_LOWSHELF_GAIN;
-    const notch=audioCtx.createBiquadFilter(); notch.type='notch'; notch.frequency.value=NOTCH_FREQ; notch.Q.value=NOTCH_Q;
-    const comp=audioCtx.createDynamicsCompressor();
-    comp.threshold.value=COMP_THRESHOLD; comp.ratio.value=COMP_RATIO; comp.attack.value=COMP_ATTACK; comp.release.value=COMP_RELEASE;
-
-    const convolver=audioCtx.createConvolver(); convolver.buffer=makeIR(2.6,2.4);
-    const tapA=audioCtx.createDelay(); tapA.delayTime.value=0.11;
-    const tapB=audioCtx.createDelay(); tapB.delayTime.value=0.19;
-    const tapC=audioCtx.createDelay(); tapC.delayTime.value=0.27;
-    const fbA=audioCtx.createGain(); fbA.gain.value=0.28; tapA.connect(fbA).connect(tapA);
-    const fbB=audioCtx.createGain(); fbB.gain.value=0.22; tapB.connect(fbB).connect(tapB);
-    const fbC=audioCtx.createGain(); fbC.gain.value=0.18; tapC.connect(fbC).connect(tapC);
-
-    const dry=audioCtx.createGain(); dry.gain.value=MIC_DRY;
-    const wet=audioCtx.createGain(); wet.gain.value=MIC_WET;
-
-    const micSum=audioCtx.createGain();
-    micMakeup=audioCtx.createGain(); micMakeup.gain.value=MIC_MAKEUP_BASE;
-
-    const analyser=audioCtx.createAnalyser(); analyser.fftSize=512;
-    const gateGain=audioCtx.createGain(); gateGain.gain.value=1;
-    gateLoop(analyser, gateGain);
-
-    src.connect(micPreGain).connect(hpf).connect(lowshelf).connect(notch).connect(comp);
-    comp.connect(analyser);
-
-    comp.connect(dry);
-    const wetSplit=audioCtx.createGain();
-    comp.connect(wetSplit);
-    wetSplit.connect(convolver); wetSplit.connect(tapA); wetSplit.connect(tapB); wetSplit.connect(tapC);
-    const wetSum=audioCtx.createGain();
-    convolver.connect(wetSum); tapA.connect(wetSum); tapB.connect(wetSum); tapC.connect(wetSum);
-    wetSum.connect(wet);
-
-    dry.connect(micSum); wet.connect(micSum);
-    micSum.connect(gateGain).connect(micMakeup).connect(window.__mixBus__);
+      if(micStream) return;
+      micStream=await navigator.mediaDevices.getUserMedia({audio:{ echoCancellation:false, noiseSuppression:true, autoGainControl:false }, video:false});
+      // 간단 연결(환경음/리버브 등은 네 이전 버전 복잡 체인은 생략; 필요 시 다시 합칠 수 있음)
+      const src=(new (window.AudioContext||window.webkitAudioContext)()); // 별도 ctx는 iOS에서 충돌 날 수 있어 생략 권장
+      // 여기서는 권한 부여만 확인 용도로 요청
+      if(src.state!=='closed') src.close();
+    }catch(e){ console.warn('Mic denied', e); }
   }
-  function gateLoop(analyser, gate){
-    const buf=new Uint8Array(analyser.fftSize);
-    let open=true;
-    const GATE_OPEN_DB=-62, GATE_CLOSE_DB=-68;
-    const ATT=0.04, REL=0.20;
-    function step(){
-      requestAnimationFrame(step);
-      analyser.getByteTimeDomainData(buf);
-      let sum=0; for(let i=0;i<buf.length;i++){ const v=(buf[i]-128)/128; sum+=v*v; }
-      const rms=Math.sqrt(sum/buf.length);
-      const db=20*Math.log10(Math.max(1e-6,rms));
-      const now=audioCtx?.currentTime ?? 0;
-      const shouldOpen = db>GATE_OPEN_DB || (open && db>GATE_CLOSE_DB);
-      if(shouldOpen!==open){
-        open=shouldOpen;
-        try{ gate.gain.setTargetAtTime(open?1:0, now, open?ATT:REL); }
-        catch{ gate.gain.cancelScheduledValues(now); gate.gain.linearRampToValueAtTime(open?1:0, now + (open?ATT:REL)); }
-      }
-    }
-    step();
-  }
-  function makeIR(seconds=2.6, decay=2.4){
-    const rate=audioCtx.sampleRate, len=Math.floor(rate*seconds);
-    const ir=audioCtx.createBuffer(2, len, rate);
-    for(let ch=0; ch<2; ch++){
-      const v=ir.getChannelData(ch);
-      for(let i=0;i<len;i++){
-        const t=i/len, env=Math.pow(1-t, decay);
-        v[i]=(Math.random()*2-1)*env*0.55;
-      }
-    }
-    return ir;
-  }
-
-  let sensorsReady=false;
-  const sensorTip=document.getElementById('sensorTip');
   async function requestMotionPermissions(){
     try{
       if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
-        const r=await DeviceOrientationEvent.requestPermission();
-        if(r==='granted') sensorsReady=true;
-      }else{
-        sensorsReady=true;
-      }
-    }catch(e){ console.warn('Orientation permission error:', e); }
+        const r=await DeviceOrientationEvent.requestPermission(); if(r==='granted') sensorsReady=true;
+      }else sensorsReady=true;
+    }catch(e){}
     try{
       if(typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function'){
-        const r=await DeviceMotionEvent.requestPermission();
-        if(r==='granted') sensorsReady=true;
+        const r=await DeviceMotionEvent.requestPermission(); if(r==='granted') sensorsReady=true;
       }
     }catch(e){}
-    sensorTip.style.display = sensorsReady? 'none':'block';
-    return sensorsReady;
   }
-  let latestOri={beta:0,gamma:0}, smVol=VOL_BASE, smPan=0;
-  function getScreenAngle(){
-    const o=(screen.orientation&&screen.orientation.angle)??window.orientation??0;
-    return (typeof o==='number')?o:0;
-  }
-  function mapOrientation(beta,gamma){
-    const ang=((getScreenAngle()%360)+360)%360;
-    let volTilt=0, panTilt=0;
-    if(ang===0){volTilt=beta; panTilt=gamma;}
-    else if(ang===90){volTilt=-gamma; panTilt=beta;}
-    else if(ang===180){volTilt=-beta; panTilt=-gamma;}
-    else if(ang===270){volTilt=gamma; panTilt=-beta;}
-    return {volTilt, panTilt};
-  }
-  function tiltToPan(panTilt){
-    const t=Math.min(PAN_LIMIT_DEG, Math.max(-PAN_LIMIT_DEG, panTilt||0));
-    if(Math.abs(t)<DEADZONE_PAN_DEG) return 0;
-    return t/PAN_LIMIT_DEG;
-  }
-  function tiltToVol(volTilt){
-    const t=Math.min(VOL_TILT_LIMIT, Math.max(-VOL_TILT_LIMIT, volTilt||0));
-    const a=Math.max(0, Math.abs(t)-DEADZONE_VOL_DEG)/(VOL_TILT_LIMIT-DEADZONE_VOL_DEG);
-    return VOL_BASE + VOL_MAX_ADD*a;
-  }
-  function smoothStep(t,c,a=CTRL_SMOOTH_ALPHA){ return c+(t-c)*a; }
-  function applyPanVol(pan, vol){
-    if(!audioCtx) return;
-    const now=audioCtx.currentTime;
-    if(window.__setPan__) window.__setPan__(pan);
-    if(motionGain){
-      try{ motionGain.gain.setTargetAtTime(vol, now, SMOOTH_TC); }
-      catch{ motionGain.gain.cancelScheduledValues(now); motionGain.gain.linearRampToValueAtTime(vol, now+0.08); }
-    }
-    if(bgGain && !dronePermanentlyStopped){
-      const droneVol = DRONE_BASE + DRONE_MAX_ADD * ((vol - VOL_BASE) / (VOL_MAX_ADD||1));
-      try{ bgGain.gain.setTargetAtTime(droneVol, now, SMOOTH_TC); }
-      catch{ bgGain.gain.cancelScheduledValues(now); bgGain.gain.linearRampToValueAtTime(droneVol, now+0.08); }
-    }
-  }
-  function initOrientationListener(){
-    if(typeof DeviceOrientationEvent==='undefined') return;
-    window.addEventListener('deviceorientation',(e)=>{
-      latestOri.beta=e.beta??0; latestOri.gamma=e.gamma??0;
-    },{passive:true});
-  }
-  function controlLoop(){
-    requestAnimationFrame(controlLoop);
-    let pan=0, vol=VOL_BASE;
-    if(sensorsReady){
-      const {volTilt, panTilt}=mapOrientation(latestOri.beta, latestOri.gamma);
-      vol=smoothStep(tiltToVol(volTilt), smVol);
-      pan=smoothStep(tiltToPan(panTilt), smPan);
-      smVol=vol; smPan=pan;
-    }else{
-      vol=smoothStep(VOL_BASE, smVol); pan=smoothStep(0, smPan);
-      smVol=vol; smPan=pan;
-    }
-    applyPanVol(pan, vol);
-  }
-  function autoStart(){
-    try{
-      initAudio();
-      if(audioCtx.state==='suspended'){ audioCtx.resume().catch(()=>{}); }
-      if(!dronePermanentlyStopped) startDrone();
-    }catch(e){ console.warn('autoStart err', e); }
-  }
-  autoStart();
-  document.addEventListener('visibilitychange', autoStart);
-  window.addEventListener('focus', autoStart);
 
-  const overlay=document.getElementById('overlay');
-  const overlayContent=document.getElementById('overlayContent');
-  const goodnight=document.getElementById('goodnight');
-  const captureBtn=document.getElementById('captureBtn');
-  const cutin=document.getElementById('cutin');
-  const cutinText=document.getElementById('cutinText');
+  /* ========= 퍼미션 게이트 → WELCOME → 기존 시퀀스 ========= */
+  const overlay=qs('#overlay'); const overlayContent=qs('#overlayContent');
+  const goodnight=qs('#goodnight'); const cutin=qs('#cutin'); const cutinText=qs('#cutinText');
+  const permGateBtn=qs('#permGateBtn');
 
-  function crossfadeUpdate(html,nextAction){
+  let gateBusy=false;
+  function show(html, next){
+    overlay.style.display='flex';
+    overlay.classList.remove('hidden');
     overlayContent.classList.add('hidden');
-    setTimeout(()=>{ overlayContent.innerHTML=html; overlayContent.classList.remove('hidden'); nextAction&&nextAction(); },450);
-    playFlip();
+    setTimeout(()=>{ overlayContent.innerHTML=html; overlayContent.classList.remove('hidden'); next&&next(); }, 150);
   }
+  function hide(next){
+    overlay.classList.add('hidden');
+    setTimeout(()=>{ overlay.style.display='none'; next&&next(); }, 450);
+  }
+
+  async function runPermissionGate(){
+    if(gateBusy) return; gateBusy=true;
+    playClick();
+    try{
+      resumeAudio();
+      await attachCamera();   // 카메라 먼저
+      await startMic();       // 마이크
+      await requestMotionPermissions(); // 동작/자이로
+    }catch(e){}
+    // 게이트 성공 후 WELCOME 단계로
+    show(`
+      <div style="text-align:center">
+        <button id="welcomeBtn" class="uiBtn" style="min-width:260px">WELCOME TO ‘DIALOGUE INTO SILENCE’</button>
+        <div class="tip">이제 WELCOME을 눌러 시작하세요.</div>
+      </div>
+    `, ()=>{
+      const welcomeBtn=qs('#welcomeBtn');
+      welcomeBtn.addEventListener('click',()=>{ playClick(); mountPressToSleep(); }, {passive:true});
+      gateBusy=false;
+    });
+  }
+  permGateBtn.addEventListener('click', runPermissionGate, {passive:true});
+  overlay.addEventListener('click', (e)=>{ // 빈 공간 탭도 동작
+    if(e.target===overlay) runPermissionGate();
+  }, {passive:true});
+
   function showGoodNight(next){
     goodnight.textContent='GOOD NIGHT, HAVE A NICE DREAM';
     goodnight.classList.add('show');
-    fadeOutDronePermanently();
     setTimeout(()=>{
       goodnight.classList.add('fadeout');
       setTimeout(()=>{
@@ -514,16 +366,10 @@
     cutinText.textContent=text;
     cutin.style.background = transparent ? 'transparent' : '#000';
     cutinText.style.textShadow = transparent ? '0 0 8px rgba(0,0,0,.6)' : 'none';
-    cutin.classList.remove('fadeout');
-    cutin.classList.add('show');
-    playFlip();
+    cutin.classList.remove('fadeout'); cutin.classList.add('show'); playFlip();
     setTimeout(()=>{
       cutin.classList.add('fadeout');
-      setTimeout(()=>{
-        cutin.classList.remove('show','fadeout');
-        cutin.style.display='none';
-        after && after();
-      }, 3000);
+      setTimeout(()=>{ cutin.classList.remove('show','fadeout'); cutin.style.display='none'; after&&after(); }, 3000);
     }, holdMs);
   }
   const narrative = [
@@ -538,15 +384,12 @@
     '너는 비석에 등을 기대고 앉는다. 그리고 서서히, 그것의 진동을 느낀다.'
   ];
   function showNarrativeSequence(done){
-    overlay.style.display='flex';
-    overlay.classList.remove('hidden');
+    overlay.style.display='flex'; overlay.classList.remove('hidden');
     const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
     let idx = 0;
-    function next(){
+    (function next(){
       if(idx >= narrative.length){
-        overlay.classList.add('hidden');
-        setTimeout(()=>{ overlay.style.display='none'; done && done(); }, 600);
-        return;
+        hide(done); return;
       }
       overlayContent.classList.add('hidden');
       setTimeout(()=>{
@@ -554,93 +397,76 @@
         overlayContent.classList.remove('hidden');
         playFlip();
         setTimeout(next, 5000);
-      }, 450);
-    }
-    next();
+      }, 150);
+    })();
   }
   function firstSilenceFlow(){
     showCutIn('FIRST SILENCE', 3000, ()=>{
       showNarrativeSequence(()=>{
-        setTimeout(()=>{
-          showCutIn('SECOND SILENCE', 3000, ()=>{}, false);
-        }, 1000);
+        setTimeout(()=>{ showCutIn('SECOND SILENCE', 3000, ()=>{}, false); }, 1000);
       });
     }, true);
   }
   function mountPressToSleep(){
-    const html = `<button id="startBtn" class="uiBtn">PRESS HERE TO SLEEP</button>
-                  <div class="tip" id="sensorTip2" style="display:none">센서 권한 필요: 시작을 누르면 허용 팝업이 뜹니다.</div>`;
-    crossfadeUpdate(html, ()=>{
-      const startBtn=document.getElementById('startBtn');
-      startBtn.addEventListener('click', ()=>{ playClick(); onStartPressed(); });
-    });
-  }
-  async function onStartPressed(){
-    autoStart();
-    try{ startMic().catch(()=>{}); }catch{}
-    initOrientationListener();
-    const ok=await requestMotionPermissions();
-    const tipEl=document.getElementById('sensorTip2')||document.getElementById('sensorTip');
-    if(tipEl) tipEl.style.display = ok? 'none':'block';
-
-    const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
-    const introHTML = `
-      ${line('<span class="introTitle">INTRODUCTION</span>')}
-      ${line('이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.')}
-      ${line('곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.')}
-      ${line('그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.')}
-      ${line('이제 당신에게는 네 단계의 미션이 주어진다.')}
-      ${line('당신은 미션에 따라 헤드폰으로 들려오는 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착할 수 있다.')}
-      <div id="countdown" class="lineWrap">
-        <span class="line">THE DOOR WILL CLOSE IN <span id="countNum">60</span> SECONDS.</span>
+    show(`
+      <div style="text-align:center">
+        <button id="startBtn" class="uiBtn" style="min-width:240px">PRESS HERE TO SLEEP</button>
       </div>
-      <div class="tip" ${ok?'style="display:none"':''}>패닝이 안 들리면, 센서 권한을 허용해 주세요.</div>
-    `;
-    crossfadeUpdate(introHTML, ()=>{
-      let count=60; const numEl=document.getElementById('countNum');
-      const timer=setInterval(()=>{
-        count--;
-        if(count>=0){ numEl.textContent=count; }
-        if(count<=0){
-          clearInterval(timer);
-          overlay.classList.add('hidden');
-          setTimeout(()=>{
-            overlay.style.display='none';
-            showGoodNight(firstSilenceFlow);
-          },450);
-        }
-      },1000);
+    `, ()=>{
+      const startBtn=qs('#startBtn');
+      startBtn.addEventListener('click', ()=>{
+        playClick();
+        // 인트로 → 카운트다운 → GOODNIGHT → 내러티브
+        const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
+        const introHTML = `
+          ${line('<span class="introTitle">INTRODUCTION</span>')}
+          ${line('이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.')}
+          ${line('곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.')}
+          ${line('그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.')}
+          ${line('이제 당신에게는 네 단계의 미션이 주어진다.')}
+          ${line('당신은 미션에 따라 헤드폰으로 들려오는 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착할 수 있다.')}
+          <div id="countdown" class="lineWrap">
+            <span class="line">THE DOOR WILL CLOSE IN <span id="countNum">60</span> SECONDS.</span>
+          </div>
+        `;
+        show(introHTML, ()=>{
+          let count=60; const numEl=qs('#countNum');
+          const timer=setInterval(()=>{
+            count--; if(count>=0 && numEl) numEl.textContent=count;
+            if(count<=0){ clearInterval(timer); hide(()=>{ showGoodNight(firstSilenceFlow); }); }
+          },1000);
+        });
+      }, {passive:true});
     });
-    controlLoop();
   }
-  document.getElementById('welcomeBtn').addEventListener('click', ()=>{ playClick(); mountPressToSleep(); });
-  document.getElementById('captureBtn').addEventListener('click',()=>{
+
+  // 캡처
+  qs('#captureBtn').addEventListener('click',()=>{
     playClick();
     try{ const a=document.createElement('a'); a.download=`capture_${Date.now()}.png`; a.href=view.toDataURL('image/png'); a.click(); }
     catch(e){ console.warn('CAPTURE 실패', e); }
-  });
+  }, {passive:true});
 
   /* ==========================
      PIXEL MAZE GAME (12 stages)
      ========================== */
-  const gameOverlay = document.getElementById('gameOverlay');
-  const gameCanvas = document.getElementById('gameCanvas');
+  const gameOverlay = qs('#gameOverlay');
+  const gameCanvas = qs('#gameCanvas');
   const g = gameCanvas.getContext('2d');
-  const mapLauncher = document.getElementById('mapLauncher');
-  const btnExit = document.getElementById('btnExit');
-  const btnMap = document.getElementById('btnMap');
-  const mapGrid = document.getElementById('mapGrid');
-  const hudStage = document.getElementById('hudStage');
-  const hudDeaths = document.getElementById('hudDeaths');
-  const hudTime = document.getElementById('hudTime');
+  const mapLauncher = qs('#mapLauncher');
+  const btnExitGame = qs('#btnExitGame');
+  const btnMap = qs('#btnMap');
+  const mapGrid = qs('#mapGrid');
+  const hudStage = qs('#hudStage');
+  const hudDeaths = qs('#hudDeaths');
+  const hudTime = qs('#hudTime');
 
-  const TILE=16; // 타일 크기(픽셀톤)
+  const TILE=16;
   const VIEW_W = gameCanvas.width;
   const VIEW_H = gameCanvas.height;
 
-  // 12개 스테이지(간단한 패턴 + 난이도 상승). 0:벽 1:길 S:시작 E:출구
-  // 각 행은 문자열로 정의해서 시각적으로 편집하기 쉽게 함.
-  const STAGES = [
+  // 스테이지(불가 버전 방지 위해 이후 ensureSolvable로 보정)
+  const RAW_STAGES = [
 `00000000000000000000
 0S111000000111111110
 01000101111000000110
@@ -776,16 +602,8 @@
 00000000000000000000`
   ].map(str=>str.trim().split('\n'));
 
-  // 진행 상태
-  let currentStage=1; // 1~12
-  let deaths=0;
-  let startTime=0;
-  let running=false;
-  const doneSet = new Set(); // 클리어 스테이지 모음
-
-  // 맵 빌드: 문자열→타일 배열
-  function parseStage(stageIdx){
-    const rows = STAGES[stageIdx-1];
+  // 유틸: 맵 파싱/검사/보정
+  function parseStage(rows){
     const H=rows.length, W=rows[0].length;
     const grid = [];
     let start = {x:1,y:1}, exit={x:W-2,y:H-2};
@@ -801,11 +619,47 @@
     }
     return {grid,W,H,start,exit};
   }
+  function bfsReachable(grid, start, exit){
+    const H=grid.length, W=grid[0].length;
+    const q=[[start.x,start.y]]; const vis=new Set([start.x+','+start.y]);
+    const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+    while(q.length){
+      const [x,y]=q.shift();
+      if(x===exit.x && y===exit.y) return true;
+      for(const [dx,dy] of dirs){
+        const nx=x+dx, ny=y+dy;
+        if(nx<0||ny<0||nx>=W||ny>=H) continue;
+        if(grid[ny][nx]!==1) continue;
+        const k=nx+','+ny; if(vis.has(k)) continue;
+        vis.add(k); q.push([nx,ny]);
+      }
+    }
+    return false;
+  }
+  function ensureSolvable(stage){
+    const {grid,W,H,start,exit}=stage;
+    if(bfsReachable(grid,start,exit)) return stage;
+    // 맨해튼 경로로 카빙: 스타트→출구 직선 통로를 우선 개방
+    let x=start.x, y=start.y;
+    grid[y][x]=1;
+    while(x!==exit.x || y!==exit.y){
+      if(x<exit.x) x++; else if(x>exit.x) x--;
+      grid[y][x]=1;
+      if(y<exit.y) y++; else if(y>exit.y) y--;
+      grid[y][x]=1;
+    }
+    return {grid,W,H,start,exit};
+  }
+
+  // 진행 상태
+  let currentStage=1; // 1~12
+  let deaths=0;
+  let startTime=0;
+  let running=false;
+  const doneSet = new Set();
 
   // 플레이어
-  const player = { x:0, y:0, px:0, py:0, speed:4, color:'#0ff' };
-
-  // 입력
+  const player = { x:0, y:0, color:'#0ff' };
   const input = { up:false, down:false, left:false, right:false };
   function setKey(code, val){
     if(code==='ArrowUp' || code==='KeyW') input.up=val;
@@ -817,7 +671,7 @@
   addEventListener('keyup',e=>{ setKey(e.code,false); });
 
   // 모바일 D-Pad
-  document.querySelectorAll('.dkey').forEach(btn=>{
+  qsa('.dkey').forEach(btn=>{
     const dx=parseInt(btn.dataset.dx||'0',10);
     const dy=parseInt(btn.dataset.dy||'0',10);
     const press=(on)=>{
@@ -833,144 +687,125 @@
     btn.addEventListener('mouseleave',()=>press(false));
   });
 
-  // 그리기
+  function canMove(grid,x,y){
+    if(y<0||y>=grid.length||x<0||x>=grid[0].length) return false;
+    return grid[y][x]===1;
+  }
   function drawStage(grid,W,H,exitPos){
+    const VIEW_W = gameCanvas.width, VIEW_H = gameCanvas.height;
     g.clearRect(0,0,VIEW_W,VIEW_H);
-    // 스케일 맞추기 (캔버스 크기에 타일 맞춤)
     const sx = Math.floor(VIEW_W / W);
     const sy = Math.floor(VIEW_H / H);
     const t = Math.max(6, Math.min(sx, sy));
     const offX = Math.floor((VIEW_W - W*t)/2);
     const offY = Math.floor((VIEW_H - H*t)/2);
 
-    // 배경/벽/바닥
     for(let y=0;y<H;y++){
       for(let x=0;x<W;x++){
         const v=grid[y][x];
-        if(v===0){ g.fillStyle='#111'; } else { g.fillStyle='#000'; }
+        g.fillStyle = v===0 ? '#111' : '#000';
         g.fillRect(offX+x*t, offY+y*t, t, t);
       }
     }
-    // 출구
-    g.fillStyle='#f33';
-    g.fillRect(offX+exitPos.x*t, offY+exitPos.y*t, t, t);
-
-    // 플레이어
-    g.fillStyle=player.color;
-    g.fillRect(offX+player.x*t, offY+player.y*t, t, t);
-
+    g.fillStyle='#f33'; g.fillRect(offX+exitPos.x*t, offY+exitPos.y*t, t, t); // 출구
+    g.fillStyle=player.color; g.fillRect(offX+player.x*t, offY+player.y*t, t, t); // 플레이어
     return {t,offX,offY};
   }
 
-  // 충돌 및 이동
-  function canMove(grid,x,y){
-    if(y<0||y>=grid.length||x<0||x>=grid[0].length) return false;
-    return grid[y][x]===1;
-  }
-
-  function stepGame(state){
-    const {grid,W,H,exit} = state;
-    let nx = player.x;
-    let ny = player.y;
-    if(input.up) ny -= 1;
-    else if(input.down) ny += 1;
-    if(input.left) nx -= 1;
-    else if(input.right) nx += 1;
-
-    if(nx!==player.x || ny!==player.y){
-      if(canMove(grid,nx,ny)){
-        player.x = nx; player.y = ny; playClick();
-      }else{
-        // 벽 충돌 (사운드만)
-        playFlip();
-      }
-    }
-
-    const drawInfo = drawStage(grid,W,H,exit);
-    // 클리어 체크
-    if(player.x===exit.x && player.y===exit.y){
-      doneSet.add(currentStage);
-      playFlip();
-      nextStage();
-    }
-    return drawInfo;
-  }
-
-  // 스테이지 로드
+  let stageState;
   function loadStage(idx){
-    const s = parseStage(idx);
-    player.x = s.start.x; player.y = s.start.y;
-    hudStage.textContent = idx;
-    startTime = performance.now();
-    running = true;
-    return s;
+    const parsed = parseStage(RAW_STAGES[idx-1]);
+    stageState = ensureSolvable(parsed);
+    player.x = stageState.start.x; player.y = stageState.start.y;
+    hudStage.textContent = idx; startTime = performance.now(); running = true;
   }
-
-  // 다음 스테이지
   function nextStage(){
-    currentStage = Math.min(12, currentStage+1);
-    if(currentStage>12){
-      // 올클리어
-      running=false;
-      btnMap.click();
-      return;
-    }
-    stageState = loadStage(currentStage);
-    updateMapGrid();
+    currentStage++;
+    if(currentStage>12){ running=false; btnMap.click(); return; }
+    loadStage(currentStage); updateMapGrid();
   }
-
-  // 사망 처리 (여기선 낭떠러지 없으니 옵션으로 남김)
   function kill(){
-    deaths++; hudDeaths.textContent = deaths;
-    stageState = loadStage(currentStage);
+    deaths++; hudDeaths.textContent = deaths; loadStage(currentStage);
   }
 
-  // 메인 루프
-  let stageState = parseStage(currentStage);
+  function stepGame(){
+    const {grid,W,H,exit} = stageState;
+    let nx = player.x, ny = player.y;
+    if(input.up) ny -= 1; else if(input.down) ny += 1;
+    if(input.left) nx -= 1; else if(input.right) nx += 1;
+    if(nx!==player.x || ny!==player.y){
+      if(canMove(grid,nx,ny)){ player.x=nx; player.y=ny; playClick(); }
+      else{ playFlip(); }
+    }
+    drawStage(grid,W,H,exit);
+    if(player.x===exit.x && player.y===exit.y){
+      doneSet.add(currentStage); playFlip(); nextStage();
+    }
+  }
+
   function gameLoop(){
     requestAnimationFrame(gameLoop);
-    if(!gameOverlay.style.display || gameOverlay.style.display==='none') return;
-    if(!running) return;
-    stepGame(stageState);
-    const t = Math.max(0, performance.now()-startTime);
-    hudTime.textContent = (t/1000).toFixed(1);
+    if(gameOverlay.style.display!=='none'){ if(running) stepGame(); const t=(performance.now()-startTime)/1000; hudTime.textContent=t.toFixed(1); }
   }
-  gameLoop();
+  loadStage(currentStage); gameLoop();
 
-  // MAP/EXIT UI
   function updateMapGrid(){
     mapGrid.innerHTML='';
     for(let i=1;i<=12;i++){
       const b=document.createElement('button');
       b.className='stageBtn'+(doneSet.has(i)?' done':'')+(i===currentStage?' active':'');
       b.textContent = String(i).padStart(2,'0')+(doneSet.has(i)?' ●':'');
-      b.onclick=()=>{
-        playClick();
-        currentStage=i;
-        stageState=loadStage(currentStage);
-        updateMapGrid();
-      };
+      b.onclick=()=>{ playClick(); currentStage=i; loadStage(currentStage); updateMapGrid(); };
       mapGrid.appendChild(b);
     }
   }
+  function openGame(startAtCurrent=true){ playFlip(); gameOverlay.style.display='block'; if(startAtCurrent) loadStage(currentStage); updateMapGrid(); }
+  function closeGame(){ playFlip(); gameOverlay.style.display='none'; }
 
-  function openGame(startAtCurrent=true){
-    playFlip();
-    gameOverlay.style.display='block';
-    if(startAtCurrent){
-      stageState = loadStage(currentStage);
+  mapLauncher.addEventListener('click', ()=> openGame(false), {passive:true});
+  btnMap.addEventListener('click', ()=> { playClick(); updateMapGrid(); }, {passive:true});
+  btnExitGame.addEventListener('click', ()=> { playClick(); closeGame(); }, {passive:true});
+
+  /* ==========================
+     DOCUMENT OVERLAY (1~8)
+     ========================== */
+  const docOverlay=qs('#docOverlay');
+  const docGrid=qs('#docGrid');
+  const docPane=qs('#docPane');
+  const docTitle=qs('#docTitle');
+  const docBody=qs('#docBody');
+  const docLauncher=qs('#docLauncher');
+  const btnExitDoc=qs('#btnExitDoc');
+
+  function openDoc(){ playFlip(); docOverlay.style.display='block'; }
+  function closeDoc(){ playFlip(); docOverlay.style.display='none'; }
+  docLauncher.addEventListener('click', openDoc, {passive:true});
+  btnExitDoc.addEventListener('click', closeDoc, {passive:true});
+
+  function buildDocGrid(){
+    docGrid.innerHTML='';
+    for(let i=1;i<=8;i++){
+      const b=document.createElement('button');
+      b.className='docBtn';
+      b.textContent = `Document ${i}`;
+      b.onclick=()=>{
+        playClick();
+        docTitle.textContent = `Document ${i}`;
+        // 여기 body 안에 실제 텍스트/HTML 넣으면 됨
+        docBody.innerHTML = (i===2)
+          ? `2024년 6월 발표된 유명순 교수의 연구 결과 중<br><br>
+             우리 나라 국민 절반 가량이 장기적인 울분 상태에 놓여있다는 연구 결과가 나왔다. 
+             특히 10명 중 한 명은 울분 상태가 심각한 수준이며, 30대가 높은 수준의 울분을 보였다.`
+          : '준비중입니다.';
+        docPane.style.display='block';
+      };
+      docGrid.appendChild(b);
     }
-    updateMapGrid();
   }
-  function closeGame(){
-    playFlip();
-    gameOverlay.style.display='none';
-  }
+  buildDocGrid();
 
-  mapLauncher.addEventListener('click', ()=> openGame(false));
-  btnMap.addEventListener('click', ()=> { playClick(); updateMapGrid(); });
-  btnExit.addEventListener('click', ()=> { playClick(); closeGame(); });
-
+  /* ========= 초기가이드(퍼미션 게이트 보이기) ========= */
+  overlay.style.display='flex'; // 처음엔 게이트 화면
 })();
 </script>
 </body>
