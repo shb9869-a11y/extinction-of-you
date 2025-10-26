@@ -12,96 +12,146 @@
 
 <style>
   :root{
-    --frame:40px; --ui-gap:8px;
-    --fs-body:clamp(12px,2.2vmin,16px);
-    --fs-strong:clamp(14px,2.8vmin,20px);
-    --fs-small:clamp(11px,1.8vmin,14px);
-    --pad-line:clamp(4px,0.9vmin,8px);
-    --pad-btn-y:clamp(6px,1.1vmin,10px);
-    --pad-btn-x:clamp(10px,1.8vmin,20px);
-    --box-alpha:.6;
+    --frame: 40px; --ui-gap: 8px;
+    --fs-body: clamp(12px, 2.2vmin, 16px);
+    --fs-strong: clamp(14px, 2.8vmin, 20px);
+    --fs-small: clamp(11px, 1.8vmin, 14px);
+    --pad-line: clamp(4px, 0.9vmin, 8px);
+    --pad-btn-y: clamp(6px, 1.1vmin, 10px);
+    --pad-btn-x: clamp(10px, 1.8vmin, 20px);
+    --box-alpha: .55;
   }
   html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:manipulation;font-family:"Courier New",monospace;-webkit-tap-highlight-color:transparent}
   button{appearance:none;-webkit-appearance:none}
-  #view{position:fixed;inset:0;display:block;z-index:0}
-  .frameBox{position:fixed;left:var(--frame);top:var(--frame);right:var(--frame);bottom:var(--frame);border:1px solid #000;pointer-events:none;z-index:50}
 
-  .uiBtn{background:rgba(0,0,0,var(--box-alpha));color:#fff;border:1px solid #000;font-size:var(--fs-strong);padding:var(--pad-btn-y) var(--pad-btn-x);white-space:nowrap;cursor:pointer;user-select:none}
+  /* 메인 카메라 캔버스 */
+  #view{position:fixed;inset:0;display:block;z-index:0}
+  .frameBox{
+    position:fixed;
+    left:calc(var(--frame) + env(safe-area-inset-left));
+    top:calc(var(--frame) + env(safe-area-inset-top));
+    right:calc(var(--frame) + env(safe-area-inset-right));
+    bottom:calc(var(--frame) + env(safe-area-inset-bottom));
+    border:1px solid #000; pointer-events:none; z-index:50;
+  }
+
+  .uiBtn{
+    background:rgba(0,0,0,var(--box-alpha));color:#fff;border:1px solid #000;
+    font-size:var(--fs-strong); padding:var(--pad-btn-y) var(--pad-btn-x);
+    white-space:nowrap; cursor:pointer; user-select:none
+  }
   .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
   .uiBtn[disabled]{opacity:.5;pointer-events:none}
 
-  .controls{position:fixed;right:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:100;display:flex;gap:6px;align-items:center}
+  .controls{
+    position:fixed;
+    right:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-right));
+    bottom:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-bottom));
+    z-index:100; display:flex; gap:6px; align-items:center
+  }
   .readout{min-width:48px;text-align:center;opacity:.9;font-size:var(--fs-small)}
-  .btn-capture{position:fixed;left:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:150}
+  .btn-capture{
+    position:fixed;
+    left:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-left));
+    bottom:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-bottom));
+    z-index:150;
+  }
+  #mapLauncher{
+    position:fixed;
+    right:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-right));
+    top:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-top));
+    z-index:280;
+  }
+  #docLauncher{
+    position:fixed;
+    left:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-left));
+    top:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-top));
+    z-index:280;
+  }
 
-  #mapLauncher{position:fixed;right:calc(var(--frame)+var(--ui-gap));top:calc(var(--frame)+var(--ui-gap));z-index:280}
-  #docLauncher{position:fixed;left:calc(var(--frame)+var(--ui-gap));top:calc(var(--frame)+var(--ui-gap));z-index:280}
-
-  /* 최상단 오버레이(탭/권한/인트로/내러티브 공용) */
+  /* 최상단 오버레이(권한/인트로/내러티브) */
   #overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;color:#fff;background:rgba(0,0,0,.72);touch-action:none}
   #overlay, #overlay *{pointer-events:auto!important;-webkit-user-select:none;-webkit-touch-callout:none}
-  #overlayContent{line-height:1.7;font-size:var(--fs-body);max-width:min(72ch,calc(100vw - (var(--frame)*2)));max-height:calc(100vh - (var(--frame)*2));overflow:hidden;text-align:left}
+  #overlayContent{line-height:1.7;font-size:var(--fs-body);
+    max-width:min(72ch, calc(100vw - (var(--frame)*2)));
+    max-height:calc(100vh - (var(--frame)*2));
+    overflow:hidden;text-align:left}
   .line{display:inline;background:rgba(0,0,0,var(--box-alpha));color:#fff;padding:calc(var(--pad-line)*0.8) var(--pad-line);box-decoration-break:clone;-webkit-box-decoration-break:clone}
   .lineWrap{margin:6px 0}
-  .fade{opacity:1;transition:opacity .45s ease}.fade.hidden{opacity:0}
+  .fade{opacity:1;transition:opacity .45s ease}
+  .fade.hidden{opacity:0}
   .tip{opacity:.75;font-size:var(--fs-small);margin-top:8px;text-align:center}
 
-  #hint{position:fixed;left:50%;bottom:calc(var(--frame) + 6px);transform:translateX(-50%);z-index:500;background:rgba(0,0,0,var(--box-alpha));color:#fff;border:1px solid #333;padding:8px 12px;font-size:var(--fs-small);display:none;white-space:pre-wrap;text-align:center}
+  /* 힌트 배너 */
+  #hint{
+    position:fixed; left:50%;
+    bottom:calc(var(--frame) + 6px + env(safe-area-inset-bottom));
+    transform:translateX(-50%); z-index:500;
+    background:rgba(0,0,0,var(--box-alpha)); color:#fff; border:1px solid #333;
+    padding:8px 12px; font-size:var(--fs-small); display:none; white-space:pre-wrap; text-align:center;
+  }
 
-  #goodnight{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:250;display:none;text-align:center;font-size:var(--fs-strong);color:#fff;background:rgba(0,0,0,var(--box-alpha));padding:var(--pad-btn-y) var(--pad-btn-x);white-space:nowrap;transition:opacity .6s ease}
-  #goodnight.show{display:block;opacity:1}#goodnight.fadeout{opacity:0}
-
+  #goodnight{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:250;display:none;text-align:center;
+    font-size:var(--fs-strong);color:#fff;background:rgba(0,0,0,var(--box-alpha));
+    padding:var(--pad-btn-y) var(--pad-btn-x);white-space:nowrap;transition:opacity .6s ease}
+  #goodnight.show{display:block;opacity:1} #goodnight.fadeout{opacity:0}
   #cutin{position:fixed;inset:0;z-index:260;display:none;align-items:center;justify-content:center;background:#000;color:#fff;text-align:center}
-  #cutin.show{display:flex;opacity:1;transition:opacity .45s ease}#cutin.fadeout{opacity:0}
+  #cutin.show{display:flex;opacity:1;transition:opacity .45s ease} #cutin.fadeout{opacity:0}
   #cutinText{font-size:clamp(24px,8vmin,64px);letter-spacing:.02em;line-height:1.2;padding:0 .2em}
 
-  /* GAME */
-  #gameOverlay{position:fixed;inset:0;z-index:300;display:none;background:rgba(0,0,0,.8);color:#fff}
-  #gameUI{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:10px;width:min(96vw,860px)}
-  #gameHeader{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px}
-  #gameCanvas{width:100%;height:60vh;background:#000;image-rendering:pixelated;border:1px solid #444}
-  #gameBtns{display:flex;gap:6px;align-items:center}
-  #mapGrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;width:100%}
-  .stageBtn{border:1px solid #444;background:rgba(0,0,0,var(--box-alpha));color:#fff;padding:8px 0;text-align:center;cursor:pointer;font-size:var(--fs-small)}
-  .stageBtn.done{border-color:#0f0;color:#0f0}.stageBtn.active{border-color:#fff}
-  #hud{display:flex;gap:12px;align-items:center;opacity:.85;font-size:var(--fs-small)}
+  /* ===== GAME ===== */
+  #gameOverlay{position:fixed; inset:0; z-index:300; display:none; background:rgba(0,0,0,.8); color:#fff;}
+  #gameUI{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; gap:10px; width:min(96vw, 860px);}
+  #gameHeader{ width:100%; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  #gameCanvas{ width:100%; height:60vh; background:#000; image-rendering:pixelated; border:1px solid #444 }
+  #gameBtns{ display:flex; gap:6px; align-items:center }
+  #mapGrid{ display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:6px; width:100% }
+  .stageBtn{ border:1px solid #444; background:rgba(0,0,0,var(--box-alpha)); color:#fff; padding:8px 0; text-align:center; cursor:pointer; font-size:var(--fs-small) }
+  .stageBtn.done{ border-color:#0f0; color:#0f0 } .stageBtn.active{ border-color:#fff }
+  #hud{ display:flex; gap:12px; align-items:center; opacity:.85; font-size:var(--fs-small) }
 
-  #dpad{position:absolute;left:var(--frame);bottom:calc(var(--frame)+64px);z-index:320;display:grid;grid-template-columns:repeat(3,48px);grid-template-rows:repeat(3,48px);gap:6px}
-  .dkey{width:48px;height:48px;border:1px solid #444;display:flex;align-items:center;justify-content:center;color:#fff;background:rgba(0,0,0,var(--box-alpha));opacity:.8;user-select:none}
-  .dkey:active{opacity:1}
+  /* 가상 D-Pad */
+  #dpad{ position:absolute; left:calc(var(--frame) + env(safe-area-inset-left)); bottom:calc(var(--frame) + 64px + env(safe-area-inset-bottom)); z-index:320;
+    display:grid; grid-template-columns:repeat(3,48px); grid-template-rows:repeat(3,48px); gap:6px; }
+  .dkey{ width:48px; height:48px; border:1px solid #444; display:flex; align-items:center; justify-content:center; color:#fff; background:rgba(0,0,0,var(--box-alpha)); opacity:.8; user-select:none; }
+  .dkey:active{ opacity:1 }
 
-  /* DOC */
-  #docOverlay{position:fixed;inset:0;z-index:310;display:none;background:rgba(0,0,0,.8);color:#fff}
-  #docUI{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(96vw,860px);display:flex;flex-direction:column;gap:10px}
-  #docHeader{display:flex;justify-content:space-between;align-items:center}
-  #docGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-  .docBtn{border:1px solid #444;background:rgba(0,0,0,var(--box-alpha));color:#fff;padding:10px;text-align:center;cursor:pointer;font-size:calc(var(--fs-small)*0.9)}
-  .docPane{border:1px solid #444;padding:12px;max-height:50vh;overflow:auto;background:#000}
-  .docTitle{font-size:var(--fs-strong);margin-bottom:8px}
-  #docPane,#docBody,.docBtn{white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere}
+  /* ===== DOC ===== */
+  #docOverlay{ position:fixed; inset:0; z-index:310; display:none; background:rgba(0,0,0,.8); color:#fff; }
+  #docUI{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(96vw,860px); display:flex; flex-direction:column; gap:10px }
+  #docHeader{ display:flex; justify-content:space-between; align-items:center }
+  #docGrid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px }
+  .docBtn{ border:1px solid #444; background:rgba(0,0,0,var(--box-alpha)); color:#fff; padding:10px; text-align:center; cursor:pointer; font-size:calc(var(--fs-small)*0.9) }
+  .docPane{ border:1px solid #444; padding:12px; max-height:50vh; overflow:auto; background:#000 }
+  .docTitle{ font-size:var(--fs-strong); margin-bottom:8px }
+  #docPane,#docBody,.docBtn{ white-space:pre-wrap; word-break:keep-all; overflow-wrap:anywhere }
 
-  @media (orientation:landscape){:root{--frame:32px}}
+  @media (orientation:landscape){ :root{ --frame:32px; } }
 </style>
 </head>
 <body>
   <canvas id="view"></canvas>
   <div class="frameBox" aria-hidden="true"></div>
 
+  <!-- 컨트롤 -->
   <div class="controls">
     <button class="uiBtn small" id="zoomOut" data-lock>–</button>
-    <div class="readout"><span id="zoomVal">1.2×</span></div>
+    <div class="readout"><span id="zoomVal">0.9×</span></div>
     <button class="uiBtn small" id="zoomIn" data-lock>+</button>
   </div>
   <button id="captureBtn" class="uiBtn small btn-capture" data-lock>CAPTURE</button>
 
+  <!-- 런처 -->
   <button id="docLauncher" class="uiBtn small" data-lock>DOCUMENT</button>
   <button id="mapLauncher" class="uiBtn small" data-lock>MAP</button>
 
-  <!-- 최상단 오버레이 (첫 탭으로 권한 요청 + 이후 화면들) -->
+  <!-- 오버레이 -->
   <div id="overlay" class="fade">
     <div id="overlayContent" class="fade" style="text-align:center">
       <button id="permGateBtn" class="uiBtn" style="width:min(80vw,420px)">화면을 탭하여 카메라·마이크·센서를 허용해주세요</button>
-      <div class="tip">허용이 실패하더라도 다음 화면으로 이동합니다.</div>
+      <div class="tip">허용이 실패해도 다음 화면으로 진행됩니다.</div>
+      <div class="tip" id="motionTip" style="display:none">iOS에서 센서 권한이 거절됨. 아래 버튼으로 다시 요청하세요.</div>
+      <button id="askMotionBtn" class="uiBtn small" style="margin-top:8px;display:none">동작/자이로 권한 다시 요청</button>
     </div>
   </div>
 
@@ -109,16 +159,24 @@
   <div id="cutin"><div id="cutinText">FIRST SILENCE</div></div>
   <div id="hint"></div>
 
-  <!-- GAME -->
+  <!-- ===== GAME ===== -->
   <div id="gameOverlay">
     <div id="gameUI">
       <div id="gameHeader">
-        <div id="hud"><span>STAGE: <span id="hudStage">1</span>/12</span><span>DEATHS: <span id="hudDeaths">0</span></span><span>TIME: <span id="hudTime">0.0</span>s</span></div>
-        <div id="gameBtns"><button id="btnMap" class="uiBtn small">MAP</button><button id="btnExitGame" class="uiBtn small">EXIT</button></div>
+        <div id="hud">
+          <span>STAGE: <span id="hudStage">1</span>/12</span>
+          <span>DEATHS: <span id="hudDeaths">0</span></span>
+          <span>TIME: <span id="hudTime">0.0</span>s</span>
+        </div>
+        <div id="gameBtns">
+          <button id="btnMap" class="uiBtn small">MAP</button>
+          <button id="btnExitGame" class="uiBtn small">EXIT</button>
+        </div>
       </div>
       <canvas id="gameCanvas" width="480" height="320"></canvas>
       <div id="mapGrid"></div>
     </div>
+    <!-- 모바일 DPAD -->
     <div id="dpad">
       <div></div><div class="dkey" data-dy="-1">↑</div><div></div>
       <div class="dkey" data-dx="-1">←</div><div class="dkey" data-dy="1">↓</div><div class="dkey" data-dx="1">→</div>
@@ -126,7 +184,7 @@
     </div>
   </div>
 
-  <!-- DOC -->
+  <!-- ===== DOC ===== -->
   <div id="docOverlay">
     <div id="docUI">
       <div id="docHeader">
@@ -147,7 +205,7 @@
   const qsa = s=>Array.from(document.querySelectorAll(s));
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 
-  /* ===== 상태/락 ===== */
+  /* ===== 락 ===== */
   function setLocked(on){
     qsa('[data-lock]').forEach(el=> on ? (el.setAttribute('disabled',''), el.setAttribute('aria-disabled','true')) : (el.removeAttribute('disabled'), el.removeAttribute('aria-disabled')));
   }
@@ -155,83 +213,164 @@
 
   /* ===== 힌트 ===== */
   const hint = qs('#hint');
-  const showHint=(txt,ms=4000)=>{ hint.textContent=txt; hint.style.display='block'; clearTimeout(showHint._t); showHint._t=setTimeout(()=>hint.style.display='none',ms); };
+  const showHint=(txt,ms=3500)=>{ hint.textContent=txt; hint.style.display='block'; clearTimeout(showHint._t); showHint._t=setTimeout(()=>hint.style.display='none',ms); };
 
-  /* ===== 오디오 ===== */
+  /* ===== 오디오 + 8-bit 피웅 ===== */
   let audioCtx=null, mixBus, sfxBus;
   function ensureAudio(){
     if(audioCtx) return audioCtx;
     audioCtx=new (window.AudioContext||window.webkitAudioContext)();
     mixBus=audioCtx.createGain(); mixBus.connect(audioCtx.destination);
-    sfxBus=audioCtx.createGain(); sfxBus.gain.value=0.55; sfxBus.connect(mixBus);
+    sfxBus=audioCtx.createGain(); sfxBus.gain.value=0.6; sfxBus.connect(mixBus);
     return audioCtx;
   }
   function resumeAudio(){ ensureAudio(); if(audioCtx.state==='suspended') return audioCtx.resume(); return Promise.resolve(); }
-  function bell(){ try{ const t=audioCtx.currentTime, o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type='triangle';
-    o.frequency.setValueAtTime(880,t); o.frequency.exponentialRampToValueAtTime(550,t+0.35);
-    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.6,t+0.05); g.gain.exponentialRampToValueAtTime(0.0001,t+0.8);
-    o.connect(g).connect(sfxBus); o.start(t); o.stop(t+0.85);}catch{} }
+  // 8-bit 스타일: square + 빠른 다운치irp + 짧은 게인 엔벨로프
+  function pew(){
+    try{
+      const t=audioCtx.currentTime;
+      const o=audioCtx.createOscillator(); o.type='square';
+      // 다운 치irp (피웅~)
+      o.frequency.setValueAtTime(1200,t);
+      o.frequency.exponentialRampToValueAtTime(320,t+0.12);
+      const g=audioCtx.createGain();
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.linearRampToValueAtTime(0.8,t+0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+0.14);
+      o.connect(g).connect(sfxBus);
+      o.start(t); o.stop(t+0.16);
+      if(navigator.vibrate) navigator.vibrate(10);
+    }catch{}
+  }
 
-  /* ===== 카메라(흑백 잔상) ===== */
+  /* ===== 카메라(흑백+잔상) : contain 모드 ===== */
   const view=qs('#view'), vctx=view.getContext('2d',{alpha:false});
-  const PROC_SCALE=0.60, TRAIL_ALPHA=0.12, GLOBAL_ALPHA=0.7;
-  let ZOOM=1.2, ZOOM_MIN=0.5, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
+  const PROC_SCALE=0.66, TRAIL_ALPHA=0.12, GLOBAL_ALPHA=0.7;
+  // contain을 쓰므로 기본 확대를 낮춤
+  let ZOOM=0.9, ZOOM_MIN=0.4, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
   const zoomVal=qs('#zoomVal'); const updateZoom=()=>zoomVal.textContent=ZOOM.toFixed(1)+'×';
-  qs('#zoomIn').onclick=()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom();bell();};
-  qs('#zoomOut').onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom();bell();};
+  qs('#zoomIn').onclick=()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom();pew();};
+  qs('#zoomOut').onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom();pew();};
   updateZoom();
 
   const camVideo=document.createElement('video'); camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
   const proc=document.createElement('canvas'); const pctx=proc.getContext('2d',{willReadFrequently:true});
   let camStream=null;
+
   function attachCamera(){ if(camStream) return Promise.resolve();
     return navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false})
       .then(s=>{ camStream=s; camVideo.srcObject=s; return camVideo.play().catch(()=>{}); });
   }
-  function resizeAll(){ const dpr=devicePixelRatio||1, w=innerWidth,h=innerHeight;
+  function resizeAll(){
+    const dpr=window.devicePixelRatio||1;
+    const w=window.innerWidth, h=window.innerHeight;
     view.width=w*dpr; view.height=h*dpr; vctx.setTransform(dpr,0,0,dpr,0,0);
-    const scale=matchMedia('(orientation:landscape)').matches? PROC_SCALE*0.9:PROC_SCALE;
+    // 내부 처리 캔버스는 화면의 일정 비율 (레티나 보정 없이)
+    const scale=(window.matchMedia('(orientation:landscape)').matches)? PROC_SCALE*0.9:PROC_SCALE;
     proc.width=Math.floor(w*scale); proc.height=Math.floor(h*scale);
   }
-  addEventListener('resize',()=>setTimeout(resizeAll,50),{passive:true}); resizeAll();
-  (function loop(){ requestAnimationFrame(loop);
-    const W=view.width/(devicePixelRatio||1), H=view.height/(devicePixelRatio||1), PW=proc.width, PH=proc.height;
+  resizeAll(); addEventListener('resize',()=>setTimeout(resizeAll,50),{passive:true});
+
+  (function loop(){
+    requestAnimationFrame(loop);
+    const W=view.width/(window.devicePixelRatio||1), H=view.height/(window.devicePixelRatio||1);
+    const PW=proc.width, PH=proc.height;
+    // 잔상
+    pctx.globalCompositeOperation="source-over";
     pctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`; pctx.fillRect(0,0,PW,PH);
-    if(camVideo.readyState>=2){ const vw=camVideo.videoWidth, vh=camVideo.videoHeight;
-      if(vw&&vh){ const base=Math.max(PW/vw,PH/vh), sc=base*ZOOM; const dw=vw*sc, dh=vh*sc, dx=(PW-dw)/2, dy=(PH-dh)/2;
+    if(camVideo.readyState>=2){
+      const vw=camVideo.videoWidth, vh=camVideo.videoHeight;
+      if(vw&&vh){
+        // contain 모드: 더 작은 비율을 사용하여 전체가 들어오게
+        const base=Math.min(PW/vw, PH/vh);
+        const sc=base*ZOOM;
+        const dw=vw*sc, dh=vh*sc, dx=(PW-dw)/2, dy=(PH-dh)/2;
         pctx.globalAlpha=GLOBAL_ALPHA; pctx.drawImage(camVideo,dx,dy,dw,dh); pctx.globalAlpha=1.0;
-        const frame=pctx.getImageData(0,0,PW,PH), d=frame.data; for(let i=0;i<d.length;i+=4){ const g=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0; d[i]=d[i+1]=d[i+2]=g; } pctx.putImageData(frame,0,0); } }
+        // 그레이스케일
+        const frame=pctx.getImageData(0,0,PW,PH), d=frame.data;
+        for(let i=0;i<d.length;i+=4){ const g=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0; d[i]=d[i+1]=d[i+2]=g; }
+        pctx.putImageData(frame,0,0);
+      }
+    }
     vctx.drawImage(proc,0,0,W,H);
   })();
 
-  /* ===== 마이크 + 패닝 ===== */
+  /* ===== 마이크 + 센서 패닝 ===== */
   let micStream=null, panNode=null, inputGain=null;
   function hookOrientationToPan(){
+    // 기울기에 따라 -1..1 패닝
     window.__panHandler__ && removeEventListener('deviceorientation', window.__panHandler__);
     window.__panHandler__=(e)=>{ if(!panNode) return; const gamma=e?.gamma??0; panNode.pan.value=Math.max(-1,Math.min(1,gamma/45)); };
     addEventListener('deviceorientation', window.__panHandler__, {passive:true});
   }
-  function pickBuiltInMicId(){ return navigator.mediaDevices.enumerateDevices().then(devs=>{
-    const cs=(devs||[]).filter(d=>d.kind==='audioinput'); const score=d=>{ const l=(d.label||'').toLowerCase();
-      return (/(built|내장|bottom|top|front|back)/.test(l)?5:0)+(/mic|microphone|마이크/.test(l)?3:0)-(/bluetooth|hands[- ]?free|hfp|hsp|headset/.test(l)?4:0); };
-    cs.sort((a,b)=>score(b)-score(a)); return cs[0]?.deviceId; }).catch(()=>undefined);
+  function pickBuiltInMicId(){
+    return navigator.mediaDevices.enumerateDevices().then(devs=>{
+      const cs=(devs||[]).filter(d=>d.kind==='audioinput');
+      const score=d=>{ const l=(d.label||'').toLowerCase();
+        return (/(built|내장|bottom|top|front|back)/.test(l)?5:0)+(/mic|microphone|마이크/.test(l)?3:0)-(/bluetooth|hands[- ]?free|hfp|hsp|headset/.test(l)?4:0); };
+      cs.sort((a,b)=>score(b)-score(a)); return cs[0]?.deviceId;
+    }).catch(()=>undefined);
   }
   function routeMic(stream){
-    const src=audioCtx.createMediaStreamSource(stream);
-    inputGain=audioCtx.createGain(); inputGain.gain.value=1.0;
-    panNode=audioCtx.createStereoPanner(); panNode.pan.value=0;
-    src.connect(inputGain).connect(panNode).connect(mixBus); hookOrientationToPan();
+    const ac=ensureAudio();
+    const src=ac.createMediaStreamSource(stream);
+    inputGain=ac.createGain(); inputGain.gain.value=1.0;
+    panNode=ac.createStereoPanner(); panNode.pan.value=0;
+    src.connect(inputGain).connect(panNode).connect(mixBus);
+    hookOrientationToPan();
+  }
+  function startMicAuto(){
+    return resumeAudio().then(()=>{
+      return navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:{ideal:1}},video:false});
+    }).then(tmp=>{
+      return pickBuiltInMicId().then(id=>{
+        if(!id) return tmp;
+        try{ tmp.getTracks().forEach(t=>t.stop()); }catch{}
+        return navigator.mediaDevices.getUserMedia({audio:{deviceId:{exact:id},echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:{ideal:1}},video:false});
+      });
+    }).then(stream=>{
+      micStream=stream; routeMic(stream);
+      if((audioCtx.sampleRate||0)<=16000){ showHint('BT가 통화 모드일 수 있어요(모노 가능).'); }
+    }).catch(()=>{ /* ignore */ });
   }
 
   /* ===== 센서 권한 ===== */
+  const askMotionBtn=qs('#askMotionBtn'); const motionTip=qs('#motionTip');
   function requestMotionPermissions(){
+    let asked=false;
     const tasks=[];
-    try{ if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){ tasks.push(DeviceOrientationEvent.requestPermission().catch(()=>{})); } }catch{}
-    try{ if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){ tasks.push(DeviceMotionEvent.requestPermission().catch(()=>{})); } }catch{}
-    return Promise.all(tasks);
+    try{
+      if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
+        asked=true;
+        tasks.push(DeviceOrientationEvent.requestPermission().then(r=>r).catch(()=> 'denied'));
+      }
+    }catch{}
+    try{
+      if(typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function'){
+        asked=true;
+        tasks.push(DeviceMotionEvent.requestPermission().then(r=>r).catch(()=> 'denied'));
+      }
+    }catch{}
+    if(!asked){
+      // iOS 12-/Android: 별도 팝업 없음(바로 사용 가능)
+      return Promise.resolve(['granted']);
+    }
+    return Promise.all(tasks).then(results=>{
+      const ok=results.some(r=>r==='granted');
+      motionTip.style.display = ok ? 'none' : 'block';
+      askMotionBtn.style.display = ok ? 'none' : 'inline-block';
+      return ok? 'granted':'denied';
+    });
   }
+  askMotionBtn.addEventListener('click', ()=>{
+    // 재요청(버튼은 항상 사용자 제스처)
+    requestMotionPermissions().then(state=>{
+      if(state==='granted'){ showHint('동작/자이로 권한 허용됨'); hookOrientationToPan(); }
+      else showHint('설정 > Safari > 모션 접근 허용을 확인해주세요.');
+    });
+  }, {passive:true});
 
-  /* ===== 퍼미션 게이트: 첫 탭에서 gUM 실행(콜스택 유지) ===== */
+  /* ===== 퍼미션 게이트 ===== */
   const overlay=qs('#overlay'), overlayContent=qs('#overlayContent'), permGateBtn=qs('#permGateBtn');
   let gateDone=false;
 
@@ -242,49 +381,38 @@
         <button id="welcomeBtn" class="uiBtn" style="min-width:260px">WELCOME TO ‘DIALOGUE INTO SILENCE’</button>
         <div class="tip">WELCOME을 눌러 시작하세요.</div>
       </div>`;
-    qs('#welcomeBtn').addEventListener('click', ()=>{ bell(); mountIntro(); }, {passive:true});
+    qs('#welcomeBtn').addEventListener('click', ()=>{ pew(); mountIntro(); }, {passive:true});
   }
 
   function firstTapHandler(){
     if(gateDone) return;
-    // 1) 오디오 컨텍스트 활성화
-    resumeAudio().then(()=>{ bell(); });
+    resumeAudio().then(()=>{ pew(); });
 
-    // 2) 비디오/오디오 권한을 같은 제스처 콜스택에서 gUM 호출 (await 금지)
-    const askVideo = navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}, audio:false})
-      .then(s=>{ camStream=s; camVideo.srcObject=s; return camVideo.play().catch(()=>{}); });
-    const askAudio = navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:{ideal:1}}, video:false})
-      .then(stream=>{
-        // 내장 마이크로 재시도(가능 시)
-        return pickBuiltInMicId().then(id=>{
-          if(!id) return stream;
-          try{ stream.getTracks().forEach(t=>t.stop()); }catch{}
-          return navigator.mediaDevices.getUserMedia({audio:{deviceId:{exact:id},echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:{ideal:1}},video:false});
-        });
-      })
-      .then(stream=>{ micStream=stream; routeMic(stream); });
+    const askVideo = attachCamera();            // same gesture chain
+    const askAudio = startMicAuto();            // same gesture chain
+    const askMotion = requestMotionPermissions(); // same gesture chain → iOS 팝업
 
-    // 3) 센서 권한은 뒤에서(같은 제스처 이후) 시도
-    Promise.allSettled([askVideo, askAudio]).then(()=>requestMotionPermissions()).finally(()=>{
-      proceedToWelcome(); // 성공/실패 상관없이 다음 화면
+    Promise.allSettled([askVideo, askAudio, askMotion]).finally(()=>{
+      proceedToWelcome(); // 성공/실패 무관
     });
   }
 
   permGateBtn.addEventListener('click', firstTapHandler, {passive:true});
   overlay.addEventListener('click', e=>{ if(e.target===overlay) firstTapHandler(); }, {passive:true});
-  // 혹시 버튼 클릭이 막혀도 화면 아무데나 첫 touchstart에서 실행
   document.addEventListener('touchstart', ()=>firstTapHandler(), {passive:true, once:true});
-  // 초기 오버레이 노출
   overlay.style.display='flex';
+
+  /* ===== 오버레이 유틸 ===== */
+  function hideOverlay(next){ overlay.classList.add('hidden'); setTimeout(()=>{ overlay.style.display='none'; setLocked(false); next&&next(); },450); }
+  function showOverlayHTML(html,after){ setLocked(true); overlay.style.display='flex'; overlay.classList.remove('hidden'); overlayContent.classList.add('hidden'); setTimeout(()=>{ overlayContent.innerHTML=html; overlayContent.classList.remove('hidden'); after&&after(); },150); }
 
   /* ===== INTRO / NARRATIVE ===== */
   const goodnight=qs('#goodnight'), cutin=qs('#cutin'), cutinText=qs('#cutinText');
-  function hideOverlay(next){ overlay.classList.add('hidden'); setTimeout(()=>{ overlay.style.display='none'; setLocked(false); next&&next(); },450); }
-  function showOverlayHTML(html,after){ setLocked(true); overlay.style.display='flex'; overlay.classList.remove('hidden'); overlayContent.classList.add('hidden'); setTimeout(()=>{ overlayContent.innerHTML=html; overlayContent.classList.remove('hidden'); after&&after(); },150); }
-  function showGoodNight(next){ bell(); goodnight.classList.add('show'); setTimeout(()=>{ goodnight.classList.add('fadeout'); setTimeout(()=>{ goodnight.classList.remove('show','fadeout'); goodnight.style.display='none'; next&&next(); },800); },5000); }
-  function showCutIn(text='FIRST SILENCE', hold=2500, after){ cutinText.textContent=text; cutin.classList.add('show'); bell(); setTimeout(()=>{ cutin.classList.add('fadeout'); setTimeout(()=>{ cutin.classList.remove('show','fadeout'); cutin.style.display='none'; after&&after(); },3000); },hold); }
+  function showGoodNight(next){ pew(); goodnight.classList.add('show'); setTimeout(()=>{ goodnight.classList.add('fadeout'); setTimeout(()=>{ goodnight.classList.remove('show','fadeout'); goodnight.style.display='none'; next&&next(); },800); },5000); }
+  function showCutIn(text='FIRST SILENCE', hold=2500, after){ cutinText.textContent=text; cutin.classList.add('show'); pew(); setTimeout(()=>{ cutin.classList.add('fadeout'); setTimeout(()=>{ cutin.classList.remove('show','fadeout'); cutin.style.display='none'; after&&after(); },3000); },hold); }
 
-  const narrative=[ '자욱한 안개가 너를 맞이했다. 거대한 비석을 너는 마주했다. 거대한 비석들의 웅얼거림을 너는 들을 수 있었다.',
+  const narrative = [
+    '자욱한 안개가 너를 맞이했다. 거대한 비석을 너는 마주했다. 거대한 비석들의 웅얼거림을 너는 들을 수 있었다.',
     '어디선가 잔잔한 종소리가 들려온다. 어디선가 께름칙한 울음소리가 들려온다. 어디선가 아이들의 웃음소리가 들려온다.',
     '너는 비석 사이를 거닐고 있다. 너를 스쳐 지나가며 웅얼거리는 소리에 귀를 기울인다.',
     '비석마다 다른 목소리가 담겨 있다. 어떤 것은 꿈을 이야기하고, 어떤 것은 기억을 읊고, 또 어떤 것은 아직 말하지 못한 언어로 중얼거린다.',
@@ -292,21 +420,23 @@
     '그리고, 지금도 여전히 그들의 호흡은 돌 틈에 스며 있고, 그들의 그림자는 안개 속에 머물며, 그들의 말하지 못한 시간은 너의 귀끝을 잡아당긴다.',
     '너는 발걸음을 멈춘다. 왜인지 이곳에 머물러야 한다는 느낌을 받는다.',
     '너는 그곳으로 발을 옮긴다. 그곳엔, 이곳에 존재했던 누군가의 ‘목소리’가 있다.',
-    '너는 비석에 등을 기대고 앉는다. 그리고 서서히, 그것의 진동을 느낀다.' ];
+    '너는 비석에 등을 기대고 앉는다. 그리고 서서히, 그것의 진동을 느낀다.'
+  ];
   function showNarrativeSequence(done){
     overlay.style.display='flex'; overlay.classList.remove('hidden');
     const line=s=>`<div class="lineWrap"><span class="line">${s}</span></div>`; let i=0;
     (function next(){ if(i>=narrative.length){ hideOverlay(done); return; }
-      overlayContent.classList.add('hidden'); setTimeout(()=>{ overlayContent.innerHTML=line(narrative[i++]); overlayContent.classList.remove('hidden'); bell(); setTimeout(next,5000); },150);
+      overlayContent.classList.add('hidden'); setTimeout(()=>{ overlayContent.innerHTML=line(narrative[i++]); overlayContent.classList.remove('hidden'); pew(); setTimeout(next,5000); },150);
     })();
   }
+
   function mountIntro(){
     showOverlayHTML(`
       <div style="text-align:center">
         <button id="startIntro" class="uiBtn" style="min-width:240px">PRESS HERE TO SLEEP</button>
       </div>`, ()=>{
       qs('#startIntro').addEventListener('click', ()=>{
-        bell();
+        pew();
         const line=s=>`<div class="lineWrap"><span class="line">${s}</span></div>`;
         const html=`
           ${line('<span class="introTitle">INTRODUCTION</span>')}
@@ -317,7 +447,7 @@
           ${line('당신은 미션에 따라 헤드폰으로 들려오는 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착할 수 있다.')}
           <div id="countdown" style="margin-top:12px;text-align:center;">THE DOOR WILL CLOSE IN <span id="countNum">60</span> SECONDS.</div>`;
         showOverlayHTML(html, ()=>{
-          let c=60; const num=qs('#countNum'); bell();
+          let c=60; const num=qs('#countNum'); pew();
           const t=setInterval(()=>{ c--; if(c>=0&&num) num.textContent=c;
             if(c<=0){ clearInterval(t); hideOverlay(()=>{ showGoodNight(()=>{ showNarrativeSequence(()=>{ setTimeout(()=>{ showCutIn('SECOND SILENCE',3000,()=>{}); },1000); }); }); }); }
           },1000);
@@ -327,14 +457,15 @@
   }
 
   /* ===== 캡처 ===== */
-  qs('#captureBtn').addEventListener('click',()=>{ bell(); try{ const a=document.createElement('a'); a.download=`capture_${Date.now()}.png`; a.href=qs('#view').toDataURL('image/png'); a.click(); }catch{} }, {passive:true});
+  qs('#captureBtn').addEventListener('click',()=>{ pew(); try{ const a=document.createElement('a'); a.download=`capture_${Date.now()}.png`; a.href=qs('#view').toDataURL('image/png'); a.click(); }catch{} }, {passive:true});
 
   /* ===== GAME ===== */
   const gameOverlay=qs('#gameOverlay'), gameCanvas=qs('#gameCanvas'), g=gameCanvas.getContext('2d');
   const mapLauncher=qs('#mapLauncher'), btnExitGame=qs('#btnExitGame'), btnMap=qs('#btnMap'), mapGrid=qs('#mapGrid');
-  const hudStage=qs('#hudStage'), hudDeaths=qs('#hudDeaths'), hudTime=qs('#hudTime');
+  const hudStage=qs('#hudStage'), hudDeaths=qs('#hudDeaths'), hudTime=qs('#hudTime']);
 
-  const RAW_STAGES=[`00000000000000000000
+  const RAW_STAGES = [
+`00000000000000000000
 0S111000000111111110
 01000101111000000110
 01110101100011110110
@@ -375,7 +506,7 @@
 01000000101000001010
 01111110101011101010
 01000010101000101010
-01111010101110101010
+011110101011요요1010
 01001000100000101010
 011011111111101011E0
 00000000000000000000`,
@@ -466,23 +597,52 @@
 01000000000010101010
 01111111111010101010
 010000000010101010E0
-00000000000000000000`].map(s=>s.trim().split('\n'));
+00000000000000000000`
+  ].map(s=>s.trim().split('\n'));
 
   function parseStage(rows){
-    const H=rows.length, W=rows[0].length, grid=[]; let start={x:1,y:1}, exit={x:W-2,y:H-2};
-    for(let y=0;y<H;y++){ const row=[]; for(let x=0;x<W;x++){ const ch=rows[y][x];
-      if(ch==='S'){start={x,y}; row.push(1);} else if(ch==='E'){exit={x,y}; row.push(1);} else row.push(ch==='1'?1:0);
-    } grid.push(row);} return {grid,W,H,start,exit};
+    const H=rows.length,W=rows[0].length,grid=[];
+    let start={x:1,y:1}, exit={x:W-2,y:H-2};
+    for(let y=0;y<H;y++){
+      const row=[];
+      for(let x=0;x<W;x++){
+        const ch=rows[y][x];
+        if(ch==='S'){start={x,y};row.push(1);}
+        else if(ch==='E'){exit={x,y};row.push(1);}
+        else row.push(ch==='1'?1:0);
+      }
+      grid.push(row);
+    }
+    return {grid,W,H,start,exit};
   }
   function bfsReachable(grid,start,exit){
-    const H=grid.length,W=grid[0].length,q=[[start.x,start.y]],vis=new Set([start.x+','+start.y]); const d=[[1,0],[-1,0],[0,1],[0,-1]];
-    while(q.length){ const [x,y]=q.shift(); if(x===exit.x&&y===exit.y) return true;
-      for(const [dx,dy] of d){ const nx=x+dx, ny=y+dy; if(nx<0||ny<0||nx>=W||ny>=H) continue; if(grid[ny][nx]!==1) continue;
-        const k=nx+','+ny; if(vis.has(k)) continue; vis.add(k); q.push([nx,ny]); } }
+    const H=grid.length,W=grid[0].length,q=[[start.x,start.y]],vis=new Set([start.x+','+start.y]);
+    const d=[[1,0],[-1,0],[0,1],[0,-1]];
+    while(q.length){
+      const [x,y]=q.shift();
+      if(x===exit.x&&y===exit.y) return true;
+      for(const [dx,dy] of d){
+        const nx=x+dx,ny=y+dy;
+        if(nx<0||ny<0||nx>=W||ny>=H) continue;
+        if(grid[ny][nx]!==1) continue;
+        const k=nx+','+ny; if(vis.has(k)) continue;
+        vis.add(k); q.push([nx,ny]);
+      }
+    }
     return false;
   }
-  function ensureSolvable(s){ const {grid,start,exit}=s; if(bfsReachable(grid,start,exit)) return s;
-    let x=start.x,y=start.y; grid[y][x]=1; while(x!==exit.x||y!==exit.y){ if(x<exit.x)x++; else if(x>exit.x)x--; grid[y][x]=1; if(y<exit.y)y++; else if(y>exit.y)y--; grid[y][x]=1; } return s; }
+  function ensureSolvable(s){
+    const {grid,start,exit}=s;
+    if(bfsReachable(grid,start,exit)) return s;
+    let x=start.x,y=start.y; grid[y][x]=1;
+    while(x!==exit.x||y!==exit.y){
+      if(x<exit.x) x++; else if(x>exit.x) x--;
+      grid[y][x]=1;
+      if(y<exit.y) y++; else if(y>exit.y) y--;
+      grid[y][x]=1;
+    }
+    return s;
+  }
 
   let currentStage=1,deaths=0,startTime=0,running=false,doneSet=new Set();
   const player={x:0,y:0,color:'#0ff'};
@@ -495,43 +655,61 @@
     b.addEventListener('touchend',e=>{ e.preventDefault(); press(false); },{passive:false});
     b.addEventListener('mousedown',()=>press(true)); b.addEventListener('mouseup',()=>press(false)); b.addEventListener('mouseleave',()=>press(false));
   });
+
   function canMove(grid,x,y){ return !(y<0||y>=grid.length||x<0||x>=grid[0].length) && grid[y][x]===1; }
   function drawStage(grid,W,H,exitPos){
     const VIEW_W=gameCanvas.width, VIEW_H=gameCanvas.height;
     g.clearRect(0,0,VIEW_W,VIEW_H);
     const sx=Math.floor(VIEW_W/W), sy=Math.floor(VIEW_H/H), t=Math.max(6,Math.min(sx,sy));
     const offX=Math.floor((VIEW_W-W*t)/2), offY=Math.floor((VIEW_H-H*t)/2);
-    for(let y=0;y<H;y++) for(let x=0;x<W;x++){ g.fillStyle=grid[y][x]===0?'#111':'#000'; g.fillRect(offX+x*t,offY+y*t,t,t); }
+    for(let y=0;y<H;y++){ for(let x=0;x<W;x++){ g.fillStyle=grid[y][x]===0?'#111':'#000'; g.fillRect(offX+x*t,offY+y*t,t,t); } }
     g.fillStyle='#f33'; g.fillRect(offX+exitPos.x*t,offY+exitPos.y*t,t,t);
     g.fillStyle=player.color; g.fillRect(offX+player.x*t,offY+player.y*t,t,t);
   }
   let stageState;
-  function loadStage(i){ const parsed=parseStage(RAW_STAGES[i-1]); stageState=ensureSolvable(parsed);
-    player.x=stageState.start.x; player.y=stageState.start.y; hudStage.textContent=i; startTime=performance.now(); running=true; drawStage(stageState.grid,stageState.W,stageState.H,stageState.exit); }
+  function loadStage(i){
+    const parsed=parseStage(RAW_STAGES[i-1]); stageState=ensureSolvable(parsed);
+    player.x=stageState.start.x; player.y=stageState.start.y;
+    hudStage.textContent=i; startTime=performance.now(); running=true;
+    drawStage(stageState.grid,stageState.W,stageState.H,stageState.exit);
+  }
   function nextStage(){ currentStage++; if(currentStage>12){ running=false; btnMap.click(); return; } loadStage(currentStage); updateMapGrid(); }
-  function stepGame(){ const {grid,W,H,exit}=stageState; let nx=player.x,ny=player.y;
+  function stepGame(){
+    const {grid,W,H,exit}=stageState; let nx=player.x,ny=player.y;
     if(input.up) ny--; else if(input.down) ny++; if(input.left) nx--; else if(input.right) nx++;
     if((nx!==player.x||ny!==player.y)&&canMove(grid,nx,ny)){ player.x=nx; player.y=ny; }
-    drawStage(grid,W,H,exit); if(player.x===exit.x&&player.y===exit.y){ doneSet.add(currentStage); bell(); nextStage(); }
+    drawStage(grid,W,H,exit);
+    if(player.x===exit.x&&player.y===exit.y){ doneSet.add(currentStage); pew(); nextStage(); }
     hudTime.textContent=((performance.now()-startTime)/1000).toFixed(1);
   }
   function gameLoop(){ requestAnimationFrame(gameLoop); if(gameOverlay.style.display!=='none' && running) stepGame(); }
   loadStage(1); gameLoop();
-  function updateMapGrid(){ mapGrid.innerHTML=''; for(let i=1;i<=12;i++){ const b=document.createElement('button');
-    b.className='stageBtn'+(doneSet.has(i)?' done':'')+(i===currentStage?' active':''); b.textContent=String(i).padStart(2,'0')+(doneSet.has(i)?' ●':'');
-    b.onclick=()=>{ currentStage=i; loadStage(currentStage); updateMapGrid(); bell(); }; mapGrid.appendChild(b);} }
-  const openGame=(startAtCurrent=true)=>{ bell(); gameOverlay.style.display='block'; if(startAtCurrent) loadStage(currentStage); updateMapGrid(); };
-  const closeGame=()=>{ bell(); gameOverlay.style.display='none'; };
+
+  function updateMapGrid(){
+    mapGrid.innerHTML='';
+    for(let i=1;i<=12;i++){
+      const b=document.createElement('button');
+      b.className='stageBtn'+(doneSet.has(i)?' done':'')+(i===currentStage?' active':'');
+      b.textContent=String(i).padStart(2,'0')+(doneSet.has(i)?' ●':'');
+      b.onclick=()=>{ currentStage=i; loadStage(currentStage); updateMapGrid(); pew(); };
+      mapGrid.appendChild(b);
+    }
+  }
+  const openGame=(startAtCurrent=true)=>{ pew(); gameOverlay.style.display='block'; if(startAtCurrent) loadStage(currentStage); updateMapGrid(); };
+  const closeGame=()=>{ pew(); gameOverlay.style.display='none'; };
+
+  const mapLauncher=qs('#mapLauncher'), btnExitGame=qs('#btnExitGame'), btnMap=qs('#btnMap'), mapGrid=qs('#mapGrid');
   mapLauncher.addEventListener('click', ()=>openGame(false), {passive:true});
-  btnMap.addEventListener('click', ()=>{ bell(); updateMapGrid(); }, {passive:true});
+  btnMap.addEventListener('click', ()=>{ pew(); updateMapGrid(); }, {passive:true});
   btnExitGame.addEventListener('click', ()=>closeGame(), {passive:true});
 
   /* ===== DOC ===== */
   const docOverlay=qs('#docOverlay'), docGrid=qs('#docGrid'), docPane=qs('#docPane'), docTitle=qs('#docTitle'), docBody=qs('#docBody');
-  qs('#docLauncher').addEventListener('click', ()=>{ bell(); docOverlay.style.display='block'; }, {passive:true});
-  qs('#btnExitDoc').addEventListener('click', ()=>{ bell(); docOverlay.style.display='none'; }, {passive:true});
+  qs('#docLauncher').addEventListener('click', ()=>{ pew(); docOverlay.style.display='block'; }, {passive:true});
+  qs('#btnExitDoc').addEventListener('click', ()=>{ pew(); docOverlay.style.display='none'; }, {passive:true});
   (function buildDoc(){ docGrid.innerHTML=''; for(let i=1;i<=8;i++){ const b=document.createElement('button'); b.className='docBtn'; b.textContent=`Document ${i}`;
-    b.onclick=()=>{ bell(); docTitle.textContent=`Document ${i}`; docBody.innerHTML='준비중입니다.'; docPane.style.display='block'; }; docGrid.appendChild(b);} })();
+    b.onclick=()=>{ pew(); docTitle.textContent=`Document ${i}`; docBody.innerHTML='준비중입니다.'; docPane.style.display='block'; }; docGrid.appendChild(b); } })();
+
 })();
 </script>
 </body>
