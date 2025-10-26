@@ -19,96 +19,46 @@
     --pad-line:clamp(4px,0.9vmin,8px);
     --pad-btn-y:clamp(6px,1.1vmin,10px);
     --pad-btn-x:clamp(10px,1.8vmin,20px);
-    --box-alpha:.4; /* 검정 박스 40% */
+    --box-alpha:.4;
   }
-  html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:manipulation;font-family:"Courier New",monospace}
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:manipulation;font-family:"Courier New",monospace;-webkit-tap-highlight-color:transparent}
+  button, .uiBtn{-webkit-appearance:none;appearance:none}
 
   #view{position:fixed;inset:0;display:block;z-index:0}
-  .frameBox{
-    position:fixed;
-    left:calc(var(--frame) + env(safe-area-inset-left));
-    top:calc(var(--frame) + env(safe-area-inset-top));
-    right:calc(var(--frame) + env(safe-area-inset-right));
-    bottom:calc(var(--frame) + env(safe-area-inset-bottom));
-    border:1px solid #000; pointer-events:none; z-index:50;
-  }
+  .frameBox{position:fixed;left:calc(var(--frame) + env(safe-area-inset-left));top:calc(var(--frame) + env(safe-area-inset-top));right:calc(var(--frame) + env(safe-area-inset-right));bottom:calc(var(--frame) + env(safe-area-inset-bottom));border:1px solid #000;pointer-events:none;z-index:50;}
 
-  .uiBtn{
-    background:rgba(0,0,0,var(--box-alpha)); color:#fff; border:1px solid #000;
-    font-size:var(--fs-strong); padding:var(--pad-btn-y) var(--pad-btn-x);
-    white-space:nowrap; cursor:pointer; user-select:none;
-  }
+  .uiBtn{background:rgba(0,0,0,var(--box-alpha));color:#fff;border:1px solid #000;font-size:var(--fs-strong);padding:var(--pad-btn-y) var(--pad-btn-x);white-space:nowrap;cursor:pointer;user-select:none}
   .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
   .uiBtn[disabled]{opacity:.5;pointer-events:none}
 
-  .controls{
-    position:fixed;
-    right:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-right));
-    bottom:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-bottom));
-    z-index:100; display:flex; gap:6px; align-items:center
-  }
+  .controls{position:fixed;right:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-right));bottom:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-bottom));z-index:100;display:flex;gap:6px;align-items:center}
   .readout{min-width:48px;text-align:center;opacity:.9;font-size:var(--fs-small)}
-  .btn-capture{
-    position:fixed;
-    left:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-left));
-    bottom:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-bottom));
-    z-index:150;
-  }
+  .btn-capture{position:fixed;left:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-left));bottom:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-bottom));z-index:150;}
 
-  #mapLauncher{
-    position:fixed;
-    right:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-right));
-    top:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-top));
-    z-index:280;
-  }
-  #docLauncher{
-    position:fixed;
-    left:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-left));
-    top:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-top));
-    z-index:280;
-  }
+  #mapLauncher{position:fixed;right:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-right));top:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-top));z-index:280;}
+  #docLauncher{position:fixed;left:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-left));top:calc(var(--frame) + var(--ui-gap) + env(safe-area-inset-top));z-index:280;}
 
-  /* 오버레이 최상단 + 잠금 중 하단 UI 터치 차단 + iOS 터치 보장 */
-  #overlay{
-    position:fixed; inset:0;
-    z-index:10000;
-    display:flex; align-items:center; justify-content:center;
-    padding:20px; color:#fff; background:rgba(0,0,0,.72)
-  }
-  #overlayContent{
-    pointer-events:auto; line-height:1.7;font-size:var(--fs-body);
-    max-width:min(72ch, calc(100vw - (var(--frame)*2)));
-    max-height:calc(100vh - (var(--frame)*2));
-    overflow:hidden;text-align:left
-  }
-  body.locked [data-lock]{ pointer-events:none !important; }
-  #overlay,#overlay *{ pointer-events:auto !important; }
-  #overlay{-webkit-user-select:none; -webkit-touch-callout:none;}
+  /* 오버레이: 최상단 + 터치 강제 허용 */
+  #overlay{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;color:#fff;background:rgba(0,0,0,.72)}
+  #overlay,#overlay *{pointer-events:auto!important}
+  #overlay{-webkit-user-select:none;-webkit-touch-callout:none}
+  #overlayContent{pointer-events:auto;line-height:1.7;font-size:var(--fs-body);max-width:min(72ch, calc(100vw - (var(--frame)*2)));max-height:calc(100vh - (var(--frame)*2));overflow:hidden;text-align:left}
+  body.locked [data-lock]{pointer-events:none!important}
 
   .line{display:inline;background:rgba(0,0,0,var(--box-alpha));color:#fff;padding:calc(var(--pad-line)*0.8) var(--pad-line);box-decoration-break:clone;-webkit-box-decoration-break:clone}
   .lineWrap{margin:6px 0}
-  .fade{opacity:1;transition:opacity .45s ease}
-  .fade.hidden{opacity:0}
+  .fade{opacity:1;transition:opacity .45s ease}.fade.hidden{opacity:0}
 
-  #goodnight{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:250;display:none;text-align:center;
-    font-size:var(--fs-strong);color:#fff;background:rgba(0,0,0,var(--box-alpha));
-    padding:var(--pad-btn-y) var(--pad-btn-x);white-space:nowrap;transition:opacity .6s ease}
-  #goodnight.show{display:block;opacity:1} #goodnight.fadeout{opacity:0}
+  #goodnight{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:250;display:none;text-align:center;font-size:var(--fs-strong);color:#fff;background:rgba(0,0,0,var(--box-alpha));padding:var(--pad-btn-y) var(--pad-btn-x);white-space:nowrap;transition:opacity .6s ease}
+  #goodnight.show{display:block;opacity:1}#goodnight.fadeout{opacity:0}
   #cutin{position:fixed;inset:0;z-index:260;display:none;align-items:center;justify-content:center;background:#000;color:#fff;text-align:center}
-  #cutin.show{display:flex;opacity:1;transition:opacity .45s ease} #cutin.fadeout{opacity:0}
+  #cutin.show{display:flex;opacity:1;transition:opacity .45s ease}#cutin.fadeout{opacity:0}
   #cutinText{font-size:clamp(24px,8vmin,64px);letter-spacing:.02em;line-height:1.2;padding:0 .2em}
-
-  #hint{
-    position:fixed; left:50%;
-    bottom:calc(var(--frame) + 6px + env(safe-area-inset-bottom));
-    transform:translateX(-50%); z-index:500;
-    background:rgba(0,0,0,var(--box-alpha)); color:#fff; border:1px solid #333;
-    padding:8px 12px; font-size:var(--fs-small); display:none; white-space:pre-wrap; text-align:center;
-  }
+  #hint{position:fixed;left:50%;bottom:calc(var(--frame) + 6px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:500;background:rgba(0,0,0,var(--box-alpha));color:#fff;border:1px solid #333;padding:8px 12px;font-size:var(--fs-small);display:none;white-space:pre-wrap;text-align:center}
 
   /* ===== GAME ===== */
-  #gameOverlay{position:fixed; inset:0; z-index:300; display:none; background:rgba(0,0,0,.8)}
-  #gameUI{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; gap:10px; width:min(96vw,860px)}
+  #gameOverlay{position:fixed;inset:0;z-index:300;display:none;background:rgba(0,0,0,.8)}
+  #gameUI{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:10px;width:min(96vw,860px)}
   #gameHeader{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px}
   #gameCanvas{width:100%;height:60vh;background:#000;image-rendering:pixelated;border:1px solid #444}
   #mapGrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;width:100%}
@@ -120,8 +70,8 @@
   .dkey:active{opacity:1}
 
   /* ===== DOC ===== */
-  #docOverlay{position:fixed; inset:0; z-index:310; display:none; background:rgba(0,0,0,.8)}
-  #docUI{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(96vw,860px); display:flex; flex-direction:column; gap:10px}
+  #docOverlay{position:fixed;inset:0;z-index:310;display:none;background:rgba(0,0,0,.8)}
+  #docUI{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(96vw,860px);display:flex;flex-direction:column;gap:10px}
   #docHeader{display:flex;justify-content:space-between;align-items:center}
   #docGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
   .docBtn{border:1px solid #444;background:rgba(0,0,0,var(--box-alpha));color:#fff;padding:10px;text-align:center;cursor:pointer;font-size:calc(var(--fs-small)*0.9)}
@@ -129,7 +79,7 @@
   .docTitle{font-size:var(--fs-strong);margin-bottom:8px}
   #docPane,#docBody,.docBtn{white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere}
 
-  @media (orientation:landscape){ :root{ --frame:32px; } }
+  @media (orientation:landscape){:root{--frame:32px}}
 </style>
 </head>
 <body>
@@ -142,7 +92,6 @@
     <button class="uiBtn small" id="zoomIn" data-lock>+</button>
   </div>
   <button id="captureBtn" class="uiBtn small btn-capture" data-lock>CAPTURE</button>
-
   <button id="docLauncher" class="uiBtn small" data-lock>DOCUMENT</button>
   <button id="mapLauncher" class="uiBtn small" data-lock>MAP</button>
 
@@ -191,21 +140,26 @@
 
 <script>
 (async ()=>{
-  /* ====== helpers ====== */
+  /* ===== Helpers ===== */
   const qs = s=>document.querySelector(s);
   const qsa = s=>Array.from(document.querySelectorAll(s));
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
-  const onTap=(el,handler)=>{ // iOS click 미발화 방지
+
+  // iOS에서 첫 탭 인식 보장: touchstart 프라임 + 중복 방지 래퍼
+  const onTap=(el, handler)=>{
     if(!el) return;
-    el.addEventListener('click',handler,{passive:true});
-    el.addEventListener('pointerup',handler,{passive:true});
-    el.addEventListener('touchend',(e)=>{ e.preventDefault(); handler(e); },{passive:false});
+    let locked=false;
+    const fire=(e)=>{ if(locked) return; locked=true; try{ handler(e); } finally{ setTimeout(()=>locked=false, 0); } };
+    el.addEventListener('touchstart', ()=>{/* gesture prime */}, {passive:true});
+    el.addEventListener('touchend', (e)=>{ e.preventDefault(); fire(e); }, {passive:false});
+    el.addEventListener('pointerup', fire, {passive:true});
+    el.addEventListener('click', fire, {passive:true});
   };
 
   const hint = qs('#hint');
   const showHint=(txt,ms=4000)=>{ hint.textContent=txt; hint.style.display='block'; clearTimeout(showHint._t); showHint._t=setTimeout(()=>hint.style.display='none',ms); };
 
-  /* ===== phase & lock ===== */
+  /* ===== Phase & Lock ===== */
   let phase='gate'; // gate -> welcome -> intro -> narrative -> none
   function setLocked(on){
     qsa('[data-lock]').forEach(el=>{
@@ -216,7 +170,7 @@
   }
   setLocked(true);
 
-  /* ===== audio (삡) ===== */
+  /* ===== Audio (beep) ===== */
   let audioCtx=null, mixBus, sfxBus;
   async function ensureAudio(){ if(audioCtx) return;
     audioCtx=new (window.AudioContext||window.webkitAudioContext)();
@@ -229,13 +183,11 @@
     g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.5,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+0.12);
     o.connect(g).connect(sfxBus); o.start(t); o.stop(t+0.14); }catch{} }
 
-  /* ===== camera (흑백 잔상) & zoom ===== */
+  /* ===== Camera (B/W trail) & Zoom ===== */
   const view=qs('#view'), vctx=view.getContext('2d',{alpha:false});
-  const PROC_SCALE=0.80; // 과확대 완화
-  let ZOOM=1.0;
+  const PROC_SCALE=0.80; let ZOOM=1.0;
   const TRAIL_ALPHA=0.12, GLOBAL_ALPHA=0.7;
   const ZOOM_MIN=0.5, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
-
   const zoomVal=qs('#zoomVal'); const updateZoom=()=>zoomVal.textContent=ZOOM.toFixed(1)+'×';
   qs('#zoomIn').onclick=()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom();beep();};
   qs('#zoomOut').onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom();beep();};
@@ -271,7 +223,7 @@
     vctx.drawImage(proc,0,0,W,H);
   })();
 
-  /* ===== motion perm ===== */
+  /* ===== Motion Permission ===== */
   async function requestMotionPermissions(){
     try{
       if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
@@ -286,7 +238,7 @@
     return true;
   }
 
-  /* ===== mic + pan (BT 회피) ===== */
+  /* ===== Mic + Pan ===== */
   let panNode=null, inputGain=null, micStream=null;
   async function pickBuiltInMicId(){
     const devs = await navigator.mediaDevices.enumerateDevices().catch(()=>[]);
@@ -304,7 +256,7 @@
     window.__panHandler__ && removeEventListener('deviceorientation', window.__panHandler__);
     window.__panHandler__=(e)=>{
       if(!panNode) return;
-      const gamma=e?.gamma??0; // 좌우 기울기
+      const gamma=e?.gamma??0;
       panNode.pan.value = Math.max(-1, Math.min(1, gamma/45));
     };
     addEventListener('deviceorientation', window.__panHandler__, {passive:true});
@@ -334,7 +286,7 @@
     if((audioCtx.sampleRate||0)<=16000){ showHint('BT가 통화 모드일 수 있어요(모노 가능성).'); }
   }
 
-  /* ===== overlay flow ===== */
+  /* ===== Overlay Flow ===== */
   const overlay=qs('#overlay'), overlayContent=qs('#overlayContent');
   const goodnight=qs('#goodnight'), cutin=qs('#cutin'), cutinText=qs('#cutinText');
   const permGateBtn=qs('#permGateBtn');
@@ -368,11 +320,13 @@
       onTap(qs('#welcomeBtn'),()=>{ beep(); mountIntro(); });
     });
   }
+
   onTap(permGateBtn, runPermissionGate);
   onTap(overlay, e=>{ if(e.target===overlay && phase==='gate') runPermissionGate(); });
-  // 첫 사용자 제스처 어디든 → 게이트 시도 (중복 안전)
+
+  // 최후의 보루: 화면 어디든 첫 제스처에서 게이트 실행 (중복 안전)
   let triedAutoGate=false;
-  const tryAutoGate=()=>{ if(triedAutoGate||phase!=='gate')return; triedAutoGate=true; runPermissionGate(); };
+  const tryAutoGate=()=>{ if(triedAutoGate||phase!=='gate') return; triedAutoGate=true; runPermissionGate(); };
   document.addEventListener('touchend', tryAutoGate, {passive:false, once:true});
   document.addEventListener('pointerup', tryAutoGate, {passive:true, once:true});
   document.addEventListener('click', tryAutoGate, {passive:true, once:true});
@@ -664,7 +618,11 @@
     hudTime.textContent=((performance.now()-startTime)/1000).toFixed(1);
   }
   function loopGame(){ requestAnimationFrame(loopGame); if(gameOverlay.style.display!=='none' && running) stepGame(); }
-  loadStage(currentStage); loopGame();
+
+  const gameOverlay=qs('#gameOverlay'), gameCanvas=qs('#gameCanvas'), mapGrid=qs('#mapGrid');
+  const btnExitGame=qs('#btnExitGame'), btnMap=qs('#btnMap'), hudStage=qs('#hudStage'), hudDeaths=qs('#hudDeaths'), hudTime=qs('#hudTime');
+  const mapLauncher=qs('#mapLauncher');
+
   function updateMapGrid(){
     mapGrid.innerHTML='';
     for(let i=1;i<=12;i++){
@@ -675,12 +633,10 @@
       mapGrid.appendChild(b);
     }
   }
-  const gameOverlay=qs('#gameOverlay'), gameCanvas=qs('#gameCanvas'), mapGrid=qs('#mapGrid');
-  const btnExitGame=qs('#btnExitGame'), btnMap=qs('#btnMap'), hudStage=qs('#hudStage'), hudDeaths=qs('#hudDeaths'), hudTime=qs('#hudTime');
-  const mapLauncher=qs('#mapLauncher');
   mapLauncher.addEventListener('click', ()=>{ beep(); gameOverlay.style.display='block'; updateMapGrid(); }, {passive:true});
   btnMap && btnMap.addEventListener('click', ()=> updateMapGrid(), {passive:true});
   btnExitGame && btnExitGame.addEventListener('click', ()=>{ beep(); gameOverlay.style.display='none'; }, {passive:true});
+  loadStage(1); loopGame();
 
   /* ===== DOC ===== */
   const docOverlay=qs('#docOverlay'), docGrid=qs('#docGrid'), docPane=qs('#docPane'), docTitle=qs('#docTitle'), docBody=qs('#docBody');
@@ -692,7 +648,7 @@
   /* ===== CAPTURE ===== */
   qs('#captureBtn').addEventListener('click',()=>{ beep(); try{ const a=document.createElement('a'); a.download=`capture_${Date.now()}.png`; a.href=qs('#view').toDataURL('image/png'); a.click(); }catch(e){ console.warn('CAPTURE 실패', e); } }, {passive:true});
 
-  /* ===== start gate ===== */
+  /* ===== Start Gate ===== */
   document.getElementById('overlay').style.display='flex';
 })();
 </script>
