@@ -190,19 +190,17 @@
   const qs = (s)=>document.querySelector(s);
   const qsa = (s)=>Array.from(document.querySelectorAll(s));
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
-  // 이제 기본적으로 마이크를 사용(효과 적용을 위해)
   const WANT_MIC = true;
 
   /* ========= 오디오 그래프 ========= */
   let audioCtx=null, mixBus, sfxBus, reverbNode, wetBus, dryBus, master, panNode, micGain;
-  function makeImpulse(ctx, seconds=2.2, decay=2.8){
-    const rate = ctx.sampleRate, len = rate*seconds|0;
+  function makeImpulse(ctx, seconds=2.4, decay=3.2){
+    const rate = ctx.sampleRate, len = (rate*seconds)|0;
     const buf = ctx.createBuffer(2, len, rate);
     for(let ch=0; ch<2; ch++){
       const data = buf.getChannelData(ch);
       for(let i=0;i<len;i++){
         const t = i/len;
-        // 약간의 초기 반사 + 지수 감쇠 노이즈
         data[i] = (Math.random()*2-1) * Math.pow(1 - t, decay) * (0.9 + 0.1*Math.sin(i*0.0008));
       }
     }
@@ -212,26 +210,22 @@
     if(audioCtx) return;
     audioCtx = new (window.AudioContext||window.webkitAudioContext)();
 
-    // Buses
-    mixBus = audioCtx.createGain();       // 모든 소리 모이는 곳
-    sfxBus = audioCtx.createGain();       // UI 효과음
-    wetBus = audioCtx.createGain();       // 리버브 신호
-    dryBus = audioCtx.createGain();       // 드라이 신호(약간 남김)
-    master = audioCtx.createGain();       // 최종 출력
-    sfxBus.gain.value = 0.7;
-    dryBus.gain.value = 0.6;              // 드라이
-    wetBus.gain.value = 0.5;              // 웻(기본 리버브)
+    mixBus = audioCtx.createGain();
+    sfxBus = audioCtx.createGain();
+    wetBus = audioCtx.createGain();
+    dryBus = audioCtx.createGain();
+    master = audioCtx.createGain();
 
-    // 리버브(프로시저럴 IR)
+    sfxBus.gain.value = 0.7;
+    dryBus.gain.value = 0.6;
+    wetBus.gain.value = 0.5;
+
     reverbNode = audioCtx.createConvolver();
     reverbNode.buffer = makeImpulse(audioCtx, 2.4, 3.2);
 
-    // 패닝/게인(마이크용)
     panNode = audioCtx.createStereoPanner();
     micGain = audioCtx.createGain(); micGain.gain.value = 1.0;
 
-    // 라우팅: (모든 소리) → [dry + reverb] → master
-    // mixBus은 드라이/리버브 둘 다로 보내 리버브를 "기본 적용"
     mixBus.connect(dryBus);
     mixBus.connect(reverbNode);
     reverbNode.connect(wetBus);
@@ -239,7 +233,6 @@
     wetBus.connect(master);
     master.connect(audioCtx.destination);
 
-    // sfx는 mixBus로
     sfxBus.connect(mixBus);
   }
   function resumeAudio(){ try{ initAudio(); if(audioCtx.state==='suspended') audioCtx.resume(); }catch{} }
@@ -275,35 +268,26 @@
     }catch{}
   }
 
-  // 마이크 입력 설정(항상 mixBus에 들어가므로 리버브 자동 적용)
+  // 마이크 입력(리버브는 mixBus에 기본 적용)
   let micStream=null;
   async function startMic(){
     if(micStream) return;
     try{
       micStream = await navigator.mediaDevices.getUserMedia({
-        audio:{
-          echoCancellation:false, noiseSuppression:false, autoGainControl:false,
-          channelCount:1, sampleRate: 48000
-        },
+        audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false, channelCount:1, sampleRate:48000 },
         video:false
       });
       resumeAudio();
       const source = audioCtx.createMediaStreamSource(micStream);
-      // 입력 이펙트: 하이패스 약간 → 게인 → 패닝 → mixBus
-      const hp = audioCtx.createBiquadFilter();
-      hp.type='highpass'; hp.frequency.value=80;
+      const hp = audioCtx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=80;
       source.connect(hp).connect(micGain).connect(panNode).connect(mixBus);
-    }catch(e){
-      console.warn('Mic denied/failed', e);
-    }
+    }catch(e){ console.warn('Mic denied/failed', e); }
   }
 
-  // 동작센서 → 패닝/볼륨 매핑
+  // 센서 → 패닝/볼륨
   let sensorsReady=false;
   function mapMotionToAudio({gamma=0, beta=0}){
-    // gamma: 좌우 틸트(-90~90) → 패닝(-1~1)로 매핑, 소프트 클램프
     const pan = clamp(gamma/45, -1, 1);
-    // beta: 상하 틸트(-180~180) → 볼륨(0.35~1.6)
     const vol = clamp(0.35 + Math.abs(beta)/90 * 1.25, 0.35, 1.6);
     try{
       panNode.pan.setTargetAtTime(pan, audioCtx.currentTime, 0.03);
@@ -321,7 +305,6 @@
         const r=await DeviceMotionEvent.requestPermission(); if(r==='granted') sensorsReady=true;
       }
     }catch(e){}
-    // 리스너
     window.addEventListener('deviceorientation', (e)=>{ if(sensorsReady) mapMotionToAudio(e); }, {passive:true});
   }
 
@@ -332,8 +315,8 @@
 
   const zoomVal=qs('#zoomVal');
   function updateZoom(){ zoomVal.textContent=ZOOM.toFixed(1)+'×'; }
-  qs('#zoomIn').onclick=()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom(); playClick();};
-  qs('#zoomOut').onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom(); playClick();};
+  qs('#zoomIn').addEventListener('click', ()=>{ ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX); updateZoom(); playClick(); });
+  qs('#zoomOut').addEventListener('click', ()=>{ ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX); updateZoom(); playClick(); });
   updateZoom();
 
   const camVideo=document.createElement('video'); camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
@@ -416,9 +399,9 @@
     if(gateBusy || gateDone) return; gateBusy=true;
     playClick(); resumeAudio();
     try{
-      await requestMotionPermissions();   // 센서 허용
-      await attachCamera();               // 카메라
-      if(WANT_MIC) await startMic();      // 마이크(효과용)
+      await requestMotionPermissions();
+      await attachCamera();
+      if(WANT_MIC) await startMic();
     }catch(e){}
     show(`
       <div style="text-align:center">
@@ -431,9 +414,16 @@
       gateBusy=false; gateDone=true;
     });
   }
-  permGateBtn.addEventListener('click', runPermissionGate, {passive:true});
-  // ★ 게이트 이후에는 배경 터치로 진행/회귀 금지
-  overlay.addEventListener('click', (e)=>{ if(!gateDone && e.target===overlay) runPermissionGate(); }, {passive:true});
+
+  // ★ 첫 화면 탭 확실히 받기(버튼/배경 모두) + iOS 대응
+  ['pointerdown','touchstart','click'].forEach(evt=>{
+    permGateBtn.addEventListener(evt, (e)=>{ e.preventDefault(); e.stopPropagation(); runPermissionGate(); }, {passive:false});
+  });
+  ['pointerdown','touchstart','click'].forEach(evt=>{
+    overlay.addEventListener(evt, (e)=>{
+      if(!gateDone && e.target===overlay){ e.preventDefault(); e.stopPropagation(); runPermissionGate(); }
+    }, {passive:false});
+  });
 
   function showGoodNight(next){
     goodnight.textContent='GOOD NIGHT, HAVE A NICE DREAM';
@@ -507,7 +497,7 @@
         </div>
       </div>
     `, ()=>{
-      setGlobalUIEnabled(false); // ★ INTRO 잠금
+      setGlobalUIEnabled(false); // INTRO 잠금
       let count=60; const numEl=qs('#countNum');
       const timer=setInterval(()=>{
         count--; if(count>=0 && numEl) numEl.textContent=count;
@@ -516,15 +506,6 @@
     });
   }
 
-  // 캡처
-  qs('#captureBtn').addEventListener('click',()=>{
-    playClick();
-    try{ const a=document.createElement('a'); a.download=`capture_${Date.now()}.png`; a.href=view.toDataURL('image/png'); a.click(); }
-    catch(e){ console.warn('CAPTURE 실패', e); }
-  }, {passive:true});
-
-  /* ===== 게임/문서(변경 없음: 필요시만 열림) ===== */
-  // … (게임/문서 코드 생략 없이 동작: 기존 코드 유지)
   /* ==========================
      PIXEL MAZE GAME (12 stages)
      ========================== */
@@ -538,9 +519,6 @@
   const hudStage = qs('#hudStage');
   const hudDeaths = qs('#hudDeaths');
   const hudTime = qs('#hudTime');
-
-  const VIEW_W = gameCanvas.width;
-  const VIEW_H = gameCanvas.height;
 
   const RAW_STAGES = [
 `00000000000000000000
@@ -616,11 +594,11 @@
 01010100000000001010
 01010101111111101010
 01010101000000101010
-010101011FFFF101010
+01010101111110101010
 01010100000110101010
 01011111110110101010
 010000000001101010E0
-00000000000000000000`.replace(/F/g,'1'),
+00000000000000000000`,
 `00000000000000000000
 0S111111111111111110
 01000000000000000010
@@ -714,8 +692,7 @@
   function ensureSolvable(stage){
     const {grid,start,exit}=stage;
     if(bfsReachable(grid,start,exit)) return stage;
-    let x=start.x, y=start.y;
-    grid[y][x]=1;
+    let x=start.x, y=start.y; grid[y][x]=1;
     while(x!==exit.x || y!==exit.y){
       if(x<exit.x) x++; else if(x>exit.x) x--;
       grid[y][x]=1;
@@ -725,21 +702,11 @@
     return stage;
   }
 
-  const btnExitGame = qs('#btnExitGame');
-  const btnMap = qs('#btnMap');
-  const mapGrid = qs('#mapGrid');
-  const hudStage = qs('#hudStage');
-  const hudDeaths = qs('#hudDeaths');
-  const hudTime = qs('#hudTime');
-
-  let currentStage=1; // 1~12
-  let deaths=0;
-  let startTime=0;
-  let running=false;
+  let currentStage=1, deaths=0, startTime=0, running=false;
   const doneSet = new Set();
-
   const player = { x:0, y:0, color:'#0ff' };
   const input = { up:false, down:false, left:false, right:false };
+
   function setKey(code, val){
     if(code==='ArrowUp' || code==='KeyW') input.up=val;
     if(code==='ArrowDown' || code==='KeyS') input.down=val;
@@ -771,7 +738,6 @@
   }
   function drawStage(grid,W,H,exitPos){
     const VIEW_W = gameCanvas.width, VIEW_H = gameCanvas.height;
-    const g = gameCanvas.getContext('2d');
     g.clearRect(0,0,VIEW_W,VIEW_H);
     const sx = Math.floor(VIEW_W / W);
     const sy = Math.floor(VIEW_H / H);
@@ -788,7 +754,6 @@
     }
     g.fillStyle='#f33'; g.fillRect(offX+exitPos.x*t, offY+exitPos.y*t, t, t); // 출구
     g.fillStyle=player.color; g.fillRect(offX+player.x*t, offY+player.y*t, t, t); // 플레이어
-    return {t,offX,offY};
   }
 
   let stageState;
@@ -803,10 +768,6 @@
     if(currentStage>12){ running=false; btnMap.click(); return; }
     loadStage(currentStage); updateMapGrid();
   }
-  function kill(){
-    deaths++; hudDeaths.textContent = deaths; loadStage(currentStage);
-  }
-
   function stepGame(){
     const {grid,W,H,exit} = stageState;
     let nx = player.x, ny = player.y;
@@ -821,10 +782,9 @@
       doneSet.add(currentStage); playFlip(); nextStage();
     }
   }
-
   function gameLoop(){
     requestAnimationFrame(gameLoop);
-    if(qs('#gameOverlay').style.display!=='none'){
+    if(gameOverlay.style.display!=='none'){
       if(running) stepGame();
       const t=(performance.now()-startTime)/1000; hudTime.textContent=t.toFixed(1);
     }
@@ -841,10 +801,10 @@
       mapGrid.appendChild(b);
     }
   }
-  function openGame(startAtCurrent=true){ playFlip(); qs('#gameOverlay').style.display='block'; if(startAtCurrent) loadStage(currentStage); updateMapGrid(); }
-  function closeGame(){ playFlip(); qs('#gameOverlay').style.display='none'; }
+  function openGame(startAtCurrent=true){ playFlip(); gameOverlay.style.display='block'; if(startAtCurrent) loadStage(currentStage); updateMapGrid(); }
+  function closeGame(){ playFlip(); gameOverlay.style.display='none'; }
 
-  mapLauncher.addEventListener('click', ()=> openGame(false), {passive:true});
+  qs('#mapLauncher').addEventListener('click', ()=> openGame(false), {passive:true});
   btnMap.addEventListener('click', ()=> { playClick(); updateMapGrid(); }, {passive:true});
   btnExitGame.addEventListener('click', ()=> { playClick(); closeGame(); }, {passive:true});
 
