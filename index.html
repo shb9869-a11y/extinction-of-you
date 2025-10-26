@@ -5,98 +5,69 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Dialogue into Silence — Camera+Audio+Pixel Maze+Docs</title>
 
-<!-- iOS 홈화면 제목 -->
+<!-- iOS 홈 화면 제목 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Dialogue into Silence">
 <link rel="manifest" href="/manifest.webmanifest">
 
 <style>
-  :root{
-    --frame: 40px; --ui-gap: 8px;
-    --fs-body: clamp(12px, 2.2vmin, 16px);
-    --fs-strong: clamp(14px, 2.8vmin, 20px);
-    --fs-small: clamp(11px, 1.8vmin, 14px);
-    --pad-line: clamp(4px, 0.9vmin, 8px);
-    --pad-btn-y: clamp(6px, 1.1vmin, 10px);
-    --pad-btn-x: clamp(10px, 1.8vmin, 20px);
+  :root{ --frame:40px; --ui-gap:8px;
+    --fs-body:clamp(12px,2.2vmin,16px); --fs-strong:clamp(14px,2.8vmin,20px); --fs-small:clamp(11px,1.8vmin,14px);
+    --pad-line:clamp(4px,0.9vmin,8px); --pad-btn-y:clamp(6px,1.1vmin,10px); --pad-btn-x:clamp(10px,1.8vmin,20px);
   }
   html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:manipulation}
-  #view{width:100%;height:100%;display:block;position:fixed;left:0;top:0;z-index:0}
+  #view{position:fixed;inset:0;display:block;z-index:0}
   .frameBox{position:fixed;left:var(--frame);top:var(--frame);right:var(--frame);bottom:var(--frame);border:1px solid #000;pointer-events:none;z-index:50}
-
-  .uiBtn{background:#000;color:#fff;border:1px solid #000;font-size:var(--fs-strong);
-    padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",monospace;white-space:nowrap;cursor:pointer;user-select:none}
+  .uiBtn{background:#000;color:#fff;border:1px solid #000;font-size:var(--fs-strong);padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",monospace;white-space:nowrap;cursor:pointer;user-select:none}
   .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
-
   .controls{position:fixed;right:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:100;display:flex;gap:6px;align-items:center}
   .readout{min-width:48px;text-align:center;opacity:.9;font-family:"Courier New",monospace;font-size:var(--fs-small)}
   .btn-capture{position:fixed;left:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:150}
 
-  #mapLauncher{position:fixed; right:calc(var(--frame) + var(--ui-gap)); top:calc(var(--frame) + var(--ui-gap)); z-index:280;}
-  #docLauncher{position:fixed; left:calc(var(--frame) + var(--ui-gap)); top:calc(var(--frame) + var(--ui-gap)); z-index:280;}
+  #mapLauncher{position:fixed; right:calc(var(--frame)+var(--ui-gap)); top:calc(var(--frame)+var(--ui-gap)); z-index:280}
+  #docLauncher{position:fixed; left:calc(var(--frame)+var(--ui-gap)); top:calc(var(--frame)+var(--ui-gap)); z-index:280}
 
-  /* 메인 오버레이 */
-  #overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;
-    font-family:"Courier New",monospace;color:#fff;background:rgba(0,0,0,.72)}
-  #overlayContent{pointer-events:auto;line-height:1.7;font-size:var(--fs-body);
-    max-width:min(72ch, calc(100vw - (var(--frame)*2)));
-    max-height:calc(100vh - (var(--frame)*2));
-    overflow:hidden; text-align:left}
+  #overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;font-family:"Courier New",monospace;color:#fff;background:rgba(0,0,0,.72)}
+  #overlayContent{pointer-events:auto;line-height:1.7;font-size:var(--fs-body);max-width:min(72ch, calc(100vw - (var(--frame)*2)));max-height:calc(100vh - (var(--frame)*2));overflow:hidden;text-align:left}
   .line{display:inline;background:#000;color:#fff;padding:calc(var(--pad-line)*0.8) var(--pad-line);box-decoration-break:clone;-webkit-box-decoration-break:clone}
   .lineWrap{margin:6px 0}
   .fade{opacity:1;transition:opacity .45s ease}
   .fade.hidden{opacity:0}
 
-  /* 진행 팁/경고 배너 */
-  #hint{position:fixed; left:50%; bottom:calc(var(--frame) + 4px); transform:translateX(-50%); z-index:500;
-    background:#111; color:#fff; font-family:"Courier New",monospace; font-size:var(--fs-small);
-    border:1px solid #333; padding:8px 10px; display:none; white-space:pre-wrap; text-align:center; }
-
-  #goodnight{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:250;display:none;text-align:center;
-    font-family:"Courier New",monospace;font-size:var(--fs-strong);color:#fff;background:#000;padding:var(--pad-btn-y) var(--pad-btn-x);white-space:nowrap;transition:opacity .6s ease}
-  #goodnight.show{display:block;opacity:1}
-  #goodnight.fadeout{opacity:0}
-  @media (orientation:landscape){ :root{ --frame: 32px; } }
-  .tip{opacity:.7;font-size:var(--fs-small);margin-top:8px;text-align:center}
-
-  /* 컷인(침묵) */
-  #cutin{position:fixed; inset:0; z-index:260; display:none; align-items:center; justify-content:center; background:#000; color:#fff; text-align:center;}
-  #cutin.show{display:flex; opacity:1; transition:opacity .45s ease}
-  #cutin.fadeout{opacity:0}
-  #cutinText{font-size:clamp(24px, 8vmin, 64px); letter-spacing:.02em; line-height:1.2; padding:0 .2em}
+  #goodnight{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:250;display:none;text-align:center;font-family:"Courier New",monospace;font-size:var(--fs-strong);color:#fff;background:#000;padding:var(--pad-btn-y) var(--pad-btn-x);white-space:nowrap;transition:opacity .6s ease}
+  #goodnight.show{display:block;opacity:1} #goodnight.fadeout{opacity:0}
+  #cutin{position:fixed;inset:0;z-index:260;display:none;align-items:center;justify-content:center;background:#000;color:#fff;text-align:center}
+  #cutin.show{display:flex;opacity:1;transition:opacity .45s ease} #cutin.fadeout{opacity:0}
+  #cutinText{font-size:clamp(24px,8vmin,64px);letter-spacing:.02em;line-height:1.2;padding:0 .2em}
+  #hint{position:fixed; left:50%; bottom:calc(var(--frame)+4px); transform:translateX(-50%); z-index:500;
+        background:#111; color:#fff; font-family:"Courier New",monospace; font-size:var(--fs-small);
+        border:1px solid #333; padding:8px 10px; display:none; white-space:pre-wrap; text-align:center; }
 
   /* GAME */
   #gameOverlay{position:fixed; inset:0; z-index:300; display:none; background:rgba(0,0,0,.8); font-family:"Courier New",monospace; color:#fff;}
   #gameUI{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; gap:10px; width:min(96vw, 860px);}
-  #gameHeader{ width:100%; display:flex; justify-content:space-between; align-items:center; gap:8px; }
-  #gameCanvas{ width:100%; height:60vh; background:#000; image-rendering: pixelated; border:1px solid #444 }
-  #gameBtns{ display:flex; gap:6px; align-items:center }
-  #mapGrid{ display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:6px; width:100%; }
-  .stageBtn{ border:1px solid #444; background:#000; color:#fff; padding:8px 0; text-align:center; cursor:pointer; font-size:var(--fs-small) }
-  .stageBtn.done{ border-color:#0f0; color:#0f0 }
-  .stageBtn.active{ border-color:#fff }
-  #hud{ display:flex; gap:12px; align-items:center; opacity:.85; font-size:var(--fs-small) }
-
-  /* 가상 D-Pad */
-  #dpad{ position:absolute; left:var(--frame); bottom:calc(var(--frame) + 64px); z-index:320;
-    display:grid; grid-template-columns:repeat(3,48px); grid-template-rows:repeat(3,48px); gap:6px; }
-  .dkey{ width:48px; height:48px; border:1px solid #444; display:flex; align-items:center; justify-content:center; color:#fff; background:#000; opacity:.7; user-select:none; }
-  .dkey:active{ opacity:1 }
+  #gameHeader{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  #gameCanvas{width:100%;height:60vh;background:#000;image-rendering:pixelated;border:1px solid #444}
+  #mapGrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;width:100%}
+  .stageBtn{border:1px solid #444;background:#000;color:#fff;padding:8px 0;text-align:center;cursor:pointer;font-size:var(--fs-small)}
+  .stageBtn.done{border-color:#0f0;color:#0f0}.stageBtn.active{border-color:#fff}
+  #hud{display:flex;gap:12px;align-items:center;opacity:.85;font-size:var(--fs-small)}
+  #dpad{position:absolute;left:var(--frame);bottom:calc(var(--frame)+64px);z-index:320;display:grid;grid-template-columns:repeat(3,48px);grid-template-rows:repeat(3,48px);gap:6px}
+  .dkey{width:48px;height:48px;border:1px solid #444;display:flex;align-items:center;justify-content:center;color:#fff;background:#000;opacity:.7;user-select:none}
+  .dkey:active{opacity:1}
 
   /* DOCUMENT */
   #docOverlay{position:fixed; inset:0; z-index:310; display:none; background:rgba(0,0,0,.8); font-family:"Courier New",monospace; color:#fff;}
-  #docUI{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(96vw,860px); display:flex; flex-direction:column; gap:10px; }
-  #docHeader{ display:flex; justify-content:space-between; align-items:center; }
-  #docGrid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
-  .docBtn{ border:1px solid #444; background:#000; color:#fff; padding:12px; text-align:center; cursor:pointer; font-size:var(--fs-small) }
-  .docPane{ border:1px solid #444; padding:12px; max-height:50vh; overflow:auto; background:#000; }
-  .docTitle{ font-size:var(--fs-strong); margin-bottom:8px; }
-  #docPane, #docBody, .docBtn{ white-space:pre-wrap; word-break:keep-all; overflow-wrap:anywhere; hyphens:none; }
+  #docUI{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(96vw,860px); display:flex; flex-direction:column; gap:10px;}
+  #docHeader{display:flex;justify-content:space-between;align-items:center}
+  #docGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  .docBtn{border:1px solid #444;background:#000;color:#fff;padding:12px;text-align:center;cursor:pointer;font-size:var(--fs-small)}
+  .docPane{border:1px solid #444;padding:12px;max-height:50vh;overflow:auto;background:#000}
+  .docTitle{font-size:var(--fs-strong);margin-bottom:8px}
+  #docPane,#docBody,.docBtn{white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere;hyphens:none}
 
-  /* MIC 토글 */
-  #audioBar{ position:fixed; left:50%; top:calc(var(--frame)); transform:translateX(-50%); z-index:400; display:flex; gap:8px; align-items:center; }
-  #micState{ opacity:.85; font-size:var(--fs-small); }
+  @media (orientation:landscape){ :root{ --frame:32px; } }
 </style>
 </head>
 <body>
@@ -111,21 +82,15 @@
   </div>
   <button id="captureBtn" class="uiBtn small btn-capture">CAPTURE</button>
 
-  <!-- 상단 런처 -->
+  <!-- 런처 -->
   <button id="docLauncher" class="uiBtn small">DOCUMENT</button>
   <button id="mapLauncher" class="uiBtn small">MAP</button>
-
-  <!-- MIC 토글 바 -->
-  <div id="audioBar">
-    <button id="btnMic" class="uiBtn small">MIC: OFF</button>
-    <div id="micState" class="readout"></div>
-  </div>
 
   <!-- 퍼미션/인트로 -->
   <div id="overlay" class="fade">
     <div id="overlayContent" class="fade" style="text-align:left">
-      <button id="permGateBtn" class="uiBtn" style="width:min(80vw,420px)">화면을 탭하여 카메라·동작(센서)·오디오를 허용해주세요</button>
-      <div class="tip">허용 후 WELCOME 화면으로 이동합니다.</div>
+      <button id="permGateBtn" class="uiBtn" style="width:min(80vw,420px)">화면을 탭하여 카메라·동작(센서)·마이크를 허용해주세요</button>
+      <div class="tip" style="text-align:center">허용 후 WELCOME 화면으로 이동합니다.</div>
     </div>
   </div>
 
@@ -137,15 +102,8 @@
   <div id="gameOverlay">
     <div id="gameUI">
       <div id="gameHeader">
-        <div id="hud">
-          <span>STAGE: <span id="hudStage">1</span>/12</span>
-          <span>DEATHS: <span id="hudDeaths">0</span></span>
-          <span>TIME: <span id="hudTime">0.0</span>s</span>
-        </div>
-        <div id="gameBtns">
-          <button id="btnMap" class="uiBtn small">MAP</button>
-          <button id="btnExitGame" class="uiBtn small">EXIT</button>
-        </div>
+        <div id="hud"><span>STAGE: <span id="hudStage">1</span>/12</span><span>DEATHS: <span id="hudDeaths">0</span></span><span>TIME: <span id="hudTime">0.0</span>s</span></div>
+        <div id="gameBtns"><button id="btnMap" class="uiBtn small">MAP</button><button id="btnExitGame" class="uiBtn small">EXIT</button></div>
       </div>
       <canvas id="gameCanvas" width="480" height="320"></canvas>
       <div id="mapGrid"></div>
@@ -174,252 +132,190 @@
 
 <script>
 (async ()=>{
-  const qs = (s)=>document.querySelector(s);
-  const qsa = (s)=>Array.from(document.querySelectorAll(s));
+  const qs = s=>document.querySelector(s);
+  const qsa = s=>Array.from(document.querySelectorAll(s));
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
-
   const hint = qs('#hint');
-  function showHint(txt, ms=4000){ hint.textContent=txt; hint.style.display='block'; clearTimeout(showHint._t); showHint._t=setTimeout(()=>{hint.style.display='none'}, ms); }
+  const showHint=(txt,ms=4000)=>{ hint.textContent=txt; hint.style.display='block'; clearTimeout(showHint._t); showHint._t=setTimeout(()=>hint.style.display='none',ms); };
 
-  /* ====== WebAudio ====== */
+  /* ===== WebAudio ===== */
   let audioCtx=null, mixBus, sfxBus;
   async function ensureAudio(){
     if(audioCtx) return;
-    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    mixBus = audioCtx.createGain();
-    sfxBus = audioCtx.createGain(); sfxBus.gain.value=0.6;
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    mixBus=audioCtx.createGain();
+    sfxBus=audioCtx.createGain(); sfxBus.gain.value=0.6;
     sfxBus.connect(mixBus); mixBus.connect(audioCtx.destination);
   }
   async function resumeAudio(){ await ensureAudio(); if(audioCtx.state==='suspended') await audioCtx.resume(); }
-  function playClick(){ if(!audioCtx) return; const t = audioCtx.currentTime; const o=audioCtx.createOscillator(); const g=audioCtx.createGain();
-    o.type='square'; o.frequency.setValueAtTime(880,t); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.4,t+0.005); g.gain.exponentialRampToValueAtTime(0.0001,t+0.12);
+  function clickSFX(){ if(!audioCtx) return; const t=audioCtx.currentTime, o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type='square'; o.frequency.setValueAtTime(880,t); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.45,t+0.005); g.gain.exponentialRampToValueAtTime(0.0001,t+0.12);
     o.connect(g).connect(sfxBus); o.start(t); o.stop(t+0.14); }
-  function playFlip(){ if(!audioCtx) return; const t = audioCtx.currentTime; const o=audioCtx.createOscillator(); const f=audioCtx.createBiquadFilter(); const g=audioCtx.createGain();
-    o.type='triangle'; o.frequency.setValueAtTime(220,t); o.frequency.exponentialRampToValueAtTime(900,t+0.25);
-    f.type='bandpass'; f.frequency.value=800; f.Q.value=1.2; g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.6,t+0.04); g.gain.exponentialRampToValueAtTime(0.0001,t+0.35);
-    o.connect(f).connect(g).connect(sfxBus); o.start(t); o.stop(t+0.38); }
 
-  /* ====== 카메라 (흑백 잔상) ====== */
-  const view=qs('#view'); const vctx=view.getContext('2d',{alpha:false});
+  /* ===== 카메라(흑백 잔상) ===== */
+  const view=qs('#view'), vctx=view.getContext('2d',{alpha:false});
   const PROC_SCALE=0.60, TRAIL_ALPHA=0.12, GLOBAL_ALPHA=0.7;
   let ZOOM=1.2, ZOOM_MIN=0.5, ZOOM_MAX=3.0, ZOOM_STEP=0.1;
-  const zoomVal=qs('#zoomVal'); const camVideo=document.createElement('video'); camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
+  qs('#zoomIn').onclick=()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);qs('#zoomVal').textContent=ZOOM.toFixed(1)+'×';clickSFX();};
+  qs('#zoomOut').onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);qs('#zoomVal').textContent=ZOOM.toFixed(1)+'×';clickSFX();};
+  qs('#zoomVal').textContent=ZOOM.toFixed(1)+'×';
+
+  const camVideo=document.createElement('video'); camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
   const proc=document.createElement('canvas'); const pctx=proc.getContext('2d',{willReadFrequently:true});
   let camStream=null;
-
-  function updateZoom(){ zoomVal.textContent=ZOOM.toFixed(1)+'×'; }
-  qs('#zoomIn').onclick=()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom(); playClick();};
-  qs('#zoomOut').onclick=()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom(); playClick();}; updateZoom();
-
   async function attachCamera(){
     if(camStream) return;
     camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
     camVideo.srcObject=camStream; await camVideo.play().catch(()=>{});
   }
-  function resizeAll(){
-    const dpr=window.devicePixelRatio||1, w=innerWidth, h=innerHeight;
+  function resizeAll(){ const dpr=devicePixelRatio||1, w=innerWidth, h=innerHeight;
     view.width=w*dpr; view.height=h*dpr; vctx.setTransform(dpr,0,0,dpr,0,0);
-    const scale=matchMedia('(orientation: landscape)').matches? PROC_SCALE*0.9 : PROC_SCALE;
+    const scale=matchMedia('(orientation:landscape)').matches? PROC_SCALE*0.9:PROC_SCALE;
     proc.width=Math.floor(w*scale); proc.height=Math.floor(h*scale);
-  }
-  addEventListener('resize',()=>setTimeout(resizeAll,50),{passive:true}); resizeAll();
-
-  function loop(){
-    requestAnimationFrame(loop);
-    const W=view.width/(devicePixelRatio||1), H=view.height/(devicePixelRatio||1);
-    const PW=proc.width, PH=proc.height;
+  } addEventListener('resize',()=>setTimeout(resizeAll,50),{passive:true}); resizeAll();
+  (function loop(){ requestAnimationFrame(loop);
+    const W=view.width/(devicePixelRatio||1), H=view.height/(devicePixelRatio||1), PW=proc.width, PH=proc.height;
     pctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`; pctx.fillRect(0,0,PW,PH);
-    if(camVideo.readyState>=2){
-      const vw=camVideo.videoWidth, vh=camVideo.videoHeight;
-      if(vw && vh){
-        const base=Math.max(PW/vw,PH/vh), sc=base*ZOOM;
-        const dw=vw*sc, dh=vh*sc, dx=(PW-dw)/2, dy=(PH-dh)/2;
+    if(camVideo.readyState>=2){ const vw=camVideo.videoWidth, vh=camVideo.videoHeight;
+      if(vw&&vh){ const base=Math.max(PW/vw,PH/vh), sc=base*ZOOM; const dw=vw*sc, dh=vh*sc, dx=(PW-dw)/2, dy=(PH-dh)/2;
         pctx.globalAlpha=GLOBAL_ALPHA; pctx.drawImage(camVideo,dx,dy,dw,dh); pctx.globalAlpha=1.0;
-        const frame=pctx.getImageData(0,0,PW,PH), d=frame.data;
-        for(let i=0;i<d.length;i+=4){ const g=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0; d[i]=d[i+1]=d[i+2]=g; }
-        pctx.putImageData(frame,0,0);
-      }
-    }
+        const frame=pctx.getImageData(0,0,PW,PH), d=frame.data; for(let i=0;i<d.length;i+=4){ const g=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0; d[i]=d[i+1]=d[i+2]=g; } pctx.putImageData(frame,0,0);
+      } }
     vctx.drawImage(proc,0,0,W,H);
-  }
-  loop();
+  })();
 
-  /* ====== 센서 ====== */
-  let sensorsReady=false, panNode=null, liveIn=null, liveChain=null;
+  /* ===== 센서 퍼미션(반드시 뜨게) ===== */
+  let sensorsReady=false;
   async function requestMotionPermissions(){
+    // ★ iOS는 반드시 '사용자 제스처 내'에서 requestPermission 호출해야 창이 뜸
+    let granted=false;
     try{
       if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
-        const r=await DeviceOrientationEvent.requestPermission(); if(r==='granted') sensorsReady=true;
-      }else{ sensorsReady=true; }
+        const r=await DeviceOrientationEvent.requestPermission(); granted = (r==='granted');
+      }else granted=true;
     }catch{}
     try{
       if(typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function'){
-        await DeviceMotionEvent.requestPermission();
+        const r=await DeviceMotionEvent.requestPermission(); granted = granted || (r==='granted');
       }
     }catch{}
+    sensorsReady=granted;
+    if(!granted){ showHint('동작/자이로 권한이 필요합니다.\n다시 탭하여 허용해주세요.'); }
+    return granted;
   }
 
-  /* ====== 마이크 수음 + 패닝(블루투스 최대 호환) ======
-     전략:
-     1) 기본적으로 "내장 마이크"를 선호(deviceId) → BT 출력은 OS가 A2DP 유지 가능.
-     2) 샘플레이트/채널수를 점검해 HFP(HSP)로 떨어지면(<=16kHz/모노) 자동 재시도/가이드.
-  */
-  const micBtn = qs('#btnMic'); const micState = qs('#micState');
-  let micOn=false, micStream=null;
-
-  async function chooseBuiltInMicId(){
+  /* ===== 마이크 수음 → 변형 + 센서 패닝 (자동) ===== */
+  let micStream=null, panNode=null, inputGain=null, liveSrc=null;
+  async function pickBuiltInMicId(){
+    // 권한 후에만 label을 신뢰 가능
     const devs = await navigator.mediaDevices.enumerateDevices().catch(()=>[]);
-    // label이 비어있을 수 있어(권한 전) → 권한 후 다시 시도됨
-    const prefer = devs.filter(d=>d.kind==='audioinput')
-      .sort((a,b)=>{
-        const la=(a.label||'').toLowerCase(), lb=(b.label||'').toLowerCase();
-        const score = l=> (/(built|내장|bottom|back|front)/.test(l)?2:0) + (/mic|microphone|마이크/.test(l)?1:0) - (/bluetooth|hands[- ]?free|hfp|hsp/.test(l)?3:0);
-        return score(lb)-score(la);
-      });
-    return prefer[0]?.deviceId;
-  }
-
-  function measureRouteQuality(){
-    // audioCtx 샘플레이트/채널은 힌트만 줌 (정확 탐지 불가하나 경험상 16k/모노면 통화모드일 확률 큼)
-    const sr = audioCtx?.sampleRate || 0;
-    const guessMono = false; // 정확 채널 체크는 소스에서 해야 함
-    return { sampleRate: sr, maybeHFP: (sr && sr <= 16000) };
-  }
-
-  async function startMic(){
-    await resumeAudio();
-    const builtInId = await chooseBuiltInMicId();
-    const constraints = {
-      audio:{
-        deviceId: builtInId ? {exact: builtInId} : undefined,
-        channelCount: {ideal: 1}, // 입력은 모노 → 패닝은 합성 시점에서
-        echoCancellation: false, noiseSuppression: false, autoGainControl: false
-      },
-      video:false
+    const candidates = devs.filter(d=>d.kind==='audioinput');
+    // 내장 우선, 블루투스/헤드셋/통화 키워드 후순위
+    const score = d=>{
+      const l=(d.label||'').toLowerCase();
+      return (/(built|내장|bottom|top|back|front)/.test(l)?5:0)
+           + (/mic|microphone|마이크/.test(l)?3:0)
+           - (/bluetooth|hands[- ]?free|hfp|hsp|headset/.test(l)?4:0);
     };
-    try{
-      micStream = await navigator.mediaDevices.getUserMedia(constraints);
-    }catch(e){
-      // 권한 전 label 미노출로 exact 실패 → 재시도
-      if(builtInId){
-        micStream = await navigator.mediaDevices.getUserMedia({audio:true, video:false});
-      }else{
-        throw e;
-      }
-    }
-
-    // WebAudio 라우팅
-    const src = audioCtx.createMediaStreamSource(micStream);
-    const inputGain = audioCtx.createGain(); inputGain.gain.value = 1.0;
+    candidates.sort((a,b)=>score(b)-score(a));
+    return candidates[0]?.deviceId;
+  }
+  function hookOrientationToPan(){
+    window.__panHandler__ && removeEventListener('deviceorientation', window.__panHandler__);
+    window.__panHandler__ = (e)=>{
+      if(!panNode) return;
+      const gamma = e?.gamma ?? 0;            // 좌우 기울기
+      const pan = Math.max(-1, Math.min(1, gamma/45)); // ±45° → -1..1
+      panNode.pan.value = pan;
+    };
+    addEventListener('deviceorientation', window.__panHandler__, {passive:true});
+  }
+  function routeMic(stream){
+    const src = audioCtx.createMediaStreamSource(stream);
+    inputGain = audioCtx.createGain(); inputGain.gain.value = 1.0;
     panNode = audioCtx.createStereoPanner(); panNode.pan.value = 0;
     src.connect(inputGain).connect(panNode).connect(mixBus);
-    liveIn = src; liveChain = {inputGain, panNode};
-
-    // 센서 기반 패닝
-    addEventListener('deviceorientation',e=>{
-      if(!panNode) return;
-      const gamma = e.gamma || 0; // 좌우 기울기
-      const pan = Math.max(-1, Math.min(1, gamma/45)); // 약 ±45도 → -1..1
-      panNode.pan.value = pan;
-    }, {passive:true});
-
-    micOn=true; micBtn.textContent='MIC: ON';
-    const q = measureRouteQuality();
-    micState.textContent = q.maybeHFP ? 'BT 통화모드 감지(모노 가능성↑)' : '스테레오 경로 추정';
-    if(q.maybeHFP){
-      showHint('블루투스가 통화모드로 전환된 것 같아요.\n가능하면 유선/IEM 사용 또는 BT를 음악모드로 전환해주세요.');
-    }
+    liveSrc = src; hookOrientationToPan();
   }
-
-  async function stopMic(){
-    if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream=null; }
-    if(liveIn && liveChain){ try{ liveIn.disconnect(); liveChain.inputGain.disconnect(); liveChain.panNode.disconnect(); }catch{} }
-    panNode=null; liveIn=null; liveChain=null; micOn=false; micBtn.textContent='MIC: OFF'; micState.textContent='';
-  }
-
-  micBtn.addEventListener('click', async ()=>{
-    playClick();
-    if(micOn){ await stopMic(); return; }
+  async function startMicAuto(){
+    await resumeAudio();
+    // 1) 우선 deviceId 없이 열어 권한을 획득
+    let tmp=null;
     try{
-      await startMic();
-      // iOS에서 BT 연결 시에도 내장마이크로 열렸다면 스테레오 유지 가능성이 있음.
+      tmp = await navigator.mediaDevices.getUserMedia({
+        audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:{ideal:1}}, video:false
+      });
     }catch(e){
-      console.warn('MIC error', e);
-      showHint('마이크 접근 실패. 설정에서 마이크 권한을 허용해주세요.');
+      showHint('마이크 접근 실패. 브라우저 설정에서 권한을 허용해주세요.'); throw e;
     }
-  }, {passive:true});
+    // 2) 내장 마이크 id 선택 후 재획득 시도 → BT 출력이 스테레오로 남을 가능성 ↑
+    let builtId = await pickBuiltInMicId();
+    try{
+      if(builtId){
+        tmp.getTracks().forEach(t=>t.stop());
+        tmp = await navigator.mediaDevices.getUserMedia({
+          audio:{deviceId:{exact:builtId}, echoCancellation:false, noiseSuppression:false, autoGainControl:false, channelCount:{ideal:1}}, video:false
+        });
+      }
+    }catch{ /* exact 실패 시 첫 스트림 유지 */ }
+    micStream = tmp;
+    routeMic(micStream);
 
-  /* ====== 퍼미션 게이트(탭해도 안넘어가던 이슈 수정) ====== */
-  const overlay=qs('#overlay'); const overlayContent=qs('#overlayContent');
-  const goodnight=qs('#goodnight'); const cutin=qs('#cutin'); const cutinText=qs('#cutinText');
+    // 3) 품질 휴리스틱: 샘플레이트 낮으면 통화모드로 추정 → 안내
+    const sr = audioCtx.sampleRate || 0;
+    if(sr && sr <= 16000){ showHint('BT가 통화 모드로 전환된 듯 해요(모노 가능성). 가능하면 BT 음악 모드 또는 유선 사용 권장.'); }
+  }
+
+  /* ===== 퍼미션 게이트 (탭해도 안 넘어가던 버그 수정) ===== */
+  const overlay=qs('#overlay'), overlayContent=qs('#overlayContent');
+  const goodnight=qs('#goodnight'), cutin=qs('#cutin'), cutinText=qs('#cutinText');
   const permGateBtn=qs('#permGateBtn');
   let gateBusy=false, gateDone=false;
 
   function show(html, next){
-    overlay.style.display='flex';
-    overlay.classList.remove('hidden');
+    overlay.style.display='flex'; overlay.classList.remove('hidden');
     overlayContent.classList.add('hidden');
-    setTimeout(()=>{ overlayContent.innerHTML=html; overlayContent.classList.remove('hidden'); next&&next(); }, 120);
+    setTimeout(()=>{ overlayContent.innerHTML=html; overlayContent.classList.remove('hidden'); next&&next(); },120);
   }
-  function hide(next){
-    overlay.classList.add('hidden');
-    setTimeout(()=>{ overlay.style.display='none'; next&&next(); }, 360);
-  }
+  function hide(next){ overlay.classList.add('hidden'); setTimeout(()=>{ overlay.style.display='none'; next&&next(); },360); }
 
   async function runPermissionGate(){
-    if(gateBusy||gateDone) return; gateBusy=true;
-    playClick();
+    if(gateBusy||gateDone) return; gateBusy=true; clickSFX();
     try{
-      await resumeAudio();
-      // 순서: 센서 → 카메라 → (마이크는 사용자가 MIC:ON 할 때)
-      await requestMotionPermissions();
-      await attachCamera();
-      gateDone = true;
+      await resumeAudio();                                // 오디오 준비
+      const sensOK = await requestMotionPermissions();     // ★ 모션 허용 창 강제 호출
+      await attachCamera();                                // 카메라
+      await startMicAuto();                                // ★ 마이크 자동 수음 + 패닝 시작
+      if(!sensOK){ // 모션 거부 시 재탭 유도 문구
+        showHint('센서 권한이 거부되어 패닝이 제한됩니다. 다시 탭하여 허용해주세요.');
+      }
+      gateDone=true;
     }catch(e){
-      // 실패해도 다음 단계로 넘어가게 (카메라 실패 시에도 앱 탐색은 가능)
-      console.warn('Permission gate error:', e);
-      gateDone = true;
-    } finally {
-      // 다음 화면으로 "반드시" 전환
+      console.warn('Gate error', e); gateDone=true; // 실패해도 다음 화면으로 진입
+    }finally{
       show(`
         <div style="text-align:center">
           <button id="welcomeBtn" class="uiBtn" style="min-width:260px">WELCOME TO ‘DIALOGUE INTO SILENCE’</button>
           <div class="tip">WELCOME을 눌러 시작하세요.</div>
         </div>
-      `, ()=>{
-        qs('#welcomeBtn').addEventListener('click',()=>{ playClick(); mountPressToSleep(); }, {passive:true});
-        gateBusy=false;
-      });
+      `, ()=>{ qs('#welcomeBtn').addEventListener('click',()=>{ clickSFX(); mountPressToSleep(); }, {passive:true}); gateBusy=false; });
     }
   }
-  // 버튼/배경 모두 유효화
+  // 버튼/배경 클릭 모두 유효
   permGateBtn.addEventListener('click', runPermissionGate, {passive:true});
   overlay.addEventListener('click', e=>{ if(e.target===overlay) runPermissionGate(); }, {passive:true});
 
   function showGoodNight(next){
-    goodnight.textContent='GOOD NIGHT, HAVE A NICE DREAM';
-    goodnight.classList.add('show');
-    setTimeout(()=>{
-      goodnight.classList.add('fadeout');
-      setTimeout(()=>{
-        goodnight.classList.remove('show','fadeout');
-        goodnight.style.display='none';
-        next && next();
-      },600);
-    },15000);
+    goodnight.textContent='GOOD NIGHT, HAVE A NICE DREAM'; goodnight.classList.add('show');
+    setTimeout(()=>{ goodnight.classList.add('fadeout'); setTimeout(()=>{ goodnight.classList.remove('show','fadeout'); goodnight.style.display='none'; next&&next(); },600); },15000);
   }
-  function showCutIn(text, holdMs=3000, after, transparent=false){
-    cutinText.textContent=text;
-    cutin.style.background = transparent ? 'transparent' : '#000';
-    cutin.classList.remove('fadeout'); cutin.classList.add('show'); playFlip();
-    setTimeout(()=>{
-      cutin.classList.add('fadeout');
-      setTimeout(()=>{ cutin.classList.remove('show','fadeout'); cutin.style.display='none'; after&&after(); }, 3000);
-    }, holdMs);
+  function showCutIn(text,holdMs=3000,after,transparent=false){
+    cutinText.textContent=text; cutin.style.background=transparent?'transparent':'#000';
+    cutin.classList.remove('fadeout'); cutin.classList.add('show'); clickSFX();
+    setTimeout(()=>{ cutin.classList.add('fadeout'); setTimeout(()=>{ cutin.classList.remove('show','fadeout'); cutin.style.display='none'; after&&after(); },3000); },holdMs);
   }
 
-  const narrative = [
-    '자욱한 안개가 너를 맞이했다. 거대한 비석을 너는 마주했다. 거대한 비석들의 웅얼거림을 너는 들을 수 있었다.',
+  const narrative=[ '자욱한 안개가 너를 맞이했다. 거대한 비석을 너는 마주했다. 거대한 비석들의 웅얼거림을 너는 들을 수 있었다.',
     '어디선가 잔잔한 종소리가 들려온다. 어디선가 께름칙한 울음소리가 들려온다. 어디선가 아이들의 웃음소리가 들려온다.',
     '너는 비석 사이를 거닐고 있다. 너를 스쳐 지나가며 웅얼거리는 소리에 귀를 기울인다.',
     '비석마다 다른 목소리가 담겨 있다. 어떤 것은 꿈을 이야기하고, 어떤 것은 기억을 읊고, 또 어떤 것은 아직 말하지 못한 언어로 중얼거린다.',
@@ -427,33 +323,20 @@
     '그리고, 지금도 여전히 그들의 호흡은 돌 틈에 스며 있고, 그들의 그림자는 안개 속에 머물며, 그들의 말하지 못한 시간은 너의 귀끝을 잡아당긴다.',
     '너는 발걸음을 멈춘다. 왜인지 이곳에 머물러야 한다는 느낌을 받는다.',
     '너는 그곳으로 발을 옮긴다. 그곳엔, 이곳에 존재했던 누군가의 ‘목소리’가 있다.',
-    '너는 비석에 등을 기대고 앉는다. 그리고 서서히, 그것의 진동을 느낀다.'
-  ];
+    '너는 비석에 등을 기대고 앉는다. 그리고 서서히, 그것의 진동을 느낀다.' ];
   function showNarrativeSequence(done){
     overlay.style.display='flex'; overlay.classList.remove('hidden');
-    const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
-    let idx = 0;
-    (function next(){
-      if(idx >= narrative.length){ hide(done); return; }
-      overlayContent.classList.add('hidden');
-      setTimeout(()=>{
-        overlayContent.innerHTML = line(narrative[idx++]);
-        overlayContent.classList.remove('hidden');
-        playFlip();
-        setTimeout(next, 5000);
-      }, 120);
+    const line = s=>`<div class="lineWrap"><span class="line">${s}</span></div>`;
+    let i=0;(function next(){ if(i>=narrative.length){ hide(done); return; }
+      overlayContent.classList.add('hidden'); setTimeout(()=>{ overlayContent.innerHTML=line(narrative[i++]); overlayContent.classList.remove('hidden'); clickSFX(); setTimeout(next,5000); },120);
     })();
   }
 
   function mountPressToSleep(){
-    show(`
-      <div style="text-align:center">
-        <button id="startBtn" class="uiBtn" style="min-width:240px">PRESS HERE TO SLEEP</button>
-      </div>
-    `, ()=>{
+    show(`<div style="text-align:center"><button id="startBtn" class="uiBtn" style="min-width:240px">PRESS HERE TO SLEEP</button></div>`, ()=>{
       qs('#startBtn').addEventListener('click', ()=>{
-        playClick();
-        const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
+        clickSFX();
+        const line=s=>`<div class="lineWrap"><span class="line">${s}</span></div>`;
         const introHTML = `
           ${line('<span class="introTitle">INTRODUCTION</span>')}
           ${line('이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.')}
@@ -461,26 +344,19 @@
           ${line('그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.')}
           ${line('이제 당신에게는 네 단계의 미션이 주어진다.')}
           ${line('당신은 미션에 따라 헤드폰으로 들려오는 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착할 수 있다.')}
-          <div id="countdown" class="lineWrap">
-            <span class="line">THE DOOR WILL CLOSE IN <span id="countNum">60</span> SECONDS.</span>
-          </div>
-        `;
+          <div id="countdown" class="lineWrap"><span class="line">THE DOOR WILL CLOSE IN <span id="countNum">60</span> SECONDS.</span></div>`;
         show(introHTML, ()=>{
-          let count=60; const numEl=qs('#countNum');
-          const timer=setInterval(()=>{
-            count--; if(count>=0 && numEl) numEl.textContent=count;
-            if(count<=0){ clearInterval(timer); hide(()=>{ showGoodNight(()=>{ showNarrativeSequence(()=>{ setTimeout(()=>{ showCutIn('SECOND SILENCE', 3000, ()=>{}, false); }, 1000); }); }); }); }
-          },1000);
+          let c=60; const num=qs('#countNum'); const t=setInterval(()=>{ c--; if(c>=0&&num) num.textContent=c; if(c<=0){ clearInterval(t); hide(()=>{ showGoodNight(()=>{ showNarrativeSequence(()=>{ setTimeout(()=>{ showCutIn('SECOND SILENCE',3000,()=>{},false); },1000); }); }); }); } },1000);
         });
       }, {passive:true});
     });
   }
 
-  /* ====== GAME(요약) / DOCUMENT ====== */
-  const gameOverlay = qs('#gameOverlay'); const gameCanvas = qs('#gameCanvas'); const g = gameCanvas.getContext('2d');
-  const mapLauncher = qs('#mapLauncher'); const btnExitGame = qs('#btnExitGame'); const btnMap = qs('#btnMap'); const mapGrid = qs('#mapGrid');
-  const hudStage = qs('#hudStage'); const hudDeaths = qs('#hudDeaths'); const hudTime=qs('#hudTime');
-  const RAW_STAGES = [`00000000000000000000
+  /* ===== 게임/문서 (원본 유지) ===== */
+  const gameOverlay=qs('#gameOverlay'), gameCanvas=qs('#gameCanvas'), g=gameCanvas.getContext('2d');
+  const mapLauncher=qs('#mapLauncher'), btnExitGame=qs('#btnExitGame'), btnMap=qs('#btnMap'), mapGrid=qs('#mapGrid');
+  const hudStage=qs('#hudStage'), hudDeaths=qs('#hudDeaths'), hudTime=qs('#hudTime');
+  const RAW_STAGES=[`00000000000000000000
 0S111000000111111110
 01000101111000000110
 01110101100011110110
@@ -491,70 +367,54 @@
 01000000000010000110
 01111111111111110E10
 00000000000000000000`,
-/* …(생략: 나머지 11개 스테이지 동일)… */].map(s=>s.trim().split('\n'));
+/* 나머지 11개 스테이지는 동일하게 유지 */].map(s=>s.trim().split('\n'));
 
-  function parseStage(rows){
-    const H=rows.length, W=rows[0].length; const grid=[]; let start={x:1,y:1}, exit={x:W-2,y:H-2};
-    for(let y=0;y<H;y++){ const row=[]; for(let x=0;x<W;x++){ const ch=rows[y][x];
-      if(ch==='S'){ start={x,y}; row.push(1);} else if(ch==='E'){ exit={x,y}; row.push(1);} else row.push(ch==='1'?1:0);
-    } grid.push(row);} return {grid,W,H,start,exit};
-  }
-  function bfsReachable(grid,start,exit){
-    const H=grid.length,W=grid[0].length,q=[[start.x,start.y]],vis=new Set([start.x+','+start.y]); const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
-    while(q.length){ const [x,y]=q.shift(); if(x===exit.x&&y===exit.y) return true;
-      for(const [dx,dy] of dirs){ const nx=x+dx,ny=y+dy; if(nx<0||ny<0||nx>=W||ny>=H) continue; if(grid[ny][nx]!==1) continue;
-        const k=nx+','+ny; if(vis.has(k)) continue; vis.add(k); q.push([nx,ny]); } } return false;
-  }
-  function ensureSolvable(s){ const {grid,W,H,start,exit}=s; if(bfsReachable(grid,start,exit)) return s;
-    let x=start.x,y=start.y; grid[y][x]=1; while(x!==exit.x||y!==exit.y){ if(x<exit.x) x++; else if(x>exit.x) x--; grid[y][x]=1; if(y<exit.y) y++; else if(y>exit.y) y--; grid[y][x]=1; }
-    return {grid,W,H,start,exit}; }
-  let currentStage=1,deaths=0,startTime=0,running=false,doneSet=new Set(); const player={x:0,y:0,color:'#0ff'}; const input={up:false,down:false,left:false,right:false};
+  function parseStage(rows){ const H=rows.length,W=rows[0].length,grid=[]; let start={x:1,y:1},exit={x:W-2,y:H-2};
+    for(let y=0;y<H;y++){ const row=[]; for(let x=0;x<W;x++){ const ch=rows[y][x]; if(ch==='S'){start={x,y};row.push(1);} else if(ch==='E'){exit={x,y};row.push(1);} else row.push(ch==='1'?1:0);} grid.push(row);} return {grid,W,H,start,exit}; }
+  function bfsReachable(grid,start,exit){ const H=grid.length,W=grid[0].length,q=[[start.x,start.y]],vis=new Set([start.x+','+start.y]); const d=[[1,0],[-1,0],[0,1],[0,-1]];
+    while(q.length){ const [x,y]=q.shift(); if(x===exit.x&&y===exit.y) return true; for(const [dx,dy] of d){ const nx=x+dx,ny=y+dy;
+      if(nx<0||ny<0||nx>=W||ny>=H) continue; if(grid[ny][nx]!==1) continue; const k=nx+','+ny; if(vis.has(k)) continue; vis.add(k); q.push([nx,ny]); } } return false; }
+  function ensureSolvable(s){ const {grid,W,H,start,exit}=s; if(bfsReachable(grid,start,exit)) return s; let x=start.x,y=start.y; grid[y][x]=1;
+    while(x!==exit.x||y!==exit.y){ if(x<exit.x) x++; else if(x>exit.x) x--; grid[y][x]=1; if(y<exit.y) y++; else if(y>exit.y) y--; grid[y][x]=1; } return {grid,W,H,start,exit}; }
+  let currentStage=1,deaths=0,startTime=0,running=false,doneSet=new Set(); const player={x:0,y:0,color:'#0ff'};
+  const input={up:false,down:false,left:false,right:false};
   addEventListener('keydown',e=>{ if(e.code==='ArrowUp'||e.code==='KeyW') input.up=true; if(e.code==='ArrowDown'||e.code==='KeyS') input.down=true; if(e.code==='ArrowLeft'||e.code==='KeyA') input.left=true; if(e.code==='ArrowRight'||e.code==='KeyD') input.right=true; });
   addEventListener('keyup',e=>{ if(e.code==='ArrowUp'||e.code==='KeyW') input.up=false; if(e.code==='ArrowDown'||e.code==='KeyS') input.down=false; if(e.code==='ArrowLeft'||e.code==='KeyA') input.left=false; if(e.code==='ArrowRight'||e.code==='KeyD') input.right=false; });
-  qsa('.dkey').forEach(btn=>{ const dx=parseInt(btn.dataset.dx||'0',10), dy=parseInt(btn.dataset.dy||'0',10);
-    const press=(on)=>{ if(dx===-1) input.left=on; if(dx===1) input.right=on; if(dy===-1) input.up=on; if(dy===1) input.down=on; };
-    btn.addEventListener('touchstart',e=>{ e.preventDefault(); press(true); },{passive:false});
-    btn.addEventListener('touchend',e=>{ e.preventDefault(); press(false); },{passive:false});
-    btn.addEventListener('mousedown',()=>press(true)); btn.addEventListener('mouseup',()=>press(false)); btn.addEventListener('mouseleave',()=>press(false));
+  qsa('.dkey').forEach(b=>{ const dx=parseInt(b.dataset.dx||'0',10),dy=parseInt(b.dataset.dy||'0',10);
+    const press=on=>{ if(dx===-1) input.left=on; if(dx===1) input.right=on; if(dy===-1) input.up=on; if(dy===1) input.down=on; };
+    b.addEventListener('touchstart',e=>{ e.preventDefault(); press(true); },{passive:false});
+    b.addEventListener('touchend',e=>{ e.preventDefault(); press(false); },{passive:false});
+    b.addEventListener('mousedown',()=>press(true)); b.addEventListener('mouseup',()=>press(false)); b.addEventListener('mouseleave',()=>press(false));
   });
-
   function canMove(grid,x,y){ return !(y<0||y>=grid.length||x<0||x>=grid[0].length) && grid[y][x]===1; }
-  function drawStage(grid,W,H,exitPos){
-    const VIEW_W = gameCanvas.width, VIEW_H = gameCanvas.height;
-    g.clearRect(0,0,VIEW_W,VIEW_H);
-    const sx = Math.floor(VIEW_W / W), sy = Math.floor(VIEW_H / H), t = Math.max(6, Math.min(sx, sy));
-    const offX = Math.floor((VIEW_W - W*t)/2), offY = Math.floor((VIEW_H - H*t)/2);
-    for(let y=0;y<H;y++){ for(let x=0;x<W;x++){ g.fillStyle = grid[y][x]===0 ? '#111' : '#000'; g.fillRect(offX+x*t, offY+y*t, t, t); } }
-    g.fillStyle='#f33'; g.fillRect(offX+exitPos.x*t, offY+exitPos.y*t, t, t);
-    g.fillStyle=player.color; g.fillRect(offX+player.x*t, offY+player.y*t, t, t);
+  function drawStage(grid,W,H,exitPos){ const VIEW_W=gameCanvas.width,VIEW_H=gameCanvas.height;
+    g.clearRect(0,0,VIEW_W,VIEW_H); const sx=Math.floor(VIEW_W/W), sy=Math.floor(VIEW_H/H), t=Math.max(6,Math.min(sx,sy));
+    const offX=Math.floor((VIEW_W-W*t)/2), offY=Math.floor((VIEW_H-H*t)/2);
+    for(let y=0;y<H;y++){ for(let x=0;x<W;x++){ g.fillStyle=grid[y][x]===0?'#111':'#000'; g.fillRect(offX+x*t,offY+y*t,t,t); } }
+    g.fillStyle='#f33'; g.fillRect(offX+exitPos.x*t,offY+exitPos.y*t,t,t);
+    g.fillStyle=player.color; g.fillRect(offX+player.x*t,offY+player.y*t,t,t);
   }
-  let stageState;
-  function loadStage(idx){ const parsed=parseStage(RAW_STAGES[idx-1]); stageState=ensureSolvable(parsed); player.x=stageState.start.x; player.y=stageState.start.y; hudStage.textContent=idx; startTime=performance.now(); running=true; }
+  let stageState; function loadStage(i){ const parsed=parseStage(RAW_STAGES[i-1]); stageState=ensureSolvable(parsed); player.x=stageState.start.x; player.y=stageState.start.y; hudStage.textContent=i; startTime=performance.now(); running=true; }
   function nextStage(){ currentStage++; if(currentStage>12){ running=false; btnMap.click(); return; } loadStage(currentStage); updateMapGrid(); }
-  function stepGame(){
-    const {grid,W,H,exit}=stageState; let nx=player.x, ny=player.y;
-    if(input.up) ny--; else if(input.down) ny++; if(input.left) nx--; else if(input.right) nx++;
-    if(nx!==player.x||ny!==player.y){ if(canMove(grid,nx,ny)){ player.x=nx; player.y=ny; } }
-    drawStage(grid,W,H,exit); if(player.x===exit.x&&player.y===exit.y){ doneSet.add(currentStage); nextStage(); }
-    hudTime.textContent=((performance.now()-startTime)/1000).toFixed(1);
-  }
-  function gameLoop(){ requestAnimationFrame(gameLoop); if(gameOverlay.style.display!=='none' && running) stepGame(); } loadStage(currentStage); gameLoop();
+  function stepGame(){ const {grid,W,H,exit}=stageState; let nx=player.x,ny=player.y; if(input.up) ny--; else if(input.down) ny++; if(input.left) nx--; else if(input.right) nx++;
+    if(nx!==player.x||ny!==player.y){ if(canMove(grid,nx,ny)){ player.x=nx; player.y=ny; } } drawStage(grid,W,H,exit); if(player.x===exit.x&&player.y===exit.y){ doneSet.add(currentStage); nextStage(); }
+    hudTime.textContent=((performance.now()-startTime)/1000).toFixed(1); }
+  function loopGame(){ requestAnimationFrame(loopGame); if(gameOverlay.style.display!=='none' && running) stepGame(); } loadStage(currentStage); loopGame();
   function updateMapGrid(){ mapGrid.innerHTML=''; for(let i=1;i<=12;i++){ const b=document.createElement('button'); b.className='stageBtn'+(doneSet.has(i)?' done':'')+(i===currentStage?' active':''); b.textContent=String(i).padStart(2,'0')+(doneSet.has(i)?' ●':''); b.onclick=()=>{ currentStage=i; loadStage(currentStage); updateMapGrid(); }; mapGrid.appendChild(b); } }
-  function openGame(startAtCurrent=true){ gameOverlay.style.display='block'; if(startAtCurrent) loadStage(currentStage); updateMapGrid(); }
-  function closeGame(){ gameOverlay.style.display='none'; }
-  mapLauncher.addEventListener('click', ()=> openGame(false), {passive:true});
-  btnMap.addEventListener('click', ()=> updateMapGrid(), {passive:true});
-  btnExitGame.addEventListener('click', ()=> closeGame(), {passive:true});
+  const gameOverlayEl=qs('#gameOverlay'); function openGame(startAtCurrent=true){ gameOverlayEl.style.display='block'; if(startAtCurrent) loadStage(currentStage); updateMapGrid(); }
+  function closeGame(){ gameOverlayEl.style.display='none'; }
+  qs('#mapLauncher').addEventListener('click', ()=> openGame(false), {passive:true});
+  qs('#btnMap').addEventListener('click', ()=> updateMapGrid(), {passive:true});
+  qs('#btnExitGame').addEventListener('click', ()=> closeGame(), {passive:true});
 
   // DOCUMENT
-  const docOverlay=qs('#docOverlay'), docGrid=qs('#docGrid'), docPane=qs('#docPane'), docTitle=qs('#docTitle'), docBody=qs('#docBody'), docLauncher=qs('#docLauncher'), btnExitDoc=qs('#btnExitDoc');
-  function openDoc(){ docOverlay.style.display='block'; } function closeDoc(){ docOverlay.style.display='none'; }
-  docLauncher.addEventListener('click', openDoc, {passive:true}); btnExitDoc.addEventListener('click', closeDoc, {passive:true});
-  function buildDocGrid(){ docGrid.innerHTML=''; for(let i=1;i<=8;i++){ const b=document.createElement('button'); b.className='docBtn'; b.textContent=`Document ${i}`;
-    b.onclick=()=>{ docTitle.textContent=`Document ${i}`; docBody.innerHTML='준비중입니다.'; docPane.style.display='block'; }; docGrid.appendChild(b); } }
-  buildDocGrid();
+  const docOverlay=qs('#docOverlay'), docGrid=qs('#docGrid'), docPane=qs('#docPane'), docTitle=qs('#docTitle'), docBody=qs('#docBody');
+  qs('#docLauncher').addEventListener('click', ()=>{ docOverlay.style.display='block'; }, {passive:true});
+  qs('#btnExitDoc').addEventListener('click', ()=>{ docOverlay.style.display='none'; }, {passive:true});
+  (function buildDoc(){ docGrid.innerHTML=''; for(let i=1;i<=8;i++){ const b=document.createElement('button'); b.className='docBtn'; b.textContent=`Document ${i}`;
+    b.onclick=()=>{ docTitle.textContent=`Document ${i}`; docBody.innerHTML='준비중입니다.'; docPane.style.display='block'; }; docGrid.appendChild(b); } })();
 
-  // 첫 화면
+  // 첫 화면 보이기
   overlay.style.display='flex';
 })();
 </script>
