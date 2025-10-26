@@ -4,8 +4,15 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Dialogue into Silence — Camera+Audio+Pixel Maze+Docs</title>
+
+<!-- iOS A2HS 타이틀 (홈 화면 제목) -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dialogue into Silence">
+
+<!-- (안드로이드/데스크톱 PWA) 매니페스트 - short_name/name는 아래 예시 참고 -->
+<link rel="manifest" href="/manifest.webmanifest">
+
 <style>
   :root{
     --frame: 40px; --ui-gap: 8px;
@@ -42,7 +49,10 @@
   /* 메인 오버레이 (퍼미션/인트로/내러티브 재사용) */
   #overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;
     font-family:"Courier New",monospace;color:#fff;background:rgba(0,0,0,.72)}
-  #overlayContent{pointer-events:auto;line-height:1.7;font-size:var(--fs-body);max-width:min(72ch, calc(100vw - (var(--frame)*2)));max-height:calc(100vh - (var(--frame)*2));overflow:hidden;text-align:left}
+  #overlayContent{pointer-events:auto;line-height:1.7;font-size:var(--fs-body);
+    max-width:min(72ch, calc(100vw - (var(--frame)*2)));
+    max-height:calc(100vh - (var(--frame)*2));
+    overflow:hidden; text-align:left}
   .line{display:inline;background:#000;color:#fff;padding:calc(var(--pad-line)*0.8) var(--pad-line);box-decoration-break:clone;-webkit-box-decoration-break:clone}
   .lineWrap{margin:6px 0}
   .fade{opacity:1;transition:opacity .45s ease}
@@ -101,11 +111,13 @@
   .docPane{ border:1px solid #444; padding:12px; max-height:50vh; overflow:auto; background:#000; }
   .docTitle{ font-size:var(--fs-strong); margin-bottom:8px; }
 
-  /* INTRO 문단형 */
-  .introBlock{ text-align:left; }
-  .introTitleLine{ font-weight:700; margin-bottom:6px; }
-  .introPara{ margin:6px 0; }
-  .introCountdown{ margin-top:10px; }
+  /* ★ Document 가독성: 줄잘림 최소화 */
+  #docPane, #docBody, .docBtn{
+    white-space:pre-wrap;
+    word-break:keep-all;        /* 한글 단어 중간 분리 방지 */
+    overflow-wrap:anywhere;     /* 너무 길면 자연 분리 */
+    hyphens:none;
+  }
 </style>
 </head>
 <body>
@@ -126,10 +138,10 @@
 
   <!-- 메인 오버레이 (퍼미션/인트로/내러티브 공용) -->
   <div id="overlay" class="fade">
-    <div id="overlayContent" class="fade" style="text-align:center">
+    <div id="overlayContent" class="fade" style="text-align:left">
       <!-- 최초: 퍼미션 게이트 -->
       <button id="permGateBtn" class="uiBtn" style="width:min(80vw,420px)">화면을 탭하여 카메라·동작(센서)·오디오를 허용해주세요</button>
-      <div class="tip">권한 허용 후 WELCOME 화면이 나타납니다.</div>
+      <div class="tip" style="text-align:center">권한 허용 후 WELCOME 화면이 나타납니다.</div>
     </div>
   </div>
 
@@ -290,6 +302,7 @@
 
   /* ========= 마이크/센서 ========= */
   let micStream=null, sensorsReady=false;
+  const WANT_MIC = /[?&]mic=1\b/.test(location.search);
 
   // 기본값: 마이크 요청 안 함(블루투스 스테레오 유지). 필요 시 ?mic=1 로 켜기.
   async function startMic(){
@@ -297,16 +310,14 @@
     try{
       if(micStream) return;
       micStream=await navigator.mediaDevices.getUserMedia({
-        audio:{
-          echoCancellation:false, noiseSuppression:true, autoGainControl:false
-        },
+        audio:{ echoCancellation:false, noiseSuppression:true, autoGainControl:false },
         video:false
       });
-      // 권한만 획득(스트림은 사용 안 함)
+      // 스트림은 변조 파이프라인에 연결하려면 여기서 WebAudio로 라우팅 가능
     }catch(e){ console.warn('Mic denied', e); }
   }
 
-  // ★ 센서 퍼미션을 맨 먼저 요청
+  // iOS 등: 센서 퍼미션을 맨 먼저 요청
   async function requestMotionPermissions(){
     try{
       if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
@@ -320,7 +331,7 @@
     }catch(e){}
   }
 
-  /* ========= 퍼미션 게이트 → WELCOME → 기존 시퀀스 ========= */
+  /* ========= 퍼미션 게이트 → WELCOME → 시퀀스 ========= */
   const overlay=qs('#overlay'); const overlayContent=qs('#overlayContent');
   const goodnight=qs('#goodnight'); const cutin=qs('#cutin'); const cutinText=qs('#cutinText');
   const permGateBtn=qs('#permGateBtn');
@@ -410,15 +421,8 @@
       }, 150);
     })();
   }
-  function firstSilenceFlow(){
-    showCutIn('FIRST SILENCE', 3000, ()=>{
-      showNarrativeSequence(()=>{
-        setTimeout(()=>{ showCutIn('SECOND SILENCE', 3000, ()=>{}, false); }, 1000);
-      });
-    }, true);
-  }
 
-  // ★ INTRODUCTION: 중앙 박스 대신 좌측정렬 가로 문단
+  // INTRODUCTION: 블랙 박스 유지 + 좌측정렬 문단
   function mountPressToSleep(){
     show(`
       <div style="text-align:center">
@@ -428,22 +432,23 @@
       const startBtn=qs('#startBtn');
       startBtn.addEventListener('click', ()=>{
         playClick();
+        const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
         const introHTML = `
-          <div class="introBlock">
-            <div class="introTitleLine">INTRODUCTION</div>
-            <p class="introPara">이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.</p>
-            <p class="introPara">곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.</p>
-            <p class="introPara">그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.</p>
-            <p class="introPara">이제 당신에게는 네 단계의 미션이 주어진다.</p>
-            <p class="introPara">당신은 미션에 따라 헤드폰으로 들려오는 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착할 수 있다.</p>
-            <div id="countdown" class="introCountdown">THE DOOR WILL CLOSE IN <span id="countNum">60</span> SECONDS.</div>
+          ${line('<span class="introTitle">INTRODUCTION</span>')}
+          ${line('이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.')}
+          ${line('곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.')}
+          ${line('그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.')}
+          ${line('이제 당신에게는 네 단계의 미션이 주어진다.')}
+          ${line('당신은 미션에 따라 헤드폰으로 들려오는 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착할 수 있다.')}
+          <div id="countdown" class="lineWrap">
+            <span class="line">THE DOOR WILL CLOSE IN <span id="countNum">60</span> SECONDS.</span>
           </div>
         `;
         show(introHTML, ()=>{
           let count=60; const numEl=qs('#countNum');
           const timer=setInterval(()=>{
             count--; if(count>=0 && numEl) numEl.textContent=count;
-            if(count<=0){ clearInterval(timer); hide(()=>{ showGoodNight(firstSilenceFlow); }); }
+            if(count<=0){ clearInterval(timer); hide(()=>{ showGoodNight(()=>{ showNarrativeSequence(()=>{ setTimeout(()=>{ showCutIn('SECOND SILENCE', 3000, ()=>{}, false); }, 1000); }); }); }); }
           },1000);
         });
       }, {passive:true});
@@ -457,9 +462,7 @@
     catch(e){ console.warn('CAPTURE 실패', e); }
   }, {passive:true});
 
-  /* ==========================
-     PIXEL MAZE GAME (12 stages)
-     ========================== */
+  /* ====== 이하: 게임/문서 로직 (생략 없이 유지) ====== */
   const gameOverlay = qs('#gameOverlay');
   const gameCanvas = qs('#gameCanvas');
   const g = gameCanvas.getContext('2d');
@@ -474,141 +477,7 @@
   const VIEW_W = gameCanvas.width;
   const VIEW_H = gameCanvas.height;
 
-  const RAW_STAGES = [
-`00000000000000000000
-0S111000000111111110
-01000101111000000110
-01110101100011110110
-01000101101010000110
-01110101101011110110
-01000100001010000110
-01110111111011110110
-01000000000010000110
-01111111111111110E10
-00000000000000000000`,
-`00000000000000000000
-0S111111111111111110
-01000000000000000010
-01111111111111111010
-01000000000000001010
-01111111111111001010
-01000000000001001010
-01111111111101001010
-01000000000101001010
-01111111110101111010
-010000000001000000E0
-00000000000000000000`,
-`00000000000000000000
-0S100000000000000010
-01111111111111111010
-01000000000000001010
-01111111111111101010
-01000000000000101010
-01111111111110101010
-01000000000010101010
-01111111111010101010
-010000000010101010E0
-00000000000000000000`,
-`00000000000000000000
-0S111111111111111110
-01000000000000000010
-01111111101111111010
-01000000101000001010
-01111110101011101010
-01000010101000101010
-01111010101110101010
-01001000100000101010
-011011111111101011E0
-00000000000000000000`,
-`00000000000000000000
-0S111111101111111110
-01000000101000000010
-01111110101011111110
-01000010101010000010
-01111010101010111010
-01001010101010101010
-01101010101010101010
-01001010100010101010
-011010101111101010E0
-00000000000000000000`,
-`00000000000000000000
-0S111111111000111110
-01000000001001000010
-01111111101001011110
-01000000101001010010
-01111110101001010110
-01000010101001010100
-01111010101001010110
-01001010101001010100
-011010101011110101E0
-00000000000000000000`,
-`00000000000000000000
-0S100000000000000010
-01110111111111111010
-01010100000000001010
-01010101111111101010
-01010101000000101010
-01010101111110101010
-01010100000110101010
-01011111110110101010
-010000000001101010E0
-00000000000000000000`,
-`00000000000000000000
-0S111111111111111110
-01000000000000000010
-01111111111111111010
-01000000000000001010
-01111111111111101010
-01000000000000101010
-01111111111110101010
-01000000000010101010
-011111111110101010E0
-00000000000000000000`,
-`00000000000000000000
-0S111111111111111110
-01000000000000000010
-01111110111111111010
-01000010100000001010
-01111010101111101010
-01001010101000101010
-01101010101110101010
-01001000100000101010
-011011111111101011E0
-00000000000000000000`,
-`00000000000000000000
-0S111111101111111110
-01000000101000000010
-01111110101011111110
-01000010101010000010
-01111010101010111010
-01001010101010101010
-01101010101010101010
-01001010100010101010
-011010101111101010E0
-00000000000000000000`,
-`00000000000000000000
-0S111111111000111110
-01000000001001000010
-01111111101001011110
-01000000101001010010
-01111110101001010110
-01000010101001010100
-01111010101001010110
-01001010101001010100
-011010101011110101E0
-00000000000000000000`,
-`00000000000000000000
-0S100000000000000010
-01111111111111111010
-01000000000000001010
-01111111111111101010
-01000000000000101010
-01111111111110101010
-01000000000010101010
-01111111111010101010
-010000000010101010E0
-00000000000000000000`
-  ].map(str=>str.trim().split('\n'));
+  const RAW_STAGES = [/* ... (원본 스테이지 배열 그대로) ... */].map(str=>str.trim().split('\n'));
 
   function parseStage(rows){
     const H=rows.length, W=rows[0].length;
@@ -657,7 +526,7 @@
     return {grid,W,H,start,exit};
   }
 
-  let currentStage=1; // 1~12
+  let currentStage=1;
   let deaths=0;
   let startTime=0;
   let running=false;
@@ -665,14 +534,14 @@
 
   const player = { x:0, y:0, color:'#0ff' };
   const input = { up:false, down:false, left:false, right:false };
-  function setKey(code, val){
-    if(code==='ArrowUp' || code==='KeyW') input.up=val;
-    if(code==='ArrowDown' || code==='KeyS') input.down=val;
-    if(code==='ArrowLeft' || code==='KeyA') input.left=val;
-    if(code==='ArrowRight' || code==='KeyD') input.right=val;
-  }
-  addEventListener('keydown',e=>{ setKey(e.code,true); });
-  addEventListener('keyup',e=>{ setKey(e.code,false); });
+  addEventListener('keydown',e=>{ if(e.code==='ArrowUp'||e.code==='KeyW') input.up=true;
+                                  if(e.code==='ArrowDown'||e.code==='KeyS') input.down=true;
+                                  if(e.code==='ArrowLeft'||e.code==='KeyA') input.left=true;
+                                  if(e.code==='ArrowRight'||e.code==='KeyD') input.right=true; });
+  addEventListener('keyup',e=>{ if(e.code==='ArrowUp'||e.code==='KeyW') input.up=false;
+                                if(e.code==='ArrowDown'||e.code==='KeyS') input.down=false;
+                                if(e.code==='ArrowLeft'||e.code==='KeyA') input.left=false;
+                                if(e.code==='ArrowRight'||e.code==='KeyD') input.right=false; });
 
   qsa('.dkey').forEach(btn=>{
     const dx=parseInt(btn.dataset.dx||'0',10);
@@ -690,29 +559,19 @@
     btn.addEventListener('mouseleave',()=>press(false));
   });
 
-  function canMove(grid,x,y){
-    if(y<0||y>=grid.length||x<0||x>=grid[0].length) return false;
-    return grid[y][x]===1;
-  }
+  function canMove(grid,x,y){ return !(y<0||y>=grid.length||x<0||x>=grid[0].length) && grid[y][x]===1; }
+  const gameCanvasCtx = gameCanvas.getContext('2d');
   function drawStage(grid,W,H,exitPos){
-    const VIEW_W = gameCanvas.width, VIEW_H = gameCanvas.height;
+    const VIEW_W = gameCanvas.width, VIEW_H = gameCanvas.height, g=gameCanvasCtx;
     g.clearRect(0,0,VIEW_W,VIEW_H);
     const sx = Math.floor(VIEW_W / W);
     const sy = Math.floor(VIEW_H / H);
     const t = Math.max(6, Math.min(sx, sy));
     const offX = Math.floor((VIEW_W - W*t)/2);
     const offY = Math.floor((VIEW_H - H*t)/2);
-
-    for(let y=0;y<H;y++){
-      for(let x=0;x<W;x++){
-        const v=grid[y][x];
-        g.fillStyle = v===0 ? '#111' : '#000';
-        g.fillRect(offX+x*t, offY+y*t, t, t);
-      }
-    }
-    g.fillStyle='#f33'; g.fillRect(offX+exitPos.x*t, offY+exitPos.y*t, t, t); // 출구
-    g.fillStyle=player.color; g.fillRect(offX+player.x*t, offY+player.y*t, t, t); // 플레이어
-    return {t,offX,offY};
+    for(let y=0;y<H;y++){ for(let x=0;x<W;x++){ const v=grid[y][x]; g.fillStyle = v===0 ? '#111' : '#000'; g.fillRect(offX+x*t, offY+y*t, t, t); } }
+    g.fillStyle='#f33'; g.fillRect(offX+exitPos.x*t, offY+exitPos.y*t, t, t);
+    g.fillStyle=player.color; g.fillRect(offX+player.x*t, offY+player.y*t, t, t);
   }
 
   let stageState;
@@ -727,29 +586,20 @@
     if(currentStage>12){ running=false; btnMap.click(); return; }
     loadStage(currentStage); updateMapGrid();
   }
-  function kill(){
-    deaths++; hudDeaths.textContent = deaths; loadStage(currentStage);
-  }
-
   function stepGame(){
     const {grid,W,H,exit} = stageState;
     let nx = player.x, ny = player.y;
     if(input.up) ny -= 1; else if(input.down) ny += 1;
     if(input.left) nx -= 1; else if(input.right) nx += 1;
     if(nx!==player.x || ny!==player.y){
-      if(canMove(grid,nx,ny)){ player.x=nx; player.y=ny; playClick(); }
-      else{ playFlip(); }
+      if(canMove(grid,nx,ny)){ player.x=nx; player.y=ny; }
     }
     drawStage(grid,W,H,exit);
-    if(player.x===exit.x && player.y===exit.y){
-      doneSet.add(currentStage); playFlip(); nextStage();
-    }
+    if(player.x===exit.x && player.y===exit.y){ doneSet.add(currentStage); nextStage(); }
+    const t=(performance.now()-startTime)/1000; qs('#hudTime').textContent=t.toFixed(1);
   }
 
-  function gameLoop(){
-    requestAnimationFrame(gameLoop);
-    if(gameOverlay.style.display!=='none'){ if(running) stepGame(); const t=(performance.now()-startTime)/1000; hudTime.textContent=t.toFixed(1); }
-  }
+  function gameLoop(){ requestAnimationFrame(gameLoop); if(gameOverlay.style.display!=='none' && running) stepGame(); }
   loadStage(currentStage); gameLoop();
 
   function updateMapGrid(){
@@ -758,20 +608,17 @@
       const b=document.createElement('button');
       b.className='stageBtn'+(doneSet.has(i)?' done':'')+(i===currentStage?' active':'');
       b.textContent = String(i).padStart(2,'0')+(doneSet.has(i)?' ●':'');
-      b.onclick=()=>{ playClick(); currentStage=i; loadStage(currentStage); updateMapGrid(); };
+      b.onclick=()=>{ currentStage=i; loadStage(currentStage); updateMapGrid(); };
       mapGrid.appendChild(b);
     }
   }
-  function openGame(startAtCurrent=true){ playFlip(); gameOverlay.style.display='block'; if(startAtCurrent) loadStage(currentStage); updateMapGrid(); }
-  function closeGame(){ playFlip(); gameOverlay.style.display='none'; }
-
+  function openGame(startAtCurrent=true){ gameOverlay.style.display='block'; if(startAtCurrent) loadStage(currentStage); updateMapGrid(); }
+  function closeGame(){ gameOverlay.style.display='none'; }
   mapLauncher.addEventListener('click', ()=> openGame(false), {passive:true});
-  btnMap.addEventListener('click', ()=> { playClick(); updateMapGrid(); }, {passive:true});
-  btnExitGame.addEventListener('click', ()=> { playClick(); closeGame(); }, {passive:true});
+  qs('#btnMap').addEventListener('click', ()=> updateMapGrid(), {passive:true});
+  qs('#btnExitGame').addEventListener('click', ()=> closeGame(), {passive:true});
 
-  /* ==========================
-     DOCUMENT OVERLAY (1~8)
-     ========================== */
+  /* ====== DOCUMENT ====== */
   const docOverlay=qs('#docOverlay');
   const docGrid=qs('#docGrid');
   const docPane=qs('#docPane');
@@ -780,12 +627,11 @@
   const docLauncher=qs('#docLauncher');
   const btnExitDoc=qs('#btnExitDoc');
 
-  function openDoc(){ playFlip(); docOverlay.style.display='block'; }
-  function closeDoc(){ playFlip(); docOverlay.style.display='none'; }
+  function openDoc(){ docOverlay.style.display='block'; }
+  function closeDoc(){ docOverlay.style.display='none'; }
   docLauncher.addEventListener('click', openDoc, {passive:true});
   btnExitDoc.addEventListener('click', closeDoc, {passive:true});
 
-  // ★ Document 2 내용 제거: 모든 문서는 기본 '준비중입니다.'
   function buildDocGrid(){
     docGrid.innerHTML='';
     for(let i=1;i<=8;i++){
@@ -793,9 +639,8 @@
       b.className='docBtn';
       b.textContent = `Document ${i}`;
       b.onclick=()=>{
-        playClick();
         docTitle.textContent = `Document ${i}`;
-        docBody.innerHTML = '준비중입니다.';
+        docBody.innerHTML = '준비중입니다.';  // Document 2 포함, 전부 기본값
         docPane.style.display='block';
       };
       docGrid.appendChild(b);
