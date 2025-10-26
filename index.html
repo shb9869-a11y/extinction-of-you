@@ -3,21 +3,24 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Dialogue into Silence — Camera+Audio+Pixel Maze+Docs</title>
+<title>Dialogue into Silence</title>
+
+<!-- iOS 홈화면 제목 간소화 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dialogue into Silence">
+
 <style>
   :root{
     --frame: 40px; --ui-gap: 8px;
     --fs-body: clamp(12px, 2.2vmin, 16px);
     --fs-strong: clamp(14px, 2.8vmin, 20px);
     --fs-small: clamp(11px, 1.8vmin, 14px);
-    --pad-line: clamp(4px, 0.9vmin, 8px);
     --pad-btn-y: clamp(6px, 1.1vmin, 10px);
     --pad-btn-x: clamp(10px, 1.8vmin, 20px);
   }
   html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:manipulation}
-  #view{width:100%;height:100%;display:block;position:fixed;left:0;top:0;z-index:0}
+  #view{position:fixed;inset:0;display:block;width:100%;height:100%;z-index:0}
 
   .frameBox{position:fixed;left:var(--frame);top:var(--frame);right:var(--frame);bottom:var(--frame);border:1px solid #000;pointer-events:none;z-index:50}
 
@@ -33,30 +36,26 @@
   #mapLauncher{position:fixed; right:calc(var(--frame) + var(--ui-gap)); top:calc(var(--frame) + var(--ui-gap)); z-index:280;}
   #docLauncher{position:fixed; left:calc(var(--frame) + var(--ui-gap)); top:calc(var(--frame) + var(--ui-gap)); z-index:280;}
 
-  /* 메인 오버레이 (퍼미션/인트로/내러티브 재사용) */
+  /* 오버레이(퍼미션/인트로/웰컴/내러티브) */
   #overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;
     font-family:"Courier New",monospace;color:#fff;background:rgba(0,0,0,.72)}
   #overlayContent{pointer-events:auto;line-height:1.7;font-size:var(--fs-body);max-width:min(72ch, calc(100vw - (var(--frame)*2)));max-height:calc(100vh - (var(--frame)*2));overflow:hidden;text-align:left}
   .fade{opacity:1;transition:opacity .45s ease}
   .fade.hidden{opacity:0}
-  #goodnight{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:250;display:none;text-align:center;font-family:"Courier New",monospace;font-size:var(--fs-strong);color:#fff;background:#000;padding:var(--pad-btn-y) var(--pad-btn-x);white-space:nowrap;transition:opacity .6s ease}
-  #goodnight.show{display:block;opacity:1}
-  #goodnight.fadeout{opacity:0}
-  @media (orientation:landscape){ :root{ --frame: 32px; } }
-  .tip{opacity:.7;font-size:var(--fs-small);margin-top:8px;text-align:center}
 
-  /* INTRO 카드: 글자별 박스 */
-  .introCard{ margin:0 auto; max-width:min(86vw, 720px); background:#000; border:1px solid rgba(255,255,255,.25); padding:16px 18px; border-radius:6px; }
-  .introLine{ margin:8px 0; }
-  .introChar{ display:inline-block; background:#000; color:#fff; padding:2px 4px; margin:2px 1px; box-shadow:0 0 0 1px #333 inset; }
-
-  /* 컷인(침묵) */
+  /* 컷인(침묵) — 배경 투명 유지 */
   #cutin{ position:fixed; inset:0; z-index:260; display:none; align-items:center; justify-content:center; background:transparent; color:#fff; font-family:"Courier New",monospace; text-align:center; }
   #cutin.show{display:flex; opacity:1; transition:opacity .45s ease}
   #cutin.fadeout{opacity:0}
   #cutinText{font-size:clamp(24px, 8vmin, 64px); letter-spacing:.02em; line-height:1.2; padding:0 .2em}
 
-  /* ====== PIXEL MAZE GAME ====== */
+  /* INTRO/라벨/글자박스 UI */
+  .introHeader{ text-align:center; font-size:clamp(14px,2.4vmin,18px); letter-spacing:.12em; margin-bottom:10px; color:#fff; opacity:.9; }
+  .introCard{ margin:0 auto; max-width:min(86vw, 720px); background:transparent; border:none; padding:6px 8px; }
+  .introLine{ margin:8px 0; }
+  .introChar{ display:inline-block; background:#000; color:#fff; padding:2px 5px; margin:2px 1px; box-shadow:0 0 0 1px #333 inset; }
+
+  /* ====== GAME ====== */
   #gameOverlay{ position:fixed; inset:0; z-index:300; display:none; background:rgba(0,0,0,.8);
     font-family:"Courier New",monospace; color:#fff; }
   #gameUI{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
@@ -111,8 +110,9 @@
     </div>
   </div>
 
-  <div id="goodnight">GOOD NIGHT, HAVE A NICE DREAM</div>
-  <div id="cutin"><div id="cutinText">FIRST SILENCE</div></div>
+  <!-- 컷인/굿나잇 -->
+  <div id="goodnight" style="display:none">GOOD NIGHT, HAVE A NICE DREAM</div>
+  <div id="cutin"><div id="cutinText"></div></div>
 
   <!-- ====== GAME OVERLAY ====== -->
   <div id="gameOverlay">
@@ -155,13 +155,32 @@
 
 <script>
 (async ()=>{
+  /* ===== 동적 manifest 주입 (홈화면 제목 단순화) ===== */
+  (function injectManifest(){
+    const manifest = {
+      "name": "Dialogue into Silence",
+      "short_name": "Dialogue into Silence",
+      "display": "standalone",
+      "start_url": "./",
+      "background_color": "#000000",
+      "theme_color": "#000000",
+      "icons": []
+    };
+    const blob = new Blob([JSON.stringify(manifest)], {type:"application/manifest+json"});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = url;
+    document.head.appendChild(link);
+  })();
+
   /* ========= 공통 유틸 ========= */
   const qs = (s)=>document.querySelector(s);
   const qsa = (s)=>Array.from(document.querySelectorAll(s));
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const WANT_MIC = true;
 
-  /* ========= 오디오: 8비트 로우피치 SFX + 마이크(리버브/패닝) ========= */
+  /* ========= 오디오: 8비트 SFX + 마이크(리버브/패닝) ========= */
   let audioCtx=null, mixBus, sfxBus, reverbNode, wetBus, dryBus, master, panNode, micGain;
   function makeImpulse(ctx, seconds=2.0, decay=3.0){
     const rate = ctx.sampleRate, len = (rate*seconds)|0;
@@ -169,8 +188,7 @@
     for(let ch=0; ch<2; ch++){
       const data = buf.getChannelData(ch);
       for(let i=0;i<len;i++){
-        const t = i/len;
-        data[i] = (Math.random()*2-1) * Math.pow(1 - t, decay);
+        const t = i/len; data[i] = (Math.random()*2-1) * Math.pow(1 - t, decay);
       }
     }
     return buf;
@@ -183,9 +201,7 @@
     wetBus = audioCtx.createGain();
     dryBus = audioCtx.createGain();
     master = audioCtx.createGain();
-    sfxBus.gain.value = 0.8;
-    dryBus.gain.value = 0.55;
-    wetBus.gain.value = 0.55;
+    sfxBus.gain.value = 0.8; dryBus.gain.value = 0.55; wetBus.gain.value = 0.55;
 
     reverbNode = audioCtx.createConvolver();
     reverbNode.buffer = makeImpulse(audioCtx);
@@ -193,20 +209,13 @@
     panNode = audioCtx.createStereoPanner();
     micGain = audioCtx.createGain(); micGain.gain.value = 1.0;
 
-    // 리버브를 기본으로: 모든 소리 → mixBus → [dry + reverb]
     mixBus.connect(dryBus);
-    mixBus.connect(reverbNode);
-    reverbNode.connect(wetBus);
-    dryBus.connect(master);
-    wetBus.connect(master);
-    master.connect(audioCtx.destination);
-
+    mixBus.connect(reverbNode); reverbNode.connect(wetBus);
+    dryBus.connect(master); wetBus.connect(master); master.connect(audioCtx.destination);
     sfxBus.connect(mixBus);
   }
   function resumeAudio(){ try{ initAudio(); if(audioCtx.state==='suspended') audioCtx.resume(); }catch{} }
-
-  // 낮은 음역대 8비트 SFX (모든 UI/등장 트리거 이걸로)
-  function playSfx(freq=220, dur=0.16){
+  function playSfx(freq=180, dur=0.16){
     try{
       resumeAudio();
       const t=audioCtx.currentTime;
@@ -220,7 +229,7 @@
       o.start(t); o.stop(t+dur+0.02);
     }catch{}
   }
-  const sfxClick   = ()=>playSfx(180, 0.14);
+  const sfxClick   = ()=>playSfx(170, 0.14);
   const sfxAppear  = ()=>playSfx(140, 0.22);
   const sfxConfirm = ()=>playSfx(200, 0.18);
 
@@ -261,7 +270,7 @@
         const r=await DeviceMotionEvent.requestPermission(); if(r==='granted') sensorsReady=true;
       }
     }catch(e){}
-    window.addEventListener('deviceorientation', (e)=>{ if(sensorsReady) mapMotionToAudio(e); }, {passive:true});
+    addEventListener('deviceorientation', (e)=>{ if(sensorsReady) mapMotionToAudio(e); }, {passive:true});
   }
 
   /* ========= 카메라(흑백+잔상) ========= */
@@ -273,7 +282,6 @@
   function updateZoom(){ zoomVal.textContent=ZOOM.toFixed(1)+'×'; }
   qs('#zoomIn').addEventListener('click', ()=>{ ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX); updateZoom(); sfxClick(); });
   qs('#zoomOut').addEventListener('click', ()=>{ ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX); updateZoom(); sfxClick(); });
-  updateZoom();
 
   const camVideo=document.createElement('video'); camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
   const proc=document.createElement('canvas'); const pctx=proc.getContext('2d',{willReadFrequently:true});
@@ -293,17 +301,16 @@
     const dpr=window.devicePixelRatio||1;
     const w=window.innerWidth,h=window.innerHeight;
     view.width=w*dpr; view.height=h*dpr; vctx.setTransform(dpr,0,0,dpr,0,0);
-    const scale=(window.matchMedia('(orientation: landscape)').matches)? PROC_SCALE*0.9 : PROC_SCALE;
+    const scale=(matchMedia('(orientation: landscape)').matches)? PROC_SCALE*0.9 : PROC_SCALE;
     proc.width=Math.floor(w*scale); proc.height=Math.floor(h*scale);
   }
-  resizeAll();
-  addEventListener('resize',()=>setTimeout(resizeAll,50),{passive:true});
+  resizeAll(); addEventListener('resize',()=>setTimeout(resizeAll,50),{passive:true});
   addEventListener('orientationchange',()=>setTimeout(resizeAll,120),{passive:true});
 
   function loop(){
     requestAnimationFrame(loop);
-    const W=view.width/(window.devicePixelRatio||1);
-    const H=view.height/(window.devicePixelRatio||1);
+    const W=view.width/(devicePixelRatio||1);
+    const H=view.height/(devicePixelRatio||1);
     const PW=proc.width, PH=proc.height;
     pctx.globalCompositeOperation="source-over";
     pctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`; pctx.fillRect(0,0,PW,PH);
@@ -315,7 +322,7 @@
         const dw=vw*sc, dh=vh*sc, dx=(PW-dw)/2, dy=(PH-dh)/2;
         pctx.globalAlpha=GLOBAL_ALPHA; pctx.drawImage(camVideo,dx,dy,dw,dh);
         pctx.globalAlpha=1.0;
-        const frame=pctx.getImageData(0,0,PW,PH); const d=frame.data;
+        const frame=pctx.getImageData(0,0,PW,PH), d=frame.data;
         for(let i=0;i<d.length;i+=4){
           const g=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0; d[i]=d[i+1]=d[i+2]=g;
         }
@@ -339,19 +346,25 @@
     disableDuringIntro.forEach(b=> b && (b.disabled = !on));
   }
 
-  // 오버레이 밝기/클릭 제어 헬퍼
+  // 오버레이 밝기/클릭 제어
   const OVERLAY_BG_DEFAULT='rgba(0,0,0,.72)';
   function setOverlayDim(on){ overlay.style.background = on ? OVERLAY_BG_DEFAULT : 'transparent'; }
   function setOverlayClickable(on){ overlay.style.pointerEvents = on ? 'auto' : 'none'; }
 
+  // 글자 박스 유틸
+  const spanChars = (text)=> [...text].map(ch=>{
+    const c = ch===' ' ? '&nbsp;' : ch.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `<span class="introChar">${c}</span>`;
+  }).join('');
+  const introParagraphHTML = (lines)=> lines.map(s=>`<div class="introLine">${spanChars(s)}</div>`).join('');
+
   let gateBusy=false, gateDone=false;
+
   function show(html, next){
     overlay.style.display='flex';
     overlay.classList.remove('hidden');
     overlayContent.classList.add('hidden');
-    // 새로 열릴 때는 기본값(클릭 가능, 배경 딤)으로
-    setOverlayDim(true);
-    setOverlayClickable(true);
+    setOverlayDim(true); setOverlayClickable(true);
     setTimeout(()=>{ overlayContent.innerHTML=html; overlayContent.classList.remove('hidden'); next&&next(); }, 120);
   }
   function hide(next){
@@ -359,13 +372,20 @@
     setTimeout(()=>{ overlay.style.display='none'; next&&next(); }, 420);
   }
 
-  // INTRO: 글자별 박스 생성
-  const spanChars = (text)=> [...text].map(ch=>{
-    const c = ch===' ' ? '&nbsp;' : ch.replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    return `<span class="introChar">${c}</span>`;
-  }).join('');
-  function introParagraphHTML(lines){
-    return lines.map(s=>`<div class="introLine">${spanChars(s)}</div>`).join('');
+  // WELCOME 화면(글자박스 + 라벨). 여기서 MAP/DOC 비활성화.
+  function showWelcome(){
+    show(`
+      <div class="introCard">
+        <div class="introHeader">WELCOME</div>
+        <div class="introLine">${spanChars('Welcome to Dialogue into Silence')}</div>
+        <div style="text-align:center;margin-top:12px">
+          <button id="welcomeGo" class="uiBtn">PRESS TO BEGIN</button>
+        </div>
+      </div>
+    `, ()=>{
+      setGlobalUIEnabled(false);
+      qs('#welcomeGo').addEventListener('click', ()=>{ sfxConfirm(); mountPressToSleep(); }, {passive:true});
+    });
   }
 
   async function runPermissionGate(){
@@ -376,17 +396,8 @@
       await attachCamera();
       if(WANT_MIC) await startMic();
     }catch(e){}
-    show(`
-      <div style="text-align:center">
-        <button id="welcomeBtn" class="uiBtn" style="min-width:260px">WELCOME TO ‘DIALOGUE INTO SILENCE’</button>
-      </div>
-    `, ()=>{
-      // WELCOME에서도 런처 잠금
-      setGlobalUIEnabled(false);
-      const welcomeBtn=qs('#welcomeBtn');
-      welcomeBtn.addEventListener('click',()=>{ sfxConfirm(); mountPressToSleep(); }, {passive:true});
-      gateBusy=false; gateDone=true;
-    });
+    showWelcome();
+    gateBusy=false; gateDone=true;
   }
 
   // 첫 화면 탭 확실히 받기
@@ -401,23 +412,17 @@
 
   function showGoodNight(next){
     goodnight.textContent='GOOD NIGHT, HAVE A NICE DREAM';
-    goodnight.classList.add('show'); sfxAppear();
-    setTimeout(()=>{
-      goodnight.classList.add('fadeout');
-      setTimeout(()=>{
-        goodnight.classList.remove('show','fadeout');
-        goodnight.style.display='none';
-        next && next();
-      },600);
-    },15000);
+    goodnight.style.display='block'; sfxAppear();
+    setTimeout(()=>{ goodnight.style.display='none'; next && next(); }, 1600);
   }
 
-  function showCutIn(text, holdMs=3000, after){
-    cutinText.textContent=text;
+  // 컷인 라벨(First/Second Silence 등)
+  function showCutInLabel(label, holdMs=1600, after){
+    cutinText.innerHTML = `<div class="introCard"><div class="introHeader">${label}</div></div>`;
     cutin.classList.remove('fadeout'); cutin.classList.add('show'); sfxAppear();
     setTimeout(()=>{
       cutin.classList.add('fadeout');
-      setTimeout(()=>{ cutin.classList.remove('show','fadeout'); cutin.style.display='none'; after&&after(); }, 3000);
+      setTimeout(()=>{ cutin.classList.remove('show','fadeout'); cutin.style.display='none'; after&&after(); }, 300);
     }, holdMs);
   }
 
@@ -433,9 +438,8 @@
     '너는 비석에 등을 기대고 앉는다. 그리고 서서히, 그것의 진동을 느낀다.'
   ];
   function showNarrativeSequence(done){
-    // 자막 동안: 화면 어두워지지 않음 + 백그라운드 클릭 가능
-    setOverlayDim(false);
-    setOverlayClickable(false);
+    setOverlayDim(false);        // 딤 끔
+    setOverlayClickable(false);  // 백그라운드 클릭 가능(버튼 동작)
     overlay.style.display='flex';
     overlay.classList.remove('hidden');
     let idx = 0;
@@ -443,7 +447,11 @@
       if(idx >= narrative.length){ hide(done); return; }
       overlayContent.classList.add('hidden');
       setTimeout(()=>{
-        overlayContent.innerHTML = `<div class="introLine">${spanChars(narrative[idx++])}</div>`;
+        overlayContent.innerHTML = `
+          <div class="introCard">
+            <div class="introHeader">NARRATIVE</div>
+            <div class="introLine">${spanChars(narrative[idx++])}</div>
+          </div>`;
         overlayContent.classList.remove('hidden');
         sfxAppear();
         setTimeout(next, 5000);
@@ -452,17 +460,15 @@
   }
 
   function firstSilenceFlow(){
-    // 컷인은 배경 투명(기본)으로 표시
-    showCutIn('FIRST SILENCE', 3000, ()=>{
-      // INTRO 끝났으니 전역 UI 활성화 (버튼들 모두 쓸 수 있게)
-      setGlobalUIEnabled(true);
+    showCutInLabel('FIRST SILENCE', 1600, ()=>{
+      setGlobalUIEnabled(true); // 이제 전부 가능 (MAP/DOC/줌/캡쳐)
       showNarrativeSequence(()=>{
-        setTimeout(()=>{ showCutIn('SECOND SILENCE', 3000, ()=>{}); }, 1000);
+        setTimeout(()=>{ showCutInLabel('SECOND SILENCE', 1600, ()=>{}); }, 800);
       });
     });
   }
 
-  // INTRO(글자별 박스 + 카운트 55초, 문장형)
+  // INTRO (글자 박스 + “INTRODUCTION” 라벨, 55초 카운트)
   function mountPressToSleep(){
     const introLines = [
       '이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.',
@@ -473,11 +479,12 @@
     ];
     show(`
       <div class="introCard">
+        <div class="introHeader">INTRODUCTION</div>
         ${introParagraphHTML(introLines)}
         <div class="introLine" id="countdown">${spanChars('The door will close in ')}<span id="countNum" class="introChar">55</span>${spanChars(' seconds.')}</div>
       </div>
     `, ()=>{
-      setGlobalUIEnabled(false); // INTRO 잠금
+      setGlobalUIEnabled(false);
       let count=55; const numEl=qs('#countNum');
       const timer=setInterval(()=>{
         count--; if(count>=0 && numEl) numEl.textContent=count;
@@ -639,17 +646,14 @@
 
   function parseStage(rows){
     const H=rows.length, W=rows[0].length;
-    const grid = [];
-    let start = {x:1,y:1}, exit={x:W-2,y:H-2};
+    const grid = []; let start={x:1,y:1}, exit={x:W-2,y:H-2};
     for(let y=0;y<H;y++){
-      const row = [];
-      for(let x=0;x<W;x++){
-        const ch = rows[y][x];
+      const row=[]; for(let x=0;x<W;x++){
+        const ch=rows[y][x];
         if(ch==='S'){ start={x,y}; row.push(1); }
         else if(ch==='E'){ exit={x,y}; row.push(1); }
         else row.push(ch==='1'?1:0);
-      }
-      grid.push(row);
+      } grid.push(row);
     }
     return {grid,W,H,start,exit};
   }
@@ -675,10 +679,8 @@
     if(bfsReachable(grid,start,exit)) return stage;
     let x=start.x, y=start.y; grid[y][x]=1;
     while(x!==exit.x || y!==exit.y){
-      if(x<exit.x) x++; else if(x>exit.x) x--;
-      grid[y][x]=1;
-      if(y<exit.y) y++; else if(y>exit.y) y--;
-      grid[y][x]=1;
+      if(x<exit.x) x++; else if(x>exit.x) x--; grid[y][x]=1;
+      if(y<exit.y) y++; else if(y>exit.y) y--; grid[y][x]=1;
     }
     return stage;
   }
@@ -689,10 +691,10 @@
   const input = { up:false, down:false, left:false, right:false };
 
   function setKey(code, val){
-    if(code==='ArrowUp' || code==='KeyW') input.up=val;
-    if(code==='ArrowDown' || code==='KeyS') input.down=val;
-    if(code==='ArrowLeft' || code==='KeyA') input.left=val;
-    if(code==='ArrowRight' || code==='KeyD') input.right=val;
+    if(code==='ArrowUp'||code==='KeyW') input.up=val;
+    if(code==='ArrowDown'||code==='KeyS') input.down=val;
+    if(code==='ArrowLeft'||code==='KeyA') input.left=val;
+    if(code==='ArrowRight'||code==='KeyD') input.right=val;
   }
   addEventListener('keydown',e=>{ setKey(e.code,true); sfxClick(); });
   addEventListener('keyup',e=>{ setKey(e.code,false); });
@@ -721,16 +723,13 @@
   function drawStage(grid,W,H,exitPos){
     const VIEW_W = gameCanvas.width, VIEW_H = gameCanvas.height;
     g.clearRect(0,0,VIEW_W,VIEW_H);
-    const sx = Math.floor(VIEW_W / W);
-    const sy = Math.floor(VIEW_H / H);
-    const t = Math.max(6, Math.min(sx, sy));
-    const offX = Math.floor((VIEW_W - W*t)/2);
-    const offY = Math.floor((VIEW_H - H*t)/2);
+    const sx=Math.floor(VIEW_W/W), sy=Math.floor(VIEW_H/H);
+    const t=Math.max(6, Math.min(sx,sy));
+    const offX=Math.floor((VIEW_W-W*t)/2), offY=Math.floor((VIEW_H-H*t)/2);
 
     for(let y=0;y<H;y++){
       for(let x=0;x<W;x++){
-        const v=grid[y][x];
-        g.fillStyle = v===0 ? '#111' : '#000';
+        g.fillStyle = grid[y][x]===0 ? '#111' : '#000';
         g.fillRect(offX+x*t, offY+y*t, t, t);
       }
     }
@@ -752,9 +751,9 @@
   }
   function stepGame(){
     const {grid,W,H,exit} = stageState;
-    let nx = player.x, ny = player.y;
-    if(input.up) ny -= 1; else if(input.down) ny += 1;
-    if(input.left) nx -= 1; else if(input.right) nx += 1;
+    let nx=player.x, ny=player.y;
+    if(input.up) ny--; else if(input.down) ny++;
+    if(input.left) nx--; else if(input.right) nx++;
     if(nx!==player.x || ny!==player.y){
       if(canMove(grid,nx,ny)){ player.x=nx; player.y=ny; sfxClick(); }
       else{ sfxAppear(); }
@@ -766,7 +765,7 @@
   }
   function gameLoop(){
     requestAnimationFrame(gameLoop);
-    if(qs('#gameOverlay').style.display!=='none'){
+    if(gameOverlay.style.display!=='none'){
       if(running) stepGame();
       const t=(performance.now()-startTime)/1000; hudTime.textContent=t.toFixed(1);
     }
@@ -778,13 +777,13 @@
     for(let i=1;i<=12;i++){
       const b=document.createElement('button');
       b.className='stageBtn'+(doneSet.has(i)?' done':'')+(i===currentStage?' active':'');
-      b.textContent = String(i).padStart(2,'0')+(doneSet.has(i)?' ●':'');
+      b.textContent=String(i).padStart(2,'0')+(doneSet.has(i)?' ●':'');
       b.onclick=()=>{ sfxClick(); currentStage=i; loadStage(currentStage); updateMapGrid(); };
       mapGrid.appendChild(b);
     }
   }
-  function openGame(startAtCurrent=true){ sfxAppear(); qs('#gameOverlay').style.display='block'; if(startAtCurrent) loadStage(currentStage); updateMapGrid(); }
-  function closeGame(){ sfxAppear(); qs('#gameOverlay').style.display='none'; }
+  function openGame(startAtCurrent=true){ sfxAppear(); gameOverlay.style.display='block'; if(startAtCurrent) loadStage(currentStage); updateMapGrid(); }
+  function closeGame(){ sfxAppear(); gameOverlay.style.display='none'; }
 
   qs('#mapLauncher').addEventListener('click', ()=> openGame(false), {passive:true});
   btnMap.addEventListener('click', ()=> { sfxClick(); updateMapGrid(); }, {passive:true});
@@ -809,11 +808,11 @@
     for(let i=1;i<=8;i++){
       const b=document.createElement('button');
       b.className='docBtn';
-      b.textContent = `Document ${i}`;
+      b.textContent=`Document ${i}`;
       b.onclick=()=>{
         sfxClick();
-        docTitle.textContent = `Document ${i}`;
-        docBody.innerHTML = '준비중입니다.';
+        docTitle.textContent=`Document ${i}`;
+        docBody.innerHTML='준비중입니다.';
         docPane.style.display='block';
       };
       docGrid.appendChild(b);
