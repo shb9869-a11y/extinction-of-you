@@ -100,6 +100,12 @@
   .docBtn{ border:1px solid #444; background:#000; color:#fff; padding:12px; text-align:center; cursor:pointer; font-size:var(--fs-small) }
   .docPane{ border:1px solid #444; padding:12px; max-height:50vh; overflow:auto; background:#000; }
   .docTitle{ font-size:var(--fs-strong); margin-bottom:8px; }
+
+  /* INTRO 문단형 */
+  .introBlock{ text-align:left; }
+  .introTitleLine{ font-weight:700; margin-bottom:6px; }
+  .introPara{ margin:6px 0; }
+  .introCountdown{ margin-top:10px; }
 </style>
 </head>
 <body>
@@ -122,7 +128,7 @@
   <div id="overlay" class="fade">
     <div id="overlayContent" class="fade" style="text-align:center">
       <!-- 최초: 퍼미션 게이트 -->
-      <button id="permGateBtn" class="uiBtn" style="width:min(80vw,420px)">화면을 탭하여 카메라·마이크·동작을 허용해주세요</button>
+      <button id="permGateBtn" class="uiBtn" style="width:min(80vw,420px)">화면을 탭하여 카메라·동작(센서)·오디오를 허용해주세요</button>
       <div class="tip">권한 허용 후 WELCOME 화면이 나타납니다.</div>
     </div>
   </div>
@@ -178,6 +184,7 @@
   const qs = (s)=>document.querySelector(s);
   const qsa = (s)=>Array.from(document.querySelectorAll(s));
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+  const WANT_MIC = /[?&]mic=1\b/.test(location.search); // 기본: 마이크 꺼둠(블루투스 A2DP 유지)
 
   let audioCtx=null;
   function initAudio(){
@@ -185,7 +192,6 @@
     audioCtx = new (window.AudioContext||window.webkitAudioContext)();
     const mixBus = audioCtx.createGain(); window.__mixBus__ = mixBus;
     const sfxBus = audioCtx.createGain(); sfxBus.gain.value = 0.6; sfxBus.connect(mixBus); window.__sfxBus__=sfxBus;
-    // 기본 출력
     const dest = audioCtx.destination;
     try{
       if (dest.maxChannelCount && dest.maxChannelCount >= 2) dest.channelCount = 2;
@@ -282,18 +288,25 @@
   }
   loop();
 
-  /* ========= 마이크/센서(간단 게이트) ========= */
+  /* ========= 마이크/센서 ========= */
   let micStream=null, sensorsReady=false;
+
+  // 기본값: 마이크 요청 안 함(블루투스 스테레오 유지). 필요 시 ?mic=1 로 켜기.
   async function startMic(){
+    if(!WANT_MIC) return; // 쿼리 없으면 스킵
     try{
       if(micStream) return;
-      micStream=await navigator.mediaDevices.getUserMedia({audio:{ echoCancellation:false, noiseSuppression:true, autoGainControl:false }, video:false});
-      // 간단 연결(환경음/리버브 등은 네 이전 버전 복잡 체인은 생략; 필요 시 다시 합칠 수 있음)
-      const src=(new (window.AudioContext||window.webkitAudioContext)()); // 별도 ctx는 iOS에서 충돌 날 수 있어 생략 권장
-      // 여기서는 권한 부여만 확인 용도로 요청
-      if(src.state!=='closed') src.close();
+      micStream=await navigator.mediaDevices.getUserMedia({
+        audio:{
+          echoCancellation:false, noiseSuppression:true, autoGainControl:false
+        },
+        video:false
+      });
+      // 권한만 획득(스트림은 사용 안 함)
     }catch(e){ console.warn('Mic denied', e); }
   }
+
+  // ★ 센서 퍼미션을 맨 먼저 요청
   async function requestMotionPermissions(){
     try{
       if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
@@ -329,9 +342,10 @@
     playClick();
     try{
       resumeAudio();
-      await attachCamera();   // 카메라 먼저
-      await startMic();       // 마이크
-      await requestMotionPermissions(); // 동작/자이로
+      // 순서: 센서 → 카메라 → (옵션)마이크
+      await requestMotionPermissions(); // 먼저
+      await attachCamera();             // 다음
+      await startMic();                 // 마지막(기본적으로 스킵됨)
     }catch(e){}
     // 게이트 성공 후 WELCOME 단계로
     show(`
@@ -346,9 +360,7 @@
     });
   }
   permGateBtn.addEventListener('click', runPermissionGate, {passive:true});
-  overlay.addEventListener('click', (e)=>{ // 빈 공간 탭도 동작
-    if(e.target===overlay) runPermissionGate();
-  }, {passive:true});
+  overlay.addEventListener('click', (e)=>{ if(e.target===overlay) runPermissionGate(); }, {passive:true});
 
   function showGoodNight(next){
     goodnight.textContent='GOOD NIGHT, HAVE A NICE DREAM';
@@ -388,9 +400,7 @@
     const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
     let idx = 0;
     (function next(){
-      if(idx >= narrative.length){
-        hide(done); return;
-      }
+      if(idx >= narrative.length){ hide(done); return; }
       overlayContent.classList.add('hidden');
       setTimeout(()=>{
         overlayContent.innerHTML = line(narrative[idx++]);
@@ -407,6 +417,8 @@
       });
     }, true);
   }
+
+  // ★ INTRODUCTION: 중앙 박스 대신 좌측정렬 가로 문단
   function mountPressToSleep(){
     show(`
       <div style="text-align:center">
@@ -416,17 +428,15 @@
       const startBtn=qs('#startBtn');
       startBtn.addEventListener('click', ()=>{
         playClick();
-        // 인트로 → 카운트다운 → GOODNIGHT → 내러티브
-        const line = s => `<div class="lineWrap"><span class="line">${s}</span></div>`;
         const introHTML = `
-          ${line('<span class="introTitle">INTRODUCTION</span>')}
-          ${line('이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.')}
-          ${line('곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.')}
-          ${line('그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.')}
-          ${line('이제 당신에게는 네 단계의 미션이 주어진다.')}
-          ${line('당신은 미션에 따라 헤드폰으로 들려오는 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착할 수 있다.')}
-          <div id="countdown" class="lineWrap">
-            <span class="line">THE DOOR WILL CLOSE IN <span id="countNum">60</span> SECONDS.</span>
+          <div class="introBlock">
+            <div class="introTitleLine">INTRODUCTION</div>
+            <p class="introPara">이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.</p>
+            <p class="introPara">곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.</p>
+            <p class="introPara">그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.</p>
+            <p class="introPara">이제 당신에게는 네 단계의 미션이 주어진다.</p>
+            <p class="introPara">당신은 미션에 따라 헤드폰으로 들려오는 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착할 수 있다.</p>
+            <div id="countdown" class="introCountdown">THE DOOR WILL CLOSE IN <span id="countNum">60</span> SECONDS.</div>
           </div>
         `;
         show(introHTML, ()=>{
@@ -461,11 +471,9 @@
   const hudDeaths = qs('#hudDeaths');
   const hudTime = qs('#hudTime');
 
-  const TILE=16;
   const VIEW_W = gameCanvas.width;
   const VIEW_H = gameCanvas.height;
 
-  // 스테이지(불가 버전 방지 위해 이후 ensureSolvable로 보정)
   const RAW_STAGES = [
 `00000000000000000000
 0S111000000111111110
@@ -602,7 +610,6 @@
 00000000000000000000`
   ].map(str=>str.trim().split('\n'));
 
-  // 유틸: 맵 파싱/검사/보정
   function parseStage(rows){
     const H=rows.length, W=rows[0].length;
     const grid = [];
@@ -639,7 +646,6 @@
   function ensureSolvable(stage){
     const {grid,W,H,start,exit}=stage;
     if(bfsReachable(grid,start,exit)) return stage;
-    // 맨해튼 경로로 카빙: 스타트→출구 직선 통로를 우선 개방
     let x=start.x, y=start.y;
     grid[y][x]=1;
     while(x!==exit.x || y!==exit.y){
@@ -651,14 +657,12 @@
     return {grid,W,H,start,exit};
   }
 
-  // 진행 상태
   let currentStage=1; // 1~12
   let deaths=0;
   let startTime=0;
   let running=false;
   const doneSet = new Set();
 
-  // 플레이어
   const player = { x:0, y:0, color:'#0ff' };
   const input = { up:false, down:false, left:false, right:false };
   function setKey(code, val){
@@ -670,7 +674,6 @@
   addEventListener('keydown',e=>{ setKey(e.code,true); });
   addEventListener('keyup',e=>{ setKey(e.code,false); });
 
-  // 모바일 D-Pad
   qsa('.dkey').forEach(btn=>{
     const dx=parseInt(btn.dataset.dx||'0',10);
     const dy=parseInt(btn.dataset.dy||'0',10);
@@ -782,6 +785,7 @@
   docLauncher.addEventListener('click', openDoc, {passive:true});
   btnExitDoc.addEventListener('click', closeDoc, {passive:true});
 
+  // ★ Document 2 내용 제거: 모든 문서는 기본 '준비중입니다.'
   function buildDocGrid(){
     docGrid.innerHTML='';
     for(let i=1;i<=8;i++){
@@ -791,12 +795,7 @@
       b.onclick=()=>{
         playClick();
         docTitle.textContent = `Document ${i}`;
-        // 여기 body 안에 실제 텍스트/HTML 넣으면 됨
-        docBody.innerHTML = (i===2)
-          ? `2024년 6월 발표된 유명순 교수의 연구 결과 중<br><br>
-             우리 나라 국민 절반 가량이 장기적인 울분 상태에 놓여있다는 연구 결과가 나왔다. 
-             특히 10명 중 한 명은 울분 상태가 심각한 수준이며, 30대가 높은 수준의 울분을 보였다.`
-          : '준비중입니다.';
+        docBody.innerHTML = '준비중입니다.';
         docPane.style.display='block';
       };
       docGrid.appendChild(b);
