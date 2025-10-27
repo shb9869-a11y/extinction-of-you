@@ -18,36 +18,76 @@
     --fs-small: clamp(11px, 1.8vmin, 14px);
     --pad-btn-y: clamp(6px, 1.1vmin, 10px);
     --pad-btn-x: clamp(10px, 1.8vmin, 20px);
+    /* safe area */
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+    --safe-l: env(safe-area-inset-left, 0px);
+    --safe-r: env(safe-area-inset-right, 0px);
   }
-  html,body{margin:0;height:100%;background:#000;overflow:hidden;touch-action:manipulation}
-  #view{position:fixed;inset:0;display:block;width:100%;height:100%;z-index:0}
+  html,body{
+    margin:0;
+    height:100svh;              /* 주소창/노치 반영 */
+    background:#000;
+    overflow:hidden;
+    touch-action:manipulation
+  }
+  #view{
+    position:fixed;left:0;top:0;width:100%;height:100svh;display:block;z-index:0
+  }
 
-  .frameBox{position:fixed;left:var(--frame);top:var(--frame);right:var(--frame);bottom:var(--frame);border:1px solid #000;pointer-events:none;z-index:50}
+  .frameBox{
+    position:fixed;
+    left:calc(var(--frame) + var(--safe-l));
+    top:calc(var(--frame) + var(--safe-t));
+    right:calc(var(--frame) + var(--safe-r));
+    bottom:calc(var(--frame) + var(--safe-b));
+    border:1px solid #000;pointer-events:none;z-index:50
+  }
 
   .uiBtn{background:#000;color:#fff;border:1px solid #000;font-size:var(--fs-strong);
     padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",monospace;white-space:nowrap;cursor:pointer;user-select:none}
   .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
   .uiBtn[disabled]{opacity:.35;pointer-events:none;filter:grayscale(1)}
 
-  .controls{position:fixed;right:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:100;display:flex;gap:6px;align-items:center}
+  .controls{
+    position:fixed;
+    right:calc(var(--frame) + var(--ui-gap) + var(--safe-r));
+    bottom:calc(var(--frame) + var(--ui-gap) + var(--safe-b));
+    z-index:100;display:flex;gap:6px;align-items:center}
   .readout{min-width:48px;text-align:center;opacity:.9;font-family:"Courier New",monospace;font-size:var(--fs-small)}
-  .btn-capture{position:fixed;left:calc(var(--frame) + var(--ui-gap));bottom:calc(var(--frame) + var(--ui-gap));z-index:150}
+  .btn-capture{
+    position:fixed;
+    left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
+    bottom:calc(var(--frame) + var(--ui-gap) + var(--safe-b));
+    z-index:150}
 
-  #mapLauncher{position:fixed; right:calc(var(--frame) + var(--ui-gap)); top:calc(var(--frame) + var(--ui-gap)); z-index:280;}
-  #docLauncher{position:fixed; left:calc(var(--frame) + var(--ui-gap)); top:calc(var(--frame) + var(--ui-gap)); z-index:280;}
+  #mapLauncher{
+    position:fixed; right:calc(var(--frame) + var(--ui-gap) + var(--safe-r));
+    top:calc(var(--frame) + var(--ui-gap) + var(--safe-t)); z-index:280;}
+  #docLauncher{
+    position:fixed; left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
+    top:calc(var(--frame) + var(--ui-gap) + var(--safe-t)); z-index:280;}
 
-  /* 오버레이(퍼미션/인트로/웰컴/내러티브) */
-  #overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;
-    font-family:"Courier New",monospace;color:#fff;background:rgba(0,0,0,.72)}
-  #overlayContent{pointer-events:auto;line-height:1.7;font-size:var(--fs-body);max-width:min(72ch, calc(100vw - (var(--frame)*2)));max-height:calc(100vh - (var(--frame)*2));overflow:hidden;text-align:left}
+  /* 오버레이(퍼미션/인트로/웰컴/지문) */
+  #overlay{
+    position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
+    padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));
+    font-family:"Courier New",monospace;color:#fff;background:rgba(0,0,0,.72)
+  }
+  #overlayContent{
+    pointer-events:auto;line-height:1.7;font-size:var(--fs-body);
+    max-width:min(72ch, calc(100vw - (var(--frame)*2) - var(--safe-l) - var(--safe-r)));
+    max-height:calc(100svh - (var(--frame)*2) - var(--safe-t) - var(--safe-b));
+    overflow:auto; -webkit-overflow-scrolling:touch; text-align:left
+  }
   .fade{opacity:1;transition:opacity .45s ease}
   .fade.hidden{opacity:0}
 
   /* 컷인(침묵) — 배경 투명 유지 */
-  #cutin{ position:fixed; inset:0; z-index:260; display:none; align-items:center; justify-content:center; background:transparent; color:#fff; font-family:"Courier New",monospace; text-align:center; }
+  #cutin{ position:fixed; inset:0; z-index:260; display:none; align-items:center; justify-content:center; background:transparent; color:#fff; font-family:"Courier New",monospace; text-align:center; padding-bottom:var(--safe-b); padding-top:var(--safe-t);}
   #cutin.show{display:flex; opacity:1; transition:opacity .45s ease}
   #cutin.fadeout{opacity:0}
-  #cutinText{font-size:clamp(24px, 8vmin, 64px); letter-spacing:.02em; line-height:1.2; padding:0 .2em}
+  #cutinText{font-size:clamp(24px, 8vmin, 64px); letter-spacing:.12em; line-height:1.2; padding:0 .2em}
 
   /* INTRO/라벨/글자박스 UI */
   .introHeader{ text-align:center; font-size:clamp(14px,2.4vmin,18px); letter-spacing:.12em; margin-bottom:10px; color:#fff; opacity:.9; }
@@ -57,7 +97,7 @@
 
   /* ====== GAME ====== */
   #gameOverlay{ position:fixed; inset:0; z-index:300; display:none; background:rgba(0,0,0,.8);
-    font-family:"Courier New",monospace; color:#fff; }
+    font-family:"Courier New",monospace; color:#fff; padding-bottom:var(--safe-b); padding-top:var(--safe-t);}
   #gameUI{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
     display:flex; flex-direction:column; align-items:center; gap:10px; width:min(96vw, 860px); }
   #gameHeader{ width:100%; display:flex; justify-content:space-between; align-items:center; gap:8px; }
@@ -70,14 +110,14 @@
   #hud{ display:flex; gap:12px; align-items:center; opacity:.85; font-size:var(--fs-small) }
 
   /* 모바일 DPAD */
-  #dpad{ position:absolute; left:var(--frame); bottom:calc(var(--frame) + 64px); z-index:320;
+  #dpad{ position:absolute; left:calc(var(--frame) + var(--safe-l)); bottom:calc(var(--frame) + 64px + var(--safe-b)); z-index:320;
     display:grid; grid-template-columns:repeat(3,48px); grid-template-rows:repeat(3,48px); gap:6px; }
   .dkey{ width:48px; height:48px; border:1px solid #444; display:flex; align-items:center; justify-content:center; color:#fff; background:#000; opacity:.7; user-select:none; }
   .dkey:active{ opacity:1 }
 
   /* ====== DOCUMENT ====== */
   #docOverlay{ position:fixed; inset:0; z-index:310; display:none; background:rgba(0,0,0,.8);
-    font-family:"Courier New",monospace; color:#fff; }
+    font-family:"Courier New",monospace; color:#fff; padding-bottom:var(--safe-b); padding-top:var(--safe-t);}
   #docUI{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(96vw,860px); display:flex; flex-direction:column; gap:10px; }
   #docHeader{ display:flex; justify-content:space-between; align-items:center; }
   #docGrid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
@@ -253,7 +293,6 @@
   let sensorsReady = false;
   let lastMotion = { x:0, y:0 };
 
-  // 센서값 → 오디오 파라미터로 변환
   function updateAudioFromSensors(ori, mot){
     const gamma = (ori && typeof ori.gamma === 'number') ? ori.gamma : (mot ? (mot.x*9) : 0); // 좌우
     const beta  = (ori && typeof ori.beta  === 'number') ? ori.beta  : (mot ? (mot.y*9) : 0); // 상하
@@ -265,9 +304,7 @@
     }catch(e){}
   }
 
-  // iOS/Android 모두에서 프롬프트 확실히 뜨게 하는 함수
   async function requestMotionPermissions(){
-    // 상태 표시 (선택)
     const statusId='__sensor_status__';
     let status = document.getElementById(statusId);
     if(!status){
@@ -304,11 +341,9 @@
         }
       }
     }catch(e){
-      setStatus('센서 요청 중 오류가 발생했습니다.');
-      console.warn(e);
+      setStatus('센서 요청 중 오류가 발생했습니다.'); console.warn(e);
     }
 
-    // 리스너 등록 (iOS 허용, 혹은 Android/데스크탑)
     addEventListener('deviceorientation', (e)=>{ sensorsReady=true; updateAudioFromSensors(e, lastMotion); }, {passive:true});
     addEventListener('devicemotion', (e)=>{
       sensorsReady=true;
@@ -346,20 +381,26 @@
       camVideo.srcObject=camStream; await camVideo.play().catch(()=>{});
     }catch(e){ console.warn("카메라 실패:", e); }
   }
+  function viewportSize(){
+    // safe-area 포함 높이 취득
+    return { w: window.innerWidth, h: window.innerHeight };
+  }
   function resizeAll(){
     const dpr=window.devicePixelRatio||1;
-    const w=window.innerWidth,h=window.innerHeight;
+    const {w,h}=viewportSize();
     view.width=w*dpr; view.height=h*dpr; vctx.setTransform(dpr,0,0,dpr,0,0);
     const scale=(matchMedia('(orientation: landscape)').matches)? PROC_SCALE*0.9 : PROC_SCALE;
     proc.width=Math.floor(w*scale); proc.height=Math.floor(h*scale);
   }
-  resizeAll(); addEventListener('resize',()=>setTimeout(resizeAll,50),{passive:true});
+  resizeAll();
+  addEventListener('resize',()=>setTimeout(resizeAll,50),{passive:true});
   addEventListener('orientationchange',()=>setTimeout(resizeAll,120),{passive:true});
 
   function loop(){
     requestAnimationFrame(loop);
-    const W=view.width/(devicePixelRatio||1);
-    const H=view.height/(devicePixelRatio||1);
+    const dpr = window.devicePixelRatio||1;
+    const W=view.width/dpr;
+    const H=view.height/dpr;
     const PW=proc.width, PH=proc.height;
     pctx.globalCompositeOperation="source-over";
     pctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`; pctx.fillRect(0,0,PW,PH);
@@ -435,15 +476,15 @@
     });
   }
 
-  // ★ 사용자 제스처 안에서 모든 권한 요청 (iOS 에서 프롬프트 확실히 노출)
+  // 권한 요청(제스처 안에서)
   async function runPermissionGate(){
     if(gateBusy || gateDone) return;
     gateBusy=true;
     sfxClick(); 
-    resumeAudio();                 // 오디오 컨텍스트 활성화(제스처 내)
+    resumeAudio();
 
     try{
-      await requestMotionPermissions(); // ⬅ 여기서 센서 퍼미션 대화상자 뜸
+      await requestMotionPermissions();
       await attachCamera();
       if(WANT_MIC) await startMic();
     }catch(e){ console.warn('permission gate error', e); }
@@ -469,8 +510,9 @@
     setTimeout(()=>{ goodnight.style.display='none'; next && next(); }, 1600);
   }
 
+  // 컷인 라벨
   function showCutInLabel(label, holdMs=1600, after){
-    cutinText.innerHTML = `<div class="introCard"><div class="introHeader">${label}</div></div>`;
+    cutinText.textContent = label;
     cutin.classList.remove('fadeout'); cutin.classList.add('show'); sfxAppear();
     setTimeout(()=>{
       cutin.classList.add('fadeout');
@@ -491,7 +533,7 @@
   ];
   function showNarrativeSequence(done){
     setOverlayDim(false);        // 딤 끔
-    setOverlayClickable(false);  // 백그라운드 클릭 가능(버튼 동작)
+    setOverlayClickable(false);  // 백그라운드 클릭 허용
     overlay.style.display='flex';
     overlay.classList.remove('hidden');
     let idx = 0;
@@ -501,7 +543,6 @@
       setTimeout(()=>{
         overlayContent.innerHTML = `
           <div class="introCard">
-            <div class="introHeader">NARRATIVE</div>
             <div class="introLine">${spanChars(narrative[idx++])}</div>
           </div>`;
         overlayContent.classList.remove('hidden');
@@ -512,15 +553,14 @@
   }
 
   function firstSilenceFlow(){
-    showCutInLabel('FIRST SILENCE', 1600, ()=>{
-      setGlobalUIEnabled(true); // 이제 전부 가능 (MAP/DOC/줌/캡쳐)
-      showNarrativeSequence(()=>{
-        setTimeout(()=>{ showCutInLabel('SECOND SILENCE', 1600, ()=>{}); }, 800);
-      });
+    // “THE FIRST SILENCE” → 사라진 뒤 5초 대기 → 지문 시작
+    showCutInLabel('THE FIRST SILENCE', 1600, ()=>{
+      setGlobalUIEnabled(true);
+      setTimeout(()=>{ showNarrativeSequence(()=>{ setTimeout(()=>{ showCutInLabel('SECOND SILENCE', 1600, ()=>{}); }, 800); }); }, 5000);
     });
   }
 
-  // INTRO (글자 박스 + “INTRODUCTION” 라벨, 55초 카운트)
+  // INTRO (55초 카운트)
   function mountPressToSleep(){
     const introLines = [
       '이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.',
