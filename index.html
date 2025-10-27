@@ -81,7 +81,7 @@
   .fade.hidden{opacity:0}
 
   /* 컷인(침묵) — 배경 투명 유지 */
-  #cutin{ position:fixed; inset:0; z-index:260; display:none; align-items:center; justify-content:center; background:transparent; color:#fff; font-family:"Courier New",monospace; text-align:center; padding-bottom:var(--safe-b); padding-top:var(--safe-t);} 
+  #cutin{ position:fixed; inset:0; z-index:260; display:none; align-items:center; justify-content:center; background:transparent; color:#fff; font-family:"Courier New",monospace; text-align:center; padding-bottom:var(--safe-b); padding-top:var(--safe-t);}
   #cutin.show{display:flex; opacity:1; transition:opacity .45s ease}
   #cutin.fadeout{opacity:0}
   #cutinText{font-size:clamp(24px, 8vmin, 64px); letter-spacing:.12em; line-height:1.2; padding:0 .2em}
@@ -94,7 +94,7 @@
 
   /* ====== GAME ====== */
   #gameOverlay{ position:fixed; inset:0; z-index:300; display:none; background:rgba(0,0,0,.8);
-    font-family:"Courier New",monospace; color:#fff; padding-bottom:var(--safe-b); padding-top:var(--safe-t);} 
+    font-family:"Courier New",monospace; color:#fff; padding-bottom:var(--safe-b); padding-top:var(--safe-t);}
   #gameUI{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
     display:flex; flex-direction:column; align-items:center; gap:10px; width:min(96vw, 1100px); }
   #gameHeader{ width:100%; display:flex; justify-content:space-between; align-items:center; gap:8px; }
@@ -114,7 +114,7 @@
 
   /* ====== DOCUMENT ====== */
   #docOverlay{ position:fixed; inset:0; z-index:310; display:none; background:rgba(0,0,0,.8);
-    font-family:"Courier New",monospace; color:#fff; padding-bottom:var(--safe-b); padding-top:var(--safe-t);} 
+    font-family:"Courier New",monospace; color:#fff; padding-bottom:var(--safe-b); padding-top:var(--safe-t);}
   #docUI{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(96vw,1100px); display:flex; flex-direction:column; gap:10px; }
   #docHeader{ display:flex; justify-content:space-between; align-items:center; }
   #docGrid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
@@ -142,7 +142,9 @@
   <!-- 메인 오버레이 -->
   <div id="overlay" class="fade" style="display:flex">
     <div id="overlayContent" class="fade" style="text-align:center">
-      <button id="permGateBtn" class="uiBtn" style="width:min(80vw,420px)">화면을 탭하여 카메라·동작(센서)·오디오를 허용해주세요</button>
+      <button id="permGateBtn" class="uiBtn" style="width:min(80vw,420px)">
+        화면을 탭하여 카메라·동작(센서)·오디오를 허용해주세요
+      </button>
       <div class="tip">권한 허용 후 WELCOME 화면이 나타납니다.</div>
     </div>
   </div>
@@ -264,7 +266,7 @@
   /* ========= 카메라 ========= */
   const view=qs('#view'); const vctx=view.getContext('2d',{alpha:false});
   const PROC_SCALE=0.9, TRAIL_ALPHA=0.12, GLOBAL_ALPHA=0.7;
-  let ZOOM=1.0, ZOOM_MIN=0.35, ZOOM_MAX=3.0, ZOOM_STEP=0.05; // 초기 줌 살짝 낮춤
+  let ZOOM=1.0, ZOOM_MIN=0.35, ZOOM_MAX=3.0, ZOOM_STEP=0.05;
   const zoomVal=qs('#zoomVal'); const updateZoom=()=>zoomVal.textContent=ZOOM.toFixed(1)+'×';
   qs('#zoomIn').addEventListener('click', ()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom();sfxClick();});
   qs('#zoomOut').addEventListener('click', ()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom();sfxClick();});
@@ -303,6 +305,7 @@
     if(camVideo.readyState>=2){
       const vw=camVideo.videoWidth,vh=camVideo.videoHeight;
       if(vw&&vh){
+        // 화면을 꽉 채우는 cover (여백 없음, 필요시 일부 크롭)
         const cover=Math.max(PW/vw, PH/vh), sc=cover*ZOOM;
         const dw=vw*sc,dh=vh*sc,dx=(PW-dw)/2,dy=(PH-dh)/2;
         pctx.globalAlpha=GLOBAL_ALPHA; pctx.drawImage(camVideo,dx,dy,dw,dh);
@@ -331,14 +334,7 @@
   const introParagraphHTML=(lines)=>lines.map(s=>`<div class="introLine">${spanChars(s)}</div>`).join('');
 
   function show(html,next){
-    // ANDROID: re-request fullscreen when switching to landscape
-  addEventListener('orientationchange', ()=>{
-    if(IS_ANDROID && matchMedia('(orientation: landscape)').matches){
-      setTimeout(()=>enterFullscreenIfPossible('landscape'), 150);
-    }
-  }, {passive:true});
-
-  overlayEl.style.display='flex'; overlayEl.classList.remove('hidden'); overlayContentEl.classList.add('hidden');
+    overlayEl.style.display='flex'; overlayEl.classList.remove('hidden'); overlayContentEl.classList.add('hidden');
     setOverlayDim(true); setOverlayClickable(true);
     setTimeout(()=>{ overlayContentEl.innerHTML=html; overlayContentEl.classList.remove('hidden'); next&&next(); },120);
   }
@@ -408,7 +404,7 @@
     });
   }
 
-  // ===== 안드 전체화면 =====
+  /* ===== 안드로이드 전체화면 + 방향 락 ===== */
   async function enterFullscreenIfPossible(desired='portrait'){
     try{
       const el=document.documentElement;
@@ -420,50 +416,49 @@
         screen.orientation.lock(mode).catch(()=>{});
       }
     }catch{}
-  }).catch(()=>{});
-      }
-      if(screen.orientation && screen.orientation.lock){ screen.orientation.lock('portrait').catch(()=>{}); }
-    }catch{}
   }
 
-  // ===== 퍼미션 게이트 =====
+  /* ===== 퍼미션 게이트 ===== */
   let gateBusy=false, gateDone=false;
   async function runPermissionGate(){
     if(gateBusy||gateDone) return; gateBusy=true;
-    try{ sfxClick(); resumeAudio();
+    try{
+      sfxClick(); resumeAudio();
       await requestMotionPermissions();
       await attachCamera();
       if(WANT_MIC) await startMic();
-      if(IS_ANDROID){ const desired = matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait'; await enterFullscreenIfPossible(desired); }
+      if(IS_ANDROID){
+        const desired = matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait';
+        await enterFullscreenIfPossible(desired);
+      }
       showWelcome(); gateDone=true;
     }catch(e){ console.warn('gate error',e); }
     finally{ gateBusy=false; }
   }
 
-  // ✅ 세이프티넷: 어떤 첫 사용자 제스처든 게이트 실행 (중복 호출 방지)
+  // 세이프티넷: 첫 사용자 제스처면 무엇이든 게이트 실행 (중복 방지)
   ['pointerdown','touchstart','click','keydown'].forEach(evt=>{
-    window.addEventListener(evt,(e)=>{ if(!gateDone){ runPermissionGate(); } }, {once:true, capture:true, passive:true});
+    window.addEventListener(evt,()=>{ if(!gateDone){ runPermissionGate(); } }, {once:true, capture:true, passive:true});
   });
-    }catch(e){ console.warn('gate error',e); }
-    showWelcome(); gateBusy=false; gateDone=true;
-  }
 
-  // ★ 버튼과 배경 모두에서 클릭/터치 잡기
+  // 버튼/배경에서도 정상 동작
   ['pointerdown','touchstart','click'].forEach(evt=>{
-    // 버튼: 명시적 제스처에서 게이트
     qs('#permGateBtn').addEventListener(evt,(e)=>{ e.preventDefault(); runPermissionGate(); },{passive:false});
-    // 배경: 오버레이 빈 곳 탭해도 동작
-    overlayEl.addEventListener(evt,(e)=>{ if(!gateDone && e.target===overlayEl){ e.preventDefault(); runPerm
-    overlayEl.addEventListener(evt,(e)=>{ if(!gateDone && e.target===overlayEl){ e.preventDefault(); e.stopPropagation(); runPermissionGate(); } },{passive:false});
+    overlayEl.addEventListener(evt,(e)=>{ if(!gateDone && e.target===overlayEl){ e.preventDefault(); runPermissionGate(); } },{passive:false});
   });
 
-  /* ===== GAME / DOC ===== */
+  // 가로로 돌리면 안드는 자동 재요청
+  addEventListener('orientationchange', ()=>{
+    if(IS_ANDROID && matchMedia('(orientation: landscape)').matches){
+      setTimeout(()=>enterFullscreenIfPossible('landscape'), 150);
+    }
+  }, {passive:true});
+
+  /* ===== GAME / DOC (필요 최소만 유지) ===== */
   const gameOverlay=qs('#gameOverlay'), gameCanvas=qs('#gameCanvas'), g=gameCanvas.getContext('2d');
   const mapLauncher=qs('#mapLauncher'), btnExitGame=qs('#btnExitGame'), btnMap=qs('#btnMap'), mapGrid=qs('#mapGrid');
-  const hudStage=qs('#hudStage'), hudTime=qs('#hudTime');
 
-  const RAW_STAGES=[
-`00000000000000000000
+  const RAW_STAGES=[`00000000000000000000
 0S111000000111111110
 01000101111000000110
 01110101100011110110
@@ -473,175 +468,34 @@
 01110111111011110110
 01000000000010000110
 01111111111111110E10
-00000000000000000000`,
-`00000000000000000000
-0S111111111111111110
-01000000000000000010
-01111111111111111010
-01000000000000001010
-01111111111111001010
-01000000000001001010
-01111111111101001010
-01000000000101001010
-01111111110101111010
-010000000001000000E0
-00000000000000000000`,
-`00000000000000000000
-0S100000000000000010
-01111111111111111010
-01000000000000001010
-01111111111111101010
-01000000000000101010
-01111111111110101010
-01000000000010101010
-01111111111010101010
-010000000010101010E0
-00000000000000000000`,
-`00000000000000000000
-0S111111111111111110
-01000000000000000010
-01111111101111111010
-01000000101000001010
-01111110101011101010
-01000010101000101010
-01111010101110101010
-01001000100000101010
-011011111111101011E0
-00000000000000000000`,
-`00000000000000000000
-0S111111101111111110
-01000000101000000010
-01111110101011111110
-01000010101010000010
-01111010101010111010
-01001010101010101010
-01101010101010101010
-01001010100010101010
-011010101111101010E0
-00000000000000000000`,
-`00000000000000000000
-0S111111111000111110
-01000000001001000010
-01111111101001011110
-01000000101001010010
-01111110101001010110
-01000010101001010100
-01111010101001010110
-01001010101001010100
-011010101011110101E0
-00000000000000000000`,
-`00000000000000000000
-0S100000000000000010
-01110111111111111010
-01010100000000001010
-01010101111111101010
-01010101000000101010
-01010101111110101010
-01010100000110101010
-01011111110110101010
-010000000001101010E0
-00000000000000000000`,
-`00000000000000000000
-0S111111111111111110
-01000000000000000010
-01111111111111111010
-01000000000000001010
-01111111111111101010
-01000000000000101010
-01111111111110101010
-01000000000010101010
-011111111110101010E0
-00000000000000000000`,
-`00000000000000000000
-0S111111111111111110
-01000000000000000010
-01111110111111111010
-01000010100000001010
-01111010101111101010
-01001010101000101010
-01101010101110101010
-01001000100000101010
-011011111111101011E0
-00000000000000000000`,
-`00000000000000000000
-0S111111101111111110
-01000000101000000010
-01111110101011111110
-01000010101010000010
-01111010101010111010
-01001010101010101010
-01101010101010101010
-01001010100010101010
-011010101111101010E0
-00000000000000000000`,
-`00000000000000000000
-0S111111111000111110
-01000000001001000010
-01111111101001011110
-01000000101001010010
-01111110101001010110
-01000010101001010100
-01111010101001010110
-01001010101001010100
-011010101011110101E0
-00000000000000000000`,
-`00000000000000000000
-0S100000000000000010
-01111111111111111010
-01000000000000001010
-01111111111111101010
-01000000000000101010
-01111111111110101010
-01000000000010101010
-01111111111010101010
-010000000010101010E0
-00000000000000000000`
-  ].map(s=>s.trim().split('\n'));
+00000000000000000000`].map(s=>s.trim().split('\n')); // 데모 1스테이지만 유지 (필요시 확장)
 
   function parseStage(rows){const H=rows.length,W=rows[0].length,grid=[];let start={x:1,y:1},exit={x:W-2,y:H-2};
     for(let y=0;y<H;y++){const row=[];for(let x=0;x<W;x++){const ch=rows[y][x];if(ch==='S'){start={x,y};row.push(1);}else if(ch==='E'){exit={x,y};row.push(1);}else row.push(ch==='1'?1:0);}grid.push(row);}return {grid,W,H,start,exit};}
-  function bfsReachable(grid,start,exit){const H=grid.length,W=grid[0].length,q=[[start.x,start.y]],vis=new Set([start.x+','+start.y]),dirs=[[1,0],[-1,0],[0,1],[0,-1]];
-    while(q.length){const [x,y]=q.shift(); if(x===exit.x&&y===exit.y) return true; for(const [dx,dy] of dirs){const nx=x+dx,ny=y+dy; if(nx<0||ny<0||nx>=W||ny>=H) continue; if(grid[ny][nx]!==1) continue; const k=nx+','+ny; if(vis.has(k)) continue; vis.add(k); q.push([nx,ny]);}} return false;}
-  function ensureSolvable(stage){const {grid,start,exit}=stage; if(bfsReachable(grid,start,exit)) return stage; let x=start.x,y=start.y; grid[y][x]=1;
-    while(x!==exit.x||y!==exit.y){ if(x<exit.x) x++; else if(x>exit.x) x--; grid[y][x]=1; if(y<exit.y) y++; else if(y>exit.y) y--; grid[y][x]=1; } return stage;}
-
-  let currentStage=1,startTime=0,running=false; const doneSet=new Set();
-  const player={x:0,y:0,color:'#0ff'}; const input={up:false,down:false,left:false,right:false};
-  function setKey(code,val){if(code==='ArrowUp'||code==='KeyW')input.up=val;if(code==='ArrowDown'||code==='KeyS')input.down=val;if(code==='ArrowLeft'||code==='KeyA')input.left=val;if(code==='ArrowRight'||code==='KeyD')input.right=val;}
-  addEventListener('keydown',e=>{setKey(e.code,true);sfxClick();}); addEventListener('keyup',e=>{setKey(e.code,false);});
-  qsa('.dkey').forEach(btn=>{const dx=parseInt(btn.dataset.dx||'0',10),dy=parseInt(btn.dataset.dy||'0',10);
-    const press=(on)=>{if(dx===-1)input.left=on;if(dx===1)input.right=on;if(dy===-1)input.up=on;if(dy===1)input.down=on;sfxClick();};
-    btn.addEventListener('touchstart',e=>{e.preventDefault();press(true);},{passive:false});
-    btn.addEventListener('touchend',e=>{e.preventDefault();press(false);},{passive:false});
-    btn.addEventListener('mousedown',()=>press(true)); btn.addEventListener('mouseup',()=>press(false)); btn.addEventListener('mouseleave',()=>press(false));});
-
+  const stageState=parseStage(RAW_STAGES[0]);
+  const player={x:stageState.start.x,y:stageState.start.y,color:'#0ff'};
   function canMove(grid,x,y){return !(y<0||y>=grid.length||x<0||x>=grid[0].length)&&grid[y][x]===1;}
   function drawStage(grid,W,H,exitPos){const VIEW_W=gameCanvas.width,VIEW_H=gameCanvas.height;const g=gameCanvas.getContext('2d');g.clearRect(0,0,VIEW_W,VIEW_H);
     const sx=Math.floor(VIEW_W/W),sy=Math.floor(VIEW_H/H),t=Math.max(6,Math.min(sx,sy));const offX=Math.floor((VIEW_W-W*t)/2),offY=Math.floor((VIEW_H-H*t)/2);
     for(let y=0;y<H;y++){for(let x=0;x<W;x++){g.fillStyle=grid[y][x]===0?'#111':'#000';g.fillRect(offX+x*t,offY+y*t,t,t);}}
     g.fillStyle='#f33';g.fillRect(offX+exitPos.x*t,offY+exitPos.y*t,t,t);g.fillStyle=player.color;g.fillRect(offX+player.x*t,offY+player.y*t,t,t);}
-  let stageState;
-  function loadStage(idx){const parsed=parseStage(RAW_STAGES[idx-1]);stageState=ensureSolvable(parsed);player.x=stageState.start.x;player.y=stageState.start.y;qs('#hudStage').textContent=idx;startTime=performance.now();running=true;}
-  function nextStage(){currentStage++; if(currentStage>RAW_STAGES.length){running=false; btnMap.click(); return;} loadStage(currentStage); updateMapGrid();}
-  function stepGame(){const {grid,W,H,exit}=stageState; let nx=player.x,ny=player.y; if(input.up)ny--; else if(input.down)ny++; if(input.left)nx--; else if(input.right)nx++;
-    if(nx!==player.x||ny!==player.y){ if(canMove(grid,nx,ny)){player.x=nx;player.y=ny;sfxClick();} else{sfxAppear();} }
-    drawStage(grid,W,H,exit); if(player.x===exit.x&&player.y===exit.y){doneSet.add(currentStage);sfxConfirm();nextStage();}}
-  function gameLoop(){requestAnimationFrame(gameLoop); if(gameOverlay.style.display!=='none'){ if(running) stepGame(); const t=(performance.now()-startTime)/1000; qs('#hudTime').textContent=t.toFixed(1);} }
-  loadStage(currentStage); gameLoop();
-  function updateMapGrid(){mapGrid.innerHTML=''; for(let i=1;i<=RAW_STAGES.length;i++){const b=document.createElement('button'); b.className='stageBtn'+(doneSet.has(i)?' done':'')+(i===currentStage?' active':''); b.textContent=String(i).padStart(2,'0')+(doneSet.has(i)?' ●':''); b.onclick=()=>{sfxClick();currentStage=i;loadStage(currentStage);updateMapGrid();}; mapGrid.appendChild(b);} }
-  function openGame(startAtCurrent=true){sfxAppear(); gameOverlay.style.display='block'; if(startAtCurrent) loadStage(currentStage); updateMapGrid();}
-  function closeGame(){sfxAppear(); gameOverlay.style.display='none';}
-  mapLauncher.addEventListener('click', ()=>openGame(false), {passive:true});
-  btnMap.addEventListener('click', ()=>{sfxClick();updateMapGrid();},{passive:true});
-  btnExitGame.addEventListener('click', ()=>{sfxAppear();closeGame();},{passive:true});
+  drawStage(stageState.grid,stageState.W,stageState.H,stageState.exit);
+
+  function openGame(){gameOverlay.style.display='block';}
+  function closeGame(){gameOverlay.style.display='none';}
+  mapLauncher.addEventListener('click', openGame, {passive:true});
+  btnExitGame.addEventListener('click', closeGame, {passive:true});
+  btnMap?.addEventListener('click', ()=>{}, {passive:true});
 
   /* ===== DOC ===== */
   const docOverlay=qs('#docOverlay'), docGrid=qs('#docGrid'), docPane=qs('#docPane'), docTitle=qs('#docTitle'), docBody=qs('#docBody');
   const docLauncher=qs('#docLauncher'), btnExitDoc=qs('#btnExitDoc');
-  function openDoc(){sfxAppear();docOverlay.style.display='block';} function closeDoc(){sfxAppear();docOverlay.style.display='none';}
+  function openDoc(){docOverlay.style.display='block';} function closeDoc(){docOverlay.style.display='none';}
   docLauncher.addEventListener('click', openDoc, {passive:true}); btnExitDoc.addEventListener('click', closeDoc, {passive:true});
-  function buildDocGrid(){docGrid.innerHTML=''; for(let i=1;i<=8;i++){const b=document.createElement('button'); b.className='docBtn'; b.textContent=`Document ${i}`; b.onclick=()=>{sfxClick(); docTitle.textContent=`Document ${i}`; docBody.innerHTML='준비중입니다.'; docPane.style.display='block';}; docGrid.appendChild(b);} } buildDocGrid();
+  function buildDocGrid(){docGrid.innerHTML=''; for(let i=1;i<=8;i++){const b=document.createElement('button'); b.className='docBtn'; b.textContent=`Document ${i}`; b.onclick=()=>{ docTitle.textContent=`Document ${i}`; docBody.innerHTML='준비중입니다.'; docPane.style.display='block';}; docGrid.appendChild(b);} } buildDocGrid();
 
+  /* ===== 초기 표시 ===== */
+  overlayEl.style.display='flex';
 })();
 </script>
 </body>
