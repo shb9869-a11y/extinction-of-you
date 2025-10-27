@@ -249,28 +249,77 @@
     }catch(e){ console.warn('Mic denied/failed', e); }
   }
 
-  // 센서 → 패닝/볼륨
-  let sensorsReady=false;
-  function mapMotionToAudio({gamma=0, beta=0}){
+  /* ========= 센서 퍼미션 & 패닝/볼륨 매핑 ========= */
+  let sensorsReady = false;
+  let lastMotion = { x:0, y:0 };
+
+  // 센서값 → 오디오 파라미터로 변환
+  function updateAudioFromSensors(ori, mot){
+    const gamma = (ori && typeof ori.gamma === 'number') ? ori.gamma : (mot ? (mot.x*9) : 0); // 좌우
+    const beta  = (ori && typeof ori.beta  === 'number') ? ori.beta  : (mot ? (mot.y*9) : 0); // 상하
     const pan = clamp(gamma/45, -1, 1);
     const vol = clamp(0.35 + Math.abs(beta)/90 * 1.25, 0.35, 1.6);
     try{
-      panNode.pan.setTargetAtTime(pan, audioCtx.currentTime, 0.03);
-      micGain.gain.setTargetAtTime(vol, audioCtx.currentTime, 0.03);
-    }catch{}
+      panNode?.pan?.setTargetAtTime(pan, audioCtx.currentTime, 0.03);
+      micGain?.gain?.setTargetAtTime(vol, audioCtx.currentTime, 0.03);
+    }catch(e){}
   }
+
+  // iOS/Android 모두에서 프롬프트 확실히 뜨게 하는 함수
   async function requestMotionPermissions(){
+    // 상태 표시 (선택)
+    const statusId='__sensor_status__';
+    let status = document.getElementById(statusId);
+    if(!status){
+      status = document.createElement('div');
+      status.id = statusId;
+      status.style.cssText='margin-top:8px;opacity:.7;font-size:12px;';
+      const pc = document.querySelector('#overlayContent .tip') || document.querySelector('#overlayContent');
+      pc && pc.appendChild(status);
+    }
+    const setStatus=(t)=>status.textContent=t;
+
+    const needsIOS = typeof DeviceOrientationEvent!=='undefined'
+                     && typeof DeviceOrientationEvent.requestPermission==='function';
+
     try{
-      if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
-        const r=await DeviceOrientationEvent.requestPermission(); if(r==='granted') sensorsReady=true;
-      }else sensorsReady=true;
-    }catch(e){}
-    try{
-      if(typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function'){
-        const r=await DeviceMotionEvent.requestPermission(); if(r==='granted') sensorsReady=true;
+      if(needsIOS){
+        setStatus('센서 권한 요청 중…');
+        const r1 = await DeviceOrientationEvent.requestPermission();
+        let r2 = 'granted';
+        if(typeof DeviceMotionEvent!=='undefined'
+           && typeof DeviceMotionEvent.requestPermission==='function'){
+          r2 = await DeviceMotionEvent.requestPermission();
+        }
+        if(r1!=='granted' || r2!=='granted'){
+          setStatus('센서 접근이 거부되었습니다. 아래 버튼으로 다시 요청하세요.');
+          if(!document.getElementById('__sensor_retry__')){
+            const b=document.createElement('button');
+            b.id='__sensor_retry__'; b.className='uiBtn small';
+            b.style.marginTop='8px'; b.textContent='센서 접근 다시 요청';
+            b.onclick=async()=>{ sfxClick(); await requestMotionPermissions(); };
+            document.getElementById('overlayContent')?.appendChild(b);
+          }
+          sensorsReady=false; return false;
+        }
       }
-    }catch(e){}
-    addEventListener('deviceorientation', (e)=>{ if(sensorsReady) mapMotionToAudio(e); }, {passive:true});
+    }catch(e){
+      setStatus('센서 요청 중 오류가 발생했습니다.');
+      console.warn(e);
+    }
+
+    // 리스너 등록 (iOS 허용, 혹은 Android/데스크탑)
+    addEventListener('deviceorientation', (e)=>{ sensorsReady=true; updateAudioFromSensors(e, lastMotion); }, {passive:true});
+    addEventListener('devicemotion', (e)=>{
+      sensorsReady=true;
+      const g=e.accelerationIncludingGravity||{};
+      lastMotion.x = (typeof g.x==='number')?g.x:0;
+      lastMotion.y = (typeof g.y==='number')?g.y:0;
+      updateAudioFromSensors(null, lastMotion);
+    }, {passive:true});
+
+    setStatus('센서 연결 완료');
+    return true;
   }
 
   /* ========= 카메라(흑백+잔상) ========= */
@@ -346,12 +395,10 @@
     disableDuringIntro.forEach(b=> b && (b.disabled = !on));
   }
 
-  // 오버레이 밝기/클릭 제어
   const OVERLAY_BG_DEFAULT='rgba(0,0,0,.72)';
   function setOverlayDim(on){ overlay.style.background = on ? OVERLAY_BG_DEFAULT : 'transparent'; }
   function setOverlayClickable(on){ overlay.style.pointerEvents = on ? 'auto' : 'none'; }
 
-  // 글자 박스 유틸
   const spanChars = (text)=> [...text].map(ch=>{
     const c = ch===' ' ? '&nbsp;' : ch.replace(/</g,'&lt;').replace(/>/g,'&gt;');
     return `<span class="introChar">${c}</span>`;
@@ -372,7 +419,7 @@
     setTimeout(()=>{ overlay.style.display='none'; next&&next(); }, 420);
   }
 
-  // WELCOME 화면(글자박스 + 라벨). 여기서 MAP/DOC 비활성화.
+  // WELCOME 화면 (맵/다큐 비활성화)
   function showWelcome(){
     show(`
       <div class="introCard">
@@ -388,16 +435,22 @@
     });
   }
 
+  // ★ 사용자 제스처 안에서 모든 권한 요청 (iOS 에서 프롬프트 확실히 노출)
   async function runPermissionGate(){
-    if(gateBusy || gateDone) return; gateBusy=true;
-    sfxClick(); resumeAudio();
+    if(gateBusy || gateDone) return;
+    gateBusy=true;
+    sfxClick(); 
+    resumeAudio();                 // 오디오 컨텍스트 활성화(제스처 내)
+
     try{
-      await requestMotionPermissions();
+      await requestMotionPermissions(); // ⬅ 여기서 센서 퍼미션 대화상자 뜸
       await attachCamera();
       if(WANT_MIC) await startMic();
-    }catch(e){}
+    }catch(e){ console.warn('permission gate error', e); }
+
     showWelcome();
-    gateBusy=false; gateDone=true;
+    gateBusy=false; 
+    gateDone=true;
   }
 
   // 첫 화면 탭 확실히 받기
@@ -416,7 +469,6 @@
     setTimeout(()=>{ goodnight.style.display='none'; next && next(); }, 1600);
   }
 
-  // 컷인 라벨(First/Second Silence 등)
   function showCutInLabel(label, holdMs=1600, after){
     cutinText.innerHTML = `<div class="introCard"><div class="introHeader">${label}</div></div>`;
     cutin.classList.remove('fadeout'); cutin.classList.add('show'); sfxAppear();
