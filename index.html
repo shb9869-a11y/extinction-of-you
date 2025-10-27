@@ -331,7 +331,14 @@
   const introParagraphHTML=(lines)=>lines.map(s=>`<div class="introLine">${spanChars(s)}</div>`).join('');
 
   function show(html,next){
-    overlayEl.style.display='flex'; overlayEl.classList.remove('hidden'); overlayContentEl.classList.add('hidden');
+    // ANDROID: re-request fullscreen when switching to landscape
+  addEventListener('orientationchange', ()=>{
+    if(IS_ANDROID && matchMedia('(orientation: landscape)').matches){
+      setTimeout(()=>enterFullscreenIfPossible('landscape'), 150);
+    }
+  }, {passive:true});
+
+  overlayEl.style.display='flex'; overlayEl.classList.remove('hidden'); overlayContentEl.classList.add('hidden');
     setOverlayDim(true); setOverlayClickable(true);
     setTimeout(()=>{ overlayContentEl.innerHTML=html; overlayContentEl.classList.remove('hidden'); next&&next(); },120);
   }
@@ -402,11 +409,18 @@
   }
 
   // ===== 안드 전체화면 =====
-  async function enterFullscreenIfPossible(){
+  async function enterFullscreenIfPossible(desired='portrait'){
     try{
       const el=document.documentElement;
       if(!document.fullscreenElement && document.fullscreenEnabled && el.requestFullscreen){
         await el.requestFullscreen({navigationUI:'hide'}).catch(()=>{});
+      }
+      if(screen.orientation && screen.orientation.lock){
+        const mode = desired === 'landscape' ? 'landscape' : 'portrait';
+        screen.orientation.lock(mode).catch(()=>{});
+      }
+    }catch{}
+  }).catch(()=>{});
       }
       if(screen.orientation && screen.orientation.lock){ screen.orientation.lock('portrait').catch(()=>{}); }
     }catch{}
@@ -421,7 +435,7 @@
       await requestMotionPermissions();
       await attachCamera();
       if(WANT_MIC) await startMic();
-      if(IS_ANDROID) await enterFullscreenIfPossible();
+      if(IS_ANDROID){ const desired = matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait'; await enterFullscreenIfPossible(desired); }
     }catch(e){ console.warn('gate error',e); }
     showWelcome(); gateBusy=false; gateDone=true;
   }
