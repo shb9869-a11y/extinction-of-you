@@ -263,8 +263,8 @@
 
   /* ========= 카메라 ========= */
   const view=qs('#view'); const vctx=view.getContext('2d',{alpha:false});
-  const PROC_SCALE=0.6, TRAIL_ALPHA=0.12, GLOBAL_ALPHA=0.7;
-  let ZOOM=0.85, ZOOM_MIN=0.35, ZOOM_MAX=3.0, ZOOM_STEP=0.05; // 초기 줌 살짝 낮춤
+  const PROC_SCALE=0.9, TRAIL_ALPHA=0.12, GLOBAL_ALPHA=0.7;
+  let ZOOM=1.0, ZOOM_MIN=0.35, ZOOM_MAX=3.0, ZOOM_STEP=0.05; // 초기 줌 살짝 낮춤
   const zoomVal=qs('#zoomVal'); const updateZoom=()=>zoomVal.textContent=ZOOM.toFixed(1)+'×';
   qs('#zoomIn').addEventListener('click', ()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom();sfxClick();});
   qs('#zoomOut').addEventListener('click', ()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom();sfxClick();});
@@ -303,7 +303,7 @@
     if(camVideo.readyState>=2){
       const vw=camVideo.videoWidth,vh=camVideo.videoHeight;
       if(vw&&vh){
-        const contain=Math.min(PW/vw,PH/vh),sc=contain*ZOOM;
+        const cover=Math.max(PW/vw, PH/vh), sc=cover*ZOOM;
         const dw=vw*sc,dh=vh*sc,dx=(PW-dw)/2,dy=(PH-dh)/2;
         pctx.globalAlpha=GLOBAL_ALPHA; pctx.drawImage(camVideo,dx,dy,dw,dh);
         pctx.globalAlpha=1.0;
