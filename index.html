@@ -430,19 +430,30 @@
   let gateBusy=false, gateDone=false;
   async function runPermissionGate(){
     if(gateBusy||gateDone) return; gateBusy=true;
-    sfxClick(); resumeAudio();
-    try{
+    try{ sfxClick(); resumeAudio();
       await requestMotionPermissions();
       await attachCamera();
       if(WANT_MIC) await startMic();
       if(IS_ANDROID){ const desired = matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait'; await enterFullscreenIfPossible(desired); }
+      showWelcome(); gateDone=true;
+    }catch(e){ console.warn('gate error',e); }
+    finally{ gateBusy=false; }
+  }
+
+  // ✅ 세이프티넷: 어떤 첫 사용자 제스처든 게이트 실행 (중복 호출 방지)
+  ['pointerdown','touchstart','click','keydown'].forEach(evt=>{
+    window.addEventListener(evt,(e)=>{ if(!gateDone){ runPermissionGate(); } }, {once:true, capture:true, passive:true});
+  });
     }catch(e){ console.warn('gate error',e); }
     showWelcome(); gateBusy=false; gateDone=true;
   }
 
   // ★ 버튼과 배경 모두에서 클릭/터치 잡기
   ['pointerdown','touchstart','click'].forEach(evt=>{
-    qs('#permGateBtn').addEventListener(evt,(e)=>{ e.preventDefault(); e.stopPropagation(); runPermissionGate(); },{passive:false});
+    // 버튼: 명시적 제스처에서 게이트
+    qs('#permGateBtn').addEventListener(evt,(e)=>{ e.preventDefault(); runPermissionGate(); },{passive:false});
+    // 배경: 오버레이 빈 곳 탭해도 동작
+    overlayEl.addEventListener(evt,(e)=>{ if(!gateDone && e.target===overlayEl){ e.preventDefault(); runPerm
     overlayEl.addEventListener(evt,(e)=>{ if(!gateDone && e.target===overlayEl){ e.preventDefault(); e.stopPropagation(); runPermissionGate(); } },{passive:false});
   });
 
