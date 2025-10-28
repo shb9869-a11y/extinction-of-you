@@ -41,7 +41,7 @@
     border:1px solid #000;pointer-events:none;z-index:50
   }
 
-  .uiBtn{background:#000;color:#fff;border:1px solid #000;font-size:var(--fs-strong);
+  .uiBtn{background:#000;color:#fff;border:1px solid #444;font-size:var(--fs-strong);
     padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",monospace;white-space:nowrap;cursor:pointer;user-select:none}
   .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
   .uiBtn[disabled]{opacity:.35;pointer-events:none;filter:grayscale(1)}
@@ -51,7 +51,7 @@
     right:calc(var(--frame) + var(--ui-gap) + var(--safe-r));
     bottom:calc(var(--frame) + var(--ui-gap) + var(--safe-b));
     z-index:100;display:flex;gap:6px;align-items:center}
-  .readout{min-width:48px;text-align:center;opacity:.9;font-family:"Courier New",monospace;font-size:var(--fs-small)}
+  .readout{min-width:48px;text-align:center;opacity:.9;font-family:"Courier New",monospace;font-size:var(--fs-small);color:#ddd}
   .btn-capture{
     position:fixed;
     left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
@@ -100,12 +100,12 @@
   #gameHeader{ width:100%; display:flex; justify-content:space-between; align-items:center; gap:8px; }
   #gameCanvas{ width:100%; height:min(60vh, calc(var(--appH)*0.6)); background:#000; image-rendering: pixelated; border:1px solid #444 }
   #gameBtns{ display:flex; gap:6px; align-items:center }
-  #mapGrid{ display:none } /* 기존 미로 버튼 숨김 */
+  #mapGrid{ display:none } /* 미로 버튼 숨김 */
 
   /* 모바일 DPAD */
   #dpad{ position:absolute; left:calc(var(--frame) + var(--safe-l)); bottom:calc(var(--frame) + 64px + var(--safe-b)); z-index:320;
     display:grid; grid-template-columns:repeat(3,48px); grid-template-rows:repeat(3,48px); gap:6px; }
-  .dkey{ width:48px; height:48px; border:1px solid #444; display:flex; align-items:center; justify-content:center; color:#fff; background:#000; opacity:.7; user-select:none; }
+  .dkey{ width:48px; height:48px; border:1px solid #444; display:flex; align-items:center; justify-content:center; color:#fff; background:#000; opacity:.75; user-select:none; }
   .dkey:active{ opacity:1 }
 
   /* 인터랙트 힌트 버튼 (하단 중앙) */
@@ -117,10 +117,10 @@
 
   /* ====== GAME DIALOG (비석/전화/로봇 대화) ====== */
   #gameDialog{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; z-index:340; background:rgba(0,0,0,.55); }
-  #gameDialog .box{ min-width:260px; max-width:86vw; background:#1b142a; color:#eee; border:1px solid rgba(255,255,255,.2); border-radius:10px; padding:12px; box-shadow:0 10px 24px rgba(0,0,0,.6); font:12px/1.6 "Courier New",monospace; }
-  #gameDialog .box h3{ margin:0 0 8px; font:700 12px "Courier New",monospace; color:#ffd4a6; }
+  #gameDialog .box{ min-width:260px; max-width:86vw; background:#111; color:#eee; border:1px solid #444; border-radius:10px; padding:12px; box-shadow:0 10px 24px rgba(0,0,0,.6); font:12px/1.6 "Courier New",monospace; }
+  #gameDialog .box h3{ margin:0 0 8px; font:700 12px "Courier New",monospace; color:#f0f0f0; }
   #gameDialog .choices{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-  #gameDialog .choices button{ padding:6px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.25); background:#33265a; color:#fff; font:600 12px "Courier New",monospace; }
+  #gameDialog .choices button{ padding:6px 10px; border-radius:8px; border:1px solid #555; background:#222; color:#fff; font:600 12px "Courier New",monospace; }
 
   /* ====== DOCUMENT ====== */
   #docOverlay{ position:fixed; inset:0; z-index:310; display:none; background:rgba(0,0,0,.8);
@@ -155,7 +155,7 @@
       <button id="permGateBtn" class="uiBtn" style="width:min(80vw,420px)">
         화면을 탭하여 카메라·동작(센서)·오디오를 허용해주세요
       </button>
-      <div class="tip">권한 허용 후 WELCOME 화면이 나타납니다.</div>
+      <div class="tip" style="color:#ddd">권한 허용 후 WELCOME 화면이 나타납니다.</div>
     </div>
   </div>
 
@@ -289,7 +289,7 @@
     return true;
   }
 
-  /* ========= 카메라 ========= */
+  /* ========= 카메라(배경은 이미 흑백 처리됨) ========= */
   const view=qs('#view'); const vctx=view.getContext('2d',{alpha:false});
   const PROC_SCALE=0.9, TRAIL_ALPHA=0.12, GLOBAL_ALPHA=0.7;
   let ZOOM=1.0, ZOOM_MIN=0.35, ZOOM_MAX=3.0, ZOOM_STEP=0.05;
@@ -485,23 +485,24 @@
   docLauncher.addEventListener('click', openDoc, {passive:true}); btnExitDoc.addEventListener('click', closeDoc, {passive:true});
   function buildDocGrid(){docGrid.innerHTML=''; for(let i=1;i<=8;i++){const b=document.createElement('button'); b.className='docBtn'; b.textContent=`Document ${i}`; b.onclick=()=>{ docTitle.textContent=`Document ${i}`; docBody.innerHTML='준비중입니다.'; docPane.style.display='block';}; docGrid.appendChild(b);} } buildDocGrid();
 
-  /* ===== GAME (Grave Run 맵 통합) ===== */
+  /* ===== GAME (Grayscale 팔레트) ===== */
   const gameOverlay=qs('#gameOverlay'), gameCanvas=qs('#gameCanvas'), g=gameCanvas.getContext('2d');
   const dpad=qs('#dpad'); const hudRoom=qs('#hudRoom'); const interactHint=qs('#interactHint');
   const btnExitGame=qs('#btnExitGame'); const mapLauncher=qs('#mapLauncher');
 
-  // 렌더는 256x256 오프스크린에 수행 후 중앙 배치
   const REND_W=256, REND_H=256, TILE=16, MAP_W=16, MAP_H=16;
   const off=document.createElement('canvas'); off.width=REND_W; off.height=REND_H; const og=off.getContext('2d',{alpha:false}); og.imageSmoothingEnabled=false;
 
-  // 팔레트
-  const C={ bg:'#201335', plate:'#6d58a5', plate2:'#584787', border:'#2a2144', dot:'#3a2c5d',
-            grave:'#7c6ac0', graveDark:'#362a56', shadow:'rgba(0,0,0,.55)',
-            seekerBody:'#aab9cc', seekerEye:'#37a5ff',
-            player:'#ff7a33', playerDark:'#b74f14',
-            brick:'#70322a', brickDark:'#3a1713', phone:'#d63c2f', phoneDial:'#e9c8a8' };
+  /* === 흑백 팔레트 === */
+  const C={
+    bg:'#111', plate:'#1b1b1b', plate2:'#0f0f0f', border:'#2a2a2a', dot:'#242424',
+    grave:'#bbbbbb', graveDark:'#666666', shadow:'rgba(0,0,0,.55)',
+    seekerBody:'#cccccc', seekerEye:'#eeeeee',
+    player:'#ffffff', playerDark:'#aaaaaa',
+    brick:'#444444', brickDark:'#222222', phone:'#dddddd', phoneDial:'#bdbdbd'
+  };
 
-  // 맵 생성 (비석의 방 / 전화기의 방)
+  // 맵(비석의 방/전화기의 방)
   const LEVEL0=Array.from({length:MAP_H},()=>Array(MAP_W).fill(1));
   for(let y=2;y<MAP_H-1;y+=2){ for(let x=1;x<MAP_W-1;x++) LEVEL0[y][x]=0; }
   for(let x=2;x<MAP_W-1;x+=2){ for(let y=1;y<MAP_H-1;y++) LEVEL0[y][x]=0; }
@@ -658,7 +659,7 @@
       player.x=8.5; player.y=14.2; inConvo=false; gameDialog.style.display='none'; dgChoices.innerHTML=''; SFX.ui();
     }
 
-    // 상호작용 판단
+    // 상호작용
     let label="", action=null;
     if(room===0){
       if(!inConvo && Math.hypot(player.x-seeker.x, player.y-seeker.y)<0.85){ label='E: 로봇과 대화'; action=()=> openRobotConvo(); }
@@ -669,9 +670,6 @@
       if(np.phone && np.dist<1.1){ label='E: 수화기 들기'; action=()=>{ SFX.ring(); dgTitle.textContent='전화기의 방'; dgBody.textContent='...여보세요? (침묵 속의 목소리가 미세하게 울린다)'; dgChoices.innerHTML=''; gameDialog.style.display='flex'; }; }
     }
     if(action){ interactHint.style.display='block'; interactHint.textContent=label; interactHint.onclick=action; } else { interactHint.style.display='none'; interactHint.onclick=null; }
-
-    // 키보드 E
-    // (전역 리스너 이미 있으므로 여기선 힌트 버튼을 클릭하도록)
   }
 
   function renderGame(){
@@ -679,7 +677,7 @@
     og.drawImage(room===0 ? layer0 : layer1, 0, 0);
     drawSeeker(); drawPlayer(player);
 
-    // gameCanvas 중앙 배치 (letterbox)
+    // 중앙 배치
     g.clearRect(0,0,gameCanvas.width,gameCanvas.height);
     const sx=Math.floor(gameCanvas.width/REND_W), sy=Math.floor(gameCanvas.height/REND_H), scale=Math.max(1,Math.min(sx,sy));
     const dw=REND_W*scale, dh=REND_H*scale, dx=(gameCanvas.width-dw)/2, dy=(gameCanvas.height-dh)/2;
@@ -690,7 +688,6 @@
   function openGame(){
     hudRoom.textContent = room===0 ? 'ROOM: 비석의 방 · 하단 출구 → 전화기의 방' : 'ROOM: 전화기의 방 · 하단 출구 → 비석의 방';
     gameOverlay.style.display='block';
-    // 모바일 DPAD 표시(터치 디바이스)
     if (matchMedia('(pointer: coarse)').matches) dpad.style.display='grid'; else dpad.style.display='none';
     gameRunning=true; requestAnimationFrame(gameLoop);
   }
@@ -703,7 +700,7 @@
   mapLauncher.addEventListener('click', openGame, {passive:true});
   btnExitGame.addEventListener('click', closeGame, {passive:true});
 
-  // 전역 E키 처리 → 힌트 버튼이 있을 때 실행
+  // 전역 E키 → 상호작용
   addEventListener('keydown', e=>{ if(!gameRunning) return; if((e.key==='e'||e.key==='E')){ if(interactHint.style.display!=='none'){ e.preventDefault(); interactHint.click(); }}}, {passive:false});
 
   /* ===== 초기 표시 ===== */
