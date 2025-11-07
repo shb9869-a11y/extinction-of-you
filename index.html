@@ -84,9 +84,9 @@
   #welcomeCard{ text-align:center; max-width:min(92vw, 700px); }
 
   #introOverlay{
-    position:fixed; inset:0; z-index:230; display:flex; align-items:center; justify-content:center;
+    position:fixed; inset:0; z-index:230; display:none; align-items:center; justify-content:center;
     color:#fff; background:rgba(0,0,0,.75); padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;
-    font-family:"Courier New",ui-monospace,monospace; display:none;
+    font-family:"Courier New",ui-monospace,monospace;
   }
   #introBox{ width:min(92vw, 860px); }
   #introBox h2{margin:.2em 0 .6em 0; font-size:clamp(16px, 3.2vmin, 24px); letter-spacing:.1em; text-align:center;}
@@ -152,7 +152,11 @@
         SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP,<br>
         SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP
       </div>
-      <button id="goIntro" class="uiBtn flat">PRESS HERE TO SLEEP</button>
+      <div style="display:flex;gap:12px;justify-content:center;">
+        <button id="goIntro" class="uiBtn flat">PRESS HERE TO SLEEP</button>
+        <!-- [UI RESTORE] 즉시 스킵 버튼 -->
+        <button id="skipAll" class="uiBtn small">SKIP ▶</button>
+      </div>
     </div>
   </div>
 
@@ -227,6 +231,7 @@
 
   const welcome = qs('#overlayWelcome');
   const goIntroBtn = qs('#goIntro');
+  const skipAllBtn = qs('#skipAll'); // [UI RESTORE]
 
   const intro = qs('#introOverlay');
   const countNum = qs('#countNum');
@@ -252,6 +257,24 @@
   const btnExitMap = qs('#btnExitMap');
 
   const view = qs('#view');
+
+  // [UI RESTORE] 전역 UI 상태 토글러
+  let UI_HIDDEN = false;
+  function showUI(){
+    UI_HIDDEN = false;
+    hideTopUI(false);
+  }
+  function hideUI(){
+    UI_HIDDEN = true;
+    hideTopUI(true);
+  }
+  function toggleUI(){
+    UI_HIDDEN ? showUI() : hideUI();
+  }
+  // 비상 토글: U 키
+  window.addEventListener('keydown', (e)=>{
+    if ((e.key||'').toLowerCase()==='u'){ toggleUI(); }
+  });
 
   let camStream=null, camVideo=null, vctx=null, proc=null, pctx=null, ZOOM=1.0;
   function updateZoomLabel(){ zoomVal.textContent = ZOOM.toFixed(1)+'×'; }
@@ -313,7 +336,7 @@
     }
   }
   function showPreset(){
-    hideTopUI(true);
+    hideUI(); // 오버레이 동안 UI 숨김
     preset.style.display='block';
     drawPreset();
   }
@@ -328,6 +351,14 @@
   goIntroBtn.addEventListener('click', ()=>{
     welcome.style.display='none';
     showIntro();
+  }, {passive:true});
+
+  // [UI RESTORE] 스킵: 바로 UI 복원 + 타이틀 시퀀스 생략
+  skipAllBtn.addEventListener('click', ()=>{
+    welcome.style.display='none';
+    titleScreen.style.display='none';
+    intro.style.display='none';
+    showUI(); // 즉시 복원
   }, {passive:true});
 
   function startCamera(){
@@ -368,7 +399,7 @@
 
   /* INTRO (30s) */
   function showIntro(){
-    hideTopUI(true);
+    hideUI();
     intro.style.display='flex';
     let count=30;
     countNum.textContent = count;
@@ -393,7 +424,7 @@
   ];
   async function runChapters(){
     for(const label of chapters){ await showTitle(label, 1500); }
-    hideTopUI(false);
+    showUI(); // [UI RESTORE] 챕터 종료 후 UI 복원
   }
   function showTitle(text, hold=1500){
     return new Promise(res=>{
@@ -407,13 +438,16 @@
   }
 
   function hideTopUI(hide){
+    // 버튼 군
     docBtn.classList.toggle('hide', hide);
     mapBtn.classList.toggle('hide', hide);
     qs('.controls').classList.toggle('hide', hide);
     captureBtn.classList.toggle('hide', hide);
+    // 프레임 박스는 항상 표시(연출 요소)
     qs('.frameBox').classList.toggle('hide', false);
   }
 
+  // CAPTURE
   captureBtn.addEventListener('click', ()=>{
     try{
       const a=document.createElement('a');
@@ -422,8 +456,9 @@
     }catch(e){}
   }, {passive:true});
 
-  function openDoc(){docOverlay.style.display='block';}
-  function closeDoc(){docOverlay.style.display='none';}
+  // DOC
+  function openDoc(){ docOverlay.style.display='block'; }
+  function closeDoc(){ docOverlay.style.display='none'; showUI(); } // [UI RESTORE]
   docBtn.addEventListener('click', openDoc, {passive:true});
   btnExitDoc.addEventListener('click', closeDoc, {passive:true});
   (function buildDocGrid(){
@@ -435,11 +470,13 @@
     }
   })();
 
+  // MAP
   function openMap(){ mapOverlay.style.display='block'; }
-  function closeMap(){ mapOverlay.style.display='none'; }
+  function closeMap(){ mapOverlay.style.display='none'; showUI(); } // [UI RESTORE]
   mapBtn.addEventListener('click', openMap, {passive:true});
   btnExitMap.addEventListener('click', closeMap, {passive:true});
 
+  // 초기 상태
   overlay.style.display='flex';
 })();
 </script>
