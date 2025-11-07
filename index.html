@@ -27,19 +27,10 @@
     --safe-b: env(safe-area-inset-bottom, 0px);
     --safe-l: env(safe-area-inset-left, 0px);
     --safe-r: env(safe-area-inset-right, 0px);
-
-    /* Mustard palette */
-    --fg: #d9b84c;
-    --fg-90: rgba(217,184,76,.90);
-    --fg-85: rgba(217,184,76,.85);
-    --fg-70: rgba(217,184,76,.70);
-    --fg-60: rgba(217,184,76,.60);
-    --fg-50: rgba(217,184,76,.50);
-    --fg-28: rgba(217,184,76,.28);
   }
 
   html,body{margin:0;height:var(--appH);background:#000;overflow:hidden;touch-action:manipulation}
-  body{color:var(--fg);font-family:Impact,"Anton","Arial Black",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans KR",sans-serif;}
+  body{font-family:Impact,"Anton","Arial Black",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans KR",sans-serif;}
   .fade{opacity:0; transition:opacity 2000ms ease}
   .fade.show{opacity:1}
 
@@ -52,18 +43,13 @@
     top:calc(var(--frame) + var(--safe-t));
     right:calc(var(--frame) + var(--safe-r));
     bottom:calc(var(--frame) + var(--safe-b));
-    border:2px solid var(--fg-28); pointer-events:none; z-index:50;
+    border:2px solid rgba(255,255,255,.22); pointer-events:none; z-index:50;
   }
 
-  .uiBtn{
-    background:#000;color:var(--fg);
-    border:1px solid var(--fg-50);
-    font-size:var(--fs-strong);
-    padding:var(--pad-btn-y) var(--pad-btn-x);
-    font-family:"Courier New",ui-monospace,monospace;white-space:nowrap;cursor:pointer;user-select:none
-  }
+  .uiBtn{background:#000;color:#fff;border:1px solid #444;font-size:var(--fs-strong);
+    padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",ui-monospace,monospace;white-space:nowrap;cursor:pointer;user-select:none}
   .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
-  .uiBtn.flat{border:none;background:transparent;text-decoration:none;color:var(--fg)}
+  .uiBtn.flat{border:none;background:transparent;text-decoration:none}
   .uiBtn[disabled]{opacity:.35;pointer-events:none;filter:grayscale(1)}
   .hide{display:none !important;}
 
@@ -73,7 +59,7 @@
     bottom:calc(var(--frame) + var(--ui-gap) + var(--safe-b));
     z-index:100;display:flex;gap:6px;align-items:center; opacity:0; transition:opacity 2000ms ease;}
   .controls.show{opacity:1}
-  .readout{min-width:48px;text-align:center;opacity:.9;font-family:"Courier New",ui-monospace,monospace;font-size:var(--fs-small);color:var(--fg-90)}
+  .readout{min-width:48px;text-align:center;opacity:.9;font-family:"Courier New",ui-monospace,monospace;font-size:var(--fs-small);color:#ddd}
   .btn-capture{
     position:fixed;
     left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
@@ -82,7 +68,7 @@
   .btn-capture.show{opacity:1}
 
   /* 상단 버튼은 초반 숨김 */
-  #mapLauncher, #docLauncher, #audioToggle { display:none; color:var(--fg); border-color:var(--fg-50); }
+  #mapLauncher, #docLauncher, #audioToggle { display:none; }
 
   /* 8분 타이머 (우측 상단) */
   #runTimer{
@@ -92,51 +78,52 @@
     z-index:181;
     font-family:"Courier New",ui-monospace,monospace;
     font-size:var(--fs-strong);
-    color:var(--fg); opacity:.95;
+    color:#fff; opacity:.95;
     pointer-events:none; user-select:none;
     display:none;
   }
 
-  .credits{ font-family:"Courier New",ui-monospace,monospace; letter-spacing:.08em; color:var(--fg); }
+  .credits{ font-family:"Courier New",ui-monospace,monospace; letter-spacing:.08em; }
 
   /* 회전(가로 고정) 안내 */
   #rotateOverlay{
     position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;
-    background:#000;color:var(--fg);font-family:"Courier New",ui-monospace,monospace;text-align:center;padding:40px;
+    background:#000;color:#fff;font-family:"Courier New",ui-monospace,monospace;text-align:center;padding:40px;
   }
 
   /* 오버레이들 */
-  #overlay{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));color:var(--fg);background:rgba(0,0,0,.85)}
+  #overlay{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));color:#fff;background:rgba(0,0,0,.85)}
   #overlayContent{max-width:min(92vw, 72ch);font-family:"Courier New",ui-monospace,monospace;line-height:1.7;text-align:center}
 
-  #nameOverlay{position:fixed; inset:0; z-index:260; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.85); color:var(--fg);}
-  #nameCard{ width:min(92vw,600px); text-align:center; font-family:"Courier New",ui-monospace,monospace; color:var(--fg); }
-  #nameCard h2{ margin:0 0 12px 0; letter-spacing:.08em; font-size:clamp(16px,3.2vmin,24px); color:var(--fg); }
-  #nick{ width:100%; padding:12px 14px; background:#000; border:1px solid var(--fg-50); color:var(--fg); font-size:clamp(16px,3.2vmin,22px); outline:none; }
+  #nameOverlay{position:fixed; inset:0; z-index:260; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.85); color:#fff;}
+  #nameCard{ width:min(92vw,600px); text-align:center; font-family:"Courier New",ui-monospace,monospace; }
+  #nameCard h2{ margin:0 0 12px 0; letter-spacing:.08em; font-size:clamp(16px,3.2vmin,24px); }
+  #nick{ width:100%; padding:12px 14px; background:#000; border:1px solid #555; color:#fff; font-size:clamp(16px,3.2vmin,22px); outline:none; }
   #nameRow{ display:flex; gap:10px; margin-top:12px; justify-content:center; }
+  #nameRow .uiBtn{ padding:10px 14px; }
 
   #preset{position:fixed;inset:0;z-index:250;background:#000;display:none;cursor:pointer}
   #presetCanvas{position:absolute;left:0;top:0;width:100%;height:100%}
 
-  #overlayWelcome{position:fixed;inset:0;z-index:220;display:none;align-items:center;justify-content:center;color:var(--fg);background:rgba(0,0,0,.55);padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;}
+  #overlayWelcome{position:fixed;inset:0;z-index:220;display:none;align-items:center;justify-content:center;color:#fff;background:rgba(0,0,0,.55);padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;}
   #welcomeCard{ text-align:center; max-width:min(92vw, 900px); }
-  #welcomeCard .title{ color:var(--fg); font-size:clamp(32px, 12vmin, 120px); font-weight:900; letter-spacing:.04em; line-height:1.02; margin-bottom:16px; text-transform:uppercase; }
+  #welcomeCard .title{ font-size:clamp(32px, 12vmin, 120px); font-weight:900; letter-spacing:.04em; line-height:1.02; margin-bottom:16px; text-transform:uppercase; }
 
-  #introOverlay{position:fixed; inset:0; z-index:230; display:none; align-items:flex-start; justify-content:center; color:var(--fg); background:rgba(0,0,0,.35); padding:calc(24px + var(--safe-t)) calc(16px + var(--safe-r)) calc(20px + var(--safe-b)) calc(16px + var(--safe-l)); font-family:"Courier New",ui-monospace,monospace; overflow-y:auto; -webkit-overflow-scrolling:touch;}
+  #introOverlay{position:fixed; inset:0; z-index:230; display:none; align-items:flex-start; justify-content:center; color:#fff; background:rgba(0,0,0,.35); padding:calc(24px + var(--safe-t)) calc(16px + var(--safe-r)) calc(20px + var(--safe-b)) calc(16px + var(--safe-l)); font-family:"Courier New",ui-monospace,monospace; overflow-y:auto; -webkit-overflow-scrolling:touch;}
   #introBox{ width:min(92vw, 860px); margin:0 auto; }
-  #introBox h2{margin:.2em 0 .6em 0; font-size:clamp(18px, 3.6vmin, 26px); letter-spacing:.1em; text-align:center; color:var(--fg);}
-  #introBox p{font-size:var(--fs-body); line-height:1.85; text-align:center; text-shadow:0 1px 2px rgba(0,0,0,.6); color:var(--fg);}
+  #introBox h2{margin:.2em 0 .6em 0; font-size:clamp(18px, 3.6vmin, 26px); letter-spacing:.1em; text-align:center;}
+  #introBox p{font-size:var(--fs-body); line-height:1.85; text-align:center; text-shadow:0 1px 2px rgba(0,0,0,.6);}
   #introBox ol{padding-left:1.2em; margin:.4em 0 1.2em 0; text-align:left;}
-  #introBox li{font-size:var(--fs-body); line-height:1.85; text-shadow:0 1px 2px rgba(0,0,0,.6); color:var(--fg);}
-  #introCount{ text-align:center; font-size:var(--fs-strong); margin-top:12px; color:var(--fg); }
+  #introBox li{font-size:var(--fs-body); line-height:1.85; text-shadow:0 1px 2px rgba(0,0,0,.6);}
+  #introCount{ text-align:center; font-size:var(--fs-strong); margin-top:12px; }
 
-  #titleScreen{ position:fixed; inset:0; z-index:240; display:none; align-items:center; justify-content:center; background:#000; color:var(--fg); text-align:center; }
-  #titleText{font-weight:900; letter-spacing:.06em; line-height:1.05; font-size:clamp(24px, 10vmin, 96px); text-transform:uppercase; color:var(--fg);}
+  #titleScreen{ position:fixed; inset:0; z-index:240; display:none; align-items:center; justify-content:center; background:#000; color:#fff; text-align:center; }
+  #titleText{font-weight:900; letter-spacing:.06em; line-height:1.05; font-size:clamp(24px, 10vmin, 96px); text-transform:uppercase;}
 
   #firstSleep{ position:fixed; inset:0; z-index:235; display:none; align-items:center; justify-content:center; pointer-events:none; }
-  #firstSleepText{ color:var(--fg); font-weight:900; letter-spacing:.06em; font-size:clamp(28px, 11vmin, 110px); text-transform:uppercase; }
+  #firstSleepText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(28px, 11vmin, 110px); text-transform:uppercase; }
 
-  #docOverlay, #mapOverlay { display:none; color:var(--fg); }
+  #docOverlay, #mapOverlay { display:none; }
 </style>
 </head>
 <body>
@@ -329,13 +316,13 @@
   }
   function playClick(){ beep(880, .07, .06, 'square'); }
 
-  /* ===== Ambient ===== */
+  /* ===== Ambient with smooth fade-in to avoid pop ===== */
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, loops=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
     function makeBus(){
       ctx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
-      master = ctx.createGain(); master.gain.value = 0.0001;
+      master = ctx.createGain(); master.gain.value = 0.0001; /* 0에서 시작 */
       delay = ctx.createDelay(2.5); delay.delayTime.value = 0.35;
       fb = ctx.createGain(); fb.gain.value = 0.35; delay.connect(fb).connect(delay);
       hp = ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=150;
@@ -367,7 +354,7 @@
       const t=(ctx||audioCtx).currentTime;
       master.gain.cancelScheduledValues(t);
       master.gain.setValueAtTime(master.gain.value, t);
-      master.gain.exponentialRampToValueAtTime(target, t+fadeIn);
+      master.gain.exponentialRampToValueAtTime(target, t+fadeIn); /* 부드러운 페이드인 */
     }
     function stop(fade=2.0){
       if(!running||!master) return;
@@ -378,7 +365,7 @@
     return { start, stop, isRunning:()=>running };
   })();
 
-  /* Long Drone */
+  /* Long Drone for First Sleep flicker tail */
   const LongDrone = (() => {
     let o, g, lfo, running=false;
     async function start(){
@@ -403,10 +390,11 @@
     return { start, stop, isRunning:()=>running };
   })();
 
-  /* 낮은 “부웅” 시퀀스 */
+  /* 낮은 “부웅” 시퀀스 (삐룽 제거) */
   async function lowWoongSequence(){
     await ensureResumed();
     const base = audioCtx.currentTime;
+    // 간격을 둔 4회 + 약간 촘촘한 2회 + 마지막 길게
     const pattern = [
       {t:0.00, dur:0.35, f:120, g:0.28},
       {t:0.38, dur:0.35, f:115, g:0.30},
@@ -414,7 +402,7 @@
       {t:1.14, dur:0.35, f:108, g:0.34},
       {t:1.46, dur:0.30, f:105, g:0.34},
       {t:1.72, dur:0.30, f:102, g:0.36},
-      {t:2.00, dur:1.80, f:95,  g:0.42},
+      {t:2.00, dur:1.80, f:95,  g:0.42}, // 부우우우웅~
     ];
     for(const p of pattern){
       const o=audioCtx.createOscillator(), g=audioCtx.createGain();
@@ -428,7 +416,7 @@
     }
   }
 
-  /* Mic FX */
+  /* Mic FX (hard-pan + tilt tone), fade-in after silence */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, comp=null, micBus=null;
   function makeImpulse(ctx, seconds=5.0, decay=7.0){
     const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
@@ -482,14 +470,16 @@
   }
   function onTiltAudio(e){
     if(!audioCtx) return;
-    const gamma = clamp(e.gamma ?? 0, -60, 60);
-    const beta  = clamp(e.beta ?? 0, -60, 60);
+    const gamma = clamp(e.gamma ?? 0, -60, 60); // -좌 +우
+    const beta  = clamp(e.beta ?? 0, -60, 60);  // -뒤로 젖힘 +숙임
 
+    // 하드팬
     let panVal = 0;
     if(gamma > 5) panVal = +1;
     else if(gamma < -5) panVal = -1;
     if(panNode) panNode.pan.value = panVal;
 
+    // 톤/리버브
     const bassBoost = (beta>=0) ? map(beta, 0, 60, 0, 12) : map(beta, -60, 0, -3, 0);
     const trebleBoost = (beta<0) ? map(beta, -60, 0, 12, 0) : 0;
     if(lowshelf) lowshelf.gain.value = clamp(bassBoost, -6, 12);
@@ -530,6 +520,7 @@
     }catch(e){ console.warn('permission error:', e); }
     fadeHide(overlay, 2000);
 
+    // 닉네임 단계부터 앰비언트 시작(부드러운 페이드인)
     await ensureResumed();
     Ambient.start(1.4, 0.8);
     fadeShow(nameOverlay, 2000);
@@ -554,11 +545,11 @@
 
   /* Preset */
   let saverObjs = []; let saverMode = 'scatter'; let saverT0 = 0;
-  const MUSTARD = '#d9b84c';
   function showPreset(){
     preset.style.display='block'; preset.classList.add('show');
     fadeShow(preset, 2000);
     initSaver();
+    // 짧은 허밍
     try{
       const o = audioCtx.createOscillator(), g = audioCtx.createGain();
       o.type='sine'; o.frequency.setValueAtTime(110, audioCtx.currentTime);
@@ -626,7 +617,7 @@
       ctx.save();
       ctx.translate(o.x, o.y); ctx.scale(wob, 1/wob);
       ctx.font = `900 ${o.size}px Impact, Anton, "Arial Black", system-ui, sans-serif`;
-      ctx.fillStyle=MUSTARD;
+      ctx.fillStyle='#fff';
       ctx.fillText(o.ch, 0, 0);
       ctx.restore();
     }
@@ -638,7 +629,7 @@
     fadeShow(welcome, 2000);
   }, {passive:true});
 
-  /* INTRO */
+  /* INTRO: typing + countdown (always visible, 40s) */
   function captureIntroTexts(){
     const els = Array.from(document.querySelectorAll('#introBox h2, #introBox p, #introBox li'));
     els.forEach(el=>{ el.dataset.text = (el.textContent||'').trim(); el.textContent=''; });
@@ -663,7 +654,8 @@
     fadeShow(intro, 2000, 'flex');
     typeTickCount = 0;
 
-    let left = 40; introCount.style.color = getComputedStyle(document.documentElement).getPropertyValue('--fg'); introCount.textContent = `Coming in ${left}s`;
+    // 40초 카운트다운
+    let left = 40; introCount.textContent = `Coming in ${left}s`;
     const iv = setInterval(()=>{
       left = Math.max(0, left-1);
       introCount.textContent = `Coming in ${left}s`;
@@ -671,6 +663,7 @@
       if(left<=0){ clearInterval(iv); startTransition(); }
     },1000);
 
+    // 텍스트 타이핑 병행
     (async ()=>{
       const els = captureIntroTexts();
       for(const el of els){
@@ -679,7 +672,7 @@
       }
     })();
   }
-  document.getElementById('goIntro').addEventListener('click', ()=>{ ensureResumed().then(()=>{ fadeHide(welcome, 2000); showIntro(); }); }, {passive:true});
+  goIntroBtn.addEventListener('click', ()=>{ ensureResumed().then(()=>{ fadeHide(welcome, 2000); showIntro(); }); }, {passive:true});
 
   /* 8분 타이머 */
   let eightTimer = null, eightLeft = 8*60;
@@ -696,26 +689,24 @@
     },1000);
   }
 
-  /* Transition */
+  /* Transition: 낮은 부웅 시퀀스 → First Sleep → 전부 페이드아웃 → 잠깐 침묵 → Mic fade-in */
   async function startTransition(){
     fadeHide(intro, 2000);
 
     // GOOD NIGHT
     titleText.textContent='GOOD NIGHT';
     titleScreen.style.display='flex';
-    titleScreen.style.background='#000';
-    titleText.style.color=MUSTARD;
+    titleScreen.style.background='#000'; titleText.style.color='#fff';
 
+    // 낮은 부웅 시퀀스 & 교차 깜빡임
     await lowWoongSequence();
     const until = performance.now()+2200; let flag=false;
     while(performance.now()<until){
       flag=!flag;
       titleText.textContent = flag ? 'GOOD NIGHT' : 'THE FIRST SLEEP';
-      titleScreen.style.background='rgba(255,255,255,0.96)';
-      titleText.style.color='#000';           // 흰 배경에는 검정
+      titleScreen.style.background='rgba(255,255,255,0.96)'; titleText.style.color='#000';
       await sleep(90);
-      titleScreen.style.background='#000';
-      titleText.style.color=MUSTARD;          // 검은 배경에는 머스타드
+      titleScreen.style.background='#000'; titleText.style.color='#fff';
       await sleep(120);
     }
     titleScreen.style.display='none';
@@ -725,8 +716,10 @@
     firstSleep.style.opacity='1';
     await LongDrone.start();
 
+    // 8분 타이머 on
     startEightTimer();
 
+    // 잠깐 멈춘 뒤, 텍스트와 사운드 함께 페이드아웃
     await sleep(900);
     firstSleep.style.transition='opacity 6500ms ease';
     firstSleep.style.opacity='0';
@@ -736,9 +729,11 @@
     firstSleep.style.display='none';
     firstSleep.style.transition='';
 
+    // 짧은 침묵 후 마이크 FX 페이드인
     await sleep(400);
     await startMicFXFadeIn(3.0);
 
+    // UI & 캐릭터
     controls.classList.add('show');
     captureBtn.classList.add('show');
     beginCharacter();
@@ -787,7 +782,7 @@
     }
   });
 
-  /* Character (mustard path) */
+  /* Character: faster spiral with continuous, thinner solid path */
   let charActive = false;
   let charStartTime = 0;
   const CHAR_DURATION = 480000;
@@ -800,7 +795,7 @@
     ".XXXXXXXX...", "..XXXXXX....",".XX....XX...",".XX....XX...",
     ".XX....XX...", ".XX....XX...", "..XX..XX....","..XX..XX...."
   ];
-  const COLOR_FILL = '#ff8a3c'; const COLOR_STROKE = '#000'; const MUSTARD = '#d9b84c';
+  const COLOR_FILL = '#ff8a3c'; const COLOR_STROKE = '#000';
 
   function drawPixelHuman(ctx, cx, baselineY, name, W, hop=0){
     const cell = Math.max(2, Math.min(4, Math.floor(W * 0.0018)));
@@ -833,8 +828,7 @@
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
     ctx.fillText(name, cx, ny-1); ctx.fillText(name, cx, ny+1);
     ctx.fillText(name, cx-1, ny); ctx.fillText(name, cx+1, ny);
-    ctx.fillStyle = MUSTARD; // 이름 표기 머스타드
-    ctx.fillText(name, cx, ny);
+    ctx.fillStyle = '#fff'; ctx.fillText(name, cx, ny);
   }
 
   function spiralPos(t01){
@@ -858,8 +852,8 @@
   function drawPathSolid(ctx){
     if(PATH_POINTS.length<2) return;
     ctx.save();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = 'rgba(217,184,76,0.85)'; // 머스타드 실선
+    ctx.lineWidth = 1; /* 더 얇게 */
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
     ctx.beginPath();
     ctx.moveTo(PATH_POINTS[0].x, PATH_POINTS[0].y);
     for(let i=1;i<PATH_POINTS.length;i++){
@@ -872,7 +866,10 @@
     const now = performance.now();
     const t01 = Math.min(1, (now - charStartTime)/CHAR_DURATION);
     const pos = spiralPos(t01);
+
+    // 점프 모션
     const hop = Math.max(0, 10*Math.sin(t01* Math.PI*20));
+
     PATH_POINTS.push({x:pos.x, y:pos.y});
     drawPathSolid(vctx);
     drawPixelHuman(vctx, Math.round(pos.x), Math.round(pos.y), displayName, W, hop);
@@ -881,7 +878,7 @@
 
   function loopCam(){
     requestAnimationFrame(loopCam);
-    if(capturing) return;
+    if(capturing) return; // 캡처 중 렌더 정지: 보이는 화면 그대로 픽업
     if(!vctx || !pctx) return;
     const W=view.width/(window.devicePixelRatio||1), H=view.height/(window.devicePixelRatio||1);
     const PW=proc.width, PH=proc.height;
@@ -903,13 +900,14 @@
     if(charActive){ drawCharacter(W,H); }
   }
 
-  /* Capture */
+  /* Capture: 더 천천히, 더 촘촘하게 픽셀화 */
   let captureAnimating = false;
-  document.getElementById('captureBtn').addEventListener('click', ()=>{
+  captureBtn.addEventListener('click', ()=>{
     if(captureAnimating) return;
     playClick();
     captureAnimating = true;
 
+    // 루프 정지 후, 현재 #view 프레임을 CSS 픽셀 기준으로 복제
     capturing = true;
     const cssW = view.clientWidth, cssH = view.clientHeight;
     freezeLayer.width = cssW;
@@ -920,22 +918,25 @@
     freezeLayer.style.display='block';
     freezeLayer.style.opacity='1';
 
+    // 원본 유지 잠깐
     setTimeout(()=>{
       const W = cssW, H = cssH;
-      let px = 1.0;
-      const step = 1.015;
+      let px = 1.0;           // 아주 촘촘하게 시작
+      const step = 1.015;     // 매우 느리게 증가
       const off = document.createElement('canvas');
       const oc = off.getContext('2d');
       const fx2 = freezeLayer.getContext('2d');
 
+      const startT = performance.now();
       function anim(){
+        // 충분히 오래 진행 (느린 변형 체감)
         if(px > 420){
           freezeLayer.style.transition='opacity 2000ms ease';
           freezeLayer.style.opacity='0';
           setTimeout(()=>{
             freezeLayer.style.display='none';
             freezeLayer.style.transition='';
-            capturing = false;
+            capturing = false; // 루프 재개
             captureAnimating = false;
           }, 2020);
           return;
@@ -944,11 +945,14 @@
         const h = Math.max(1, Math.floor(H/px));
         off.width = w; off.height = h;
         oc.imageSmoothingEnabled=false;
+        // 저해상도로 축소
         oc.drawImage(freezeLayer,0,0,W,H,0,0,w,h);
+        // 다시 확대(픽셀이 한 알 한 알 남는 느낌)
         fx2.clearRect(0,0,W,H);
         fx2.imageSmoothingEnabled=false;
         fx2.globalAlpha = 1.0;
         fx2.drawImage(off,0,0,w,h,0,0,W,H);
+        // 원본을 아주 약하게 섞어 디테일이 남다 사라지는 느낌
         fx2.globalAlpha = 0.10;
         fx2.drawImage(view,0,0,view.width,view.height,0,0,W,H);
         fx2.globalAlpha = 1.0;
@@ -960,7 +964,7 @@
     }, 120);
   });
 
-  /* Flow */
+  /* Permissions → Name → Preset → Welcome → Intro */
   function showIntroCountdownDirect(){ showIntro(); }
   window.addEventListener('load', ()=>{ /* wait for user */ });
 
