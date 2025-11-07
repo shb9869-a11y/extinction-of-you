@@ -70,7 +70,6 @@
   /* 초기 깜빡임 방지: 상단 버튼 완전 숨김 */
   #mapLauncher, #docLauncher, #audioToggle { display:none; }
 
-  /* 타이머 */
   #runTimer{
     position:fixed;
     right:calc(var(--frame) + var(--ui-gap) + var(--safe-r) + 62px);
@@ -85,15 +84,10 @@
 
   .credits{ font-family:"Courier New",ui-monospace,monospace; letter-spacing:.08em; }
 
-  /* 권한 게이트 */
-  #overlay{
-    position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;
-    padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));
-    color:#fff;background:rgba(0,0,0,.85)
-  }
+  /* 오버레이들 */
+  #overlay{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));color:#fff;background:rgba(0,0,0,.85)}
   #overlayContent{max-width:min(92vw, 72ch);font-family:"Courier New",ui-monospace,monospace;line-height:1.7;text-align:center}
 
-  /* 이름 입력 */
   #nameOverlay{position:fixed; inset:0; z-index:260; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.85); color:#fff;}
   #nameCard{ width:min(92vw,600px); text-align:center; font-family:"Courier New",ui-monospace,monospace; }
   #nameCard h2{ margin:0 0 12px 0; letter-spacing:.08em; font-size:clamp(16px,3.2vmin,24px); }
@@ -101,26 +95,14 @@
   #nameRow{ display:flex; gap:10px; margin-top:12px; justify-content:center; }
   #nameRow .uiBtn{ padding:10px 14px; }
 
-  /* 프리셋 */
   #preset{position:fixed;inset:0;z-index:250;background:#000;display:none;cursor:pointer}
   #presetCanvas{position:absolute;left:0;top:0;width:100%;height:100%}
 
-  /* WELCOME */
-  #overlayWelcome{
-    position:fixed;inset:0;z-index:220;display:none;align-items:center;justify-content:center;color:#fff;background:rgba(0,0,0,.55);
-    padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;}
+  #overlayWelcome{position:fixed;inset:0;z-index:220;display:none;align-items:center;justify-content:center;color:#fff;background:rgba(0,0,0,.55);padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;}
   #welcomeCard{ text-align:center; max-width:min(92vw, 900px); }
   #welcomeCard .title{ font-size:clamp(32px, 12vmin, 120px); font-weight:900; letter-spacing:.04em; line-height:1.02; margin-bottom:16px; text-transform:uppercase; }
 
-  /* INTRO */
-  #introOverlay{
-    position:fixed; inset:0; z-index:230; display:none;
-    align-items:flex-start; justify-content:center;
-    color:#fff; background:rgba(0,0,0,.35);
-    padding:calc(24px + var(--safe-t)) calc(16px + var(--safe-r)) calc(20px + var(--safe-b)) calc(16px + var(--safe-l));
-    font-family:"Courier New",ui-monospace,monospace;
-    overflow-y:auto; -webkit-overflow-scrolling:touch;
-  }
+  #introOverlay{position:fixed; inset:0; z-index:230; display:none; align-items:flex-start; justify-content:center; color:#fff; background:rgba(0,0,0,.35); padding:calc(24px + var(--safe-t)) calc(16px + var(--safe-r)) calc(20px + var(--safe-b)) calc(16px + var(--safe-l)); font-family:"Courier New",ui-monospace,monospace; overflow-y:auto; -webkit-overflow-scrolling:touch;}
   #introBox{ width:min(92vw, 860px); margin:0 auto; }
   #introBox h2{margin:.2em 0 .6em 0; font-size:clamp(18px, 3.6vmin, 26px); letter-spacing:.1em; text-align:center;}
   #introBox p{font-size:var(--fs-body); line-height:1.85; text-align:center; text-shadow:0 1px 2px rgba(0,0,0,.6);}
@@ -128,15 +110,12 @@
   #introBox li{font-size:var(--fs-body); line-height:1.85; text-shadow:0 1px 2px rgba(0,0,0,.6);}
   #introCount{ text-align:center; font-size:var(--fs-strong); margin-top:12px; }
 
-  /* 전환 타이틀 */
   #titleScreen{ position:fixed; inset:0; z-index:240; display:none; align-items:center; justify-content:center; background:#000; color:#fff; text-align:center; }
   #titleText{font-weight:900; letter-spacing:.06em; line-height:1.05; font-size:clamp(24px, 10vmin, 96px); text-transform:uppercase;}
 
-  /* FIRST SLEEP */
   #firstSleep{ position:fixed; inset:0; z-index:235; display:none; align-items:center; justify-content:center; pointer-events:none; }
   #firstSleepText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(28px, 11vmin, 110px); text-transform:uppercase; }
 
-  /* DOC/MAP 완전 숨김 */
   #docOverlay, #mapOverlay { display:none; }
 </style>
 </head>
@@ -257,7 +236,6 @@
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const map=(v,inMin,inMax,outMin,outMax)=>outMin+(outMax-outMin)*((v-inMin)/(inMax-inMin));
 
-  // App height
   function setAppH(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
   setAppH(); addEventListener('resize', setAppH, {passive:true});
   if (window.visualViewport){ visualViewport.addEventListener('resize', ()=>setTimeout(setAppH,50)); }
@@ -377,30 +355,51 @@
     return { start, stop, isRunning:()=>running };
   })();
 
-  // ===== Drone =====
-  const Drone = (() => {
-    let o, g, lfo, run=false;
+  // ===== Long Drone (퍼스트 슬립 이후, 길게) =====
+  const LongDrone = (() => {
+    let o, g, lfo, running=false;
     async function start(){
       await ensureResumed();
-      if(run) return;
+      if(running) return;
       o = audioCtx.createOscillator(); g = audioCtx.createGain(); lfo = audioCtx.createOscillator();
       o.type='sawtooth'; o.frequency.value=70;
       g.gain.value=0.0001;
-      lfo.type='sine'; lfo.frequency.value=1.2;
-      const lfoG = audioCtx.createGain(); lfoG.gain.value=0.12; lfo.connect(lfoG); lfoG.connect(g.gain);
+      lfo.type='sine'; lfo.frequency.value=0.7;
+      const lfoG = audioCtx.createGain(); lfoG.gain.value=0.10; lfo.connect(lfoG); lfoG.connect(g.gain);
       o.connect(g).connect(audioCtx.destination);
       o.start(); lfo.start();
-      g.gain.exponentialRampToValueAtTime(0.18, audioCtx.currentTime + 0.6);
-      run=true;
+      // 느린 어택
+      g.gain.exponentialRampToValueAtTime(0.22, audioCtx.currentTime + 1.0);
+      running=true;
     }
-    function stop(fade=0.6){
-      if(!run) return;
+    function stop(fade=2.5){
+      if(!running) return;
       const t=audioCtx.currentTime;
       g.gain.linearRampToValueAtTime(0.0001, t+fade);
-      setTimeout(()=>{ try{o.stop();lfo.stop();}catch{} run=false; }, fade*1000+120);
+      setTimeout(()=>{ try{o.stop();lfo.stop();}catch{} running=false; }, fade*1000+120);
     }
-    return { start, stop, isRunning:()=>run };
+    return { start, stop, isRunning:()=>running };
   })();
+
+  // ===== Flicker Woongs (우웅×5 + 우우우우—웅) =====
+  async function playFlickerWoongs(){
+    await ensureResumed();
+    const base = audioCtx.currentTime;
+    const mk = (t, dur, f=160, gMax=0.18) => {
+      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+      o.type='triangle'; o.frequency.value=f; g.gain.value=0.0001;
+      o.connect(g).connect(audioCtx.destination);
+      o.start(base + t);
+      // 짧은 어택/릴리즈
+      g.gain.linearRampToValueAtTime(gMax, base + t + 0.06);
+      g.gain.exponentialRampToValueAtTime(0.0001, base + t + dur);
+      o.stop(base + t + dur + 0.05);
+    };
+    // 5개의 짧은 우웅(각 ~0.22s), 0.24s 간격
+    for(let i=0;i<5;i++) mk(0.24*i, 0.22, 160, 0.18);
+    // 마지막 길게 (1.2s, 저음 조금 더)
+    mk(1.2, 1.2, 140, 0.24);
+  }
 
   // ===== Mic FX =====
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, comp=null, micBus=null;
@@ -434,7 +433,7 @@
       revConvolver = audioCtx.createConvolver(); revConvolver.buffer = makeImpulse(audioCtx, 4.5, 6.0);
 
       dryGain = audioCtx.createGain(); dryGain.gain.value=0.8;
-      wetGain = audioCtx.createGain(); wetGain.gain.value=0.5;
+      wetGain = audioCtx.createGain(); wetGain.gain.value=0.5; // 리버브를 기존 대비 더 크게
 
       micBus = audioCtx.createGain(); micBus.gain.value=0.95;
 
@@ -449,12 +448,9 @@
 
       window.addEventListener('deviceorientation', onTiltAudio, {passive:true});
 
-      // 윙—윙— 루프
+      // 윙—윙— 루프(지루함 방지)
       if(wingTimer) clearInterval(wingTimer);
       wingTimer = setInterval(()=>wingWhirr(), 3500 + Math.random()*2500);
-
-      // 전환 드론 정지
-      Drone.stop(0.4);
     }catch(e){ console.warn('startMicFX error', e); }
   }
   function wingWhirr(){
@@ -490,8 +486,9 @@
     const cutoff = (beta>=0) ? map(beta, 0, 60, 2400, 700) : map(beta, -60, 0, 6500, 2500);
     if(lpf) lpf.frequency.value = clamp(cutoff, 400, 8000);
 
-    const wet = (beta>=0) ? map(beta, 0, 60, 0.5, 0.35) : map(beta, -60, 0, 0.95, 0.5);
-    if(wetGain) wetGain.gain.value = clamp(wet, 0.2, 1.0);
+    // 리버브(요청 대비 2배쯤 더)
+    const wet = (beta>=0) ? map(beta, 0, 60, 0.6, 0.4) : map(beta, -60, 0, 1.0, 0.6);
+    if(wetGain) wetGain.gain.value = clamp(wet, 0.25, 1.0);
     if(dryGain) dryGain.gain.value = clamp(1.0 - wetGain.gain.value*0.55, 0.25, 1.0);
   }
 
@@ -573,11 +570,8 @@
   async function acceptName(){
     const v = (nickInput.value||'').trim();
     if(v.length>0){ displayName = v; }
-
-    // 혹시 몰라 닉네임 단계에서도 재확인
-    await ensureResumed(); if(!Ambient.isRunning) {} // noop
+    await ensureResumed();
     Ambient.start();
-
     fadeHide(nameOverlay, 2000);
     showPreset();
   }
@@ -652,7 +646,7 @@
       }
       o.x += o.vx; o.y += o.vy;
       if(o.x<0||o.x>w) o.vx*=-1;
-      if(o.y<0||o>h) o.vy*=-1;
+      if(o.y<0||o.y>h) o.vy*=-1;
 
       const wob = Math.sin(t*2 + o.phase)*0.12 + 1;
       ctx.save();
@@ -675,7 +669,7 @@
     ensureResumed().then(()=>{ playClick(); fadeHide(welcome, 2000); showIntro(); });
   }, {passive:true});
 
-  // 인트로 타자
+  // 인트로
   function captureIntroTexts(){
     const els = Array.from(document.querySelectorAll('#introBox h2, #introBox p, #introBox li'));
     els.forEach(el=>{ el.dataset.text = (el.textContent||'').trim(); el.textContent=''; });
@@ -696,17 +690,14 @@
       await typeElement(el, el.dataset.text||'', 40);
       await sleep(180);
     }
-    return true; // ← 완료 신호
+    return true;
   }
-
-  // 카운트다운 ‘띡’
   function countdownTick(n){
     const high = n<=3;
     const freq = high ? 1600 : 1100;
     const gain = high ? 0.16 : 0.12;
     beep(freq, 0.06, gain, 'square');
   }
-
   function showIntro(){
     fadeShow(intro, 2000, 'flex');
     typeTickCount = 0;
@@ -724,19 +715,21 @@
     })();
   }
 
-  // 전환: 깜빡임 → 최종 THE FIRST SLEEP 정지(1.2s) → 드론+스웰 → Mic FX → 6s 페이드아웃 + 앰비언트 동시 페이드
+  // 전환
   async function startTransition(){
     fadeHide(intro, 2000);
 
-    // GOOD NIGHT (2s)
+    // GOOD NIGHT
     titleText.textContent='GOOD NIGHT';
     titleScreen.style.display='flex';
     titleScreen.style.background='#000'; titleText.style.color='#fff';
+    // 시작 스웰
     swell(0.26, 190);
     await sleep(2000);
 
-    // 깜빡임(2s)
-    const until = performance.now()+2000; let flag=false;
+    // 플리커 + 우웅 시퀀스(2.4s)
+    playFlickerWoongs();
+    const until = performance.now()+2400; let flag=false;
     while(performance.now()<until){
       flag=!flag;
       titleText.textContent = flag ? 'GOOD NIGHT' : 'THE FIRST SLEEP';
@@ -748,27 +741,28 @@
     }
     titleScreen.style.display='none';
 
-    // THE FIRST SLEEP 최종 정지(1.2s) → 드론 시작 → Mic FX 진입 → 느린 페이드(6s)
-    firstSleep.style.display='flex';
-    firstSleep.style.opacity='1';
-
-    // 멈춤
-    await sleep(1200);
-
-    // 부웅(드론) + 스웰
-    Drone.start(); swell(0.22, 180);
-
-    // Mic FX 시작 (시작되면 드론은 내부에서 정지됨)
+    // === 플리커가 사라진 직후 → 마이크 즉시 ON ===
     await startMicFX();
 
-    // 앰비언트 & 텍스트 동시 느린 페이드
-    await sleep(400); // 약간 겹치게
+    // THE FIRST SLEEP 표시 + 길게 우우웅(롱 드론)
+    firstSleep.style.display='flex';
+    firstSleep.style.opacity='1';
+    await LongDrone.start(); // 어택 느리게 올라옴
+
+    // 잠깐 정지 느낌(1.2s)
+    await sleep(1200);
+
+    // 앰비언트/텍스트 6s 페이드 아웃
+    await sleep(300); // 아주 살짝 겹침
     firstSleep.style.transition='opacity 6000ms ease';
     Ambient.stop(6.0);
     firstSleep.style.opacity='0';
     await sleep(6200);
     firstSleep.style.display='none';
     firstSleep.style.transition='';
+
+    // 롱 드론은 더 길게 남겼다가 12초 후 서서히 사라짐
+    setTimeout(()=>{ LongDrone.stop(3.5); }, 12000);
 
     // UI 인
     controls.classList.add('show');
@@ -799,7 +793,6 @@
       wireButtonClicks();
     }catch(e){ console.warn('startCameraFresh error:', e); }
   }
-
   function resizeCam(){
     const dpr = window.devicePixelRatio||1;
     const w = window.innerWidth, h = window.innerHeight;
@@ -808,7 +801,6 @@
     if(proc){ proc.width=Math.floor(w*scale); proc.height=Math.floor(h*scale); }
   }
   addEventListener('resize', ()=>setTimeout(resizeCam,50), {passive:true});
-
   document.addEventListener('visibilitychange', async ()=>{
     if(document.visibilityState==='visible' && camVideo){
       try{
