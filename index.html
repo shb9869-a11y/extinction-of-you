@@ -173,7 +173,7 @@
     <canvas id="presetCanvas"></canvas>
   </div>
 
-  <!-- 4) WELCOME (고정 스타일) -->
+  <!-- 4) WELCOME -->
   <div id="overlayWelcome">
     <div id="welcomeCard">
       <div style="letter-spacing:.1em;margin-bottom:12px;">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
@@ -324,7 +324,6 @@
       const tmp = await navigator.mediaDevices.getUserMedia({
         video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}, audio:false
       });
-      // 권한 OK 확보 후 즉시 정리
       tmp.getTracks().forEach(t=>t.stop());
       camPermGranted = true;
     }catch(e){
@@ -394,7 +393,7 @@
   addEventListener('resize', ()=>{ if(preset.style.display==='block') drawPreset(); }, {passive:true});
   preset.addEventListener('click', async ()=>{
     preset.style.display='none';
-    await startCameraFresh();   // ← 실제 스트림 시작을 여기서
+    await startCameraFresh();
     showWelcome();
   }, {passive:true});
 
@@ -439,7 +438,6 @@
   // Camera + render
   async function startCameraFresh(){
     try{
-      // 권한이 없으면 여기서 다시 요청(일부 브라우저에서 필요)
       if(!camPermGranted){
         await navigator.mediaDevices.getUserMedia({video:true, audio:false}).then(s=>{ s.getTracks().forEach(t=>t.stop()); camPermGranted=true; });
       }
@@ -453,8 +451,7 @@
         camVideo.autoplay = true; camVideo.playsInline = true; camVideo.muted = true;
       }
       camVideo.srcObject = camStream;
-      // iOS는 명시적 play 필요
-      await camVideo.play().catch(()=>{ /* 일부 기기에서 무음이라 OK */ });
+      await camVideo.play().catch(()=>{});
 
       if(!vctx){
         vctx = view.getContext('2d',{alpha:false});
@@ -480,12 +477,10 @@
   }
   addEventListener('resize', ()=>setTimeout(resizeCam,50), {passive:true});
 
-  // 페이지 가시성 변화 시 재생 재시도
   document.addEventListener('visibilitychange', async ()=>{
     if(document.visibilityState==='visible' && camVideo){
       try{
         if(camVideo.paused){ await camVideo.play(); }
-        // 스트림이 끊겼으면 재시작
         if(!camStream || camStream.getVideoTracks().every(t=>t.readyState!=='live')){
           await startCameraFresh();
         }
@@ -511,6 +506,7 @@
         pctx.putImageData(frame,0,0);
       }
     }
+    vctx.imageSmoothingEnabled = false; // 픽셀 보정
     vctx.drawImage(proc,0,0,W,H);
     if(charActive){ drawCharacter(W,H); }
   }
@@ -563,106 +559,85 @@
     return { x: seg.a.x + (seg.b.x - seg.a.x)*lt, y: seg.a.y + (seg.b.y - seg.a.y)*lt, t };
   }
 
-  // --- 사람 실루엣 + 이름(아래) ---
+  // ===== 픽셀 사람 스프라이트 =====
+  // 간단한 10x16 모노크롬 스프라이트 (# = 픽셀 on, . = off)
+  const PIXEL_SPRITE = [
+    "....XX....",
+    "...XXXX...",
+    "..XXXXXX..",
+    "..XX..XX..",
+    "..XXXXXX..",
+    "...XXXX...",
+    ".XXXXXXX..",
+    ".XXXXXXX..",
+    ".XXXXXXX..",
+    "..XXXXXX..",
+    "...XXXX...",
+    "..XX..XX..",
+    "..XX..XX..",
+    "..XX..XX..",
+    "..XX..XX..",
+    "..XX..XX.."
+  ];
+
+  function drawPixelHuman(ctx, cx, baselineY, name, W){
+    // 셀 크기 (화면 크기에 비례하되 정수 픽셀)
+    const cell = Math.max(2, Math.min(6, Math.floor(W * 0.004)));
+    const cols = PIXEL_SPRITE[0].length;
+    const rows = PIXEL_SPRITE.length;
+    const width = cols * cell;
+    const height = rows * cell;
+
+    // 스프라이트 왼쪽 상단 좌표 (가운데 정렬, 발 밑 맞춤)
+    const x0 = Math.round(cx - width/2);
+    const y0 = Math.round(baselineY - height);
+
+    // 그림자(살짝 아래/오른쪽으로 한 칸)
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    for(let y=0; y<rows; y++){
+      const row = PIXEL_SPRITE[y];
+      for(let x=0; x<cols; x++){
+        if(row[x]==='#'){
+          ctx.fillRect(x0 + (x+1)*cell, y0 + (y+1)*cell, cell, cell);
+        }
+      }
+    }
+
+    // 본체
+    ctx.fillStyle = '#fff';
+    for(let y=0; y<rows; y++){
+      const row = PIXEL_SPRITE[y];
+      for(let x=0; x<cols; x++){
+        if(row[x]==='#'){
+          ctx.fillRect(x0 + x*cell, y0 + y*cell, cell, cell);
+        }
+      }
+    }
+
+    // 이름 (발 아래)
+    ctx.font = `700 ${Math.max(12, Math.min(24, Math.floor(W*0.022)))}px "Courier New", ui-monospace, monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const ny = Math.round(baselineY + Math.max(4, cell));
+    // 아웃라인
+    ctx.fillStyle = 'rgba(0,0,0,0.65)';
+    ctx.fillText(name, cx, ny-1);
+    ctx.fillText(name, cx, ny+1);
+    ctx.fillText(name, cx-1, ny);
+    ctx.fillText(name, cx+1, ny);
+    // 본문
+    ctx.fillStyle = '#fff';
+    ctx.fillText(name, cx, ny);
+  }
+
   function drawCharacter(W,H){
     const now = performance.now();
     const p = getCharPos(now);
     if(!p){ return; }
     const ctx = vctx;
-
-    const s = Math.max(18, Math.min(42, Math.min(W,H)*0.035));
-    const headR = s*0.28;
-    const bodyH = s*0.95;
-    const shoulderW = s*0.55;
-    const hipW = s*0.40;
-
-    const cx = p.x;
-    const cy = p.y - s*0.15;
-
-    ctx.save();
-    ctx.lineJoin='round'; ctx.lineCap='round';
-
-    ctx.shadowColor='rgba(0,0,0,0.6)';
-    ctx.shadowBlur=8;
-
-    // 몸통
-    ctx.beginPath();
-    roundedTrapezoid(ctx,
-      cx - shoulderW/2, cy - bodyH*0.35,
-      cx + shoulderW/2, cy - bodyH*0.35,
-      cx - hipW/2,      cy + bodyH*0.15,
-      cx + hipW/2,      cy + bodyH*0.15,
-      Math.min(12, s*0.25)
-    );
-    ctx.fillStyle='rgba(255,255,255,0.9)';
-    ctx.fill();
-
-    // 머리
-    ctx.beginPath();
-    ctx.arc(cx, cy - bodyH*0.55, headR, 0, Math.PI*2);
-    ctx.fillStyle='rgba(255,255,255,0.95)';
-    ctx.fill();
-
-    // 팔
-    ctx.beginPath();
-    ctx.moveTo(cx - shoulderW*0.52, cy - bodyH*0.25);
-    ctx.lineTo(cx - shoulderW*0.15, cy + bodyH*0.15);
-    ctx.moveTo(cx + shoulderW*0.52, cy - bodyH*0.25);
-    ctx.lineTo(cx + shoulderW*0.15, cy + bodyH*0.15);
-    ctx.lineWidth = Math.max(2, s*0.08);
-    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
-    ctx.stroke();
-
-    // 다리
-    ctx.beginPath();
-    ctx.moveTo(cx - hipW*0.25, cy + bodyH*0.15);
-    ctx.lineTo(cx - hipW*0.25, cy + bodyH*0.62);
-    ctx.moveTo(cx + hipW*0.25, cy + bodyH*0.15);
-    ctx.lineTo(cx + hipW*0.25, cy + bodyH*0.62);
-    ctx.lineWidth = Math.max(2, s*0.09);
-    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
-    ctx.stroke();
-
-    // 이름 라벨(아래)
-    ctx.shadowBlur=0;
-    ctx.font = `700 ${Math.max(12, Math.min(26, W*0.022))}px "Courier New", ui-monospace, monospace`;
-    ctx.textAlign='center'; ctx.textBaseline='top';
-    const labelY = cy + bodyH*0.70;
-    drawTextWithOutline(ctx, displayName, cx, labelY, '#fff', 'rgba(0,0,0,0.65)');
-
-    ctx.restore();
-
+    // p.y는 경로 좌표(프레임 안) — 여기를 발 기준으로 사용
+    drawPixelHuman(ctx, Math.round(p.x), Math.round(p.y), displayName, W);
     if(now - charStartTime >= CHAR_DURATION){ charActive=false; }
-  }
-
-  function drawTextWithOutline(ctx, text, x, y, fill, outline){
-    ctx.fillStyle = outline;
-    ctx.fillText(text, x, y-1);
-    ctx.fillText(text, x, y+1);
-    ctx.fillText(text, x-1, y);
-    ctx.fillText(text, x+1, y);
-    ctx.fillStyle = fill;
-    ctx.fillText(text, x, y);
-  }
-
-  function roundedTrapezoid(ctx, x1,y1, x2,y2, x3,y3, x4,y4, r){
-    const pts = [{x:x1,y:y1},{x:x2,y:y2},{x:x4,y:y4},{x:x3,y:y3}];
-    ctx.beginPath();
-    for(let i=0;i<pts.length;i++){
-      const p0 = pts[(i-1+pts.length)%pts.length];
-      const p1 = pts[i];
-      const p2 = pts[(i+1)%pts.length];
-      const v01x = p1.x - p0.x, v01y = p1.y - p0.y;
-      const v12x = p2.x - p1.x, v12y = p2.y - p1.y;
-      const len01 = Math.hypot(v01x, v01y) || 1;
-      const len12 = Math.hypot(v12x, v12y) || 1;
-      const rUse = Math.min(r, len01*0.5, len12*0.5);
-      const pA = { x: p1.x - v01x/len01 * rUse, y: p1.y - v01y/len01 * rUse };
-      const pB = { x: p1.x + v12x/len12 * rUse, y: p1.y + v12y/len12 * rUse };
-      if(i===0){ ctx.moveTo(pA.x, pA.y); } else { ctx.lineTo(pA.x, pA.y); }
-      ctx.quadraticCurveTo(p1.x, p1.y, pB.x, pB.y);
-    }
-    ctx.closePath();
   }
 
   // Capture
