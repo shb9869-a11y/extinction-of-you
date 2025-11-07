@@ -69,6 +69,12 @@
     position:fixed; left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
     top:calc(var(--frame) + var(--ui-gap) + var(--safe-t)); z-index:180;}
 
+  /* 처음엔 상단 UI를 전부 숨김 */
+  body.boot #docLauncher,
+  body.boot #mapLauncher,
+  body.boot .controls,
+  body.boot #captureBtn{ display:none !important; }
+
   /* 타이머 (MAP 옆) */
   #runTimer{
     position:fixed;
@@ -78,9 +84,7 @@
     font-family:"Courier New",ui-monospace,monospace;
     font-size:var(--fs-strong);
     color:#fff; opacity:.9;
-    pointer-events:none;
-    user-select:none;
-    display:none;
+    pointer-events:none; user-select:none; display:none;
   }
 
   .credits{
@@ -129,8 +133,7 @@
     color:#fff; background:rgba(0,0,0,.85);
     padding:calc(24px + var(--safe-t)) calc(16px + var(--safe-r)) calc(20px + var(--safe-b)) calc(16px + var(--safe-l));
     font-family:"Courier New",ui-monospace,monospace;
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
   }
   #introBox{ width:min(92vw, 860px); margin:0 auto; }
   #introBox h2{margin:.2em 0 .6em 0; font-size:clamp(18px, 3.6vmin, 26px); letter-spacing:.1em; text-align:center;}
@@ -163,7 +166,7 @@
   }
 </style>
 </head>
-<body>
+<body class="boot">
   <canvas id="view"></canvas>
   <div class="frameBox" aria-hidden="true"></div>
 
@@ -216,11 +219,11 @@
 
   <!-- INTRODUCTION -->
   <div id="introOverlay"><div id="introBox">
-    <h2 class="typer" data-text="INTRODUCTION">INTRODUCTION</h2>
+    <h2>INTRODUCTION</h2>
 
-    <p class="typer" data-text="지금 이 화면을 보고 있는 당신,"></p>
-    <p class="typer" data-text="주변의 소리에 천천히 귀를 기울이며 공간을 거닐기 시작합니다."></p>
-    <p class="typer" data-text="지금부터 당신은 약 30분 간, 짧은 단잠에 들게 됩니다."></p>
+    <p>지금 이 화면을 보고 있는 당신,</p>
+    <p>주변의 소리에 천천히 귀를 기울이며 공간을 거닐기 시작합니다.</p>
+    <p>지금부터 당신은 약 30분 간, 짧은 단잠에 들게 됩니다.</p>
 
     <ol>
       <li>당신이 거닐고 있는 이곳의 세계관 설명입니다.</li>
@@ -232,9 +235,9 @@
       <li>네, 그렇습니다. 이곳은 바로, 그 ‘너’가 사라져버린, ‘너’를 제거해버린, 누군가의 내면 세계입니다.</li>
     </ol>
 
-    <p class="typer" data-text="당신의 의식이 서서히 희미해져가는 지금, 두 번의 심호흡을 크게 한 후,"></p>
-    <p class="typer" data-text="이 내면의 미로를 거닐며, 천천히 눈을 감고,"></p>
-    <p class="typer" data-text="이 세상에서 사라져버린 ‘너’의 이야기에 귀를 기울입니다."></p>
+    <p>당신의 의식이 서서히 희미해져가는 지금, 두 번의 심호흡을 크게 한 후,</p>
+    <p>이 내면의 미로를 거닐며, 천천히 눈을 감고,</p>
+    <p>이 세상에서 사라져버린 ‘너’의 이야기에 귀를 기울입니다.</p>
 
     <div class="count">It will come in <span id="countNum">30</span> seconds.</div>
     <div style="height:12vh"></div>
@@ -243,8 +246,8 @@
   <!-- TITLE -->
   <div id="titleScreen"><div id="titleText"></div></div>
 
-  <!-- DOC -->
-  <div id="docOverlay">
+  <!-- DOC (기본 숨김 안전장치) -->
+  <div id="docOverlay" style="display:none">
     <div id="docUI">
       <div id="docHeader">
         <div class="readout">DOCUMENTS</div>
@@ -258,8 +261,8 @@
     </div>
   </div>
 
-  <!-- MAP -->
-  <div id="mapOverlay">
+  <!-- MAP (기본 숨김 안전장치) -->
+  <div id="mapOverlay" style="display:none">
     <div id="mapUI">
       <h3>MAP</h3>
       <p style="opacity:.85">지금은 준비 중입니다. (게임 모듈 비활성화)</p>
@@ -339,9 +342,7 @@
       ensureAudio();
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
-      o.type = 'square';
-      o.frequency.value = 880;
-      g.gain.value = 0.04;
+      o.type = 'square'; o.frequency.value = 880; g.gain.value = 0.04;
       o.connect(g); g.connect(audioCtx.destination);
       o.start();
       g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.06);
@@ -354,18 +355,15 @@
     });
   }
 
-  // 타자 사운드(짧은 '틱'), 과도한 호출 방지 위해 2글자마다 재생
+  // 타자 사운드(과다 방지)
   let typeTickCount = 0;
   function typeTick(){
     try{
       ensureAudio();
-      typeTickCount++;
-      if(typeTickCount % 2 !== 0) return;
+      typeTickCount++; if(typeTickCount % 2) return;
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
-      o.type = 'square';
-      o.frequency.value = 2200;
-      g.gain.value = 0.02;
+      o.type = 'square'; o.frequency.value = 2200; g.gain.value = 0.02;
       o.connect(g); g.connect(audioCtx.destination);
       o.start();
       g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.035);
@@ -379,6 +377,11 @@
     mapBtn.classList.toggle('hide', hide);
     qs('.controls').classList.toggle('hide', hide);
     captureBtn.classList.toggle('hide', hide);
+  }
+
+  function showTopUI(){ 
+    document.body.classList.remove('boot'); 
+    hideTopUI(false);
   }
 
   function updateZoomLabel(){ zoomVal.textContent = ZOOM.toFixed(1)+'×'; }
@@ -478,9 +481,9 @@
     showIntro();
   }, {passive:true});
 
-  // 타자 효과: .typer 요소를 순차적으로 출력
+  // 타자 효과 도구
   function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
-  async function typeElement(el, text, speed=22){
+  async function typeElement(el, text, speed=18){
     el.textContent='';
     for(let i=0;i<text.length;i++){
       el.textContent += text[i];
@@ -488,12 +491,20 @@
       await sleep(speed);
     }
   }
+  // INTRO의 모든 문장(h2, p, li)을 자동으로 타이핑
+  function prepareTypeAll(){
+    const els = Array.from(document.querySelectorAll('#introBox h2, #introBox p, #introBox li'));
+    els.forEach(el=>{
+      el.setAttribute('data-text', (el.textContent||'').trim());
+      el.textContent = '';
+    });
+    return els;
+  }
   async function typeAll(){
-    const els = Array.from(document.querySelectorAll('#introBox .typer'));
+    const els = prepareTypeAll();
     for(const el of els){
-      const t = el.getAttribute('data-text') ?? el.textContent;
-      await typeElement(el, t);
-      await sleep(200);
+      await typeElement(el, el.getAttribute('data-text')||'');
+      await sleep(160);
     }
   }
 
@@ -501,7 +512,7 @@
     hideTopUI(true);
     intro.style.display='flex';
     typeTickCount = 0;
-    typeAll(); // 타자효과 시작
+    typeAll(); // 전체 타자효과 시작
 
     let count=30;
     countNum.textContent = count;
@@ -517,7 +528,7 @@
         await showTitle('FIRST SLEEP', 1100, 'cut');
         // 3) 시작
         beginCharacterMove();
-        hideTopUI(false);
+        showTopUI();
       }
     },1000);
   }
@@ -668,31 +679,18 @@
     startRunTimer();
   }
 
-  // ===== NES 감성 픽셀 스프라이트 (12x16) =====
+  // ===== 픽셀 스프라이트 (12x16) 절반 크기 =====
   const PIXEL_SPRITE = [
-    "..XXXXXX....",
-    ".XXXXXXXX...",
-    ".XX.XX.XX...",
-    ".XXXXXXXX...",
-    "..XXXXXX....",
-    ".XXXXXXXX...",
-    ".XXXXXXXX...",
-    ".XX.XX.XX...",
-    ".XXXXXXXX...",
-    "..XXXXXX....",
-    ".XX....XX...",
-    ".XX....XX...",
-    ".XX....XX...",
-    ".XX....XX...",
-    "..XX..XX....",
-    "..XX..XX...."
+    "..XXXXXX....",".XXXXXXXX...",".XX.XX.XX...",".XXXXXXXX...",
+    "..XXXXXX....",".XXXXXXXX...",".XXXXXXXX...",".XX.XX.XX...",
+    ".XXXXXXXX...", "..XXXXXX....",".XX....XX...",".XX....XX...",
+    ".XX....XX...", ".XX....XX...", "..XX..XX....","..XX..XX...."
   ];
   const COLOR_FILL = '#ff8a3c';
   const COLOR_STROKE = '#000000';
 
   function drawPixelHuman(ctx, cx, baselineY, name, W){
-    // ★ 절반 크기(이전 대비): 셀 크기 하향
-    const cell = Math.max(2, Math.min(5, Math.floor(W * 0.0025)));
+    const cell = Math.max(2, Math.min(5, Math.floor(W * 0.0025))); // 절반 사이즈
     const cols = PIXEL_SPRITE[0].length;
     const rows = PIXEL_SPRITE.length;
     const width = cols * cell;
@@ -727,16 +725,12 @@
 
     // 이름
     ctx.font = `700 ${Math.max(12, Math.min(22, Math.floor(W*0.018)))}px "Courier New", ui-monospace, monospace`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
     const ny = Math.round(baselineY + Math.max(4, cell));
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    ctx.fillText(name, cx, ny-1);
-    ctx.fillText(name, cx, ny+1);
-    ctx.fillText(name, cx-1, ny);
-    ctx.fillText(name, cx+1, ny);
-    ctx.fillStyle = '#fff';
-    ctx.fillText(name, cx, ny);
+    ctx.fillText(name, cx, ny-1); ctx.fillText(name, cx, ny+1);
+    ctx.fillText(name, cx-1, ny); ctx.fillText(name, cx+1, ny);
+    ctx.fillStyle = '#fff'; ctx.fillText(name, cx, ny);
   }
 
   function getCharPos(now){
@@ -751,16 +745,11 @@
   function drawPathDots(ctx, segments, t){
     if(!segments || !segments.length) return;
     ctx.save();
-    ctx.globalAlpha = 0.7;
-    ctx.fillStyle = '#cfcfcf';
-    const step = 24;
-    const size = 3;
-
+    ctx.globalAlpha = 0.7; ctx.fillStyle = '#cfcfcf';
+    const step = 24, size = 3;
     for(const s of segments){
-      const segStart = s.t0, segEnd = s.t1;
-      const localT = Math.max(0, Math.min(1, (t - segStart) / (segEnd - segStart)));
+      const localT = Math.max(0, Math.min(1, (t - s.t0) / (s.t1 - s.t0)));
       if(localT <= 0) continue;
-
       const dotCount = Math.floor((s.len * localT) / step);
       for(let i=0; i<=dotCount; i++){
         const r = (i * step) / s.len;
@@ -776,20 +765,14 @@
     const now = performance.now();
     const p = getCharPos(now);
     if(!p) return;
-
     drawPathDots(vctx, pathSegments, p.t);
     drawPixelHuman(vctx, Math.round(p.x), Math.round(p.y), displayName, W);
-
-    if(now - charStartTime >= CHAR_DURATION){
-      charActive=false;
-      stopRunTimer();
-    }
+    if(now - charStartTime >= CHAR_DURATION){ charActive=false; stopRunTimer(); }
   }
 
   // ===== 8분 타이머 (MAP 옆 표시) =====
   function fmt(mmss){
-    const m = Math.floor(mmss/60);
-    const s = mmss%60;
+    const m = Math.floor(mmss/60), s = mmss%60;
     return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
   }
   function startRunTimer(){
@@ -801,9 +784,7 @@
       const elapsed = performance.now() - start;
       const remain = Math.max(0, Math.round((CHAR_DURATION - elapsed)/1000));
       runTimer.textContent = fmt(remain);
-      if(remain<=0){
-        clearInterval(timerInterval);
-      }
+      if(remain<=0){ clearInterval(timerInterval); }
     }, 1000);
   }
   function stopRunTimer(){
@@ -840,7 +821,41 @@
   mapBtn.addEventListener('click', openMap, {passive:true});
   btnExitMap.addEventListener('click', closeMap, {passive:true});
 
-  // boot: 권한 → 이름 → 프리셋 → (탭) → 카메라 시작 → Welcome ...
+  // Camera loop
+  async function startCameraFresh(){
+    try{
+      if(!camPermGranted){
+        await navigator.mediaDevices.getUserMedia({video:true, audio:false}).then(s=>{ s.getTracks().forEach(t=>t.stop()); camPermGranted=true; });
+      }
+      camStream = await navigator.mediaDevices.getUserMedia({
+        video:{facingMode:'environment', width:{ideal:1920}, height:{ideal:1080}},
+        audio:false
+      });
+      if(!camVideo){
+        camVideo = document.createElement('video');
+        camVideo.setAttribute('playsinline','');
+        camVideo.autoplay = true; camVideo.playsInline = true; camVideo.muted = true;
+      }
+      camVideo.srcObject = camStream;
+      await camVideo.play().catch(()=>{});
+
+      if(!vctx){
+        vctx = view.getContext('2d',{alpha:false});
+        proc = document.createElement('canvas');
+        pctx = proc.getContext('2d',{willReadFrequently:true});
+        resizeCam();
+      }
+      if(!animStarted){
+        animStarted = true;
+        loopCam();
+      }
+      wireButtonClicks();
+    }catch(e){
+      console.warn('startCameraFresh error:', e);
+    }
+  }
+
+  // Flow: 권한 → 이름 → 프리셋 → 카메라 → Welcome → Intro → Good Night → First Sleep → 이동
 })();
 </script>
 </body>
