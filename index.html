@@ -316,13 +316,13 @@
   }
   function playClick(){ beep(880, .07, .06, 'square'); }
 
-  /* ===== Ambient (stable gain during INTRO) ===== */
+  /* ===== Ambient with smooth fade-in to avoid pop ===== */
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, loops=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
     function makeBus(){
       ctx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
-      master = ctx.createGain(); master.gain.value = 0.8; /* 고정: 인트로 중 볼륨 드랍 방지 */
+      master = ctx.createGain(); master.gain.value = 0.0001; /* 0에서 시작 */
       delay = ctx.createDelay(2.5); delay.delayTime.value = 0.35;
       fb = ctx.createGain(); fb.gain.value = 0.35; delay.connect(fb).connect(delay);
       hp = ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=150;
@@ -348,11 +348,13 @@
       const g=ctx.createGain(); g.gain.value=0.02; const f=ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=800; f.Q.value=0.7;
       s.connect(f).connect(g); connectDryWet(g); s.start(); loops.push(()=>{ try{s.stop();}catch{} });
     }
-    async function start(){
+    async function start(fadeIn=1.4, target=0.8){
       await ensureResumed(); if(running) return; makeBus(); running=true; airyNoise();
-      // 느린 코드 패드 반복
-      const seq=[57,52,48,43]; let i=0;
-      (function tick(){ if(!running) return; slowPad(seq[i%seq.length]); i++; setTimeout(tick,8000); })();
+      const seq=[57,52,48,43]; let i=0; (function tick(){ if(!running) return; slowPad(seq[i%seq.length]); i++; setTimeout(tick,8000); })();
+      const t=(ctx||audioCtx).currentTime;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setValueAtTime(master.gain.value, t);
+      master.gain.exponentialRampToValueAtTime(target, t+fadeIn); /* 부드러운 페이드인 */
     }
     function stop(fade=2.0){
       if(!running||!master) return;
@@ -360,7 +362,7 @@
       master.gain.linearRampToValueAtTime(0.0001, t+fade);
       setTimeout(()=>{ loops.forEach(fn=>{try{fn();}catch{}}); loops=[]; running=false; }, fade*1000+120);
     }
-    return { start, stop, isRunning:()=>running, setGain:(v)=>{ if(audioCtx && v!=null) try{ master.gain.setValueAtTime(v, audioCtx.currentTime);}catch{} } };
+    return { start, stop, isRunning:()=>running };
   })();
 
   /* Long Drone for First Sleep flicker tail */
@@ -388,26 +390,30 @@
     return { start, stop, isRunning:()=>running };
   })();
 
-  /* Flicker Woongs */
-  async function playFlickerWoongs(){
+  /* 낮은 “부웅” 시퀀스 (삐룽 제거) */
+  async function lowWoongSequence(){
     await ensureResumed();
     const base = audioCtx.currentTime;
-    const mk = (t, dur, f=160, gMax=0.22) => {
+    // 간격을 둔 4회 + 약간 촘촘한 2회 + 마지막 길게
+    const pattern = [
+      {t:0.00, dur:0.35, f:120, g:0.28},
+      {t:0.38, dur:0.35, f:115, g:0.30},
+      {t:0.76, dur:0.35, f:110, g:0.32},
+      {t:1.14, dur:0.35, f:108, g:0.34},
+      {t:1.46, dur:0.30, f:105, g:0.34},
+      {t:1.72, dur:0.30, f:102, g:0.36},
+      {t:2.00, dur:1.80, f:95,  g:0.42}, // 부우우우웅~
+    ];
+    for(const p of pattern){
       const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-      o.type='triangle'; o.frequency.value=f; g.gain.value=0.0001;
+      o.type='triangle'; o.frequency.value=p.f;
+      g.gain.value=0.0001;
       o.connect(g).connect(audioCtx.destination);
-      o.start(base + t);
-      g.gain.linearRampToValueAtTime(gMax, base + t + 0.06);
-      g.gain.exponentialRampToValueAtTime(0.0001, base + t + dur);
-      o.stop(base + t + dur + 0.05);
-    };
-    for(let i=0;i<5;i++) mk(0.24*i, 0.22, 160, 0.22);
-    mk(1.2, 1.6, 140, 0.30); // 마지막 길게
-  }
-  async function thunder(intensity=0.30){
-    await ensureResumed();
-    beep(600,.06,intensity,'square'); await sleep(40);
-    beep(1200,.05,Math.min(intensity*0.8,0.30),'square');
+      o.start(base + p.t);
+      g.gain.linearRampToValueAtTime(p.g, base + p.t + 0.08);
+      g.gain.exponentialRampToValueAtTime(0.0001, base + p.t + p.dur);
+      o.stop(base + p.t + p.dur + 0.05);
+    }
   }
 
   /* Mic FX (hard-pan + tilt tone), fade-in after silence */
@@ -443,7 +449,7 @@
       dryGain = audioCtx.createGain(); dryGain.gain.value=0.0;
       wetGain = audioCtx.createGain(); wetGain.gain.value=0.0;
 
-      micBus = audioCtx.createGain(); micBus.gain.value=0.0; // 0에서 시작 → 페이드인
+      micBus = audioCtx.createGain(); micBus.gain.value=0.0;
 
       micSrc.connect(comp).connect(lowshelf).connect(highshelf).connect(lpf).connect(panNode);
       panNode.connect(dryGain);
@@ -467,13 +473,13 @@
     const gamma = clamp(e.gamma ?? 0, -60, 60); // -좌 +우
     const beta  = clamp(e.beta ?? 0, -60, 60);  // -뒤로 젖힘 +숙임
 
-    // 하드팬(좌우로 기울이면 해당 채널만)
+    // 하드팬
     let panVal = 0;
     if(gamma > 5) panVal = +1;
     else if(gamma < -5) panVal = -1;
     if(panNode) panNode.pan.value = panVal;
 
-    // 톤: 아래(베이스↑, 컷오프↓), 위(하이↑, 컷오프↑), 리버브 크게(2배 느낌)
+    // 톤/리버브
     const bassBoost = (beta>=0) ? map(beta, 0, 60, 0, 12) : map(beta, -60, 0, -3, 0);
     const trebleBoost = (beta<0) ? map(beta, -60, 0, 12, 0) : 0;
     if(lowshelf) lowshelf.gain.value = clamp(bassBoost, -6, 12);
@@ -514,9 +520,9 @@
     }catch(e){ console.warn('permission error:', e); }
     fadeHide(overlay, 2000);
 
-    // 닉네임 단계부터 음악(볼륨 고정)
+    // 닉네임 단계부터 앰비언트 시작(부드러운 페이드인)
     await ensureResumed();
-    Ambient.start();
+    Ambient.start(1.4, 0.8);
     fadeShow(nameOverlay, 2000);
     setTimeout(()=>nickInput.focus(), 60);
   }
@@ -543,7 +549,7 @@
     preset.style.display='block'; preset.classList.add('show');
     fadeShow(preset, 2000);
     initSaver();
-    // 짧은 허밍만
+    // 짧은 허밍
     try{
       const o = audioCtx.createOscillator(), g = audioCtx.createGain();
       o.type='sine'; o.frequency.setValueAtTime(110, audioCtx.currentTime);
@@ -623,7 +629,7 @@
     fadeShow(welcome, 2000);
   }, {passive:true});
 
-  /* INTRO: typing + countdown (always visible) */
+  /* INTRO: typing + countdown (always visible, 40s) */
   function captureIntroTexts(){
     const els = Array.from(document.querySelectorAll('#introBox h2, #introBox p, #introBox li'));
     els.forEach(el=>{ el.dataset.text = (el.textContent||'').trim(); el.textContent=''; });
@@ -648,8 +654,8 @@
     fadeShow(intro, 2000, 'flex');
     typeTickCount = 0;
 
-    // 타이핑과 독립적으로 30초 카운트다운 "항상" 표기
-    let left = 30; introCount.textContent = `Coming in ${left}s`;
+    // 40초 카운트다운
+    let left = 40; introCount.textContent = `Coming in ${left}s`;
     const iv = setInterval(()=>{
       left = Math.max(0, left-1);
       introCount.textContent = `Coming in ${left}s`;
@@ -657,7 +663,7 @@
       if(left<=0){ clearInterval(iv); startTransition(); }
     },1000);
 
-    // 텍스트 타이핑은 병렬 수행
+    // 텍스트 타이핑 병행
     (async ()=>{
       const els = captureIntroTexts();
       for(const el of els){
@@ -683,7 +689,7 @@
     },1000);
   }
 
-  /* Transition: Flicker woongs → First Sleep → total silence → Mic fade-in */
+  /* Transition: 낮은 부웅 시퀀스 → First Sleep → 전부 페이드아웃 → 잠깐 침묵 → Mic fade-in */
   async function startTransition(){
     fadeHide(intro, 2000);
 
@@ -691,21 +697,21 @@
     titleText.textContent='GOOD NIGHT';
     titleScreen.style.display='flex';
     titleScreen.style.background='#000'; titleText.style.color='#fff';
-    // 번개/우웅 시퀀스
-    await playFlickerWoongs();
+
+    // 낮은 부웅 시퀀스 & 교차 깜빡임
+    await lowWoongSequence();
     const until = performance.now()+2200; let flag=false;
     while(performance.now()<until){
       flag=!flag;
       titleText.textContent = flag ? 'GOOD NIGHT' : 'THE FIRST SLEEP';
       titleScreen.style.background='rgba(255,255,255,0.96)'; titleText.style.color='#000';
-      await thunder(0.30);
-      await sleep(80);
+      await sleep(90);
       titleScreen.style.background='#000'; titleText.style.color='#fff';
       await sleep(120);
     }
     titleScreen.style.display='none';
 
-    // FIRST SLEEP 표시 + Drone 시작
+    // FIRST SLEEP 표시 + Drone
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
     await LongDrone.start();
@@ -713,19 +719,17 @@
     // 8분 타이머 on
     startEightTimer();
 
-    // FIRST SLEEP 텍스트는 잠시 멈췄다가 길게 부웅과 함께 서서히 아웃
+    // 잠깐 멈춘 뒤, 텍스트와 사운드 함께 페이드아웃
     await sleep(900);
-    firstSleep.style.transition='opacity 6000ms ease';
+    firstSleep.style.transition='opacity 6500ms ease';
     firstSleep.style.opacity='0';
-
-    // 모든 소리 동시에 페이드아웃
-    LongDrone.stop(3.2);
-    Ambient.stop(3.2);
-    await sleep(6200);
+    LongDrone.stop(3.6);
+    Ambient.stop(3.6);
+    await sleep(6800);
     firstSleep.style.display='none';
     firstSleep.style.transition='';
 
-    // 잠깐의 침묵 후 마이크 FX가 페이드인
+    // 짧은 침묵 후 마이크 FX 페이드인
     await sleep(400);
     await startMicFXFadeIn(3.0);
 
@@ -778,12 +782,12 @@
     }
   });
 
-  /* Character: faster spiral with continuous solid path */
+  /* Character: faster spiral with continuous, thinner solid path */
   let charActive = false;
   let charStartTime = 0;
   const CHAR_DURATION = 480000;
-  const SPEED_MULT = 2.2;      // 더 빠르게
-  const PATH_POINTS = [];      // 실선 경로 누적
+  const SPEED_MULT = 2.2;
+  const PATH_POINTS = [];
 
   const PIXEL_SPRITE = [
     "..XXXXXX....",".XXXXXXXX...",".XX.XX.XX...",".XXXXXXXX...",
@@ -848,7 +852,7 @@
   function drawPathSolid(ctx){
     if(PATH_POINTS.length<2) return;
     ctx.save();
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1; /* 더 얇게 */
     ctx.strokeStyle = 'rgba(255,255,255,0.85)';
     ctx.beginPath();
     ctx.moveTo(PATH_POINTS[0].x, PATH_POINTS[0].y);
@@ -874,7 +878,7 @@
 
   function loopCam(){
     requestAnimationFrame(loopCam);
-    if(capturing) return; // 캡처 중엔 렌더 정지: 보이는 화면 그대로 픽업
+    if(capturing) return; // 캡처 중 렌더 정지: 보이는 화면 그대로 픽업
     if(!vctx || !pctx) return;
     const W=view.width/(window.devicePixelRatio||1), H=view.height/(window.devicePixelRatio||1);
     const PW=proc.width, PH=proc.height;
@@ -896,22 +900,20 @@
     if(charActive){ drawCharacter(W,H); }
   }
 
-  /* Capture: full view snapshot → hold → finer pixelation → fade */
+  /* Capture: 더 천천히, 더 촘촘하게 픽셀화 */
   let captureAnimating = false;
   captureBtn.addEventListener('click', ()=>{
     if(captureAnimating) return;
     playClick();
     captureAnimating = true;
 
-    // 루프 정지 후, #view의 현재 렌더 출력을 CSS 픽셀 기준으로 캡처
+    // 루프 정지 후, 현재 #view 프레임을 CSS 픽셀 기준으로 복제
     capturing = true;
     const cssW = view.clientWidth, cssH = view.clientHeight;
     freezeLayer.width = cssW;
     freezeLayer.height = cssH;
     const fx = freezeLayer.getContext('2d');
     fx.imageSmoothingEnabled = false;
-
-    // #view를 CSS 스케일로 복제 (장치픽셀 → CSS픽셀 맵핑)
     fx.drawImage(view, 0, 0, view.width, view.height, 0, 0, cssW, cssH);
     freezeLayer.style.display='block';
     freezeLayer.style.opacity='1';
@@ -919,45 +921,47 @@
     // 원본 유지 잠깐
     setTimeout(()=>{
       const W = cssW, H = cssH;
-      let px = 1.0;       // 더 촘촘하게 시작
-      const step = 1.04;  // 천천히 커지도록
+      let px = 1.0;           // 아주 촘촘하게 시작
+      const step = 1.015;     // 매우 느리게 증가
       const off = document.createElement('canvas');
       const oc = off.getContext('2d');
       const fx2 = freezeLayer.getContext('2d');
 
+      const startT = performance.now();
       function anim(){
-        if(px > 200){
-          freezeLayer.style.transition='opacity 1400ms ease';
+        // 충분히 오래 진행 (느린 변형 체감)
+        if(px > 420){
+          freezeLayer.style.transition='opacity 2000ms ease';
           freezeLayer.style.opacity='0';
           setTimeout(()=>{
             freezeLayer.style.display='none';
             freezeLayer.style.transition='';
             capturing = false; // 루프 재개
             captureAnimating = false;
-          }, 1420);
+          }, 2020);
           return;
         }
         const w = Math.max(1, Math.floor(W/px));
         const h = Math.max(1, Math.floor(H/px));
         off.width = w; off.height = h;
         oc.imageSmoothingEnabled=false;
-        // 원본을 저해상도로 축소
+        // 저해상도로 축소
         oc.drawImage(freezeLayer,0,0,W,H,0,0,w,h);
-        // 다시 확대(픽셀 보이게)
+        // 다시 확대(픽셀이 한 알 한 알 남는 느낌)
         fx2.clearRect(0,0,W,H);
         fx2.imageSmoothingEnabled=false;
         fx2.globalAlpha = 1.0;
         fx2.drawImage(off,0,0,w,h,0,0,W,H);
-        // 약간의 원본 블렌드로 "원본이 좀 보이다가" 느낌
-        fx2.globalAlpha = 0.12;
+        // 원본을 아주 약하게 섞어 디테일이 남다 사라지는 느낌
+        fx2.globalAlpha = 0.10;
         fx2.drawImage(view,0,0,view.width,view.height,0,0,W,H);
         fx2.globalAlpha = 1.0;
 
-        px = px * step + 0.6;
+        px = px * step + 0.35;
         requestAnimationFrame(anim);
       }
       anim();
-    }, 100);
+    }, 120);
   });
 
   /* Permissions → Name → Preset → Welcome → Intro */
