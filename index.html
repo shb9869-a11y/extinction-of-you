@@ -67,15 +67,8 @@
     z-index:150; opacity:0; transition:opacity 2000ms ease;}
   .btn-capture.show{opacity:1}
 
-  #mapLauncher{
-    position:fixed; right:calc(var(--frame) + var(--ui-gap) + var(--safe-r));
-    top:calc(var(--frame) + var(--ui-gap) + var(--safe-t)); z-index:180;}
-  #docLauncher{
-    position:fixed; left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
-    top:calc(var(--frame) + var(--ui-gap) + var(--safe-t)); z-index:180;}
-  #audioToggle{
-    position:fixed; right:calc(var(--frame) + var(--ui-gap) + var(--safe-r) + 68px);
-    top:calc(var(--frame) + var(--ui-gap) + var(--safe-t)); z-index:180;}
+  /* 상단 버튼들은 초기 완전 숨김(초반 깜빡임 제거) */
+  #mapLauncher, #docLauncher, #audioToggle { display:none; }
 
   /* 타이머: 시작시 숨김 */
   #runTimer{
@@ -142,6 +135,9 @@
   /* FIRST SLEEP 오버레이 */
   #firstSleep{ position:fixed; inset:0; z-index:235; display:none; align-items:center; justify-content:center; pointer-events:none; }
   #firstSleepText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(28px, 11vmin, 110px); text-transform:uppercase; }
+
+  /* DOC/MAP 오버레이는 기본 완전 숨김 */
+  #docOverlay, #mapOverlay { display:none; }
 </style>
 </head>
 <body>
@@ -156,6 +152,7 @@
   </div>
   <button id="captureBtn" class="uiBtn small btn-capture">CAPTURE</button>
 
+  <!-- 상단 버튼은 초기 숨김(요청에 따라 당분간 미사용) -->
   <button id="docLauncher" class="uiBtn small">DOCUMENT</button>
   <button id="mapLauncher" class="uiBtn small">MAP</button>
   <button id="audioToggle" class="uiBtn small">AUDIO</button>
@@ -222,7 +219,7 @@
   <div id="firstSleep"><div id="firstSleepText">THE FIRST SLEEP</div></div>
 
   <!-- DOC -->
-  <div id="docOverlay" style="display:none">
+  <div id="docOverlay">
     <div id="docUI">
       <div id="docHeader">
         <div class="readout">DOCUMENTS</div>
@@ -237,7 +234,7 @@
   </div>
 
   <!-- MAP -->
-  <div id="mapOverlay" style="display:none">
+  <div id="mapOverlay">
     <div id="mapUI">
       <h3>MAP</h3>
       <p style="opacity:.85">지금은 준비 중입니다. (게임 모듈 비활성화)</p>
@@ -332,10 +329,10 @@
       o.stop(audioCtx.currentTime + dur);
     }catch(e){}
   }
-  function playClick(){ beep(880, .07, .04, 'square'); }
+  function playClick(){ beep(880, .07, .06, 'square'); } // 클릭도 살짝 상향
   function wireButtonClicks(){ document.querySelectorAll('.uiBtn').forEach(btn=>btn.addEventListener('click', playClick, {passive:true})); }
 
-  // ===== Ambient (프리셋/인트로 동안 배경음) — 이전과 동일, 필요시 토글 =====
+  // ===== Ambient (프리셋/인트로 동안 배경음) =====
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, loops=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
@@ -360,13 +357,6 @@
         const g=ctx.createGain(); g.gain.value=0.08; o.connect(g).connect(filt); o.start(); loops.push(()=>g.disconnect()); });
       filt.connect(out); connectDryWet(out); loops.push(()=>{ try{ out.disconnect(); }catch{} });
     }
-    function softPluck(n){
-      const o=ctx.createOscillator(); o.type='triangle'; o.frequency.value=midi(n);
-      const g=ctx.createGain(); g.gain.value=0.0001; const f=ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=2200;
-      o.connect(f).connect(g); connectDryWet(g);
-      const t=ctx.currentTime; g.gain.linearRampToValueAtTime(0.12,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+1.6);
-      o.start(); o.stop(t+1.7);
-    }
     function airyNoise(){
       const b=ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate), d=b.getChannelData(0);
       for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.15;
@@ -374,9 +364,9 @@
       const g=ctx.createGain(); g.gain.value=0.02; const f=ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=800; f.Q.value=0.7;
       s.connect(f).connect(g); connectDryWet(g); s.start(); loops.push(()=>{ try{s.stop();}catch{} });
     }
-    function rictherLoop(){ const seq=[57,52,48,43]; let i=0; const tick=()=>{ if(!running) return; slowPad(seq[i%seq.length]); i++; setTimeout(tick,8000); }; tick(); }
+    function seqLoop(){ const seq=[57,52,48,43]; let i=0; const tick=()=>{ if(!running) return; slowPad(seq[i%seq.length]); i++; setTimeout(tick,8000); }; tick(); }
     function start(){
-      ensureAudio(); if(running) return; makeBus(); running=true; airyNoise(); rictherLoop();
+      ensureAudio(); if(running) return; makeBus(); running=true; airyNoise(); seqLoop();
       master.gain.linearRampToValueAtTime(0.8, (ctx||audioCtx).currentTime + 2.0);
     }
     function stop(fade=2.0){
@@ -439,7 +429,6 @@
       if(micBus) micBus.disconnect();
     }catch(e){}
   }
-  // γ: 좌/우 → pan, β: 앞/뒤 → lpf+reverb
   function onTiltAudio(e){
     if(!audioCtx) return;
     const gamma = clamp(e.gamma ?? 0, -60, 60); // -좌 +우
@@ -449,17 +438,16 @@
     const pan = map(gamma, -45, 45, -1, 1);
     if(panNode) panNode.pan.value = clamp(pan, -1, 1);
 
-    // 숙이면 먹먹: 컷오프 ↓, 리버브 ↓  / 올리면 쨍하고 리버브 ↑
-    // 여기서 "올리면" = β가 음수(뒤로)일 확률이 커서 이를 밝게
+    // 숙이면 먹먹 / 올리면 쨍 + 리버브
     const cutoff = (beta>=0)
-      ? map(beta, 0, 60, 1800, 600)     // 숙임(0→+60): 1.8k → 600Hz (먹먹)
-      : map(beta, -60, 0, 4000, 2200);  // 올림(-60→0): 4k → 2.2k (쨍)
+      ? map(beta, 0, 60, 1800, 600)
+      : map(beta, -60, 0, 4000, 2200);
     if(lpf) lpf.frequency.value = clamp(cutoff, 300, 6000);
 
     const wet = (beta>=0)
-      ? map(beta, 0, 60, 0.35, 0.10)    // 숙이면 리버브 줄임
-      : map(beta, -60, 0, 0.75, 0.35);  // 올리면 리버브 키움(지하실)
-    if(wetGain) wetGain.gain.value = clamp(wet, 0.05, 0.85);
+      ? map(beta, 0, 60, 0.35, 0.10)
+      : map(beta, -60, 0, 0.85, 0.35);
+    if(wetGain) wetGain.gain.value = clamp(wet, 0.05, 0.9);
     if(dryGain) dryGain.gain.value = clamp(1.0 - wetGain.gain.value*0.5, 0.3, 1.0);
   }
 
@@ -479,23 +467,32 @@
       setTimeout(()=>{ g.gain.linearRampToValueAtTime(0, audioCtx.currentTime+1); o.stop(audioCtx.currentTime+1.1); lfo.stop(audioCtx.currentTime+1.1); }, 5000);
     }catch(e){}
   }
-  async function thunder(){ try{ ensureAudio(); beep(600,.04,.12,'square'); await sleep(40); beep(1200,.03,.09,'square'); }catch(e){} }
-  function swell(){
+
+  // 더 큰 효과음: swell / thunder
+  function swell(targetGain=0.12, freq=220){
     try{
       ensureAudio();
       const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-      o.type='sine'; o.frequency.value=220; g.gain.value=0.0001;
+      o.type='sine'; o.frequency.value=freq; g.gain.value=0.0001;
       o.connect(g); g.connect(audioCtx.destination);
       o.start();
-      g.gain.exponentialRampToValueAtTime(0.06, audioCtx.currentTime + 0.5);
+      g.gain.exponentialRampToValueAtTime(targetGain, audioCtx.currentTime + 0.5);
       g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 2.0);
       setTimeout(()=>o.stop(), 2100);
+    }catch(e){}
+  }
+  async function thunder(intensity=0.22){
+    try{
+      ensureAudio();
+      beep(600,.06,intensity,'square');
+      await sleep(40);
+      beep(1200,.05,Math.min(intensity*0.8,0.28),'square');
     }catch(e){}
   }
 
   // 타자 사운드
   let typeTickCount = 0;
-  function typeTick(){ typeTickCount++; if(typeTickCount%3) return; beep(2100, .05, .018, 'square'); }
+  function typeTick(){ typeTickCount++; if(typeTickCount%3) return; beep(2100, .05, .02, 'square'); }
 
   function updateZoomLabel(){ zoomVal.textContent = ZOOM.toFixed(1)+'×'; }
   updateZoomLabel();
@@ -656,40 +653,51 @@
     }
   }
 
+  // 카운트다운용 ‘띡’ (마지막 10초, 마지막 3초는 더 날카롭게)
+  function countdownTick(n){
+    ensureAudio();
+    const high = n<=3;
+    const freq = high ? 1600 : 1100;
+    const gain = high ? 0.16 : 0.12;
+    beep(freq, 0.06, gain, 'square');
+  }
+
   function showIntro(){
     fadeShow(intro, 2000, 'flex');
     typeTickCount = 0;
-    typeAllIntro();
-
-    // 30초 카운트다운 (마지막 10초만 표시)
-    const total = 30; let left = total;
-    introCount.textContent='';
-    const iv = setInterval(()=>{
-      left--;
-      if(left<=10) introCount.textContent = `Coming in ${left}s`;
-      if(left<=0){ clearInterval(iv); startTransition(); }
-    },1000);
+    typeAllIntro().then(()=>{ // 모든 타이핑 완료 후 카운트다운 시작
+      const total = 30; let left = total;
+      introCount.textContent='';
+      const iv = setInterval(()=>{
+        left--;
+        if(left<=10){
+          introCount.textContent = `Coming in ${left}s`;
+          countdownTick(left);
+        }
+        if(left<=0){ clearInterval(iv); startTransition(); }
+      },1000);
+    });
   }
 
-  // 전환: GOOD NIGHT(정상 2s) → 2s 번개/교차 → FIRST SLEEP(페이드 5s)
+  // 전환: GOOD NIGHT(2s) → 2s 번개/교차 → FIRST SLEEP(페이드 5s)
   async function startTransition(){
     fadeHide(intro, 2000);
     Ambient.stop(2.0); // 배경음 페이드아웃
 
-    // GOOD NIGHT 2s
+    // GOOD NIGHT 2s (더 큰 스웰)
     titleText.textContent='GOOD NIGHT';
     titleScreen.style.display='flex';
     titleScreen.style.background='#000'; titleText.style.color='#fff';
-    swell();
+    swell(0.22, 200);
     await sleep(2000);
 
-    // 2s 교차/번개
+    // 2s 교차/번개 (더 큰 번개)
     const until = performance.now()+2000; let flag=false;
     while(performance.now()<until){
       flag=!flag;
       titleText.textContent = flag ? 'GOOD NIGHT' : 'THE FIRST SLEEP';
       titleScreen.style.background='rgba(255,255,255,0.96)'; titleText.style.color='#000';
-      thunder();
+      await thunder(0.26);
       await sleep(80);
       titleScreen.style.background='#000'; titleText.style.color='#fff';
       await sleep(120);
@@ -699,12 +707,12 @@
     // THE FIRST SLEEP — 5s 페이드아웃 + UI 오버랩 인
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
-    swell();
+    swell(0.18, 180);
 
-    // 여기서부터 마이크 FX 가동 (LR 패닝/LPF/리버브: 지하실)
+    // 마이크 FX 가동
     await startMicFX();
 
-    // 캡쳐/컨트롤 UI를 오버랩으로 천천히 인
+    // 캡쳐/컨트롤 UI 인
     controls.classList.add('show');
     captureBtn.classList.add('show');
 
@@ -790,7 +798,6 @@
   const CHAR_DURATION = 480000; // 8분
   let pathSegments = null;
 
-  // 작은 픽셀 사람
   const PIXEL_SPRITE = [
     "..XXXXXX....",".XXXXXXXX...",".XX.XX.XX...",".XXXXXXXX...",
     "..XXXXXX....",".XXXXXXXX...",".XXXXXXXX...",".XX.XX.XX...",
@@ -837,13 +844,12 @@
     ctx.fillStyle = '#fff'; ctx.fillText(displayName, cx, ny);
   }
 
-  // DOCUMENT 아래 → 줌 컨트롤 위
   function buildPathFromUI(){
     const fr = frameBox.getBoundingClientRect();
-    const docR = docBtn.getBoundingClientRect();
+    const docR = document.body.getBoundingClientRect(); // 상단 버튼 숨김이라 프레임 기반으로만 경로 구성
     const ctrlR = document.querySelector('.controls').getBoundingClientRect();
 
-    const start = { x: docR.left + docR.width/2, y: docR.bottom + 18 };
+    const start = { x: fr.left + fr.width*0.2, y: fr.top + fr.height*0.3 };
     const end   = { x: ctrlR.left + ctrlR.width/2, y: ctrlR.top - 24 };
 
     const mid1 = { x: fr.left + fr.width*0.66, y: fr.top + fr.height*0.28 };
@@ -863,7 +869,6 @@
     pathSegments = buildPathFromUI();
     charActive = true;
     charStartTime = performance.now();
-    // 타이머는 전체 UI 축소 요구로 숨김 유지(필요 시 runTimer.style.display='block')
   }
 
   function getCharPos(now){
@@ -949,12 +954,12 @@
     }, 800);
   });
 
-  // DOC/MAP
+  // DOC/MAP (현재 버튼 숨김 유지)
   function openDoc(){ docOverlay.style.display='block'; }
   function closeDoc(){ docOverlay.style.display='none'; }
-  docBtn.addEventListener('click', openDoc, {passive:true});
-  btnExitDoc.addEventListener('click', closeDoc, {passive:true});
+  if(btnExitDoc) btnExitDoc.addEventListener('click', closeDoc, {passive:true});
   (function buildDocGrid(){
+    if(!docGrid) return;
     docGrid.innerHTML='';
     for(let i=1;i<=8;i++){
       const b=document.createElement('button'); b.className='docBtn uiBtn small'; b.textContent=`Document ${i}`;
@@ -964,11 +969,10 @@
   })();
   function openMap(){ mapOverlay.style.display='block'; }
   function closeMap(){ mapOverlay.style.display='none'; }
-  mapBtn.addEventListener('click', openMap, {passive:true});
-  btnExitMap.addEventListener('click', closeMap, {passive:true});
+  if(btnExitMap) btnExitMap.addEventListener('click', closeMap, {passive:true});
 
-  // AUDIO 토글 (배경 앰비언트만)
-  audioToggle.addEventListener('click', ()=>{
+  // AUDIO 토글 (배경 앰비언트만; 버튼은 숨김 상태)
+  if(audioToggle) audioToggle.addEventListener('click', ()=>{
     ensureAudio();
     if (Ambient.isRunning()){ Ambient.stop(1.2); audioToggle.textContent='AUDIO'; }
     else { Ambient.start(); audioToggle.textContent='AUDIO*'; }
@@ -1000,7 +1004,6 @@
   }
 
   // === 부트 플로우 ===
-  // 프리셋 탭 → 웰컴 → 인트로 → 전환 → (First Sleep 페이드아웃과 오버랩으로) 컨트롤 인 + 캐릭터 시작 + 마이크 FX 시작
   window.addEventListener('load', ()=>{ /* waiting for interactions */ });
 
   // 전환 후 캐릭터/경로/컨트롤 표시
