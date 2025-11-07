@@ -152,7 +152,7 @@
   </div>
   <button id="captureBtn" class="uiBtn small btn-capture">CAPTURE</button>
 
-  <!-- 상단 버튼은 초기 숨김(요청에 따라 당분간 미사용) -->
+  <!-- 상단 버튼은 초기 숨김 -->
   <button id="docLauncher" class="uiBtn small">DOCUMENT</button>
   <button id="mapLauncher" class="uiBtn small">MAP</button>
   <button id="audioToggle" class="uiBtn small">AUDIO</button>
@@ -315,7 +315,7 @@
   let camStream = null, camVideo = null, vctx = null, proc = null, pctx = null, ZOOM = 1.0;
   let animStarted = false;
 
-  // === 오디오 공통 (클릭/타자/음악/마이크 FX) ===
+  // === 오디오 공통 (클릭/타자/음악/마이크 FX/드론/윙윙) ===
   let audioCtx = null;
   function ensureAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
   function beep(freq=880, dur=0.07, gain=0.05, type='square'){
@@ -329,10 +329,10 @@
       o.stop(audioCtx.currentTime + dur);
     }catch(e){}
   }
-  function playClick(){ beep(880, .07, .06, 'square'); } // 클릭도 살짝 상향
+  function playClick(){ beep(880, .07, .06, 'square'); }
   function wireButtonClicks(){ document.querySelectorAll('.uiBtn').forEach(btn=>btn.addEventListener('click', playClick, {passive:true})); }
 
-  // ===== Ambient (프리셋/인트로 동안 배경음) =====
+  // ===== Ambient (프리셋/인트로/전환/FS까지 유지 > FS 페이드아웃 끝에 정지) =====
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, loops=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
@@ -373,12 +373,38 @@
       if(!running||!master) return; const t=(ctx||audioCtx).currentTime; master.gain.linearRampToValueAtTime(0.0, t+fade);
       setTimeout(()=>{ loops.forEach(fn=>{try{fn();}catch{}}); loops=[]; running=false; }, fade*1000+120);
     }
-    return { start, stop, isRunning:()=>running };
+    return { start, stop, isRunning:()=>running, masterGain:()=>master };
   })();
 
-  // ===== 마이크 FX (LR 패닝 + LPF + 리버브) =====
-  let micStream=null, micSrc=null, panNode=null, lpf=null, revConvolver=null, dryGain=null, wetGain=null, comp=null, micBus=null;
-  function makeImpulse(ctx, seconds=2.8, decay=3.5){
+  // ===== 전환용 드론(부웅부웅) — 마이크 FX가 시작되면 자동 정지 =====
+  const Drone = (() => {
+    let o, g, lfo, run=false;
+    function start(){
+      ensureAudio();
+      if(run) return;
+      o = audioCtx.createOscillator(); g = audioCtx.createGain(); lfo = audioCtx.createOscillator();
+      o.type='sawtooth'; o.frequency.value=70;
+      g.gain.value=0.0001;
+      lfo.type='sine'; lfo.frequency.value=1.2; // 부웅부웅
+      const lfoG = audioCtx.createGain(); lfoG.gain.value=0.12; lfo.connect(lfoG); lfoG.connect(g.gain);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(); lfo.start();
+      g.gain.exponentialRampToValueAtTime(0.18, audioCtx.currentTime + 0.6);
+      run=true;
+    }
+    function stop(fade=0.6){
+      if(!run) return;
+      const t=audioCtx.currentTime;
+      g.gain.linearRampToValueAtTime(0.0001, t+fade);
+      setTimeout(()=>{ try{o.stop();lfo.stop();}catch{} run=false; }, fade*1000+120);
+    }
+    return { start, stop, isRunning:()=>run };
+  })();
+
+  // ===== 마이크 FX (하드 팬/저역-고역 강조/리버브 2배/윙윙) =====
+  let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, comp=null, micBus=null;
+  let wingTimer=null;
+  function makeImpulse(ctx, seconds=4.5, decay=5.5){ // 더 길고 깊게
     const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
     for(let ch=0; ch<2; ch++){
       const data=ir.getChannelData(ch);
@@ -396,59 +422,91 @@
       if(!micSrc) micSrc = audioCtx.createMediaStreamSource(micStream);
 
       comp = audioCtx.createDynamicsCompressor();
-      comp.threshold.value = -24; comp.knee.value=15; comp.ratio.value=3; comp.attack.value=0.01; comp.release.value=0.25;
+      comp.threshold.value = -26; comp.knee.value=18; comp.ratio.value=3.5; comp.attack.value=0.005; comp.release.value=0.25;
 
-      lpf = audioCtx.createBiquadFilter(); lpf.type='lowpass'; lpf.frequency.value=2000; lpf.Q.value=0.7;
+      // 필터/팬
+      lpf = audioCtx.createBiquadFilter(); lpf.type='lowpass'; lpf.frequency.value=2200; lpf.Q.value=0.7;
+      lowshelf = audioCtx.createBiquadFilter(); lowshelf.type='lowshelf'; lowshelf.frequency.value=220; lowshelf.gain.value=0;
+      highshelf = audioCtx.createBiquadFilter(); highshelf.type='highshelf'; highshelf.frequency.value=3500; highshelf.gain.value=0;
 
       panNode = audioCtx.createStereoPanner(); panNode.pan.value = 0.0;
 
-      revConvolver = audioCtx.createConvolver(); revConvolver.buffer = makeImpulse(audioCtx, 3.2, 4.0);
+      // 리버브 2배
+      revConvolver = audioCtx.createConvolver(); revConvolver.buffer = makeImpulse(audioCtx, 4.5, 6.0);
 
-      dryGain = audioCtx.createGain(); dryGain.gain.value=0.9;
-      wetGain = audioCtx.createGain(); wetGain.gain.value=0.0; // 시작은 드라이
+      dryGain = audioCtx.createGain(); dryGain.gain.value=0.8;
+      wetGain = audioCtx.createGain(); wetGain.gain.value=0.4; // 기본도 살짝 젖게
 
-      micBus = audioCtx.createGain(); micBus.gain.value=0.9;
+      micBus = audioCtx.createGain(); micBus.gain.value=0.95;
 
-      // graph: mic -> comp -> lpf -> pan -> (split) -> dry & convolver(wet) -> mix -> destination
-      micSrc.connect(comp).connect(lpf).connect(panNode);
+      // graph: mic -> comp -> lowshelf -> highshelf -> lpf -> pan -> (dry & convolver) -> mix -> out
+      micSrc.connect(comp).connect(lowshelf).connect(highshelf).connect(lpf).connect(panNode);
       panNode.connect(dryGain);
       panNode.connect(revConvolver);
       revConvolver.connect(wetGain);
 
-      const out = audioCtx.createGain(); out.gain.value=0.95;
+      const out = audioCtx.createGain(); out.gain.value=0.98;
       dryGain.connect(out); wetGain.connect(out);
       out.connect(micBus).connect(audioCtx.destination);
 
-      // 동작(기울기)에 따라 파라미터
+      // 동작(기울기)에 따라 하드 팬/톤/리버브
       window.addEventListener('deviceorientation', onTiltAudio, {passive:true});
+
+      // FIRST SLEEP 동안 간헐적 윙—윙—
+      if(wingTimer) clearInterval(wingTimer);
+      wingTimer = setInterval(()=>wingWhirr(), 3500 + Math.random()*2500);
+
+      // 전환 드론 정지
+      Drone.stop(0.4);
     }catch(e){ console.warn('startMicFX error', e); }
   }
   function stopMicFX(){
     try{
       window.removeEventListener('deviceorientation', onTiltAudio);
+      if(wingTimer){ clearInterval(wingTimer); wingTimer=null; }
       if(micBus) micBus.disconnect();
     }catch(e){}
   }
+  // 윙—윙— 모터 느낌
+  function wingWhirr(){
+    try{
+      ensureAudio();
+      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+      o.type='triangle'; o.frequency.value=160; g.gain.value=0.0001;
+      o.connect(g).connect(audioCtx.destination);
+      o.start();
+      const t=audioCtx.currentTime;
+      g.gain.linearRampToValueAtTime(0.10, t+0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.6);
+      setTimeout(()=>o.stop(), 650);
+    }catch(e){}
+  }
+  // 하드 팬 & 톤
   function onTiltAudio(e){
     if(!audioCtx) return;
     const gamma = clamp(e.gamma ?? 0, -60, 60); // -좌 +우
     const beta  = clamp(e.beta ?? 0, -60, 60);  // -뒤로 젖힘 +숙임
 
-    // LR 패닝
-    const pan = map(gamma, -45, 45, -1, 1);
-    if(panNode) panNode.pan.value = clamp(pan, -1, 1);
+    // 하드팬: ±5° 데드존 넘으면 좌/우 100%
+    let panVal = 0;
+    if(gamma > 5) panVal = +1;
+    else if(gamma < -5) panVal = -1;
+    if(panNode) panNode.pan.value = panVal;
 
-    // 숙이면 먹먹 / 올리면 쨍 + 리버브
-    const cutoff = (beta>=0)
-      ? map(beta, 0, 60, 1800, 600)
-      : map(beta, -60, 0, 4000, 2200);
-    if(lpf) lpf.frequency.value = clamp(cutoff, 300, 6000);
+    // 톤: 아래로 숙이면 저역 부스트 + 먹먹 / 위로 들면 고역 강조 + 쨍
+    const bassBoost = (beta>=0) ? map(beta, 0, 60, 0, 12) : map(beta, -60, 0, -3, 0);
+    const trebleBoost = (beta<0) ? map(beta, -60, 0, 9, 0) : 0;
+    if(lowshelf) lowshelf.gain.value = clamp(bassBoost, -6, 12);
+    if(highshelf) highshelf.gain.value = clamp(trebleBoost, 0, 9);
 
-    const wet = (beta>=0)
-      ? map(beta, 0, 60, 0.35, 0.10)
-      : map(beta, -60, 0, 0.85, 0.35);
-    if(wetGain) wetGain.gain.value = clamp(wet, 0.05, 0.9);
-    if(dryGain) dryGain.gain.value = clamp(1.0 - wetGain.gain.value*0.5, 0.3, 1.0);
+    // 로우패스: 숙일수록 컷오프 내려 먹먹 / 올릴수록 올라가 쨍
+    const cutoff = (beta>=0) ? map(beta, 0, 60, 2400, 700) : map(beta, -60, 0, 6500, 2500);
+    if(lpf) lpf.frequency.value = clamp(cutoff, 400, 8000);
+
+    // 리버브 더 젖게 (2배 감각): 올릴수록 더 웻
+    const wet = (beta>=0) ? map(beta, 0, 60, 0.5, 0.35) : map(beta, -60, 0, 0.95, 0.5);
+    if(wetGain) wetGain.gain.value = clamp(wet, 0.2, 1.0);
+    if(dryGain) dryGain.gain.value = clamp(1.0 - wetGain.gain.value*0.55, 0.25, 1.0);
   }
 
   // 프리셋 짧은 허밍
@@ -469,24 +527,23 @@
   }
 
   // 더 큰 효과음: swell / thunder
-  function swell(targetGain=0.12, freq=220){
+  function swell(targetGain=0.22, freq=200){
     try{
       ensureAudio();
       const o=audioCtx.createOscillator(), g=audioCtx.createGain();
       o.type='sine'; o.frequency.value=freq; g.gain.value=0.0001;
-      o.connect(g); g.connect(audioCtx.destination);
+      o.connect(g).connect(audioCtx.destination);
       o.start();
       g.gain.exponentialRampToValueAtTime(targetGain, audioCtx.currentTime + 0.5);
       g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 2.0);
       setTimeout(()=>o.stop(), 2100);
     }catch(e){}
   }
-  async function thunder(intensity=0.22){
+  async function thunder(intensity=0.26){
     try{
       ensureAudio();
-      beep(600,.06,intensity,'square');
-      await sleep(40);
-      beep(1200,.05,Math.min(intensity*0.8,0.28),'square');
+      beep(600,.06,intensity,'square'); await sleep(40);
+      beep(1200,.05,Math.min(intensity*0.8,0.30),'square');
     }catch(e){}
   }
 
@@ -516,6 +573,9 @@
       camPermGranted = true;
     }catch(e){ console.warn('permission error:', e); }
     fadeHide(overlay, 2000);
+
+    // 닉네임 단계부터 앰비언트 시작
+    ensureAudio(); Ambient.start();
     fadeShow(nameOverlay, 2000);
     setTimeout(()=>nickInput.focus(), 60);
   }
@@ -542,7 +602,7 @@
     fadeShow(preset, 2000);
     initSaver();
     startScreensaverHum();
-    Ambient.start(); // 배경 무드 온
+    // Ambient는 이미 재생 중
   }
   function initSaver(){
     const w = preset.clientWidth, h = preset.clientHeight;
@@ -665,7 +725,8 @@
   function showIntro(){
     fadeShow(intro, 2000, 'flex');
     typeTickCount = 0;
-    typeAllIntro().then(()=>{ // 모든 타이핑 완료 후 카운트다운 시작
+    // 모든 타이핑 완료 직후 카운트다운 즉시 시작
+    typeAllIntro().then(()=>{
       const total = 30; let left = total;
       introCount.textContent='';
       const iv = setInterval(()=>{
@@ -679,25 +740,25 @@
     });
   }
 
-  // 전환: GOOD NIGHT(2s) → 2s 번개/교차 → FIRST SLEEP(페이드 5s)
+  // 전환: GOOD NIGHT(2s) → 2s 번개/교차 + 드론 → FIRST SLEEP(페이드 5s)
   async function startTransition(){
     fadeHide(intro, 2000);
-    Ambient.stop(2.0); // 배경음 페이드아웃
 
-    // GOOD NIGHT 2s (더 큰 스웰)
+    // GOOD NIGHT 2s (스웰 + 드론 시작)
     titleText.textContent='GOOD NIGHT';
     titleScreen.style.display='flex';
     titleScreen.style.background='#000'; titleText.style.color='#fff';
-    swell(0.22, 200);
+    swell(0.24, 190);
+    Drone.start();
     await sleep(2000);
 
-    // 2s 교차/번개 (더 큰 번개)
+    // 2s 교차/번개 (드론 계속)
     const until = performance.now()+2000; let flag=false;
     while(performance.now()<until){
       flag=!flag;
       titleText.textContent = flag ? 'GOOD NIGHT' : 'THE FIRST SLEEP';
       titleScreen.style.background='rgba(255,255,255,0.96)'; titleText.style.color='#000';
-      await thunder(0.26);
+      await thunder(0.28);
       await sleep(80);
       titleScreen.style.background='#000'; titleText.style.color='#fff';
       await sleep(120);
@@ -707,17 +768,20 @@
     // THE FIRST SLEEP — 5s 페이드아웃 + UI 오버랩 인
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
-    swell(0.18, 180);
+    swell(0.20, 180);
 
-    // 마이크 FX 가동
+    // 마이크 FX 가동(드론은 내부에서 정지)
     await startMicFX();
 
     // 캡쳐/컨트롤 UI 인
     controls.classList.add('show');
     captureBtn.classList.add('show');
 
+    // FS 텍스트와 함께 앰비언트도 서서히 페이드 아웃
     await sleep(500);
     firstSleep.style.transition='opacity 5000ms ease';
+    // Ambient 페이드 아웃
+    Ambient.stop(5.0);
     firstSleep.style.opacity='0';
     await sleep(5200);
     firstSleep.style.display='none';
@@ -769,35 +833,14 @@
     }
   });
 
-  function loopCam(){
-    requestAnimationFrame(loopCam);
-    if(!vctx || !pctx) return;
-    const W=view.width/(window.devicePixelRatio||1), H=view.height/(window.devicePixelRatio||1);
-    const PW=proc.width, PH=proc.height;
-    pctx.fillStyle='rgba(0,0,0,.14)'; pctx.fillRect(0,0,PW,PH);
-    if(camVideo && camVideo.readyState>=2){
-      const vw=camVideo.videoWidth||0, vh=camVideo.videoHeight||0;
-      if(vw&&vh){
-        const cover=Math.max(PW/vw, PH/vh)*ZOOM;
-        const dw=vw*cover, dh=vh*cover, dx=(PW-dw)/2, dy=(PH-dh)/2;
-        pctx.globalAlpha=.7; pctx.drawImage(camVideo,dx,dy,dw,dh);
-        pctx.globalAlpha=1;
-        const frame=pctx.getImageData(0,0,PW,PH),d=frame.data;
-        for(let i=0;i<d.length;i+=4){const g=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0; d[i]=d[i+1]=d[i+2]=g;}
-        pctx.putImageData(frame,0,0);
-      }
-    }
-    vctx.imageSmoothingEnabled = false;
-    vctx.drawImage(proc,0,0,W,H);
-    if(charActive){ drawCharacter(W,H); }
-  }
-
-  // ===== 캐릭터(8분 경로) =====
+  // ==== 캐릭터(8분 경로) + 리본 트레일 ====
   let charActive = false;
   let charStartTime = 0;
   const CHAR_DURATION = 480000; // 8분
   let pathSegments = null;
+  const trail = []; const TRAIL_LEN = 90;
 
+  // 픽셀 사람
   const PIXEL_SPRITE = [
     "..XXXXXX....",".XXXXXXXX...",".XX.XX.XX...",".XXXXXXXX...",
     "..XXXXXX....",".XXXXXXXX...",".XXXXXXXX...",".XX.XX.XX...",
@@ -846,7 +889,6 @@
 
   function buildPathFromUI(){
     const fr = frameBox.getBoundingClientRect();
-    const docR = document.body.getBoundingClientRect(); // 상단 버튼 숨김이라 프레임 기반으로만 경로 구성
     const ctrlR = document.querySelector('.controls').getBoundingClientRect();
 
     const start = { x: fr.left + fr.width*0.2, y: fr.top + fr.height*0.3 };
@@ -867,6 +909,7 @@
 
   function beginCharacter(){
     pathSegments = buildPathFromUI();
+    trail.length = 0;
     charActive = true;
     charStartTime = performance.now();
   }
@@ -879,21 +922,18 @@
     return { x: seg.a.x + (seg.b.x - seg.a.x)*lt, y: seg.a.y + (seg.b.y - seg.a.y)*lt, t };
   }
 
-  function drawPathDots(ctx, segments, t){
-    if(!segments || !segments.length) return;
+  function drawRibbonTrail(ctx){
+    // 유령 리본: 과거 위치에 사인 오프셋 + 투명 그라데이션
     ctx.save();
-    ctx.globalAlpha = 0.7; ctx.fillStyle = '#cfcfcf';
-    const step = 22, size = 3;
-    for(const s of segments){
-      const localT = Math.max(0, Math.min(1, (t - s.t0) / (s.t1 - s.t0)));
-      if(localT <= 0) continue;
-      const dotCount = Math.floor((s.len * localT) / step);
-      for(let i=0; i<=dotCount; i++){
-        const r = (i * step) / s.len;
-        const x = s.a.x + (s.b.x - s.a.x) * r;
-        const y = s.a.y + (s.b.y - s.a.y) * r;
-        ctx.fillRect(Math.round(x - size/2), Math.round(y - size/2), size, size);
-      }
+    for(let i=0;i<trail.length;i++){
+      const p = trail[i];
+      const age = (trail.length - i) / trail.length; // 0..1 (앞이 오래됨)
+      const alpha = 0.12 * age;
+      const wob = Math.sin(p.t*20 + i*0.25) * 8 * age;
+      ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+      ctx.beginPath();
+      ctx.ellipse(p.x + wob, p.y, 10*age, 4*age, 0, 0, Math.PI*2);
+      ctx.fill();
     }
     ctx.restore();
   }
@@ -902,12 +942,39 @@
     const now = performance.now();
     const p = getCharPos(now);
     if(!p) return;
-    drawPathDots(vctx, pathSegments, p.t);
+
+    trail.push({x:p.x, y:p.y, t:p.t});
+    if(trail.length>TRAIL_LEN) trail.shift();
+
+    drawRibbonTrail(vctx);
     drawPixelHuman(vctx, Math.round(p.x), Math.round(p.y), displayName, W);
     if(now - charStartTime >= CHAR_DURATION){ charActive=false; }
   }
 
-  // 캡처: freeze → 픽셀화 → 페이드아웃
+  function loopCam(){
+    requestAnimationFrame(loopCam);
+    if(!vctx || !pctx) return;
+    const W=view.width/(window.devicePixelRatio||1), H=view.height/(window.devicePixelRatio||1);
+    const PW=proc.width, PH=proc.height;
+    pctx.fillStyle='rgba(0,0,0,.14)'; pctx.fillRect(0,0,PW,PH);
+    if(camVideo && camVideo.readyState>=2){
+      const vw=camVideo.videoWidth||0, vh=camVideo.videoHeight||0;
+      if(vw&&vh){
+        const cover=Math.max(PW/vw, PH/vh)*ZOOM;
+        const dw=vw*cover, dh=vh*cover, dx=(PW-dw)/2, dy=(PH-dh)/2;
+        pctx.globalAlpha=.7; pctx.drawImage(camVideo,dx,dy,dw,dh);
+        pctx.globalAlpha=1;
+        const frame=pctx.getImageData(0,0,PW,PH),d=frame.data;
+        for(let i=0;i<d.length;i+=4){const g=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0; d[i]=d[i+1]=d[i+2]=g;}
+        pctx.putImageData(frame,0,0);
+      }
+    }
+    vctx.imageSmoothingEnabled = false;
+    vctx.drawImage(proc,0,0,W,H);
+    if(charActive){ drawCharacter(W,H); }
+  }
+
+  // 캡처: freeze → 느리고 길게 픽셀 잔상 → 매우 천천히 페이드아웃
   let captureAnimating = false;
   captureBtn.addEventListener('click', ()=>{
     if(captureAnimating) return;
@@ -925,16 +992,16 @@
 
     setTimeout(()=>{
       const W = freezeLayer.width, H = freezeLayer.height;
-      let px = 4, step = 1.2;
+      let px = 4, step = 1.08; // 천천히
       const anim = ()=>{
-        if(px > 80){
-          freezeLayer.style.transition='opacity 800ms ease';
+        if(px > 160){
+          freezeLayer.style.transition='opacity 1800ms ease';
           freezeLayer.style.opacity='0';
           setTimeout(()=>{
             freezeLayer.style.display='none';
             freezeLayer.style.transition='';
             captureAnimating = false;
-          }, 820);
+          }, 1850);
           return;
         }
         const w = Math.max(1, Math.floor(W/px));
@@ -951,7 +1018,7 @@
         requestAnimationFrame(anim);
       };
       anim();
-    }, 800);
+    }, 200); // 바로 시작하되 약간의 체감 딜레이
   });
 
   // DOC/MAP (현재 버튼 숨김 유지)
@@ -971,7 +1038,7 @@
   function closeMap(){ mapOverlay.style.display='none'; }
   if(btnExitMap) btnExitMap.addEventListener('click', closeMap, {passive:true});
 
-  // AUDIO 토글 (배경 앰비언트만; 버튼은 숨김 상태)
+  // AUDIO 토글 (숨김 상태)
   if(audioToggle) audioToggle.addEventListener('click', ()=>{
     ensureAudio();
     if (Ambient.isRunning()){ Ambient.stop(1.2); audioToggle.textContent='AUDIO'; }
