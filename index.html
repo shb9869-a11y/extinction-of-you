@@ -40,7 +40,7 @@
     top:calc(var(--frame) + var(--safe-t));
     right:calc(var(--frame) + var(--safe-r));
     bottom:calc(var(--frame) + var(--safe-b));
-    border:1px solid #000; pointer-events:none; z-index:50;
+    border:2px solid rgba(255,255,255,.22); pointer-events:none; z-index:50;
   }
 
   .uiBtn{background:#000;color:#fff;border:1px solid #444;font-size:var(--fs-strong);
@@ -69,20 +69,26 @@
     position:fixed; left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
     top:calc(var(--frame) + var(--ui-gap) + var(--safe-t)); z-index:180;}
 
-  #overlay{
-    position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
-    padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));
-    color:#fff;background:rgba(0,0,0,.85)
-  }
-  #overlayContent{max-width:min(92vw, 72ch);font-family:"Courier New",ui-monospace,monospace;line-height:1.7;text-align:center}
-  .tip{opacity:.8;font-size:var(--fs-small)}
+  /* NAME FIRST */
+  #nameOverlay{position:fixed; inset:0; z-index:260; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.85); color:#fff;}
+  #nameCard{ width:min(92vw,600px); text-align:center; font-family:"Courier New",ui-monospace,monospace; }
+  #nameCard h2{ margin:0 0 12px 0; letter-spacing:.08em; font-size:clamp(16px,3.2vmin,24px); }
+  #nick{ width:100%; padding:12px 14px; background:#000; border:1px solid #555; color:#fff; font-size:clamp(16px,3.2vmin,22px); outline:none; }
+  #nameRow{ display:flex; gap:10px; margin-top:12px; justify-content:center; }
+  #nameRow .uiBtn{ padding:10px 14px; }
 
+  /* PRESET */
   #preset{position:fixed;inset:0;z-index:250;background:#000;display:none;cursor:pointer}
   #presetCanvas{position:absolute;left:0;top:0;width:100%;height:100%}
 
-  #overlayWelcome{position:fixed;inset:0;z-index:220;display:none;align-items:center;justify-content:center;color:#fff;background:rgba(0,0,0,.55);padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;}
+  /* WELCOME (이전 스타일 유지) */
+  #overlayWelcome{
+    position:fixed;inset:0;z-index:220;display:none;align-items:center;justify-content:center;color:#fff;background:rgba(0,0,0,.55);
+    padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;}
   #welcomeCard{ text-align:center; max-width:min(92vw, 700px); }
+  #welcomeCard .title{ font-size:clamp(16px,3.6vmin,28px);font-weight:900;letter-spacing:.06em;line-height:1.1;margin-bottom:14px;}
 
+  /* INTRO */
   #introOverlay{
     position:fixed; inset:0; z-index:230; display:none; align-items:center; justify-content:center;
     color:#fff; background:rgba(0,0,0,.75); padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;
@@ -94,13 +100,15 @@
   #introBox ol{padding-left:1.2em; margin:.4em 0 1em 0;}
   .count{margin-top:10px; text-align:center; font-size:var(--fs-strong);}
 
+  /* TITLE */
   #titleScreen{
-    position:fixed; inset:0; z-index:260; display:none; align-items:center; justify-content:center;
+    position:fixed; inset:0; z-index:240; display:none; align-items:center; justify-content:center;
     background:#000; color:#fff; text-align:center; padding:calc(var(--safe-t)) calc(var(--safe-r)) calc(var(--safe-b)) calc(var(--safe-l));
   }
   #titleText{font-weight:900; letter-spacing:.06em; line-height:1.05;
     font-size:clamp(24px, 10vmin, 96px);}
 
+  /* DOC/MAP */
   #docOverlay{ position:fixed; inset:0; z-index:210; display:none; background:rgba(0,0,0,.8); color:#fff; font-family:"Courier New",ui-monospace,monospace; padding-bottom:var(--safe-b); padding-top:var(--safe-t);}
   #docUI{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(96vw,1100px); display:flex; flex-direction:column; gap:10px; }
   #docHeader{ display:flex; justify-content:space-between; align-items:center; }
@@ -132,31 +140,33 @@
   <button id="docLauncher" class="uiBtn small">DOCUMENT</button>
   <button id="mapLauncher" class="uiBtn small">MAP</button>
 
-  <div id="overlay">
-    <div id="overlayContent">
-      <div style="margin-bottom:10px">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
-      <button id="permGateBtn" class="uiBtn">화면을 탭하여 카메라·동작(센서)·오디오를 허용해주세요</button>
-      <div class="tip">승인 후 ‘SLEEEEE…’ 프리셋 화면이 뜹니다.</div>
+  <!-- NAME FIRST -->
+  <div id="nameOverlay">
+    <div id="nameCard">
+      <h2>TELL ME YOUR NAME</h2>
+      <input id="nick" type="text" maxlength="24" placeholder="닉네임을 입력하세요" autocomplete="off" />
+      <div id="nameRow">
+        <button id="nameSubmit" class="uiBtn">GO</button>
+      </div>
+      <div class="tip" style="margin-top:8px">입력한 이름은 화면 속 캐릭터에 표시됩니다.</div>
     </div>
   </div>
 
+  <!-- PRESET -->
   <div id="preset" title="Tap to continue">
     <canvas id="presetCanvas"></canvas>
   </div>
 
+  <!-- WELCOME (이전 스타일) -->
   <div id="overlayWelcome">
     <div id="welcomeCard">
       <div style="letter-spacing:.1em;margin-bottom:12px;">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
-      <div style="font-size:clamp(16px,3.6vmin,28px);font-weight:900;letter-spacing:.06em;line-height:1.1;margin-bottom:14px;">
+      <div class="title">
         Welcome to<br>
         SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP,<br>
         SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP
       </div>
-      <div style="display:flex;gap:12px;justify-content:center;">
-        <button id="goIntro" class="uiBtn flat">PRESS HERE TO SLEEP</button>
-        <!-- [UI RESTORE] 즉시 스킵 버튼 -->
-        <button id="skipAll" class="uiBtn small">SKIP ▶</button>
-      </div>
+      <button id="goIntro" class="uiBtn flat">PRESS HERE TO SLEEP</button>
     </div>
   </div>
 
@@ -185,8 +195,10 @@
     <div class="count">It will come in <span id="countNum">30</span> seconds.</div>
   </div></div>
 
+  <!-- TITLE -->
   <div id="titleScreen"><div id="titleText"></div></div>
 
+  <!-- DOC -->
   <div id="docOverlay">
     <div id="docUI">
       <div id="docHeader">
@@ -201,6 +213,7 @@
     </div>
   </div>
 
+  <!-- MAP -->
   <div id="mapOverlay">
     <div id="mapUI">
       <h3>MAP</h3>
@@ -211,27 +224,30 @@
 
 <script>
 (() => {
+  // PWA manifest
   (function injectManifest(){
     const manifest = {"name":"SLEEEEEP","short_name":"SLEEEEEP","display":"standalone","start_url":"./","background_color":"#000","theme_color":"#000","icons":[]};
     const url = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:"application/manifest+json"}));
     const link = document.createElement('link'); link.rel='manifest'; link.href=url; document.head.appendChild(link);
   })();
 
+  // Size
   function setAppH(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
   setAppH(); addEventListener('resize', setAppH, {passive:true});
   if (window.visualViewport){ visualViewport.addEventListener('resize', ()=>setTimeout(setAppH,50)); }
 
   const qs = s => document.querySelector(s);
 
-  const overlay = qs('#overlay');
-  const permBtn = qs('#permGateBtn');
+  // UI refs
+  const nameOverlay = qs('#nameOverlay');
+  const nickInput = qs('#nick');
+  const nameSubmit = qs('#nameSubmit');
 
   const preset = qs('#preset');
   const presetCanvas = qs('#presetCanvas');
 
   const welcome = qs('#overlayWelcome');
   const goIntroBtn = qs('#goIntro');
-  const skipAllBtn = qs('#skipAll'); // [UI RESTORE]
 
   const intro = qs('#introOverlay');
   const countNum = qs('#countNum');
@@ -256,26 +272,19 @@
   const mapOverlay = qs('#mapOverlay');
   const btnExitMap = qs('#btnExitMap');
 
+  const frameBox = qs('.frameBox');
   const view = qs('#view');
 
-  // [UI RESTORE] 전역 UI 상태 토글러
-  let UI_HIDDEN = false;
-  function showUI(){
-    UI_HIDDEN = false;
-    hideTopUI(false);
+  // UI toggle helpers
+  function hideTopUI(hide){
+    docBtn.classList.toggle('hide', hide);
+    mapBtn.classList.toggle('hide', hide);
+    qs('.controls').classList.toggle('hide', hide);
+    captureBtn.classList.toggle('hide', hide);
+    frameBox.classList.toggle('hide', false);
   }
-  function hideUI(){
-    UI_HIDDEN = true;
-    hideTopUI(true);
-  }
-  function toggleUI(){
-    UI_HIDDEN ? showUI() : hideUI();
-  }
-  // 비상 토글: U 키
-  window.addEventListener('keydown', (e)=>{
-    if ((e.key||'').toLowerCase()==='u'){ toggleUI(); }
-  });
 
+  // Camera + render
   let camStream=null, camVideo=null, vctx=null, proc=null, pctx=null, ZOOM=1.0;
   function updateZoomLabel(){ zoomVal.textContent = ZOOM.toFixed(1)+'×'; }
   updateZoomLabel();
@@ -287,22 +296,19 @@
     try{ if(needsIOS){ await DeviceOrientationEvent.requestPermission().catch(()=>{}); } }catch{}
   }
 
-  async function gate(){
+  // Start camera only after preset tap (권한 요청 시점: 프리셋 탭)
+  async function startCameraAfterPreset(){
     try{
       await requestMotionPermissions();
       camStream = await navigator.mediaDevices.getUserMedia({
         video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}, audio:false
       });
     }catch(e){ console.warn('permission error:', e); }
-    overlay.style.display='none';
-    showPreset();
+    startCamera();
+    showWelcome();
   }
 
-  ['pointerdown','touchstart','click','keydown'].forEach(evt=>{
-    window.addEventListener(evt,()=>{ if(overlay.style.display!=='none') gate(); }, {once:true, capture:true, passive:true});
-  });
-  permBtn.addEventListener('click',(e)=>{ e.preventDefault(); gate(); },{passive:false});
-
+  // PRESET
   function drawPreset(){
     const dpr = window.devicePixelRatio||1;
     const w = preset.clientWidth, h = preset.clientHeight;
@@ -336,31 +342,37 @@
     }
   }
   function showPreset(){
-    hideUI(); // 오버레이 동안 UI 숨김
+    hideTopUI(true);
     preset.style.display='block';
     drawPreset();
   }
   addEventListener('resize', ()=>{ if(preset.style.display==='block') drawPreset(); }, {passive:true});
   preset.addEventListener('click', ()=>{
     preset.style.display='none';
-    startCamera();
-    showWelcome();
+    startCameraAfterPreset();
   }, {passive:true});
 
+  // NAME (first screen)
+  let displayName = 'YOU';
+  function acceptName(){
+    const v = (nickInput.value||'').trim();
+    if(v.length>0){ displayName = v; }
+    nameOverlay.style.display='none';
+    showPreset(); // GO → 프리셋 화면
+  }
+  nameSubmit.addEventListener('click', acceptName, {passive:true});
+  nickInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ acceptName(); }});
+  setTimeout(()=>nickInput.focus(), 60);
+
+  // WELCOME (기존 스타일)
   function showWelcome(){ welcome.style.display='flex'; }
+  const goIntroBtn = qs('#goIntro');
   goIntroBtn.addEventListener('click', ()=>{
     welcome.style.display='none';
     showIntro();
   }, {passive:true});
 
-  // [UI RESTORE] 스킵: 바로 UI 복원 + 타이틀 시퀀스 생략
-  skipAllBtn.addEventListener('click', ()=>{
-    welcome.style.display='none';
-    titleScreen.style.display='none';
-    intro.style.display='none';
-    showUI(); // 즉시 복원
-  }, {passive:true});
-
+  // Camera rendering
   function startCamera(){
     camVideo = document.createElement('video'); camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
     camVideo.srcObject = camStream;
@@ -377,12 +389,18 @@
   }
   addEventListener('resize', ()=>setTimeout(resizeCam,50), {passive:true});
 
+  // Character state
+  let charActive = false;
+  let charStartTime = 0;
+  const CHAR_DURATION = 180000; // 3분
+  let pathSegments = null; // computed later
+
   function loopCam(){
     requestAnimationFrame(loopCam);
     const W=view.width/(window.devicePixelRatio||1), H=view.height/(window.devicePixelRatio||1);
     const PW=proc.width, PH=proc.height;
     pctx.fillStyle='rgba(0,0,0,.14)'; pctx.fillRect(0,0,PW,PH);
-    if(camVideo.readyState>=2){
+    if(camVideo && camVideo.readyState>=2){
       const vw=camVideo.videoWidth||0, vh=camVideo.videoHeight||0;
       if(vw&&vh){
         const cover=Math.max(PW/vw, PH/vh)*ZOOM;
@@ -395,11 +413,13 @@
       }
     }
     vctx.drawImage(proc,0,0,W,H);
+
+    if(charActive){ drawCharacter(W,H); }
   }
 
-  /* INTRO (30s) */
+  // INTRO (30s) → THE FIRST SILENCE → 캐릭터 3분 이동
   function showIntro(){
-    hideUI();
+    hideTopUI(true);
     intro.style.display='flex';
     let count=30;
     countNum.textContent = count;
@@ -409,23 +429,15 @@
       if(count<=0){
         clearInterval(t);
         intro.style.display='none';
-        runChapters();
+        (async ()=>{
+          await showTitle('THE FIRST SILENCE', 1500);
+          beginCharacterMove();
+          hideTopUI(false);
+        })();
       }
     },1000);
   }
 
-  const chapters = [
-    'INTRODUCTION',
-    'THE FIRST SLEEP',
-    'THE SECOND SLEEP',
-    'THE THIRD SLEEP',
-    'THE FOURTH SLEEP',
-    'SILENCE'
-  ];
-  async function runChapters(){
-    for(const label of chapters){ await showTitle(label, 1500); }
-    showUI(); // [UI RESTORE] 챕터 종료 후 UI 복원
-  }
   function showTitle(text, hold=1500){
     return new Promise(res=>{
       titleText.textContent = text;
@@ -437,14 +449,84 @@
     });
   }
 
-  function hideTopUI(hide){
-    // 버튼 군
-    docBtn.classList.toggle('hide', hide);
-    mapBtn.classList.toggle('hide', hide);
-    qs('.controls').classList.toggle('hide', hide);
-    captureBtn.classList.toggle('hide', hide);
-    // 프레임 박스는 항상 표시(연출 요소)
-    qs('.frameBox').classList.toggle('hide', false);
+  // 'ㄹ' 동선 (프레임 내부)
+  function buildReulPath(){
+    const r = frameBox.getBoundingClientRect();
+    const pad = 14;
+    const x0 = r.left + pad;
+    const x1 = r.left + r.width * 0.35;
+    const x3 = r.right - pad;
+
+    const y0 = r.top + pad;
+    const y2 = r.top + r.height * 0.5;
+    const y4 = r.bottom - pad;
+
+    const pts = [
+      {x:x0, y:y0}, // 좌상단 시작
+      {x:x3, y:y0}, // 상단 우
+      {x:x3, y:y2}, // 중간 하행
+      {x:x1, y:y2}, // 중간 좌
+      {x:x1, y:y4}, // 하단 하행
+      {x:x3, y:y4}  // 우하단
+    ];
+    const segs=[]; let total=0;
+    for(let i=0;i<pts.length-1;i++){
+      const a=pts[i], b=pts[i+1]; const len=Math.hypot(b.x-a.x, b.y-a.y);
+      segs.push({a,b,len}); total+=len;
+    }
+    let acc=0; for(const s of segs){ s.t0=acc/total; acc+=s.len; s.t1=acc/total; }
+    return segs;
+  }
+
+  function beginCharacterMove(){
+    pathSegments = buildReulPath();
+    charActive = true;
+    charStartTime = performance.now();
+  }
+
+  function getCharPos(now){
+    const t = Math.min(1, (now - charStartTime)/CHAR_DURATION);
+    const sgs = pathSegments||[]; if(!sgs.length) return null;
+    let seg = sgs[sgs.length-1], lt=1;
+    for(const s of sgs){ if(t>=s.t0 && t<=s.t1){ seg=s; lt=(t - s.t0)/(s.t1 - s.t0); break; } }
+    return { x: seg.a.x + (seg.b.x - seg.a.x)*lt, y: seg.a.y + (seg.b.y - seg.a.y)*lt, t };
+  }
+
+  function drawCharacter(W,H){
+    const now = performance.now();
+    const p = getCharPos(now);
+    if(!p){ return; }
+    const ctx = vctx;
+    const label = displayName;
+    ctx.save();
+    ctx.font = `700 ${Math.max(12, Math.min(24, W*0.02))}px "Courier New", ui-monospace, monospace`;
+    const metrics = ctx.measureText(label);
+    const tw = metrics.width, th = Math.max(20, parseInt(ctx.font,10) + 6);
+    const padX = 10, padY = 6, bw = tw + padX*2, bh = th + padY*2;
+    const bx = p.x - bw/2, by = p.y - bh - 8;
+
+    roundRect(ctx, bx, by, bw, bh, 8);
+    ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.fill();
+    ctx.lineWidth=1; ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.stroke();
+    ctx.fillStyle='#fff';
+    ctx.fillText(label, bx + padX, by + padY + th*0.8 - 4);
+
+    ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,.85)'; ctx.fill();
+    ctx.restore();
+
+    if(now - charStartTime >= CHAR_DURATION){ charActive=false; }
+  }
+
+  function roundRect(ctx, x,y,w,h,r){
+    const rr = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr,y);
+    ctx.arcTo(x+w,y,x+w,y+h,rr);
+    ctx.arcTo(x+w,y+h,x,y+h,rr);
+    ctx.arcTo(x,y+h,x,y,rr);
+    ctx.arcTo(x,y,x+w,y,rr);
+    ctx.closePath();
   }
 
   // CAPTURE
@@ -458,7 +540,7 @@
 
   // DOC
   function openDoc(){ docOverlay.style.display='block'; }
-  function closeDoc(){ docOverlay.style.display='none'; showUI(); } // [UI RESTORE]
+  function closeDoc(){ docOverlay.style.display='none'; }
   docBtn.addEventListener('click', openDoc, {passive:true});
   btnExitDoc.addEventListener('click', closeDoc, {passive:true});
   (function buildDocGrid(){
@@ -472,12 +554,12 @@
 
   // MAP
   function openMap(){ mapOverlay.style.display='block'; }
-  function closeMap(){ mapOverlay.style.display='none'; showUI(); } // [UI RESTORE]
+  function closeMap(){ mapOverlay.style.display='none'; }
   mapBtn.addEventListener('click', openMap, {passive:true});
   btnExitMap.addEventListener('click', closeMap, {passive:true});
 
-  // 초기 상태
-  overlay.style.display='flex';
+  // boot: 이름 입력이 처음 화면
+  // (아무 것도 표시 안함 — nameOverlay가 보이는 상태)
 })();
 </script>
 </body>
