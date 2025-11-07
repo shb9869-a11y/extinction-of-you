@@ -294,6 +294,11 @@
   const frameBox = qs('.frameBox');
   const view = qs('#view');
 
+  // State
+  let camPermGranted = false;
+  let camStream = null, camVideo = null, vctx = null, proc = null, pctx = null, ZOOM = 1.0;
+  let animStarted = false;
+
   // UI toggle helpers
   function hideTopUI(hide){
     docBtn.classList.toggle('hide', hide);
@@ -303,7 +308,12 @@
     frameBox.classList.toggle('hide', false);
   }
 
-  // Permissions first
+  function updateZoomLabel(){ zoomVal.textContent = ZOOM.toFixed(1)+'×'; }
+  updateZoomLabel();
+  zoomIn.addEventListener('click', ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); }, {passive:true});
+  zoomOut.addEventListener('click', ()=>{ ZOOM=Math.max(0.35, ZOOM-0.05); updateZoomLabel(); }, {passive:true});
+
+  // Permissions first (권한만 미리 획득 → 스트림 즉시 stop)
   async function requestMotionPermissions(){
     const needsIOS = typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function';
     try{ if(needsIOS){ await DeviceOrientationEvent.requestPermission().catch(()=>{}); } }catch{}
@@ -311,10 +321,12 @@
   async function gate(){
     try{
       await requestMotionPermissions();
-      camStream = await navigator.mediaDevices.getUserMedia({
-        video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}, audio:false
+      const tmp = await navigator.mediaDevices.getUserMedia({
+        video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}, audio:false
       });
-      startCamera();
+      // 권한 OK 확보 후 즉시 정리
+      tmp.getTracks().forEach(t=>t.stop());
+      camPermGranted = true;
     }catch(e){
       console.warn('permission error:', e);
     }
@@ -380,9 +392,10 @@
     drawPreset();
   }
   addEventListener('resize', ()=>{ if(preset.style.display==='block') drawPreset(); }, {passive:true});
-  preset.addEventListener('click', ()=>{
+  preset.addEventListener('click', async ()=>{
     preset.style.display='none';
-    showWelcome(); // 권한/카메라 이미 시작됨
+    await startCameraFresh();   // ← 실제 스트림 시작을 여기서
+    showWelcome();
   }, {passive:true});
 
   // Welcome → Intro → Title → Character move
@@ -424,33 +437,67 @@
   }
 
   // Camera + render
-  let camStream=null, camVideo=null, vctx=null, proc=null, pctx=null, ZOOM=1.0;
-  function updateZoomLabel(){ zoomVal.textContent = ZOOM.toFixed(1)+'×'; }
-  updateZoomLabel();
-  zoomIn.addEventListener('click', ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); }, {passive:true});
-  zoomOut.addEventListener('click', ()=>{ ZOOM=Math.max(0.35, ZOOM-0.05); updateZoomLabel(); }, {passive:true});
+  async function startCameraFresh(){
+    try{
+      // 권한이 없으면 여기서 다시 요청(일부 브라우저에서 필요)
+      if(!camPermGranted){
+        await navigator.mediaDevices.getUserMedia({video:true, audio:false}).then(s=>{ s.getTracks().forEach(t=>t.stop()); camPermGranted=true; });
+      }
+      camStream = await navigator.mediaDevices.getUserMedia({
+        video:{facingMode:'environment', width:{ideal:1920}, height:{ideal:1080}},
+        audio:false
+      });
+      if(!camVideo){
+        camVideo = document.createElement('video');
+        camVideo.setAttribute('playsinline','');
+        camVideo.autoplay = true; camVideo.playsInline = true; camVideo.muted = true;
+      }
+      camVideo.srcObject = camStream;
+      // iOS는 명시적 play 필요
+      await camVideo.play().catch(()=>{ /* 일부 기기에서 무음이라 OK */ });
 
-  function startCamera(){
-    camVideo = document.createElement('video'); camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
-    camVideo.srcObject = camStream;
-    vctx = view.getContext('2d',{alpha:false});
-    proc = document.createElement('canvas'); pctx = proc.getContext('2d',{willReadFrequently:true});
-    resizeCam(); loopCam();
+      if(!vctx){
+        vctx = view.getContext('2d',{alpha:false});
+        proc = document.createElement('canvas');
+        pctx = proc.getContext('2d',{willReadFrequently:true});
+        resizeCam();
+      }
+      if(!animStarted){
+        animStarted = true;
+        loopCam();
+      }
+    }catch(e){
+      console.warn('startCameraFresh error:', e);
+    }
   }
+
   function resizeCam(){
     const dpr = window.devicePixelRatio||1;
     const w = window.innerWidth, h = window.innerHeight;
-    view.width=w*dpr; view.height=h*dpr; vctx.setTransform(dpr,0,0,dpr,0,0);
+    view.width=w*dpr; view.height=h*dpr; if(vctx) vctx.setTransform(dpr,0,0,dpr,0,0);
     const scale = matchMedia('(orientation: landscape)').matches? 0.86 : 0.9;
-    proc.width=Math.floor(w*scale); proc.height=Math.floor(h*scale);
+    if(proc){ proc.width=Math.floor(w*scale); proc.height=Math.floor(h*scale); }
   }
   addEventListener('resize', ()=>setTimeout(resizeCam,50), {passive:true});
 
+  // 페이지 가시성 변화 시 재생 재시도
+  document.addEventListener('visibilitychange', async ()=>{
+    if(document.visibilityState==='visible' && camVideo){
+      try{
+        if(camVideo.paused){ await camVideo.play(); }
+        // 스트림이 끊겼으면 재시작
+        if(!camStream || camStream.getVideoTracks().every(t=>t.readyState!=='live')){
+          await startCameraFresh();
+        }
+      }catch{}
+    }
+  });
+
   function loopCam(){
     requestAnimationFrame(loopCam);
+    if(!vctx || !pctx) return;
     const W=view.width/(window.devicePixelRatio||1), H=view.height/(window.devicePixelRatio||1);
     const PW=proc.width, PH=proc.height;
-    if(!pctx) return;
     pctx.fillStyle='rgba(0,0,0,.14)'; pctx.fillRect(0,0,PW,PH);
     if(camVideo && camVideo.readyState>=2){
       const vw=camVideo.videoWidth||0, vh=camVideo.videoHeight||0;
@@ -464,7 +511,7 @@
         pctx.putImageData(frame,0,0);
       }
     }
-    if(vctx && proc) vctx.drawImage(proc,0,0,W,H);
+    vctx.drawImage(proc,0,0,W,H);
     if(charActive){ drawCharacter(W,H); }
   }
 
@@ -523,33 +570,28 @@
     if(!p){ return; }
     const ctx = vctx;
 
-    // 크기 스케일 (프레임/화면 기준)
-    const s = Math.max(18, Math.min(42, Math.min(W,H)*0.035)); // 전체 스케일
+    const s = Math.max(18, Math.min(42, Math.min(W,H)*0.035));
     const headR = s*0.28;
     const bodyH = s*0.95;
     const shoulderW = s*0.55;
     const hipW = s*0.40;
 
-    // y 기준: p.y는 캐릭터의 발 위치로 볼 수도 있으나,
-    // 여기서는 p를 몸통 중앙 기준으로 약간 올려서 배치
     const cx = p.x;
     const cy = p.y - s*0.15;
 
     ctx.save();
     ctx.lineJoin='round'; ctx.lineCap='round';
 
-    // 바깥 글로우
     ctx.shadowColor='rgba(0,0,0,0.6)';
     ctx.shadowBlur=8;
 
-    // 몸(가슴~골반) 실루엣
+    // 몸통
     ctx.beginPath();
-    // 상체 라운드 사다리꼴
     roundedTrapezoid(ctx,
-      cx - shoulderW/2, cy - bodyH*0.35,  // 상단 좌
-      cx + shoulderW/2, cy - bodyH*0.35,  // 상단 우
-      cx - hipW/2,      cy + bodyH*0.15,  // 하단 좌
-      cx + hipW/2,      cy + bodyH*0.15,  // 하단 우
+      cx - shoulderW/2, cy - bodyH*0.35,
+      cx + shoulderW/2, cy - bodyH*0.35,
+      cx - hipW/2,      cy + bodyH*0.15,
+      cx + hipW/2,      cy + bodyH*0.15,
       Math.min(12, s*0.25)
     );
     ctx.fillStyle='rgba(255,255,255,0.9)';
@@ -581,12 +623,11 @@
     ctx.strokeStyle = 'rgba(255,255,255,0.95)';
     ctx.stroke();
 
-    // 이름 라벨 (아래)
+    // 이름 라벨(아래)
     ctx.shadowBlur=0;
     ctx.font = `700 ${Math.max(12, Math.min(26, W*0.022))}px "Courier New", ui-monospace, monospace`;
     ctx.textAlign='center'; ctx.textBaseline='top';
     const labelY = cy + bodyH*0.70;
-    // 얇은 외곽선 효과
     drawTextWithOutline(ctx, displayName, cx, labelY, '#fff', 'rgba(0,0,0,0.65)');
 
     ctx.restore();
@@ -605,7 +646,6 @@
   }
 
   function roundedTrapezoid(ctx, x1,y1, x2,y2, x3,y3, x4,y4, r){
-    // 좌->우 상변, 우측면, 하변, 좌측면 순서
     const pts = [{x:x1,y:y1},{x:x2,y:y2},{x:x4,y:y4},{x:x3,y:y3}];
     ctx.beginPath();
     for(let i=0;i<pts.length;i++){
@@ -654,7 +694,7 @@
   mapBtn.addEventListener('click', openMap, {passive:true});
   btnExitMap.addEventListener('click', closeMap, {passive:true});
 
-  // boot: 권한 → 이름 → 프리셋 ...
+  // boot: 권한 → 이름 → 프리셋 → (탭) → 카메라 시작 → Welcome ...
 })();
 </script>
 </body>
