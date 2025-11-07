@@ -46,7 +46,8 @@
   .uiBtn{background:#000;color:#fff;border:1px solid #444;font-size:var(--fs-strong);
     padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",ui-monospace,monospace;white-space:nowrap;cursor:pointer;user-select:none}
   .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
-  .uiBtn.flat{border:none;background:transparent;text-decoration:underline;text-underline-offset:3px}
+  /* 밑줄 제거 */
+  .uiBtn.flat{border:none;background:transparent;text-decoration:none}
   .uiBtn[disabled]{opacity:.35;pointer-events:none;filter:grayscale(1)}
   .hide{display:none !important;}
 
@@ -69,6 +70,12 @@
     position:fixed; left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
     top:calc(var(--frame) + var(--ui-gap) + var(--safe-t)); z-index:180;}
 
+  /* 공통 크레딧: SHB, KHJ… → PRESS 폰트(모노스페이스)로 통일 */
+  .credits{
+    font-family:"Courier New",ui-monospace,monospace;
+    letter-spacing:.08em;
+  }
+
   /* 1) 권한 게이트 */
   #overlay{
     position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;
@@ -89,24 +96,39 @@
   #preset{position:fixed;inset:0;z-index:250;background:#000;display:none;cursor:pointer}
   #presetCanvas{position:absolute;left:0;top:0;width:100%;height:100%}
 
-  /* 4) WELCOME (고정 스타일) */
+  /* 4) WELCOME (업데이트된 큰 타이포) */
   #overlayWelcome{
     position:fixed;inset:0;z-index:220;display:none;align-items:center;justify-content:center;color:#fff;background:rgba(0,0,0,.55);
     padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;}
-  #welcomeCard{ text-align:center; max-width:min(92vw, 700px); }
-  #welcomeCard .title{ font-size:clamp(16px,3.6vmin,28px);font-weight:900;letter-spacing:.06em;line-height:1.1;margin-bottom:14px;}
-
-  /* INTRO */
-  #introOverlay{
-    position:fixed; inset:0; z-index:230; display:none; align-items:center; justify-content:center;
-    color:#fff; background:rgba(0,0,0,.75); padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;
-    font-family:"Courier New",ui-monospace,monospace;
+  #welcomeCard{ text-align:center; max-width:min(92vw, 900px); }
+  #welcomeCard .title{
+    font-size:clamp(32px, 12vmin, 120px);
+    font-weight:900;
+    letter-spacing:.04em;
+    line-height:1.02;
+    margin-bottom:16px;
+    text-transform:uppercase;
   }
-  #introBox{ width:min(92vw, 860px); }
-  #introBox h2{margin:.2em 0 .6em 0; font-size:clamp(16px, 3.2vmin, 24px); letter-spacing:.1em; text-align:center;}
-  #introBox p, #introBox li{font-size:var(--fs-body); line-height:1.8;}
-  #introBox ol{padding-left:1.2em; margin:.4em 0 1em 0;}
-  .count{margin-top:10px; text-align:center; font-size:var(--fs-strong);}
+
+  /* INTRO — 자체 스크롤 가능하도록 수정 */
+  #introOverlay{
+    position:fixed; inset:0; z-index:230; display:none;
+    /* 가운데 정렬 대신 상단 정렬 + 내부 스크롤 */
+    align-items:flex-start; justify-content:center;
+    color:#fff; background:rgba(0,0,0,.85);
+    padding:calc(24px + var(--safe-t)) calc(16px + var(--safe-r)) calc(20px + var(--safe-b)) calc(16px + var(--safe-l));
+    font-family:"Courier New",ui-monospace,monospace;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  #introBox{
+    width:min(92vw, 860px);
+    margin:0 auto;
+  }
+  #introBox h2{margin:.2em 0 .6em 0; font-size:clamp(18px, 3.6vmin, 26px); letter-spacing:.1em; text-align:center;}
+  #introBox p, #introBox li{font-size:var(--fs-body); line-height:1.85;}
+  #introBox ol{padding-left:1.2em; margin:.4em 0 1.2em 0;}
+  .count{margin:14px 0 4px 0; text-align:center; font-size:var(--fs-strong);}
 
   /* TITLE */
   #titleScreen{
@@ -151,7 +173,7 @@
   <!-- 1) 권한 게이트 -->
   <div id="overlay">
     <div id="overlayContent">
-      <div style="letter-spacing:.1em;margin-bottom:10px;">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
+      <div class="credits" style="margin-bottom:10px;">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
       <button id="permGateBtn" class="uiBtn" type="button">화면을 탭하여 카메라·동작(센서)을 허용해주세요</button>
       <div class="tip" style="opacity:.7;margin-top:6px">허용 후 이름 입력 화면으로 이동합니다.</div>
     </div>
@@ -176,11 +198,9 @@
   <!-- 4) WELCOME -->
   <div id="overlayWelcome">
     <div id="welcomeCard">
-      <div style="letter-spacing:.1em;margin-bottom:12px;">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
+      <div class="credits" style="margin-bottom:12px;">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
       <div class="title">
-        Welcome to<br>
-        SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP,<br>
-        SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP
+        Welcome to SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP
       </div>
       <button id="goIntro" class="uiBtn flat" type="button">PRESS HERE TO SLEEP</button>
     </div>
@@ -209,6 +229,7 @@
     <p>이 세상에서 사라져버린 ‘너’의 이야기에 귀를 기울입니다.</p>
 
     <div class="count">It will come in <span id="countNum">30</span> seconds.</div>
+    <div style="height:12vh"></div> <!-- 하단 여백으로 스크롤 완충 -->
   </div></div>
 
   <!-- TITLE -->
@@ -560,7 +581,6 @@
   }
 
   // ===== 픽셀 사람 스프라이트 =====
-  // 간단한 10x16 모노크롬 스프라이트 (# = 픽셀 on, . = off)
   const PIXEL_SPRITE = [
     "....XX....",
     "...XXXX...",
@@ -581,18 +601,15 @@
   ];
 
   function drawPixelHuman(ctx, cx, baselineY, name, W){
-    // 셀 크기 (화면 크기에 비례하되 정수 픽셀)
     const cell = Math.max(2, Math.min(6, Math.floor(W * 0.004)));
     const cols = PIXEL_SPRITE[0].length;
     const rows = PIXEL_SPRITE.length;
     const width = cols * cell;
     const height = rows * cell;
 
-    // 스프라이트 왼쪽 상단 좌표 (가운데 정렬, 발 밑 맞춤)
     const x0 = Math.round(cx - width/2);
     const y0 = Math.round(baselineY - height);
 
-    // 그림자(살짝 아래/오른쪽으로 한 칸)
     ctx.fillStyle = 'rgba(0,0,0,0.45)';
     for(let y=0; y<rows; y++){
       const row = PIXEL_SPRITE[y];
@@ -603,7 +620,6 @@
       }
     }
 
-    // 본체
     ctx.fillStyle = '#fff';
     for(let y=0; y<rows; y++){
       const row = PIXEL_SPRITE[y];
@@ -614,18 +630,15 @@
       }
     }
 
-    // 이름 (발 아래)
     ctx.font = `700 ${Math.max(12, Math.min(24, Math.floor(W*0.022)))}px "Courier New", ui-monospace, monospace`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     const ny = Math.round(baselineY + Math.max(4, cell));
-    // 아웃라인
     ctx.fillStyle = 'rgba(0,0,0,0.65)';
     ctx.fillText(name, cx, ny-1);
     ctx.fillText(name, cx, ny+1);
     ctx.fillText(name, cx-1, ny);
     ctx.fillText(name, cx+1, ny);
-    // 본문
     ctx.fillStyle = '#fff';
     ctx.fillText(name, cx, ny);
   }
@@ -635,7 +648,6 @@
     const p = getCharPos(now);
     if(!p){ return; }
     const ctx = vctx;
-    // p.y는 경로 좌표(프레임 안) — 여기를 발 기준으로 사용
     drawPixelHuman(ctx, Math.round(p.x), Math.round(p.y), displayName, W);
     if(now - charStartTime >= CHAR_DURATION){ charActive=false; }
   }
