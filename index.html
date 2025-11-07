@@ -32,10 +32,8 @@
   html,body{margin:0;height:var(--appH);background:#000;overflow:hidden;touch-action:manipulation}
   body{font-family:Impact,"Anton","Arial Black",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans KR",sans-serif;}
 
-  /* 카메라(웰컴 이후부터 표시) */
   #view{position:fixed;left:0;top:0;width:100%;height:var(--appH);display:block;z-index:0}
 
-  /* 프로시니엄 테두리 */
   .frameBox{
     position:fixed;
     left:calc(var(--frame) + var(--safe-l));
@@ -45,7 +43,6 @@
     border:1px solid #000; pointer-events:none; z-index:50;
   }
 
-  /* 공용 버튼 */
   .uiBtn{background:#000;color:#fff;border:1px solid #444;font-size:var(--fs-strong);
     padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",ui-monospace,monospace;white-space:nowrap;cursor:pointer;user-select:none}
   .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
@@ -53,7 +50,6 @@
   .uiBtn[disabled]{opacity:.35;pointer-events:none;filter:grayscale(1)}
   .hide{display:none !important;}
 
-  /* 컨트롤 */
   .controls{
     position:fixed;
     right:calc(var(--frame) + var(--ui-gap) + var(--safe-r));
@@ -66,7 +62,6 @@
     bottom:calc(var(--frame) + var(--ui-gap) + var(--safe-b));
     z-index:150}
 
-  /* 런처(상단 좌/우) */
   #mapLauncher{
     position:fixed; right:calc(var(--frame) + var(--ui-gap) + var(--safe-r));
     top:calc(var(--frame) + var(--ui-gap) + var(--safe-t)); z-index:180;}
@@ -74,7 +69,6 @@
     position:fixed; left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
     top:calc(var(--frame) + var(--ui-gap) + var(--safe-t)); z-index:180;}
 
-  /* 권한 오버레이 */
   #overlay{
     position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
     padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));
@@ -83,19 +77,16 @@
   #overlayContent{max-width:min(92vw, 72ch);font-family:"Courier New",ui-monospace,monospace;line-height:1.7;text-align:center}
   .tip{opacity:.8;font-size:var(--fs-small)}
 
-  /* 프리셋: S/E 패턴 풀스크린 */
   #preset{position:fixed;inset:0;z-index:250;background:#000;display:none;cursor:pointer}
   #presetCanvas{position:absolute;left:0;top:0;width:100%;height:100%}
 
-  /* 웰컴 */
   #overlayWelcome{position:fixed;inset:0;z-index:220;display:none;align-items:center;justify-content:center;color:#fff;background:rgba(0,0,0,.55);padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;}
   #welcomeCard{ text-align:center; max-width:min(92vw, 700px); }
 
-  /* 인트로(20초 카운트다운) */
   #introOverlay{
-    position:fixed; inset:0; z-index:230; display:none; align-items:center; justify-content:center;
+    position:fixed; inset:0; z-index:230; display:flex; align-items:center; justify-content:center;
     color:#fff; background:rgba(0,0,0,.75); padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;
-    font-family:"Courier New",ui-monospace,monospace;
+    font-family:"Courier New",ui-monospace,monospace; display:none;
   }
   #introBox{ width:min(92vw, 860px); }
   #introBox h2{margin:.2em 0 .6em 0; font-size:clamp(16px, 3.2vmin, 24px); letter-spacing:.1em; text-align:center;}
@@ -103,7 +94,6 @@
   #introBox ol{padding-left:1.2em; margin:.4em 0 1em 0;}
   .count{margin-top:10px; text-align:center; font-size:var(--fs-strong);}
 
-  /* 챕터 타이틀 풀스크린 */
   #titleScreen{
     position:fixed; inset:0; z-index:260; display:none; align-items:center; justify-content:center;
     background:#000; color:#fff; text-align:center; padding:calc(var(--safe-t)) calc(var(--safe-r)) calc(var(--safe-b)) calc(var(--safe-l));
@@ -111,7 +101,6 @@
   #titleText{font-weight:900; letter-spacing:.06em; line-height:1.05;
     font-size:clamp(24px, 10vmin, 96px);}
 
-  /* DOC */
   #docOverlay{ position:fixed; inset:0; z-index:210; display:none; background:rgba(0,0,0,.8); color:#fff; font-family:"Courier New",ui-monospace,monospace; padding-bottom:var(--safe-b); padding-top:var(--safe-t);}
   #docUI{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(96vw,1100px); display:flex; flex-direction:column; gap:10px; }
   #docHeader{ display:flex; justify-content:space-between; align-items:center; }
@@ -119,12 +108,10 @@
   .docBtn{ border:1px solid #444; background:#000; color:#fff; padding:12px; text-align:center; cursor:pointer; font-size:var(--fs-small) }
   .docPane{ border:1px solid #444; padding:12px; max-height:50vh; overflow:auto; background:#000; }
 
-  /* MAP (게임 제거하고 플레이스홀더만) */
   #mapOverlay{ position:fixed; inset:0; z-index:210; display:none; background:rgba(0,0,0,.8); color:#fff; font-family:"Courier New",ui-monospace,monospace; }
   #mapUI{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); text-align:center; width:min(92vw, 820px); }
   #mapUI h3{ letter-spacing:.08em; }
 
-  /* 페이드 */
   .fade-enter{opacity:0; transition:opacity .45s ease}
   .fade-enter.show{opacity:1}
   .fade-leave{opacity:1; transition:opacity .45s ease}
@@ -132,13 +119,9 @@
 </style>
 </head>
 <body>
-  <!-- 카메라 -->
   <canvas id="view"></canvas>
-
-  <!-- 프로시니엄 테두리 -->
   <div class="frameBox" aria-hidden="true"></div>
 
-  <!-- 컨트롤 -->
   <div class="controls">
     <button class="uiBtn small" id="zoomOut">–</button>
     <div class="readout"><span id="zoomVal">1.0×</span></div>
@@ -146,11 +129,9 @@
   </div>
   <button id="captureBtn" class="uiBtn small btn-capture">CAPTURE</button>
 
-  <!-- 런처 -->
   <button id="docLauncher" class="uiBtn small">DOCUMENT</button>
   <button id="mapLauncher" class="uiBtn small">MAP</button>
 
-  <!-- 권한 오버레이 -->
   <div id="overlay">
     <div id="overlayContent">
       <div style="margin-bottom:10px">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
@@ -159,12 +140,10 @@
     </div>
   </div>
 
-  <!-- 프리셋 -->
   <div id="preset" title="Tap to continue">
     <canvas id="presetCanvas"></canvas>
   </div>
 
-  <!-- 웰컴 -->
   <div id="overlayWelcome">
     <div id="welcomeCard">
       <div style="letter-spacing:.1em;margin-bottom:12px;">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
@@ -177,33 +156,33 @@
     </div>
   </div>
 
-  <!-- 인트로 (20초 카운트다운) -->
+  <!-- INTRODUCTION (30초) -->
   <div id="introOverlay"><div id="introBox">
     <h2>INTRODUCTION</h2>
+
     <p>지금 이 화면을 보고 있는 당신,<br>
-    주변의 소리에 천천히 귀를 기울이며 이 공간에 진입해주세요.<br>
-    이제부터 당신은 약 30분 동안, 짧은 단잠에 들게 됩니다.</p>
+    주변의 소리에 천천히 귀를 기울이며 공간을 거닐기 시작합니다.<br>
+    지금부터 당신은 약 30분 간, 짧은 단잠에 들게 됩니다.</p>
 
     <ol>
-      <li>세계관 설명입니다.</li>
-      <li>우리는 언제나 타자와 함께 존재해왔습니다.</li>
-      <li>그러나 어느 순간, 타자는 ‘너’가 아닌 ‘그것’이 되기 시작했습니다.</li>
-      <li>‘그것’으로 전락한 ‘너’들은 서서히 우리의 내면 속에서 희미해져 갑니다.</li>
-      <li>마치 꿈 속에서 분명 누군가를 만난 것 같은데, 그게 누구인지 떠오르지 않는 것처럼 말이죠.</li>
-      <li>자, 이곳은 바로, 그 ‘너’가 사라져버린 누군가의 내면 세계입니다.</li>
+      <li>당신이 거닐고 있는 이곳의 세계관 설명입니다.</li>
+      <li>우리는 언제나 타자와 함께 존재해왔습니다. 친구, 엄마, 누나, 아버지, 지나가는 저 사람과 같이 말이죠.</li>
+      <li>그러나 어느 순간, ‘너’로 존재했던 그들은 ‘너’가 아닌 ‘그것’으로 전락하기 시작했습니다.</li>
+      <li>이제는 그 어느곳에서도 ‘너’를 찾아볼 수는 없습니다.</li>
+      <li>‘그것’으로 전락한 ‘너’들은 서서히 우리의 내면 속에서 희미해져 가고 있기 때문이죠.</li>
+      <li>마치 꿈 속에서 분명 누군가를 만난 것 같은데, 그게 누구인지 떠오르지 않는 것처럼.</li>
+      <li>네, 그렇습니다. 이곳은 바로, 그 ‘너’가 사라져버린, ‘너’를 제거해버린, 누군가의 내면 세계입니다.</li>
     </ol>
 
-    <p>의식이 서서히 희미해져가는 지금,</p>
-    <p>당신은 이 내면의 미로를 거닐며,</p>
-    <p>천천히 눈을 감고, 이 세상에서 사라져버린 ‘너’의 이야기에 귀를 기울입니다.</p>
+    <p>당신의 의식이 서서히 희미해져가는 지금, 두 번의 심호흡을 크게 한 후,</p>
+    <p>이 내면의 미로를 거닐며, 천천히 눈을 감고,</p>
+    <p>이 세상에서 사라져버린 ‘너’의 이야기에 귀를 기울입니다.</p>
 
-    <div class="count">The door will close in <span id="countNum">20</span> seconds.</div>
+    <div class="count">It will come in <span id="countNum">30</span> seconds.</div>
   </div></div>
 
-  <!-- 챕터 타이틀 -->
   <div id="titleScreen"><div id="titleText"></div></div>
 
-  <!-- DOCUMENT -->
   <div id="docOverlay">
     <div id="docUI">
       <div id="docHeader">
@@ -218,7 +197,6 @@
     </div>
   </div>
 
-  <!-- MAP (게임 제거, 플레이스홀더) -->
   <div id="mapOverlay">
     <div id="mapUI">
       <h3>MAP</h3>
@@ -229,21 +207,18 @@
 
 <script>
 (() => {
-  /* Manifest */
   (function injectManifest(){
     const manifest = {"name":"SLEEEEEP","short_name":"SLEEEEEP","display":"standalone","start_url":"./","background_color":"#000","theme_color":"#000","icons":[]};
     const url = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:"application/manifest+json"}));
     const link = document.createElement('link'); link.rel='manifest'; link.href=url; document.head.appendChild(link);
   })();
 
-  /* app height */
   function setAppH(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
   setAppH(); addEventListener('resize', setAppH, {passive:true});
   if (window.visualViewport){ visualViewport.addEventListener('resize', ()=>setTimeout(setAppH,50)); }
 
   const qs = s => document.querySelector(s);
 
-  /* UI refs */
   const overlay = qs('#overlay');
   const permBtn = qs('#permGateBtn');
 
@@ -278,7 +253,6 @@
 
   const view = qs('#view');
 
-  /* camera pipeline (웰컴 이후부터 표시) */
   let camStream=null, camVideo=null, vctx=null, proc=null, pctx=null, ZOOM=1.0;
   function updateZoomLabel(){ zoomVal.textContent = ZOOM.toFixed(1)+'×'; }
   updateZoomLabel();
@@ -293,7 +267,6 @@
   async function gate(){
     try{
       await requestMotionPermissions();
-      // 카메라 승인만 선행
       camStream = await navigator.mediaDevices.getUserMedia({
         video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}, audio:false
       });
@@ -347,7 +320,7 @@
   addEventListener('resize', ()=>{ if(preset.style.display==='block') drawPreset(); }, {passive:true});
   preset.addEventListener('click', ()=>{
     preset.style.display='none';
-    startCamera();      // 여기부터 카메라 렌더
+    startCamera();
     showWelcome();
   }, {passive:true});
 
@@ -393,11 +366,11 @@
     vctx.drawImage(proc,0,0,W,H);
   }
 
-  /* INTRO (20s) */
+  /* INTRO (30s) */
   function showIntro(){
     hideTopUI(true);
     intro.style.display='flex';
-    let count=20;
+    let count=30;
     countNum.textContent = count;
     const t = setInterval(()=>{
       count--;
@@ -410,7 +383,6 @@
     },1000);
   }
 
-  /* 챕터 라벨 (내레이션 제거, 풀스크린 라벨만) */
   const chapters = [
     'INTRODUCTION',
     'THE FIRST SLEEP',
@@ -421,7 +393,7 @@
   ];
   async function runChapters(){
     for(const label of chapters){ await showTitle(label, 1500); }
-    hideTopUI(false); // UI 복귀
+    hideTopUI(false);
   }
   function showTitle(text, hold=1500){
     return new Promise(res=>{
@@ -434,17 +406,14 @@
     });
   }
 
-  /* 상단 UI 표시/숨김 */
   function hideTopUI(hide){
     docBtn.classList.toggle('hide', hide);
     mapBtn.classList.toggle('hide', hide);
-    // 줌/캡쳐/프레임은 계속 보여도 되지만, 타이틀/인트로/프리셋 동안은 가리는 게 안전
     qs('.controls').classList.toggle('hide', hide);
     captureBtn.classList.toggle('hide', hide);
-    qs('.frameBox').classList.toggle('hide', false); // 프레임은 유지
+    qs('.frameBox').classList.toggle('hide', false);
   }
 
-  /* CAPTURE */
   captureBtn.addEventListener('click', ()=>{
     try{
       const a=document.createElement('a');
@@ -453,7 +422,6 @@
     }catch(e){}
   }, {passive:true});
 
-  /* DOCUMENT */
   function openDoc(){docOverlay.style.display='block';}
   function closeDoc(){docOverlay.style.display='none';}
   docBtn.addEventListener('click', openDoc, {passive:true});
@@ -467,13 +435,11 @@
     }
   })();
 
-  /* MAP (게임 제거) */
   function openMap(){ mapOverlay.style.display='block'; }
   function closeMap(){ mapOverlay.style.display='none'; }
   mapBtn.addEventListener('click', openMap, {passive:true});
   btnExitMap.addEventListener('click', closeMap, {passive:true});
 
-  /* 초기: 권한 오버레이 */
   overlay.style.display='flex';
 })();
 </script>
