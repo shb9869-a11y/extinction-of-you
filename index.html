@@ -3,293 +3,296 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP</title>
+<title>SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP">
+<meta name="apple-mobile-web-app-title" content="SLEEEEEP">
 <meta name="theme-color" content="#000000">
 
 <style>
   :root{
     --appH: 100svh;
     --frame: clamp(16px, 4vmin, 40px);
-    --ui-gap: 8px;
-
-    --fs-body: clamp(12px, 2.2vmin, 16px);
-    --fs-strong: clamp(14px, 2.8vmin, 20px);
-    --fs-small: clamp(11px, 1.8vmin, 14px);
-
-    --pad-btn-y: clamp(6px, 1.1vmin, 10px);
-    --pad-btn-x: clamp(10px, 1.8vmin, 20px);
-
     --safe-t: env(safe-area-inset-top, 0px);
     --safe-b: env(safe-area-inset-bottom, 0px);
     --safe-l: env(safe-area-inset-left, 0px);
     --safe-r: env(safe-area-inset-right, 0px);
+
+    --fs-body: clamp(12px, 2.2vmin, 16px);
+    --fs-strong: clamp(14px, 2.8vmin, 20px);
+    --fs-small: clamp(11px, 1.8vmin, 14px);
   }
 
-  /* 기본 배경/캔버스 */
   html,body{margin:0;height:var(--appH);background:#000;overflow:hidden;touch-action:manipulation}
+  body{font-family:Impact, "Anton", "Arial Black", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans KR", sans-serif;}
+
+  /* 배경 카메라 (웰컴 이후부터만 사용) */
   #view{position:fixed;left:0;top:0;width:100%;height:var(--appH);display:block;z-index:0}
 
-  /* 프레임 라인 (게임 시에만 의미) */
-  .frameBox{
-    position:fixed; left:calc(var(--frame) + var(--safe-l)); top:calc(var(--frame) + var(--safe-t));
-    right:calc(var(--frame) + var(--safe-r)); bottom:calc(var(--frame) + var(--safe-b));
-    border:1px solid #000; pointer-events:none; z-index:50;
-  }
-
-  /* 공통 버튼 */
+  /* 상단 런처 (일반 시점에서만 보이게, 프리셋/타이틀/인트로시 숨김) */
+  .launcher{position:fixed;z-index:50;color:#fff;opacity:.9}
+  #docLauncher{left:calc(var(--frame) + var(--safe-l)); top:calc(var(--frame) + var(--safe-t));}
+  #mapLauncher{right:calc(var(--frame) + var(--safe-r)); top:calc(var(--frame) + var(--safe-t));}
   .uiBtn{background:#000;color:#fff;border:1px solid #444;font-size:var(--fs-strong);
-    padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",monospace;white-space:nowrap;cursor:pointer;user-select:none}
-  .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
-  .uiBtn[disabled]{opacity:.35;pointer-events:none;filter:grayscale(1)}
-  .ghostBtn{background:transparent;border:none;color:#fff;font-size:var(--fs-strong);padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",monospace;cursor:pointer;}
+    padding:.5em .9em;white-space:nowrap;cursor:pointer;user-select:none}
+  .uiBtn.flat{border:none;background:transparent;text-decoration:underline;text-underline-offset:3px}
+  .hide{display:none !important;}
 
-  /* 우하단 컨트롤(게임/카메라) */
-  .controls{
-    position:fixed; right:calc(var(--frame) + var(--ui-gap) + var(--safe-r));
-    bottom:calc(var(--frame) + var(--ui-gap) + var(--safe-b));
-    z-index:100; display:flex; gap:6px; align-items:center;
-  }
-  .readout{min-width:48px;text-align:center;opacity:.9;font-family:"Courier New",monospace;font-size:var(--fs-small);color:#ddd}
-  .btn-capture{
-    position:fixed; left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
-    bottom:calc(var(--frame) + var(--ui-gap) + var(--safe-b));
-    z-index:150;
-  }
-
-  /* 런처 */
-  #mapLauncher{ position:fixed; right:calc(var(--frame) + var(--ui-gap) + var(--safe-r));
-    top:calc(var(--frame) + var(--ui-gap) + var(--safe-t)); z-index:280;}
-  #docLauncher{ position:fixed; left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
-    top:calc(var(--frame) + var(--ui-gap) + var(--safe-t)); z-index:280;}
-
-  /* 메인 오버레이 (문서/웰컴/내러티브 등) */
+  /* 권한 오버레이 */
   #overlay{
-    position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center;
+    position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
     padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));
-    font-family:"Courier New",monospace; color:#fff; background:rgba(0,0,0,.72);
+    color:#fff;background:rgba(0,0,0,.85)
   }
-  #overlayContent{
-    pointer-events:auto; line-height:1.7; font-size:var(--fs-body);
-    max-width:min(92vw, 72ch);
-    max-height:calc(var(--appH) - (var(--frame)*2) - var(--safe-t) - var(--safe-b));
-    overflow:auto; -webkit-overflow-scrolling:touch; text-align:left;
-  }
-  .fade{opacity:1;transition:opacity .45s ease}
-  .fade.hidden{opacity:0}
+  #overlayContent{max-width:min(92vw, 72ch);font-family:"Courier New", ui-monospace, monospace;line-height:1.7;text-align:center}
+  .tip{opacity:.8;font-size:var(--fs-small)}
 
-  /* 풀스크린 타이틀(프리셋/챕터 타이틀 공용) */
-  .titleFull{
+  /* 프리셋: SLEEEEEP 패턴 풀스크린 */
+  #preset{position:fixed;inset:0;z-index:250;background:#000;display:none;cursor:pointer}
+  #presetCanvas{position:absolute;left:0;top:0;width:100%;height:100%}
+
+  /* 풀스크린 타이틀 (INTRODUCTION / SLEEPS / SILENCE) */
+  #titleScreen{
     position:fixed; inset:0; z-index:260; display:none; align-items:center; justify-content:center;
-    background:#000; color:#fff; text-align:center; padding-bottom:var(--safe-b); padding-top:var(--safe-t);
+    background:#000; color:#fff; text-align:center; padding:calc(var(--safe-t)) calc(var(--safe-r)) calc(var(--safe-b)) calc(var(--safe-l));
   }
-  .titleFull.show{display:flex; opacity:1; transition:opacity .5s ease}
-  .titleFull.fadeout{opacity:0}
+  #titleText{font-weight:900; letter-spacing:.06em; line-height:1.05;
+    font-size:clamp(24px, 10vmin, 96px);}
 
-  /* 폰트 느낌: 굵고 압축된 산세리프(포스터 유사) */
-  .headline{
-    font-family: Impact, "Anton", "Arial Black", "Helvetica Neue Condensed Black", system-ui, sans-serif;
-    letter-spacing:.04em; line-height:1.0;
+  /* 인트로 카드 */
+  #introOverlay{
+    position:fixed; inset:0; z-index:210; display:none; align-items:center; justify-content:center;
+    color:#fff; background:rgba(0,0,0,.75); padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;
   }
+  .introCard{ width:min(92vw, 860px); font-family:"Courier New", ui-monospace, monospace; }
+  .introCard h2{margin:.2em 0 .6em 0; font-size:clamp(16px, 3.2vmin, 24px); letter-spacing:.1em; text-align:center;}
+  .introCard p, .introCard li{font-size:var(--fs-body); line-height:1.8;}
+  .introCard ol{padding-left:1.2em; margin:.4em 0 1em 0;}
+  .count{margin-top:10px; text-align:center; font-size:var(--fs-strong);}
 
-  /* 웰컴 카드 */
-  .introHeader{ text-align:center; font-size:clamp(12px,2.2vmin,16px); letter-spacing:.12em; margin-bottom:10px; color:#fff; opacity:.9; }
-  .introCard{ margin:0 auto; max-width:min(86vw, 980px); background:transparent; border:none; padding:6px 8px; }
-  .introLine{ margin:8px 0; }
-  .introChar{ display:inline-block; background:#000; color:#fff; padding:2px 5px; margin:2px 1px; box-shadow:0 0 0 1px #333 inset; }
-
-  /* 게임 오버레이 등(기존) */
-  #gameOverlay{ position:fixed; inset:0; z-index:300; display:none; background:rgba(0,0,0,.8);
-    font-family:"Courier New",monospace; color:#fff; padding-bottom:var(--safe-b); padding-top:var(--safe-t);}
-  #gameUI{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; gap:10px; width:min(96vw, 1100px); }
-  #gameHeader{ width:100%; display:flex; justify-content:space-between; align-items:center; gap:8px; }
-  #gameCanvas{ width:100%; height:min(60vh, calc(var(--appH)*0.6)); background:#000; image-rendering: pixelated; border:1px solid #444 }
-  #gameBtns{ display:flex; gap:6px; align-items:center }
-  #dpad{ position:absolute; left:calc(var(--frame) + var(--safe-l)); bottom:calc(var(--frame) + 64px + var(--safe-b)); z-index:320;
-    display:grid; grid-template-columns:repeat(3,48px); grid-template-rows:repeat(3,48px); gap:6px; }
-  .dkey{ width:48px; height:48px; border:1px solid #444; display:flex; align-items:center; justify-content:center; color:#fff; background:#000; opacity:.75; user-select:none; }
-  .dkey:active{ opacity:1 }
-  #interactHint{ position:absolute; left:50%; transform:translateX(-50%); bottom:calc(var(--frame) + var(--safe-b) + 8px); z-index:330; display:none;
-    border:1px solid #444; background:#000; color:#fff; padding:8px 12px; font-size:var(--fs-small); }
-  #gameDialog{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; z-index:340; background:rgba(0,0,0,.55); }
-  #gameDialog .box{ min-width:260px; max-width:86vw; background:#111; color:#eee; border:1px solid #444; border-radius:10px; padding:12px; box-shadow:0 10px 24px rgba(0,0,0,.6); font:12px/1.6 "Courier New",monospace; }
-  #gameDialog .choices{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  /* 페이드 */
+  .fade-enter{opacity:0; transition:opacity .45s ease}
+  .fade-enter.show{opacity:1}
+  .fade-leave{opacity:1; transition:opacity .45s ease}
+  .fade-leave.hide{opacity:0}
 </style>
 </head>
 <body>
+  <!-- 카메라 배경 (웰컴 이후) -->
   <canvas id="view"></canvas>
-  <div class="frameBox" aria-hidden="true"></div>
 
-  <!-- 기본 컨트롤 (게임/카메라) -->
-  <div class="controls">
-    <button class="uiBtn small" id="zoomOut">–</button>
-    <div class="readout"><span id="zoomVal">1.0×</span></div>
-    <button class="uiBtn small" id="zoomIn">+</button>
-  </div>
-  <button id="captureBtn" class="uiBtn small btn-capture">CAPTURE</button>
+  <!-- 런처 (일반 화면에서만) -->
+  <button id="docLauncher" class="launcher uiBtn">DOCUMENT</button>
+  <button id="mapLauncher" class="launcher uiBtn">MAP</button>
 
-  <!-- 상단 런처 -->
-  <button id="docLauncher" class="uiBtn small">DOCUMENT</button>
-  <button id="mapLauncher" class="uiBtn small">MAP</button>
-
-  <!-- 메인 오버레이(퍼미션 버튼/웰컴/내러티브 등) -->
-  <div id="overlay" class="fade" style="display:flex">
-    <div id="overlayContent" class="fade" style="text-align:center">
-      <button id="permGateBtn" class="uiBtn" style="width:min(80vw,420px)">
-        화면을 탭하여 카메라·동작(센서)·오디오를 허용해주세요
-      </button>
-      <div class="tip" style="color:#ddd">승인 후 타이틀 화면이 나타납니다.</div>
+  <!-- 권한 오버레이 -->
+  <div id="overlay">
+    <div id="overlayContent">
+      <div style="margin-bottom:10px">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
+      <button id="permGateBtn" class="uiBtn">화면을 탭하여 카메라·동작(센서)·오디오를 허용해주세요</button>
+      <div class="tip">승인 후 ‘SLEEEEE…’ 프리셋 화면이 뜹니다.</div>
     </div>
   </div>
 
-  <!-- 프리셋(포스터 레퍼런스 스타일, 다른 UI 전부 숨김) -->
-  <div id="preset" class="titleFull">
-    <canvas id="presetCanvas" class="headline" aria-hidden="true"></canvas>
+  <!-- 프리셋 -->
+  <div id="preset" title="Tap to continue">
+    <canvas id="presetCanvas"></canvas>
   </div>
 
-  <!-- 챕터 타이틀 공용 -->
-  <div id="chapterTitle" class="titleFull">
-    <div id="chapterText" class="headline" style="font-size:clamp(24px,16vmin,22vmin);"></div>
-  </div>
-
-  <!-- ===== GAME OVERLAY (기존) ===== -->
-  <div id="gameOverlay">
-    <div id="gameUI">
-      <div id="gameHeader">
-        <div id="hud"><span id="hudRoom">ROOM: 비석의 방 · 하단 출구 → 전화기의 방</span></div>
-        <div id="gameBtns"><button id="btnExitGame" class="uiBtn small">EXIT</button></div>
+  <!-- 웰컴 -->
+  <div id="overlayWelcome" class="hide" style="position:fixed;inset:0;z-index:220;display:flex;align-items:center;justify-content:center;color:#fff;background:rgba(0,0,0,.55);padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;">
+    <div style="text-align:center;max-width:min(92vw, 680px);">
+      <div style="letter-spacing:.1em;margin-bottom:12px;">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
+      <div style="font-size:clamp(16px,3.6vmin,28px);font-weight:900;letter-spacing:.06em;line-height:1.1;margin-bottom:14px;">
+        Welcome to<br>
+        SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP,<br>
+        SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP
       </div>
-      <canvas id="gameCanvas" width="640" height="400"></canvas>
+      <button id="goIntro" class="uiBtn flat">PRESS HERE TO SLEEP</button>
     </div>
-    <div id="dpad">
-      <div></div><div class="dkey" data-dy="-1">↑</div><div></div>
-      <div class="dkey" data-dx="-1">←</div><div class="dkey" data-dy="1">↓</div><div class="dkey" data-dx="1">→</div>
-      <div></div><div></div><div></div>
-    </div>
-    <button id="interactHint" class="uiBtn small">E: 상호작용</button>
-    <div id="gameDialog"><div class="box"><h3 id="dgTitle">기록</h3><div id="dgBody">...</div><div id="dgChoices" class="choices"></div></div></div>
   </div>
+
+  <!-- 인트로(텍스트+20초 카운트다운) -->
+  <div id="introOverlay"><div class="introCard">
+    <h2>INTRODUCTION</h2>
+    <p>지금 이 화면을 보고 있는 당신,<br>
+    주변의 소리에 천천히 귀를 기울이며 이 공간에 진입해주세요.<br>
+    이제부터 당신은 약 30분 동안, 짧은 단잠에 들게 됩니다.</p>
+
+    <ol>
+      <li>세계관 설명입니다.</li>
+      <li>우리는 언제나 타자와 함께 존재해왔습니다.</li>
+      <li>그러나 어느 순간, 타자는 ‘너’가 아닌 ‘그것’이 되기 시작했습니다.</li>
+      <li>‘그것’으로 전락한 ‘너’들은 서서히 우리의 내면 속에서 희미해져 갑니다.</li>
+      <li>마치 꿈 속에서 분명 누군가를 만난 것 같은데, 그게 누구인지 떠오르지 않는 것처럼 말이죠.</li>
+      <li>자, 이곳은 바로, 그 ‘너’가 사라져버린 누군가의 내면 세계입니다.</li>
+    </ol>
+
+    <p>의식이 서서히 희미해져가는 지금,</p>
+    <p>당신은 이 내면의 미로를 거닐며,</p>
+    <p>천천히 눈을 감고, 이 세상에서 사라져버린 ‘너’의 이야기에 귀를 기울입니다.</p>
+
+    <div class="count">The door will close in <span id="countNum">20</span> seconds.</div>
+  </div></div>
+
+  <!-- 풀스크린 타이틀 -->
+  <div id="titleScreen"><div id="titleText"></div></div>
 
 <script>
-(async ()=>{
-  /* ===== 동적 manifest ===== */
+(() => {
+  /* Manifest (홈화면용) */
   (function injectManifest(){
-    const manifest = {"name":"SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP","short_name":"SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP","display":"standalone","start_url":"./","background_color":"#000","theme_color":"#000","icons":[]};
+    const manifest = {"name":"SLEEEEEP","short_name":"SLEEEEEP","display":"standalone","start_url":"./","background_color":"#000","theme_color":"#000","icons":[]};
     const url = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:"application/manifest+json"}));
     const link = document.createElement('link'); link.rel='manifest'; link.href=url; document.head.appendChild(link);
   })();
 
-  /* ===== 가시 높이 보정 ===== */
-  const setAppHeight=()=>document.documentElement.style.setProperty('--appH', window.innerHeight + 'px');
-  setAppHeight(); addEventListener('resize', setAppHeight, {passive:true});
-  addEventListener('orientationchange', ()=>setTimeout(setAppHeight, 120), {passive:true});
-  if (window.visualViewport){ visualViewport.addEventListener('resize', ()=>setTimeout(setAppHeight, 50)); }
+  /* 실제 가시 높이 */
+  function setAppH(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
+  setAppH(); addEventListener('resize', setAppH, {passive:true});
+  if (window.visualViewport){ visualViewport.addEventListener('resize', ()=>setTimeout(setAppH, 50)); }
 
-  /* ===== 유틸 ===== */
-  const qs=(s)=>document.querySelector(s);
-  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
-  const WANT_MIC=true; const WANT_CAM=true;
-  const IS_ANDROID=/Android|Linux/i.test(navigator.userAgent)&&!/like Android/i.test(navigator.userAgent);
+  const qs = s => document.querySelector(s);
+  const overlay = qs('#overlay');
+  const permBtn = qs('#permGateBtn');
+  const preset = qs('#preset');
+  const presetCanvas = qs('#presetCanvas');
+  const welcome = qs('#overlayWelcome');
+  const goIntroBtn = qs('#goIntro');
+  const intro = qs('#introOverlay');
+  const countNum = qs('#countNum');
+  const titleScreen = qs('#titleScreen');
+  const titleText = qs('#titleText');
+  const view = qs('#view');
+  const docBtn = qs('#docLauncher');
+  const mapBtn = qs('#mapLauncher');
 
-  /* ===== 오디오 ===== */
-  let audioCtx=null, mixBus, sfxBus, reverbNode, wetBus, dryBus, master, panNode, micGain;
-  const makeImpulse=(ctx,seconds=2,decay=3)=>{const rate=ctx.sampleRate,len=(rate*seconds)|0,buf=ctx.createBuffer(2,len,rate);
-    for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);for(let i=0;i<len;i++){const t=i/len;d[i]=(Math.random()*2-1)*Math.pow(1-t,decay);}}return buf;};
-  function initAudio(){ if(audioCtx) return;
-    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-    mixBus=audioCtx.createGain(); sfxBus=audioCtx.createGain(); wetBus=audioCtx.createGain(); dryBus=audioCtx.createGain(); master=audioCtx.createGain();
-    sfxBus.gain.value=0.8; dryBus.gain.value=0.55; wetBus.gain.value=0.55;
-    reverbNode=audioCtx.createConvolver(); reverbNode.buffer=makeImpulse(audioCtx);
-    panNode=audioCtx.createStereoPanner(); micGain=audioCtx.createGain(); micGain.gain.value=1.0;
-    mixBus.connect(dryBus); mixBus.connect(reverbNode); reverbNode.connect(wetBus);
-    dryBus.connect(master); wetBus.connect(master); master.connect(audioCtx.destination); sfxBus.connect(mixBus);
-  }
-  function resumeAudio(){ try{ initAudio(); if(audioCtx.state==='suspended') audioCtx.resume(); }catch{} }
-  function playSfx(freq=180,dur=0.16){ try{ resumeAudio(); const t=audioCtx.currentTime; const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-    o.type='square'; o.frequency.setValueAtTime(freq,t); g.gain.setValueAtTime(0.001,t); g.gain.exponentialRampToValueAtTime(0.6,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
-    o.connect(g).connect(sfxBus); o.start(t); o.stop(t+dur+0.02);}catch{} }
-  const SFX={ ui:()=>playSfx(170,0.14), step:(i=0)=>playSfx(i%2?520:460,0.08), interact:()=>{ playSfx(900,0.08); setTimeout(()=>playSfx(1300,0.08),90); }, select:()=>playSfx(660,0.07), ring:()=>{ playSfx(660,0.12); setTimeout(()=>playSfx(660,0.12),140); }};
+  let camStream = null, camOn = false, vctx = null, proc = null, pctx = null, camVideo = null, ZOOM = 1.0;
 
-  /* ===== 마이크 ===== */
-  let micStream=null;
-  async function startMic(){ if(micStream) return;
-    try{ micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1,sampleRate:48000},video:false});
-      resumeAudio(); const source=audioCtx.createMediaStreamSource(micStream); const hp=audioCtx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=80;
-      source.connect(hp).connect(micGain).connect(panNode).connect(mixBus);
-    }catch(e){ console.warn('Mic denied/failed',e); }
-  }
-
-  /* ===== 센서 → 오디오 ===== */
-  let lastMotion={x:0,y:0};
-  function updateAudioFromSensors(ori,mot){ const gamma=(ori&&typeof ori.gamma==='number')?ori.gamma:(mot?(mot.x*9):0);
-    const beta=(ori&&typeof ori.beta==='number')?ori.beta:(mot?(mot.y*9):0);
-    const pan=clamp(gamma/45,-1,1), vol=clamp(0.35+Math.abs(beta)/90*1.25,0.35,1.6);
-    try{ panNode?.pan?.setTargetAtTime(pan,audioCtx.currentTime,0.03); micGain?.gain?.setTargetAtTime(vol,audioCtx.currentTime,0.03);}catch{} }
+  /* -------- 권한 게이트: 카메라/동작/오디오 사전 승인 -------- */
   async function requestMotionPermissions(){
-    const needsIOS=typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function';
+    const needsIOS = typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function';
     try{
       if(needsIOS){
-        const r1=await DeviceOrientationEvent.requestPermission(); let r2='granted';
-        if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){ r2=await DeviceMotionEvent.requestPermission(); }
-        if(r1!=='granted'||r2!=='granted') return false;
+        const r1=await DeviceOrientationEvent.requestPermission().catch(()=> 'denied');
+        if(r1!=='granted') return false;
       }
     }catch{}
-    addEventListener('deviceorientation', (e)=>{ updateAudioFromSensors(e,lastMotion); }, {passive:true});
-    addEventListener('devicemotion', (e)=>{ const g=e.accelerationIncludingGravity||{}; lastMotion.x=+g.x||0; lastMotion.y=+g.y||0; updateAudioFromSensors(null,lastMotion); }, {passive:true});
     return true;
   }
 
-  /* ===== 카메라(흑백 처리) ===== */
-  const view=qs('#view'); const vctx=view.getContext('2d',{alpha:false});
-  const PROC_SCALE=0.9, TRAIL_ALPHA=0.12, GLOBAL_ALPHA=0.7;
-  let ZOOM=1.0, ZOOM_MIN=0.35, ZOOM_MAX=3.0, ZOOM_STEP=0.05;
-  const zoomVal=qs('#zoomVal'); const updateZoom=()=>zoomVal.textContent=ZOOM.toFixed(1)+'×';
-  qs('#zoomIn').addEventListener('click', ()=>{ZOOM=clamp(ZOOM+ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom();SFX.ui();});
-  qs('#zoomOut').addEventListener('click', ()=>{ZOOM=clamp(ZOOM-ZOOM_STEP,ZOOM_MIN,ZOOM_MAX);updateZoom();SFX.ui();}); updateZoom();
-
-  const camVideo=document.createElement('video'); camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true;
-  const proc=document.createElement('canvas'); const pctx=proc.getContext('2d',{willReadFrequently:true});
-  let camStream=null, DRAW_CAMERA=false;
-
-  async function startCamera(){
-    if(camStream) return;
+  async function gate(){
     try{
-      camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}},audio:false});
-      camVideo.srcObject=camStream; await camVideo.play().catch(()=>{});
-    }catch(e){ console.warn('camera failed', e); }
+      await requestMotionPermissions(); // 동작 센서
+      // 카메라 "승인만" 받아둔다 (표시는 안 함)
+      camStream = await navigator.mediaDevices.getUserMedia({
+        video:{facingMode:'environment', width:{ideal:1920}, height:{ideal:1080}}, audio:false
+      });
+    }catch(e){ console.warn('permission error:', e); }
+    // 권한창 닫고 → 프리셋 표시
+    overlay.style.display='none';
+    showPreset();
   }
 
-  function resizeAll(){
-    const dpr=window.devicePixelRatio||1;
-    const w=window.innerWidth, h=window.innerHeight;
+  ['pointerdown','touchstart','click','keydown'].forEach(evt=>{
+    window.addEventListener(evt,()=>{ if(overlay.style.display!=='none') gate(); }, {once:true, capture:true, passive:true});
+  });
+  permBtn.addEventListener('click',(e)=>{ e.preventDefault(); gate(); },{passive:false});
+
+  /* -------- 프리셋 (풀스크린 S/E 패턴) -------- */
+  function drawPreset(){
+    const dpr = window.devicePixelRatio||1;
+    const w = preset.clientWidth, h = preset.clientHeight;
+    presetCanvas.width = w*dpr; presetCanvas.height = h*dpr;
+    const ctx = presetCanvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle='#000'; ctx.fillRect(0,0,w,h);
+    ctx.fillStyle='#fff';
+
+    // 컬럼 수는 화면비에 따라 가변, E는 세로로 큼직하게
+    const base = Math.min(w,h);
+    const colGutter = base*0.06;
+    const colWidth = base*0.18;
+    const columns = Math.max(3, Math.floor((w + colGutter)/(colWidth + colGutter)));
+    const usableW = columns*colWidth + (columns-1)*colGutter;
+    const left = (w-usableW)/2;
+
+    // 폰트 크기: 컬럼 폭 기준으로 E가 딱 차도록
+    const fontSize = colWidth*0.9;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font = `900 ${fontSize}px Impact, Anton, "Arial Black", system-ui, sans-serif`;
+
+    for(let c=0;c<columns;c++){
+      const x = left + c*(colWidth+colGutter) + colWidth/2;
+      // 맨 왼/오른쪽은 'S' 세로 배치, 나머지는 'E' 연속
+      const isSide = (c===0 || c===columns-1);
+      const step = fontSize*1.35;
+      const startY = (h % step)/2;
+
+      for(let y=startY; y<h; y+=step){
+        const ch = isSide ? ( (Math.round(y/step)%6===0) ? 'S' : 'E') : 'E';
+        ctx.fillText(ch, x, y);
+      }
+    }
+  }
+  function showPreset(){
+    hideAllUI(true);
+    preset.style.display='block';
+    drawPreset();
+  }
+  addEventListener('resize', ()=>{ if(preset.style.display==='block') drawPreset(); }, {passive:true});
+  preset.addEventListener('click', ()=>{ // 프리셋 → 웰컴
+    preset.style.display='none';
+    startCamera(); // 이 시점부터 카메라 사용
+    showWelcome();
+  }, {passive:true});
+
+  /* -------- 웰컴 → 인트로 -------- */
+  function showWelcome(){
+    welcome.classList.remove('hide');
+  }
+  goIntroBtn.addEventListener('click', ()=>{
+    welcome.classList.add('hide');
+    showIntro();
+  }, {passive:true});
+
+  /* -------- 카메라 (웰컴 이후만 렌더) -------- */
+  function startCamera(){
+    if(camOn || !camStream) return;
+    camOn = true;
+    camVideo = document.createElement('video');
+    camVideo.autoplay = true; camVideo.playsInline = true; camVideo.muted = true;
+    camVideo.srcObject = camStream;
+    vctx = view.getContext('2d',{alpha:false});
+    proc = document.createElement('canvas'); pctx = proc.getContext('2d',{willReadFrequently:true});
+    resizeCam(); loopCam();
+  }
+  function resizeCam(){
+    const dpr = window.devicePixelRatio||1;
+    const w = window.innerWidth, h = window.innerHeight;
     view.width=w*dpr; view.height=h*dpr; vctx.setTransform(dpr,0,0,dpr,0,0);
-    const scale=(matchMedia('(orientation: landscape)').matches)? PROC_SCALE*0.9 : PROC_SCALE;
+    const scale = matchMedia('(orientation: landscape)').matches? 0.86 : 0.9;
     proc.width=Math.floor(w*scale); proc.height=Math.floor(h*scale);
-    // 프리셋 캔버스도 리사이즈
-    const pc=qs('#presetCanvas'); pc.width=w*dpr; pc.height=h*dpr; const ctx=pc.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
-    drawPresetPattern();
   }
-  resizeAll();
-  addEventListener('resize',()=>setTimeout(resizeAll,50),{passive:true});
-  addEventListener('orientationchange',()=>setTimeout(resizeAll,120),{passive:true});
-  if (window.visualViewport){ visualViewport.addEventListener('resize', ()=>setTimeout(resizeAll,50)); }
+  addEventListener('resize', ()=>{ if(camOn) setTimeout(resizeCam,50); }, {passive:true});
 
-  function loopBG(){
-    requestAnimationFrame(loopBG);
-    const dpr=window.devicePixelRatio||1;
-    const W=view.width/dpr,H=view.height/dpr,PW=proc.width,PH=proc.height;
-    pctx.globalCompositeOperation="source-over";
-    pctx.fillStyle=`rgba(0,0,0,${TRAIL_ALPHA})`; pctx.fillRect(0,0,PW,PH);
-    if(DRAW_CAMERA && camVideo.readyState>=2){
-      const vw=camVideo.videoWidth,vh=camVideo.videoHeight;
+  function loopCam(){
+    if(!camOn) return;
+    requestAnimationFrame(loopCam);
+    const W=view.width/(window.devicePixelRatio||1), H=view.height/(window.devicePixelRatio||1);
+    const PW=proc.width, PH=proc.height;
+
+    // 페이드한 흑백 카메라 배경
+    pctx.fillStyle='rgba(0,0,0,.14)'; pctx.fillRect(0,0,PW,PH);
+    if(camVideo.readyState>=2){
+      const vw=camVideo.videoWidth||0, vh=camVideo.videoHeight||0;
       if(vw&&vh){
-        const cover=Math.max(PW/vw, PH/vh), sc=cover*ZOOM;
-        const dw=vw*sc,dh=vh*sc,dx=(PW-dw)/2,dy=(PH-dh)/2;
-        pctx.globalAlpha=GLOBAL_ALPHA; pctx.drawImage(camVideo,dx,dy,dw,dh);
-        pctx.globalAlpha=1.0;
+        const cover=Math.max(PW/vw, PH/vh)*ZOOM;
+        const dw=vw*cover, dh=vh*cover, dx=(PW-dw)/2, dy=(PH-dh)/2;
+        pctx.globalAlpha=.7; pctx.drawImage(camVideo,dx,dy,dw,dh);
+        pctx.globalAlpha=1;
         const frame=pctx.getImageData(0,0,PW,PH),d=frame.data;
         for(let i=0;i<d.length;i+=4){const g=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0; d[i]=d[i+1]=d[i+2]=g;}
         pctx.putImageData(frame,0,0);
@@ -297,397 +300,65 @@
     }
     vctx.drawImage(proc,0,0,W,H);
   }
-  loopBG();
 
-  /* ===== 오버레이/표시 유틸 ===== */
-  const overlayEl=qs('#overlay'), overlayContentEl=qs('#overlayContent');
-  const permGateBtn=qs('#permGateBtn');
-  const lockTargets=[qs('#mapLauncher'),qs('#docLauncher'),qs('#captureBtn'),qs('#zoomIn'),qs('#zoomOut')];
-  const setGlobalUIEnabled=(on)=>lockTargets.forEach(b=>b&&(b.disabled=!on));
-  const setOverlayDim=(on)=>overlayEl.style.background=on?'rgba(0,0,0,.72)':'transparent';
-  const setOverlayClickable=(on)=>overlayEl.style.pointerEvents=on?'auto':'none';
-  const spanChars=(t)=>[...t].map(ch=>`<span class="introChar">${ch===' ' ? '&nbsp;' : ch.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`).join('');
-  const introParagraphHTML=(lines)=>lines.map(s=>`<p class="introLine" style="margin:10px 0">${s.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>`).join('');
-
-  function show(html,next){
-    overlayEl.style.display='flex'; overlayEl.classList.remove('hidden'); overlayContentEl.classList.add('hidden');
-    setOverlayDim(true); setOverlayClickable(true);
-    setTimeout(()=>{ overlayContentEl.innerHTML=html; overlayContentEl.classList.remove('hidden'); next&&next(); },120);
-  }
-  function hide(next){ overlayEl.classList.add('hidden'); setTimeout(()=>{ overlayEl.style.display='none'; next&&next(); },420); }
-
-  /* ===== 프리셋 패턴 드로잉 ===== */
-  function drawPresetPattern(){
-    const pc=qs('#presetCanvas'); const ctx=pc.getContext('2d');
-    const W=pc.width/(window.devicePixelRatio||1), H=pc.height/(window.devicePixelRatio||1);
-    ctx.save(); ctx.clearRect(0,0,W,H); ctx.fillStyle="#000"; ctx.fillRect(0,0,W,H);
-    ctx.fillStyle="#fff";
-    // 포스터 레퍼런스 감각: 굵은 압축 산세리프, E의 기둥 반복 + 양측 SLEEEE 세로
-    const cols = Math.max(5, Math.round((matchMedia('(orientation: landscape)').matches ? W : H) / 160));
-    const gap = Math.max(10, Math.min(28, Math.min(W,H) * 0.02));
-    const colW = (W - (cols+1)*gap)/cols;
-    const fontSize = Math.max(36, colW*0.9);
-    ctx.textBaseline="top"; ctx.textAlign="center";
-    ctx.font = `700 ${fontSize}px Impact, Anton, Arial Black, Helvetica Neue Condensed Black, system-ui, sans-serif`;
-    for(let c=0;c<cols;c++){
-      const x = gap + c*(colW+gap) + colW/2;
-      let y = gap;
-      // 맨 왼/오른쪽은 'S' 수직 배치 느낌
-      const letter = (c===0 || c===cols-1) ? "S" : "E";
-      while(y < H - fontSize*0.8){
-        ctx.fillText(letter, x, y);
-        y += fontSize*0.95;
+  /* -------- 인트로 (20s) -------- */
+  function showIntro(){
+    hideAllUI(true);
+    intro.style.display='flex';
+    let count=20;
+    countNum.textContent = count;
+    const t = setInterval(()=>{
+      count--;
+      if(count>=0) countNum.textContent = count;
+      if(count<=0){
+        clearInterval(t);
+        intro.style.display='none';
+        runChapters();
       }
-      // 하단에 P 느낌을 한 줄 추가(밀도용)
-      ctx.fillText((c%3===0)?"P":"E", x, H-fontSize*1.05);
-    }
-    ctx.restore();
+    },1000);
   }
 
-  /* ===== 프리셋 화면 ===== */
-  const presetEl=qs('#preset');
-  function showPreset(){
-    setGlobalUIEnabled(false);
-    presetEl.classList.remove('fadeout'); presetEl.classList.add('show');
-    // 탭/키 아무거나 → 웰컴으로, 이때부터 카메라 렌더 ON (스트림은 이미 시작됨)
-    const advance=()=>{ SFX.ui(); DRAW_CAMERA=true; presetEl.classList.add('fadeout'); setTimeout(()=>{ presetEl.classList.remove('show','fadeout'); showWelcome(); },400); };
-    ['click','pointerdown','touchstart','keydown'].forEach(evt=>{
-      presetEl.addEventListener(evt, (e)=>{ e.preventDefault(); advance(); }, {once:true, passive:false});
-    });
-  }
-
-  /* ===== 챕터 타이틀 (풀스크린 페이드) ===== */
-  const chapterEl=qs('#chapterTitle'), chapterText=qs('#chapterText');
-  function showChapter(label, hold=1600, after){
-    chapterText.textContent=label;
-    chapterEl.classList.remove('fadeout'); chapterEl.classList.add('show');
-    setTimeout(()=>{ chapterEl.classList.add('fadeout'); setTimeout(()=>{ chapterEl.classList.remove('show','fadeout'); after&&after(); },400); }, hold);
-  }
-
-  /* ===== 시퀀스 ===== */
-  function showWelcome(){
-    show(`
-      <div class="introCard">
-        <div class="introHeader">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
-        <div class="introLine">${spanChars('Welcome to SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP, SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP')}</div>
-        <div style="text-align:center;margin-top:12px">
-          <button id="welcomeGo" class="ghostBtn">PRESS HERE TO SLEEP</button>
-        </div>
-      </div>
-    `, ()=>{
-      setGlobalUIEnabled(false);
-      qs('#welcomeGo').addEventListener('click', ()=>{ SFX.ui(); mountPressToSleep(); }, {passive:true});
-    });
-  }
-
-  function narrativeParagraphs(){
-    return [
-      '자욱한 안개가 너를 맞이했다. 거대한 비석을 너는 마주했다. 거대한 비석들의 웅얼거림을 너는 들을 수 있었다.',
-      '어디선가 잔잔한 종소리가 들려온다. 어디선가 께름칙한 울음소리가 들려온다. 어디선가 아이들의 웃음소리가 들려온다.',
-      '너는 비석 사이를 거닐고 있다. 너를 스쳐 지나가며 웅얼거리는 소리에 귀를 기울인다.',
-      '비석마다 다른 목소리가 담겨 있다. 어떤 것은 꿈을 이야기하고, 어떤 것은 기억을 읊고, 또 어떤 것은 아직 말하지 못한 언어로 중얼거린다.',
-      '너는 발걸음을 늦춘다. 너는 생각한다. 이곳엔 분명 누군가가 존재하고 있었다.',
-      '그리고, 지금도 여전히 그들의 호흡은 돌 틈에 스며 있고, 그들의 그림자는 안개 속에 머물며, 그들의 말하지 못한 시간은 너의 귀끝을 잡아당긴다.',
-      '너는 발걸음을 멈춘다. 왜인지 이곳에 머물러야 한다는 느낌을 받는다.',
-      '너는 그곳으로 발을 옮긴다. 그곳엔, 이곳에 존재했던 누군가의 ‘목소리’가 있다.',
-      '너는 비석에 등을 기대고 앉는다. 그리고 서서히, 그것의 진동을 느낀다.'
-    ];
-  }
-
-  function showNarrativeSequence(done){
-    const paras = narrativeParagraphs();
-    setOverlayDim(false); setOverlayClickable(false);
-    overlayEl.style.display='flex'; overlayEl.classList.remove('hidden');
-    let idx=0; (function next(){
-      if(idx>=paras.length){ hide(done); return; }
-      overlayContentEl.classList.add('hidden');
-      setTimeout(()=>{
-        overlayContentEl.innerHTML=`<div class="introCard">${introParagraphHTML([paras[idx++]])}</div>`;
-        overlayContentEl.classList.remove('hidden'); SFX.ui(); setTimeout(next,4800);
-      },120);
-    })();
-  }
-
-  function chapterFlow(){
-    // INTRODUCTION → 1~4 SLEEP → SILENCE
-    const labels=["INTRODUCTION","THE FIRST SLEEP","THE SECOND SLEEP","THE THIRD SLEEP","THE FOURTH SLEEP","SILENCE"];
-    let i=0; const go=()=>{ if(i>=labels.length){ setGlobalUIEnabled(true); showNarrativeSequence(()=>{}); return; }
-      showChapter(labels[i++], 1500, ()=>setTimeout(go, 300)); };
-    go();
-  }
-
-  function mountPressToSleep(){
-    const introLines=[
-      '이곳은 이미 ‘너’가 죽어버린, ‘그것’들의 세계다.',
-      '곧 당신은 30분간의 잠에 들며, 무의식 속 여정을 시작한다.',
-      '그 여정 속에서 당신은 사라져간 ‘너’를 마주하게 된다.',
-      '이제 당신에게는 네 단계의 미션이 주어진다.',
-      '당신은 미션에 따라 헤드폰으로 들려오는 ‘너’들의 목소리에 귀 기울이며, 휴대폰을 통해 잃어버린 ‘너’를 포착할 수 있다.'
-    ];
-    show(`<div class="introCard">
-      <div class="introHeader">INTRODUCTION</div>
-      ${introParagraphHTML(introLines)}
-      <p class="introLine" id="countdown">The door will close in <span id="countNum" class="introChar">20</span> seconds.</p>
-    </div>`, ()=>{
-      setGlobalUIEnabled(false);
-      let count=20; const numEl=qs('#countNum');
-      const timer=setInterval(()=>{ count--; if(count>=0&&numEl) numEl.textContent=count;
-        if(count<=0){ clearInterval(timer); hide(()=>{ chapterFlow(); }); } },1000);
-      SFX.ui();
-    });
-  }
-
-  /* ===== 안드로이드 전체화면 + 방향락 ===== */
-  async function enterFullscreenIfPossible(desired='portrait'){
-    try{
-      const el=document.documentElement;
-      if(!document.fullscreenElement && document.fullscreenEnabled && el.requestFullscreen){
-        await el.requestFullscreen({navigationUI:'hide'}).catch(()=>{});
-      }
-      if(screen.orientation && screen.orientation.lock){
-        const mode = desired === 'landscape' ? 'landscape' : 'portrait';
-        screen.orientation.lock(mode).catch(()=>{});
-      }
-    }catch{}
-  }
-
-  /* ===== 퍼미션 게이트 ===== */
-  let gateBusy=false, gateDone=false;
-  async function runPermissionGate(){
-    if(gateBusy||gateDone) return; gateBusy=true;
-    try{
-      SFX.ui(); resumeAudio();
-      await requestMotionPermissions();
-      if(WANT_MIC) await startMic();
-      if(WANT_CAM) await startCamera(); // ← 여기서 이미 승인 받아둠 (프리셋 시엔 렌더 끔)
-      if(IS_ANDROID){
-        const desired = matchMedia('(orientation: landscape)').matches ? 'landscape' : 'portrait';
-        await enterFullscreenIfPossible(desired);
-      }
-      // 퍼미션 끝 → 프리셋(카메라 미표시, UI 미노출)
-      hide(()=>{ showPreset(); });
-      gateDone=true;
-    }catch(e){ console.warn('gate error',e); }
-    finally{ gateBusy=false; }
-  }
-
-  // 세이프티넷: 첫 사용자 제스처면 게이트 실행
-  ['pointerdown','touchstart','click','keydown'].forEach(evt=>{
-    window.addEventListener(evt,()=>{ if(!gateDone){ runPermissionGate(); } }, {once:true, capture:true, passive:true});
-  });
-
-  // 버튼으로도 가능
-  ['pointerdown','touchstart','click'].forEach(evt=>{
-    qs('#permGateBtn').addEventListener(evt,(e)=>{ e.preventDefault(); runPermissionGate(); },{passive:false});
-    overlayEl.addEventListener(evt,(e)=>{ if(!gateDone && e.target===overlayEl){ e.preventDefault(); runPermissionGate(); } },{passive:false});
-  });
-
-  addEventListener('orientationchange', ()=>{
-    if(IS_ANDROID && matchMedia('(orientation: landscape)').matches){
-      setTimeout(()=>enterFullscreenIfPossible('landscape'), 150);
-    }
-    // 프리셋 즉시 리드로우
-    drawPresetPattern();
-  }, {passive:true});
-
-  /* ===== 이하 게임 로직(필요 부분만 유지) ===== */
-  const gameOverlay=qs('#gameOverlay'), gameCanvas=qs('#gameCanvas'), g=gameCanvas.getContext('2d');
-  const dpad=qs('#dpad'); const hudRoom=qs('#hudRoom'); const interactHint=qs('#interactHint');
-  const btnExitGame=qs('#btnExitGame'); const mapLauncher=qs('#mapLauncher');
-
-  const REND_W=256, REND_H=256, TILE=16, MAP_W=16, MAP_H=16;
-  const off=document.createElement('canvas'); off.width=REND_W; off.height=REND_H; const og=off.getContext('2d',{alpha:false}); og.imageSmoothingEnabled=false;
-
-  const C={ bg:'#111', plate:'#1b1b1b', plate2:'#0f0f0f', border:'#2a2a2a', dot:'#242424',
-    grave:'#bbbbbb', graveDark:'#666666', shadow:'rgba(0,0,0,.55)', seekerBody:'#cccccc', seekerEye:'#eeeeee', player:'#ffffff', playerDark:'#aaaaaa',
-    brick:'#444444', brickDark:'#222222', phone:'#dddddd', phoneDial:'#bdbdbd' };
-
-  const LEVEL0=Array.from({length:MAP_H},()=>Array(MAP_W).fill(1));
-  for(let y=2;y<MAP_H-1;y+=2){ for(let x=1;x<MAP_W-1;x++) LEVEL0[y][x]=0; }
-  for(let x=2;x<MAP_W-1;x+=2){ for(let y=1;y<MAP_H-1;y++) LEVEL0[y][x]=0; }
-  for(let y=1;y<5;y++) for(let x=12;x<15;x++) LEVEL0[y][x]=0;
-  LEVEL0[8][8]=0; LEVEL0[7][8]=0; LEVEL0[8][7]=0; LEVEL0[8][9]=0;
-  for(let x=6;x<=9;x++) LEVEL0[MAP_H-1][x]=0;
-
-  const LEVEL1=Array.from({length:MAP_H},()=>Array(MAP_W).fill(0));
-  for(let x=0;x<MAP_W;x++){ LEVEL1[0][x]=1; LEVEL1[MAP_H-1][x]=1; }
-  for(let y=0;y<MAP_H;y++){ LEVEL1[y][0]=1; LEVEL1[y][MAP_W-1]=1; }
-  for(let x=6;x<=9;x++) LEVEL1[MAP_H-1][x]=0;
-
-  const PHONES=[[1,3],[1,6],[1,9],[1,12],[4,1],[7,1],[10,1],[14,3],[14,6],[14,9],[4,13],[7,13],[10,13],[13,13]];
-  const phoneSet=new Set(PHONES.map(([x,y])=>`${x},${y}`));
-
-  function drawCommon(gg){ gg.fillStyle=C.bg; gg.fillRect(0,0,REND_W,REND_H);
-    gg.fillStyle=C.border; gg.fillRect(6,6,REND_W-12,REND_H-12);
-    gg.fillStyle=C.plate; gg.fillRect(12,12,REND_W-24,REND_H-24);
-    gg.fillStyle=C.dot; for(let i=0;i<190;i++){ const x=12+((i*73)%(REND_W-24)); const y=12+((i*97)%(REND_H-24)); gg.fillRect(x,y,1,1); } }
-  function dGrave(gg,px,py){ gg.fillStyle=C.shadow; gg.fillRect(px+2,py+TILE-3,TILE-2,2);
-    gg.fillStyle=C.graveDark; gg.fillRect(px+3,py+3,TILE-6,TILE-6); gg.fillStyle=C.grave; gg.fillRect(px+2,py+4,TILE-6,TILE-7);
-    gg.fillStyle='rgba(255,255,255,.08)'; gg.fillRect(px+3,py+4,TILE-8,1); }
-  function dBrick(gg,px,py){ gg.fillStyle=C.brickDark; gg.fillRect(px,py,TILE,TILE); gg.fillStyle=C.brick; gg.fillRect(px+1,py+1,TILE-2,TILE-2); gg.fillStyle='rgba(0,0,0,.25)'; gg.fillRect(px+1,py+TILE-4,TILE-2,3); }
-  function dPhone(gg,px,py){ gg.fillStyle=C.phone; gg.fillRect(px+2,py+5,12,8); gg.fillStyle=C.phoneDial; gg.fillRect(px+5,py+7,6,4); gg.fillStyle='rgba(255,255,255,.12)'; gg.fillRect(px+3,py+6,8,1); gg.fillStyle=C.shadow; gg.fillRect(px+2,py+TILE-2,12,2); }
-
-  const layer0=(function(){ const c=document.createElement('canvas'); c.width=REND_W; c.height=REND_H; const gg=c.getContext('2d'); gg.imageSmoothingEnabled=false;
-    drawCommon(gg); for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(LEVEL0[y][x]===1) dGrave(gg,x*TILE,y*TILE);
-    gg.fillStyle=C.plate2; gg.fillRect(6*TILE,15*TILE,4*TILE,TILE); return c; })();
-  const layer1=(function(){ const c=document.createElement('canvas'); c.width=REND_W; c.height=REND_H; const gg=c.getContext('2d'); gg.imageSmoothingEnabled=false;
-    drawCommon(gg); for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(LEVEL1[y][x]===1) dBrick(gg,x*TILE,y*TILE);
-    for(const [x,y] of PHONES) dPhone(gg,x*TILE,y*TILE);
-    gg.fillStyle=C.plate2; gg.fillRect(6*TILE,15*TILE,4*TILE,TILE); return c; })();
-
-  function makePlayer(x,y){ return {x,y,spd:0.09,anim:0,stepTimer:0,stepPhase:0}; }
-  function makeSeeker(x,y){ return {x,y,spd:0.07,path:[],target:null,repathAt:0}; }
-  const player=makePlayer(13.5,2.5);
-  const seeker=makeSeeker(8.5,8.5);
-
-  function solidAt(tx,ty){
-    if(tx<0||ty<0||tx>=MAP_W||ty>=MAP_H) return true;
-    if(room===0) return LEVEL0[ty][tx]===1;
-    if(LEVEL1[ty][tx]===1) return true;
-    if(phoneSet.has(`${tx},${ty}`)) return true;
-    return false;
-  }
-  function moveEntity(e,ax,ay){ const spd=e.spd; let nx=e.x+ax*spd, ny=e.y+ay*spd;
-    if(!solidAt(nx|0, e.y|0)) e.x=nx; if(!solidAt(e.x|0, ny|0)) e.y=ny;
-  }
-
-  let room=0;
-  const keys=new Set();
-  addEventListener('keydown',e=>{if(!gameRunning) return; const k=e.key.toLowerCase(); if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d','e'].includes(k)) e.preventDefault(); keys.add(k);});
-  addEventListener('keyup',e=>{if(!gameRunning) return; keys.delete(e.key.toLowerCase());});
-  const heldDirs=new Set(); const dpadState={ax:0,ay:0};
-  function updateDirFromHeld(){ let ax=0,ay=0; if(heldDirs.has('left')) ax-=1; if(heldDirs.has('right')) ax+=1; if(heldDirs.has('up')) ay-=1; if(heldDirs.has('down')) ay+=1; dpadState.ax=ax; dpadState.ay=ay; }
-  dpad.addEventListener('pointerdown',e=>{ const dx=e.target.getAttribute('data-dx'); const dy=e.target.getAttribute('data-dy'); if(dx) heldDirs.add(+dx<0?'left':'right'); if(dy) heldDirs.add(+dy<0?'up':'down'); updateDirFromHeld(); e.preventDefault(); },{passive:false});
-  dpad.addEventListener('pointerup',()=>{ heldDirs.clear(); updateDirFromHeld(); },{passive:true});
-  dpad.addEventListener('pointercancel',()=>{ heldDirs.clear(); updateDirFromHeld(); });
-
-  const gameDialog=qs('#gameDialog'), dgTitle=qs('#dgTitle'), dgBody=qs('#dgBody'), dgChoices=qs('#dgChoices');
-  function closeDialog(){ gameDialog.style.display='none'; dgChoices.innerHTML=''; inConvo=false; }
-  gameDialog.addEventListener('click',(e)=>{ if(e.target===gameDialog) closeDialog(); });
-
-  function graveText(x,y){ const lines=["나는 얼굴을 잃고, 귀로만 걷는다.","빛이 고요를 문질러 소리가 났다.","오차가 감정이고, 잔향이 초상이다.","돌은 서 있고, 이야기는 흘러간다.","너와 나 사이, 빈칸이 숨을 쉰다.","시간의 모서리에 귀를 댔다.","여기 눕힌 건 말들이다.","망각의 틈에서 작은 불이 켜진다."]; const idx=(x*31+y*17)%lines.length; return lines[idx]; }
-  function nearestGrave(px,py){ let best=null,bd=1e9; for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(LEVEL0[y][x]===1){ const cx=x+0.5, cy=y+0.5; const d=Math.hypot(px-cx,py-cy); if(d<bd){bd=d; best={x,y,cx,cy};}} return {grave:best, dist:bd}; }
-  function nearestPhone(px,py){ let best=null,bd=1e9; for(const [x,y] of PHONES){ const cx=x+0.5, cy=y+0.5; const d=Math.hypot(px-cx,py-cy); if(d<bd){bd=d; best={x,y,cx,cy};}} return {phone:best, dist:bd}; }
-
-  const convo=[
-    {npc:"……신호 포착. 너는 소리를 어떻게 듣지?",choices:["몸으로 먼저 듣는다.","기억으로 해석한다."],replies:["좋아. 몸은 진실을 숨기지 않지.","그래, 기억은 언제나 편집본이야."]},
-    {npc:"여기 비석들은 잊힌 말들의 좌표야.",choices:["좌표를 따라가면 어디에 닿을까?","말이 사라지면 무엇이 남지?"],replies:["아마 네가 모르는 너에게.","침묵. 그리고 방향."]},
-    {npc:"마지막 질문. 너는 왜 계속 걷고 있어?",choices:["누군가의 잔향을 찾고 있어.","멈추면, 들리지 않을까 봐."],replies:["그 잔향이 네 지도를 바꿀 거야.","걷는 침묵은 언제나 열려 있지."]}
+  /* -------- 챕터 타이틀 풀스크린 -------- */
+  const chapters = [
+    'INTRODUCTION',          // 이미 봤지만, 시퀀스 첫 화면으로 한 번 더 풀스크린 라벨링
+    'THE FIRST SLEEP',
+    'THE SECOND SLEEP',
+    'THE THIRD SLEEP',
+    'THE FOURTH SLEEP',
+    'SILENCE'
   ];
-  let inConvo=false, stepIdx=0;
-  function openRobotConvo(){ inConvo=true; stepIdx=0; renderConvoStep(); gameDialog.style.display='flex'; SFX.interact(); }
-  function renderConvoStep(){
-    dgTitle.textContent='로봇(비석의 방 순찰)'; const s=convo[stepIdx];
-    dgBody.innerHTML=`<div style="white-space:pre-wrap">${s.npc}</div>`; dgChoices.innerHTML='';
-    s.choices.forEach((text,i)=>{ const b=document.createElement('button'); b.textContent=text;
-      b.onclick=()=>{ SFX.select(); const reply=s.replies[i]; dgBody.innerHTML+=`\n\n> 너: ${text}\n로봇: ${reply}`; stepIdx++; if(stepIdx<convo.length){ setTimeout(()=>renderConvoStep(),420);} else { dgChoices.innerHTML=''; const done=document.createElement('button'); done.textContent='끝내기'; done.onclick=()=>{ inConvo=false; gameDialog.style.display='none'; }; dgChoices.appendChild(done);} };
-      dgChoices.appendChild(b);
+  async function runChapters(){
+    for(const label of chapters){
+      await showTitle(label, 1500);
+    }
+    // 끝나면 일반 UI 복귀 (원하면 여기서 MAP/DOC 노출)
+    hideAllUI(false);
+  }
+  function showTitle(text, hold=1500){
+    return new Promise(res=>{
+      titleText.textContent = text;
+      titleScreen.style.display='flex';
+      titleScreen.className='fade-enter show';
+      setTimeout(()=>{ // 페이드 아웃
+        titleScreen.className='fade-leave';
+        requestAnimationFrame(()=>{ titleScreen.classList.add('hide'); });
+        setTimeout(()=>{
+          titleScreen.style.display='none';
+          titleScreen.className='';
+          res();
+        }, 450);
+      }, hold);
     });
   }
 
-  function dist(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
-  function randomWalkableTile0(){ let tx,ty; do{ tx=(Math.random()*MAP_W)|0; ty=(Math.random()*MAP_H)|0; }while(LEVEL0[ty]?.[tx]!==0); return {tx,ty}; }
-  function bfsPath(level, fromX,fromY,toX,toY){
-    const Q=[[fromX,fromY]], V=new Set([fromX+','+fromY]), P={}, dirs=[[1,0],[-1,0],[0,1],[0,-1]];
-    const solid=(x,y)=>{ if(x<0||y<0||x>=MAP_W||y>=MAP_H) return true; return level===0 ? (LEVEL0[y][x]===1) : (LEVEL1[y][x]===1 || phoneSet.has(`${x},${y}`)); };
-    while(Q.length){
-      const [x,y]=Q.shift(); if(x===toX&&y===toY) break;
-      for(const [dx,dy] of dirs){
-        const nx=x+dx, ny=y+dy; if(solid(nx,ny)) continue;
-        const k=nx+','+ny; if(V.has(k)) continue; V.add(k); P[k]=[x,y]; Q.push([nx,ny]);
-      }
-    }
-    const key=toX+','+toY; if(!(key in P) && !(fromX===toX && fromY===toY)) return [];
-    let path=[[toX,toY]]; let cx=toX, cy=toY;
-    while(!(cx===fromX && cy===fromY)){ const prev=P[cx+','+cy]; if(!prev) break; path.push(prev); cx=prev[0]; cy=prev[1]; }
-    path.reverse(); return path;
-  }
-  const seekerObj={ensureTarget(force=false){
-    if(room!==0||inConvo) return;
-    const now=performance.now();
-    if(force || !seeker.target || now>seeker.repathAt || seeker.path.length===0){
-      let t=randomWalkableTile0(), tries=0;
-      while(dist({x:t.tx+0.5,y:t.ty+0.5}, player)<3 && tries++<10) t=randomWalkableTile0();
-      seeker.target=t; const sx=seeker.x|0, sy=seeker.y|0;
-      seeker.path=bfsPath(0, sx,sy,t.tx,t.ty); seeker.repathAt=now+5000+Math.random()*5000;
-    }
-  }, step(){
-    if(room!==0||inConvo) return;
-    this.ensureTarget();
-    if(seeker.path.length>0){
-      const [nx,ny]=seeker.path[0], tx=nx+0.5, ty=ny+0.5; const dx=tx-seeker.x, dy=ty-seeker.y, m=Math.hypot(dx,dy);
-      if(m<0.05){ seeker.x=tx; seeker.y=ty; seeker.path.shift(); } else { const ax=dx/m, ay=dy/m; moveEntity(seeker,ax,ay); }
-    } else this.ensureTarget(true);
-  }};
-
-  function drawSeeker(){ if(room!==0) return; const px=Math.round(seeker.x*TILE - TILE/2), py=Math.round(seeker.y*TILE - TILE/2);
-    og.fillStyle=C.seekerBody; og.fillRect(px+3,py+6,10,6); og.fillStyle='#ffffff'; og.fillRect(px+2,py+4,12,6);
-    og.fillStyle=C.seekerEye; og.fillRect(px+5,py+6,2,2); og.fillStyle=C.seekerEye; og.fillRect(px+9,py+6,2,2);
-    og.fillStyle='#111'; og.fillRect(px+1,py+8,2,3); og.fillRect(px+13,py+8,2,3); }
-  function drawPlayer(p){ const px=Math.round(p.x*TILE - TILE/2), py=Math.round(p.y*TILE - TILE/2);
-    og.fillStyle=C.shadow; og.fillRect(px+2,py+TILE-2,TILE-4,2); og.fillStyle=C.player; og.fillRect(px+4,py+5,8,7);
-    og.fillStyle=C.playerDark; og.fillRect(px+4,py+4,8,2); if(((p.anim*10)|0)%20<10){ og.fillStyle='#000'; og.fillRect(px+6,py+7,1,1); og.fillRect(px+9,py+7,1,1);} }
-
-  let gameRunning=false, last=0;
-  function gameLoop(t){ if(!gameRunning) return; requestAnimationFrame(gameLoop); const dt=Math.min(32,(t-last)||16); last=t; updateGame(dt/16); renderGame(); }
-  function updateGame(dt){
-    let ax=0, ay=0;
-    if(keys.has('a')||keys.has('arrowleft')) ax-=1; if(keys.has('d')||keys.has('arrowright')) ax+=1;
-    if(keys.has('w')||keys.has('arrowup')) ay-=1; if(keys.has('s')||keys.has('arrowdown')) ay+=1;
-    ax+=dpadState.ax; ay+=dpadState.ay; const m=Math.hypot(ax,ay)||1; ax/=m; ay/=m;
-
-    const moving=Math.hypot(ax,ay)>0.1 && !inConvo;
-    if(!inConvo) moveEntity(player,ax,ay);
-    player.anim+=dt;
-    if(moving){ player.stepTimer+=dt*1000; if(player.stepTimer>=180){ player.stepTimer=0; SFX.step(player.stepPhase++); } } else player.stepTimer=0;
-
-    seekerObj.step();
-
-    // 방 전환
-    if((player.y|0)===MAP_H-1 && (player.x|0)>=6 && (player.x|0)<=9){
-      room = room===0 ? 1 : 0;
-      hudRoom.textContent = room===0 ? 'ROOM: 비석의 방 · 하단 출구 → 전화기의 방' : 'ROOM: 전화기의 방 · 하단 출구 → 비석의 방';
-      player.x=8.5; player.y=14.2; inConvo=false; gameDialog.style.display='none'; dgChoices.innerHTML=''; SFX.ui();
-    }
-
-    // 상호작용
-    let label="", action=null;
-    if(room===0){
-      if(!inConvo && Math.hypot(player.x-seeker.x, player.y-seeker.y)<0.85){ label='E: 로봇과 대화'; action=()=> openRobotConvo(); }
-      else{ const ng=nearestGrave(player.x,player.y);
-        if(ng.grave && ng.dist<1.1){ label='E: 비석에 귀 기울이기'; action=()=>{ SFX.interact(); dgTitle.textContent='비석의 기록'; dgBody.textContent=graveText(ng.grave.x,ng.grave.y); dgChoices.innerHTML=''; gameDialog.style.display='flex'; }; } }
-    }else{
-      const np=nearestPhone(player.x,player.y);
-      if(np.phone && np.dist<1.1){ label='E: 수화기 들기'; action=()=>{ SFX.ring(); dgTitle.textContent='전화기의 방'; dgBody.textContent='...여보세요? (침묵 속의 목소리가 미세하게 울린다)'; dgChoices.innerHTML=''; gameDialog.style.display='flex'; }; }
-    }
-    if(action){ interactHint.style.display='block'; interactHint.textContent=label; interactHint.onclick=action; } else { interactHint.style.display='none'; interactHint.onclick=null; }
-  }
-  function renderGame(){
-    og.clearRect(0,0,REND_W,REND_H);
-    og.drawImage(room===0 ? layer0 : layer1, 0, 0);
-    drawSeeker(); drawPlayer(player);
-    g.clearRect(0,0,gameCanvas.width,gameCanvas.height);
-    const sx=Math.floor(gameCanvas.width/REND_W), sy=Math.floor(gameCanvas.height/REND_H), scale=Math.max(1,Math.min(sx,sy));
-    const dw=REND_W*scale, dh=REND_H*scale, dx=(gameCanvas.width-dw)/2, dy=(gameCanvas.height-dh)/2;
-    g.imageSmoothingEnabled=false; g.drawImage(off, dx, dy, dw, dh);
+  /* -------- UI 표시/숨김 제어 -------- */
+  function hideAllUI(hide){
+    docBtn.classList.toggle('hide', hide);
+    mapBtn.classList.toggle('hide', hide);
   }
 
-  function openGame(){
-    hudRoom.textContent = room===0 ? 'ROOM: 비석의 방 · 하단 출구 → 전화기의 방' : 'ROOM: 전화기의 방 · 하단 출구 → 비석의 방';
-    gameOverlay.style.display='block';
-    if (matchMedia('(pointer: coarse)').matches) dpad.style.display='grid'; else dpad.style.display='none';
-    gameRunning=true; requestAnimationFrame(gameLoop);
-  }
-  function closeGame(){
-    gameOverlay.style.display='none'; gameRunning=false; inConvo=false; gameDialog.style.display='none'; interactHint.style.display='none';
-    heldDirs.clear(); updateDirFromHeld();
-  }
-  mapLauncher.addEventListener('click', openGame, {passive:true});
-  btnExitGame.addEventListener('click', closeGame, {passive:true});
-  addEventListener('keydown', e=>{ if(!gameRunning) return; if((e.key==='e'||e.key==='E')){ if(interactHint.style.display!=='none'){ e.preventDefault(); interactHint.click(); }}}, {passive:false});
-
-  /* ===== 초기: 퍼미션 버튼 노출 ===== */
-  overlayEl.style.display='flex';
+  /* 초기 상태: 권한 오버레이 표시 */
+  overlay.style.display='flex';
 })();
 </script>
 </body>
