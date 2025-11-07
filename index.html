@@ -31,10 +31,11 @@
 
   html,body{margin:0;height:var(--appH);background:#000;overflow:hidden;touch-action:manipulation}
   body{font-family:Impact,"Anton","Arial Black",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans KR",sans-serif;}
-  .fade{opacity:0; transition:opacity 2s ease}
+  .fade{opacity:0; transition:opacity 2000ms ease}
   .fade.show{opacity:1}
 
   #view{position:fixed;left:0;top:0;width:100%;height:var(--appH);display:block;z-index:0}
+  #freezeLayer{position:fixed;inset:0;z-index:500;display:none}
 
   .frameBox{
     position:fixed;
@@ -70,13 +71,18 @@
   #docLauncher{
     position:fixed; left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
     top:calc(var(--frame) + var(--ui-gap) + var(--safe-t)); z-index:180;}
+  #audioToggle{
+    position:fixed; right:calc(var(--frame) + var(--ui-gap) + var(--safe-r) + 68px);
+    top:calc(var(--frame) + var(--ui-gap) + var(--safe-t)); z-index:180;}
 
+  /* FIRST SLEEP 이후엔 +/–/CAPTURE만 남기기 위해 boot 상태에서 숨김 */
   body.boot #docLauncher,
   body.boot #mapLauncher,
+  body.boot #audioToggle,
   body.boot .controls,
   body.boot #captureBtn{ display:none !important; }
 
-  /* 8분 타이머 */
+  /* 8분 타이머(전환 전까지만) */
   #runTimer{
     position:fixed;
     right:calc(var(--frame) + var(--ui-gap) + var(--safe-r) + 62px);
@@ -85,7 +91,7 @@
     font-family:"Courier New",ui-monospace,monospace;
     font-size:var(--fs-strong);
     color:#fff; opacity:.95;
-    pointer-events:none; user-select:none; display:none;
+    pointer-events:none; user-select:none;
   }
 
   .credits{ font-family:"Courier New",ui-monospace,monospace; letter-spacing:.08em; }
@@ -106,7 +112,7 @@
   #nameRow{ display:flex; gap:10px; margin-top:12px; justify-content:center; }
   #nameRow .uiBtn{ padding:10px 14px; }
 
-  /* 프리셋 (screensaver) */
+  /* 프리셋(부유하는 S/L/E/E/P) */
   #preset{position:fixed;inset:0;z-index:250;background:#000;display:none;cursor:pointer}
   #presetCanvas{position:absolute;left:0;top:0;width:100%;height:100%}
 
@@ -117,7 +123,7 @@
   #welcomeCard{ text-align:center; max-width:min(92vw, 900px); }
   #welcomeCard .title{ font-size:clamp(32px, 12vmin, 120px); font-weight:900; letter-spacing:.04em; line-height:1.02; margin-bottom:16px; text-transform:uppercase; }
 
-  /* INTRO — 카메라 위에 반투명 */
+  /* INTRO */
   #introOverlay{
     position:fixed; inset:0; z-index:230; display:none;
     align-items:flex-start; justify-content:center;
@@ -133,20 +139,18 @@
   #introBox li{font-size:var(--fs-body); line-height:1.85; text-shadow:0 1px 2px rgba(0,0,0,.6);}
   #introCount{ text-align:center; font-size:var(--fs-strong); margin-top:12px; }
 
-  /* 타이틀 / GOOD NIGHT */
-  #titleScreen{
-    position:fixed; inset:0; z-index:240; display:none; align-items:center; justify-content:center;
-    background:#000; color:#fff; text-align:center;
-  }
+  /* 전환 타이틀 */
+  #titleScreen{ position:fixed; inset:0; z-index:240; display:none; align-items:center; justify-content:center; background:#000; color:#fff; text-align:center; }
   #titleText{font-weight:900; letter-spacing:.06em; line-height:1.05; font-size:clamp(24px, 10vmin, 96px); text-transform:uppercase;}
 
-  /* FIRST SLEEP: 카메라 위 오버레이 (UI에 영향 없음) */
+  /* FIRST SLEEP: 카메라 위 오버레이 */
   #firstSleep{ position:fixed; inset:0; z-index:235; display:none; align-items:center; justify-content:center; pointer-events:none; }
   #firstSleepText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(28px, 11vmin, 110px); text-transform:uppercase; }
 </style>
 </head>
 <body class="boot">
   <canvas id="view"></canvas>
+  <canvas id="freezeLayer"></canvas>
   <div class="frameBox" aria-hidden="true"></div>
 
   <div class="controls">
@@ -158,9 +162,10 @@
 
   <button id="docLauncher" class="uiBtn small">DOCUMENT</button>
   <button id="mapLauncher" class="uiBtn small">MAP</button>
+  <button id="audioToggle" class="uiBtn small">AUDIO</button>
   <div id="runTimer" aria-live="polite">08:00</div>
 
-  <!-- 권한 게이트 -->
+  <!-- 권한 -->
   <div id="overlay" class="fade show">
     <div id="overlayContent">
       <div class="credits" style="margin-bottom:10px;">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
@@ -169,7 +174,7 @@
     </div>
   </div>
 
-  <!-- 이름 입력 -->
+  <!-- 이름 -->
   <div id="nameOverlay" class="fade">
     <div id="nameCard">
       <h2>TELL ME YOUR NAME</h2>
@@ -216,7 +221,7 @@
     <div style="height:12vh"></div>
   </div></div>
 
-  <!-- 타이틀/전환 -->
+  <!-- 전환/타이틀 -->
   <div id="titleScreen"><div id="titleText"></div></div>
   <div id="firstSleep"><div id="firstSleepText">THE FIRST SLEEP</div></div>
 
@@ -280,7 +285,6 @@
   const goIntroBtn = qs('#goIntro');
 
   const intro = qs('#introOverlay');
-  const introBox = qs('#introBox');
   const introCount = qs('#introCount');
 
   const titleScreen = qs('#titleScreen');
@@ -289,6 +293,7 @@
 
   const docBtn = qs('#docLauncher');
   const mapBtn = qs('#mapLauncher');
+  const audioToggle = qs('#audioToggle');
   const zoomIn = qs('#zoomIn');
   const zoomOut = qs('#zoomOut');
   const zoomVal = qs('#zoomVal');
@@ -306,6 +311,7 @@
 
   const frameBox = qs('.frameBox');
   const view = qs('#view');
+  const freezeLayer = qs('#freezeLayer');
   const runTimer = qs('#runTimer');
 
   // State
@@ -316,7 +322,6 @@
   // === 오디오 ===
   let audioCtx = null;
   function ensureAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-
   function beep(freq=880, dur=0.07, gain=0.05, type='square'){
     try{
       ensureAudio();
@@ -331,7 +336,61 @@
   function playClick(){ beep(880, .07, .04, 'square'); }
   function wireButtonClicks(){ document.querySelectorAll('.uiBtn').forEach(btn=>btn.addEventListener('click', playClick, {passive:true})); }
 
-  // 프리셋 드론
+  // ===== Ambient Music Engine (procedural) =====
+  const Ambient = (() => {
+    let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, loops=[];
+    function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
+    function makeBus(){
+      ctx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+      master = ctx.createGain(); master.gain.value = 0.0;
+      delay = ctx.createDelay(2.5); delay.delayTime.value = 0.35;
+      fb = ctx.createGain(); fb.gain.value = 0.35; delay.connect(fb).connect(delay);
+      hp = ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=150;
+      lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=4500;
+      mix = ctx.createGain(); mix.gain.value=0.6; mix.connect(hp).connect(lp).connect(master);
+      busGain = ctx.createGain(); busGain.gain.value=0.9; busGain.connect(master);
+      master.connect(ctx.destination);
+    }
+    function connectDryWet(node){ node.connect(busGain); node.connect(delay); delay.connect(mix); }
+    function slowPad(root){
+      const out = ctx.createGain(); out.gain.value=0.35;
+      const filt = ctx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=600; filt.Q.value=0.6;
+      const lfo = ctx.createOscillator(); const lfoG = ctx.createGain();
+      lfo.type='sine'; lfo.frequency.value=0.05; lfoG.gain.value=220; lfo.connect(lfoG); lfoG.connect(filt.frequency); lfo.start();
+      [0,7,12].forEach((i,k)=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=midi(root+i); o.detune.value=(k-1)*6;
+        const g=ctx.createGain(); g.gain.value=0.08; o.connect(g).connect(filt); o.start(); loops.push(()=>g.disconnect()); });
+      filt.connect(out); connectDryWet(out); loops.push(()=>{ try{ out.disconnect(); }catch{} });
+    }
+    function softPluck(n){
+      const o=ctx.createOscillator(); o.type='triangle'; o.frequency.value=midi(n);
+      const g=ctx.createGain(); g.gain.value=0.0001; const f=ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=2200;
+      o.connect(f).connect(g); connectDryWet(g);
+      const t=ctx.currentTime; g.gain.linearRampToValueAtTime(0.12,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+1.6);
+      o.start(); o.stop(t+1.7);
+    }
+    function airyNoise(){
+      const b=ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate), d=b.getChannelData(0);
+      for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.15;
+      const s=ctx.createBufferSource(); s.buffer=b; s.loop=true;
+      const g=ctx.createGain(); g.gain.value=0.02; const f=ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=800; f.Q.value=0.7;
+      s.connect(f).connect(g); connectDryWet(g); s.start(); loops.push(()=>{ try{s.stop();}catch{} });
+    }
+    function rictherLoop(){ const seq=[57,52,48,43]; let i=0; const tick=()=>{ if(!running) return; slowPad(seq[i%seq.length]); i++; setTimeout(tick,8000); }; tick(); }
+    function minecraftLoop(){ const scale=[52,55,59,62,64,67,71]; const tick=()=>{ if(!running) return; const n=scale[(Math.random()*scale.length)|0]+(Math.random()<.3?12:0); softPluck(n); setTimeout(tick,350+Math.random()*450); }; tick(); }
+    function anotherCoreLoop(){ const arp=[48,55,60,67,74]; let k=0; const tick=()=>{ if(!running) return; softPluck(arp[k%arp.length]); k++; setTimeout(tick,500); }; tick(); }
+    function start(preset='richter', fade=2.0){
+      ensureAudio(); if(running) return; makeBus(); running=true; airyNoise();
+      if(preset==='richter') rictherLoop(); if(preset==='minecraft') minecraftLoop(); if(preset==='anothercore') anotherCoreLoop();
+      master.gain.linearRampToValueAtTime(0.9, (ctx||audioCtx).currentTime + fade);
+    }
+    function stop(fade=2.0){
+      if(!running||!master) return; const t=(ctx||audioCtx).currentTime; master.gain.linearRampToValueAtTime(0.0, t+fade);
+      setTimeout(()=>{ loops.forEach(fn=>{try{fn();}catch{}}); loops=[]; running=false; }, fade*1000+120);
+    }
+    return { start, stop, isRunning:()=>running };
+  })();
+
+  // 프리셋 짧은 허밍
   function startScreensaverHum(){
     try{
       ensureAudio();
@@ -344,22 +403,10 @@
       lfo.connect(lfoG); lfoG.connect(o.frequency);
       o.connect(g); g.connect(audioCtx.destination);
       o.start(); lfo.start();
-      setTimeout(()=>{ g.gain.linearRampToValueAtTime(0, audioCtx.currentTime+1); o.stop(audioCtx.currentTime+1.1); lfo.stop(audioCtx.currentTime+1.1); }, 20000);
+      setTimeout(()=>{ g.gain.linearRampToValueAtTime(0, audioCtx.currentTime+1); o.stop(audioCtx.currentTime+1.1); lfo.stop(audioCtx.currentTime+1.1); }, 5000);
     }catch(e){}
   }
-  // 번개/스팅 + 스웰
-  async function thunder(){
-    try{
-      ensureAudio();
-      beep(600,.04,.12,'square'); await sleep(40);
-      beep(1200,.03,.09,'square'); await sleep(30);
-      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-      o.type='sawtooth'; o.frequency.value=50; g.gain.value=0.08;
-      o.connect(g); g.connect(audioCtx.destination);
-      o.start(); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.2);
-      o.stop(audioCtx.currentTime + 1.25);
-    }catch(e){}
-  }
+  async function thunder(){ try{ ensureAudio(); beep(600,.04,.12,'square'); await sleep(40); beep(1200,.03,.09,'square'); }catch(e){} }
   function swell(){
     try{
       ensureAudio();
@@ -414,13 +461,14 @@
   nameSubmit.addEventListener('click', acceptName, {passive:true});
   nickInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ acceptName(); }});
 
-  // ===== 프리셋: 개별 글자 20개 =====
+  // ===== 프리셋: 20개 S/L/E/E/P 부유 =====
   let saverObjs = []; let saverMode = 'scatter'; let saverT0 = 0;
   function showPreset(){
     preset.style.display='block'; preset.classList.add('show');
     fadeShow(preset, 2000);
     initSaver();
     startScreensaverHum();
+    Ambient.start('richter', 2.0); // 기본 무드 (원하면 'minecraft' / 'anothercore')
   }
   function initSaver(){
     const w = preset.clientWidth, h = preset.clientHeight;
@@ -476,7 +524,6 @@
     for(let i=0;i<saverObjs.length;i++){
       const o = saverObjs[i];
       if(saverMode==='assemble'){
-        // 자기 글자에 맞는 목표로 천천히 끌림
         const idx = ['S','L','E','E','P'].indexOf(o.ch);
         const goal = targets[idx];
         o.vx += (goal.x - o.x)*0.0006;
@@ -537,8 +584,7 @@
     typeTickCount = 0;
     typeAllIntro();
 
-    // 30초 동안, 마지막 10초만 카운트다운 노출
-    const total = 30;
+    const total = 30; // 카운트다운
     let left = total;
     introCount.textContent='';
     const iv = setInterval(()=>{
@@ -548,24 +594,23 @@
     },1000);
   }
 
-  // 전환: 2s GOOD NIGHT → 2s 크로스/번개 → THE FIRST SLEEP 5s 페이드아웃
+  // 전환: GOOD NIGHT 2s → 2s 번개/교차 → FIRST SLEEP 5s 페이드아웃
   async function startTransition(){
     fadeHide(intro, 2000);
+    Ambient.stop(2.0); // 음악 페이드아웃
 
-    // GOOD NIGHT 정지 2s
+    // GOOD NIGHT 2s
     titleText.textContent='GOOD NIGHT';
     titleScreen.style.display='flex';
     titleScreen.style.background='#000'; titleText.style.color='#fff';
     swell();
     await sleep(2000);
 
-    // 2s 크로스(200ms 간격 교차 + 번개)
-    const until = performance.now()+2000;
-    let flag=false;
+    // 2s 교차/번개
+    const until = performance.now()+2000; let flag=false;
     while(performance.now()<until){
       flag=!flag;
       titleText.textContent = flag ? 'GOOD NIGHT' : 'THE FIRST SLEEP';
-      // 번개 스파크
       titleScreen.style.background='rgba(255,255,255,0.96)'; titleText.style.color='#000';
       thunder();
       await sleep(80);
@@ -574,19 +619,29 @@
     }
     titleScreen.style.display='none';
 
-    // THE FIRST SLEEP — 카메라 위에 노출 후 5초 페이드아웃
+    // THE FIRST SLEEP — 5s 페이드아웃
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
     swell();
-    await sleep(500); // 살짝 머물렀다가
-    firstSleep.style.transition='opacity 5s ease';
+    await sleep(500);
+    firstSleep.style.transition='opacity 5000ms ease';
     firstSleep.style.opacity='0';
     await sleep(5200);
     firstSleep.style.display='none';
     firstSleep.style.transition='';
 
-    // 메인 진입
+    // 메인 진입: 이후 +/–/CAPTURE만 보이도록
     beginCharacterMoveAfterUI();
+    enforceMinimalUI();
+  }
+
+  // FIRST SLEEP 이후 UI 최소화
+  function enforceMinimalUI(){
+    docBtn.style.display='none';
+    mapBtn.style.display='none';
+    audioToggle.style.display='none';
+    runTimer.style.display='none';
+    document.body.classList.remove('boot'); // +/–/CAPTURE는 보여야 하므로 boot 해제
   }
 
   // 카메라 루프
@@ -657,14 +712,14 @@
     if(charActive){ drawCharacter(W,H); }
   }
 
-  // ===== 캐릭터 (8분) =====
+  // ===== 캐릭터(8분 경로) =====
   let charActive = false;
   let charStartTime = 0;
   const CHAR_DURATION = 480000; // 8분
   let pathSegments = null;
   let timerInterval = null;
 
-  // 스프라이트(작고 선명)
+  // 픽셀 사람 (작은 사이즈)
   const PIXEL_SPRITE = [
     "..XXXXXX....",".XXXXXXXX...",".XX.XX.XX...",".XXXXXXXX...",
     "..XXXXXX....",".XXXXXXXX...",".XXXXXXXX...",".XX.XX.XX...",
@@ -675,14 +730,10 @@
   const COLOR_STROKE = '#000000';
 
   function drawPixelHuman(ctx, cx, baselineY, name, W){
-    const cell = Math.max(2, Math.min(4, Math.floor(W * 0.0018))); // 보이도록 최소값 ↑
-    const cols = PIXEL_SPRITE[0].length;
-    const rows = PIXEL_SPRITE.length;
-    const width = cols * cell;
-    const height = rows * cell;
-
-    const x0 = Math.round(cx - width/2);
-    const y0 = Math.round(baselineY - height);
+    const cell = Math.max(2, Math.min(4, Math.floor(W * 0.0018)));
+    const cols = PIXEL_SPRITE[0].length, rows = PIXEL_SPRITE.length;
+    const width = cols * cell, height = rows * cell;
+    const x0 = Math.round(cx - width/2), y0 = Math.round(baselineY - height);
 
     // 외곽선
     ctx.fillStyle = COLOR_STROKE;
@@ -702,12 +753,9 @@
     for(let y=0; y<rows; y++){
       const row = PIXEL_SPRITE[y];
       for(let x=0; x<cols; x++){
-        if(row[x]==='X'){
-          ctx.fillRect(x0 + x*cell, y0 + y*cell, cell, cell);
-        }
+        if(row[x]==='X'){ ctx.fillRect(x0 + x*cell, y0 + y*cell, cell, cell); }
       }
     }
-
     // 이름
     ctx.font = `700 ${Math.max(10, Math.min(18, Math.floor(W*0.014)))}px "Courier New", ui-monospace, monospace`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
@@ -741,12 +789,11 @@
   }
 
   function beginCharacterMoveAfterUI(){
-    // UI 보인 뒤 1프레임 후 경로 계산 → 시작 즉시 보이도록
     showTopUI();
     requestAnimationFrame(()=>{
       pathSegments = buildPathFromUI();
       charActive = true;
-      charStartTime = performance.now(); // t=0에서 바로 렌더
+      charStartTime = performance.now();
       startRunTimer();
     });
   }
@@ -803,10 +850,56 @@
   }
   function stopRunTimer(){ if(timerInterval) clearInterval(timerInterval); runTimer.textContent = "00:00"; }
 
-  // 캡처
+  // 캡처: freeze → 픽셀화 → 페이드아웃
+  let captureAnimating = false;
   captureBtn.addEventListener('click', ()=>{
-    try{ const a=document.createElement('a'); a.download=`sleep_capture_${Date.now()}.png`; a.href=view.toDataURL('image/png'); a.click(); }catch(e){}
-  }, {passive:true});
+    if(captureAnimating) return;
+    playClick();
+    captureAnimating = true;
+
+    // 현재 view를 freezeLayer에 복사
+    const dpr = devicePixelRatio||1;
+    freezeLayer.width = view.width;
+    freezeLayer.height = view.height;
+    const fx = freezeLayer.getContext('2d');
+    fx.setTransform(1,0,0,1,0,0);
+    fx.drawImage(view,0,0);
+    freezeLayer.style.display='block';
+    freezeLayer.style.opacity='1';
+
+    // 800ms 정지 후 픽셀화 시작
+    setTimeout(()=>{
+      const W = freezeLayer.width, H = freezeLayer.height;
+      let px = 4, step = 1.2; // 픽셀 크기 증가율
+      const anim = ()=>{
+        if(px > 80){
+          // 서서히 페이드아웃
+          freezeLayer.style.transition='opacity 800ms ease';
+          freezeLayer.style.opacity='0';
+          setTimeout(()=>{
+            freezeLayer.style.display='none';
+            freezeLayer.style.transition='';
+            captureAnimating = false;
+          }, 820);
+          return;
+        }
+        // 축소 후 최근접 확대 = 모자이크
+        const w = Math.max(1, Math.floor(W/px));
+        const h = Math.max(1, Math.floor(H/px));
+        const off = document.createElement('canvas'); off.width=w; off.height=h;
+        const oc = off.getContext('2d');
+        oc.imageSmoothingEnabled=false;
+        oc.drawImage(freezeLayer,0,0,w,h);
+        const fx2 = freezeLayer.getContext('2d');
+        fx2.imageSmoothingEnabled=false;
+        fx2.clearRect(0,0,W,H);
+        fx2.drawImage(off,0,0,W,H);
+        px = Math.floor(px*step)+1;
+        requestAnimationFrame(anim);
+      };
+      anim();
+    }, 800);
+  });
 
   // DOC/MAP
   function openDoc(){ docOverlay.style.display='block'; }
@@ -825,6 +918,13 @@
   function closeMap(){ mapOverlay.style.display='none'; }
   mapBtn.addEventListener('click', openMap, {passive:true});
   btnExitMap.addEventListener('click', closeMap, {passive:true});
+
+  // AUDIO 토글
+  audioToggle.addEventListener('click', ()=>{
+    ensureAudio();
+    if (Ambient.isRunning()){ Ambient.stop(1.2); audioToggle.textContent='AUDIO'; }
+    else { Ambient.start('richter', 1.2); audioToggle.textContent='AUDIO*'; }
+  });
 
   // 카메라 루프
   async function startCameraFresh(){
@@ -851,7 +951,14 @@
     }catch(e){ console.warn('startCameraFresh error:', e); }
   }
 
-  // 시작 플로우: 권한→이름→프리셋→웰컴→인트로→전환→메인(캐릭터 즉시 표시)
+  function showTopUI(){
+    document.body.classList.remove('boot');
+    // first sleep 이후 enforceMinimalUI()에서 필요한 것만 남김
+  }
+
+  // ===== 부트 플로우 =====
+  async function requestMotionPermissions(){/* 위에 있음 (아이폰) */} // placeholder for order
+  // 권한→이름→프리셋→웰컴→인트로→전환→메인(캐릭터)
 })();
 </script>
 </body>
