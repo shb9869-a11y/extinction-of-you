@@ -46,7 +46,6 @@
   .uiBtn{background:#000;color:#fff;border:1px solid #444;font-size:var(--fs-strong);
     padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",ui-monospace,monospace;white-space:nowrap;cursor:pointer;user-select:none}
   .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
-  /* 밑줄 제거 */
   .uiBtn.flat{border:none;background:transparent;text-decoration:none}
   .uiBtn[disabled]{opacity:.35;pointer-events:none;filter:grayscale(1)}
   .hide{display:none !important;}
@@ -70,7 +69,20 @@
     position:fixed; left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
     top:calc(var(--frame) + var(--ui-gap) + var(--safe-t)); z-index:180;}
 
-  /* 공통 크레딧: SHB, KHJ… → PRESS 폰트(모노스페이스)로 통일 */
+  /* 타이머 (MAP 옆) */
+  #runTimer{
+    position:fixed;
+    right:calc(var(--frame) + var(--ui-gap) + var(--safe-r) + 62px); /* MAP 버튼 왼쪽에 붙임 */
+    top:calc(var(--frame) + var(--ui-gap) + var(--safe-t) + 2px);
+    z-index:181;
+    font-family:"Courier New",ui-monospace,monospace;
+    font-size:var(--fs-strong);
+    color:#fff; opacity:.9;
+    pointer-events:none;
+    user-select:none;
+    display:none; /* 시작 전 숨김 */
+  }
+
   .credits{
     font-family:"Courier New",ui-monospace,monospace;
     letter-spacing:.08em;
@@ -96,7 +108,7 @@
   #preset{position:fixed;inset:0;z-index:250;background:#000;display:none;cursor:pointer}
   #presetCanvas{position:absolute;left:0;top:0;width:100%;height:100%}
 
-  /* 4) WELCOME (업데이트된 큰 타이포) */
+  /* 4) WELCOME */
   #overlayWelcome{
     position:fixed;inset:0;z-index:220;display:none;align-items:center;justify-content:center;color:#fff;background:rgba(0,0,0,.55);
     padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;}
@@ -110,10 +122,9 @@
     text-transform:uppercase;
   }
 
-  /* INTRO — 자체 스크롤 가능하도록 수정 */
+  /* INTRO — 스크롤 가능 */
   #introOverlay{
     position:fixed; inset:0; z-index:230; display:none;
-    /* 가운데 정렬 대신 상단 정렬 + 내부 스크롤 */
     align-items:flex-start; justify-content:center;
     color:#fff; background:rgba(0,0,0,.85);
     padding:calc(24px + var(--safe-t)) calc(16px + var(--safe-r)) calc(20px + var(--safe-b)) calc(16px + var(--safe-l));
@@ -121,10 +132,7 @@
     overflow-y:auto;
     -webkit-overflow-scrolling:touch;
   }
-  #introBox{
-    width:min(92vw, 860px);
-    margin:0 auto;
-  }
+  #introBox{ width:min(92vw, 860px); margin:0 auto; }
   #introBox h2{margin:.2em 0 .6em 0; font-size:clamp(18px, 3.6vmin, 26px); letter-spacing:.1em; text-align:center;}
   #introBox p, #introBox li{font-size:var(--fs-body); line-height:1.85;}
   #introBox ol{padding-left:1.2em; margin:.4em 0 1.2em 0;}
@@ -169,6 +177,7 @@
 
   <button id="docLauncher" class="uiBtn small">DOCUMENT</button>
   <button id="mapLauncher" class="uiBtn small">MAP</button>
+  <div id="runTimer" aria-live="polite">08:00</div>
 
   <!-- 1) 권한 게이트 -->
   <div id="overlay">
@@ -206,7 +215,7 @@
     </div>
   </div>
 
-  <!-- INTRODUCTION (30초) -->
+  <!-- INTRODUCTION -->
   <div id="introOverlay"><div id="introBox">
     <h2>INTRODUCTION</h2>
 
@@ -229,7 +238,7 @@
     <p>이 세상에서 사라져버린 ‘너’의 이야기에 귀를 기울입니다.</p>
 
     <div class="count">It will come in <span id="countNum">30</span> seconds.</div>
-    <div style="height:12vh"></div> <!-- 하단 여백으로 스크롤 완충 -->
+    <div style="height:12vh"></div>
   </div></div>
 
   <!-- TITLE -->
@@ -314,11 +323,36 @@
 
   const frameBox = qs('.frameBox');
   const view = qs('#view');
+  const runTimer = qs('#runTimer');
 
   // State
   let camPermGranted = false;
   let camStream = null, camVideo = null, vctx = null, proc = null, pctx = null, ZOOM = 1.0;
   let animStarted = false;
+
+  // === 버튼 클릭 사운드 (유지/추가) ===
+  let audioCtx = null;
+  function playClick(){
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'square';
+      o.frequency.value = 880; // 짧은 '틱'
+      g.gain.value = 0.04;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start();
+      // 아주 짧게 감쇄
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.06);
+      o.stop(audioCtx.currentTime + 0.07);
+    }catch(e){}
+  }
+  // 모든 UI 버튼에 사운드 연결
+  function wireButtonClicks(){
+    document.querySelectorAll('.uiBtn').forEach(btn=>{
+      btn.addEventListener('click', playClick, {passive:true});
+    });
+  }
 
   // UI toggle helpers
   function hideTopUI(hide){
@@ -326,7 +360,7 @@
     mapBtn.classList.toggle('hide', hide);
     qs('.controls').classList.toggle('hide', hide);
     captureBtn.classList.toggle('hide', hide);
-    frameBox.classList.toggle('hide', false);
+    // 타이머는 hideTopUI의 영향을 받지 않음 (진행 표시 계속)
   }
 
   function updateZoomLabel(){ zoomVal.textContent = ZOOM.toFixed(1)+'×'; }
@@ -334,7 +368,7 @@
   zoomIn.addEventListener('click', ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); }, {passive:true});
   zoomOut.addEventListener('click', ()=>{ ZOOM=Math.max(0.35, ZOOM-0.05); updateZoomLabel(); }, {passive:true});
 
-  // Permissions first (권한만 미리 획득 → 스트림 즉시 stop)
+  // Permissions first
   async function requestMotionPermissions(){
     const needsIOS = typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function';
     try{ if(needsIOS){ await DeviceOrientationEvent.requestPermission().catch(()=>{}); } }catch{}
@@ -484,6 +518,7 @@
         animStarted = true;
         loopCam();
       }
+      wireButtonClicks(); // 권한 허용 후 버튼 사운드 배선
     }catch(e){
       console.warn('startCameraFresh error:', e);
     }
@@ -527,16 +562,17 @@
         pctx.putImageData(frame,0,0);
       }
     }
-    vctx.imageSmoothingEnabled = false; // 픽셀 보정
+    vctx.imageSmoothingEnabled = false;
     vctx.drawImage(proc,0,0,W,H);
     if(charActive){ drawCharacter(W,H); }
   }
 
-  // Character (3분, 'ㄹ' 동선)
+  // Character (8분, 'ㄹ' 동선)
   let charActive = false;
   let charStartTime = 0;
-  const CHAR_DURATION = 180000; // 3분
+  const CHAR_DURATION = 480000; // 8분
   let pathSegments = null;
+  let timerInterval = null;
 
   function buildReulPath(){
     const r = frameBox.getBoundingClientRect();
@@ -570,6 +606,78 @@
     pathSegments = buildReulPath();
     charActive = true;
     charStartTime = performance.now();
+    startRunTimer();
+  }
+
+  // ===== 업그레이드된 픽셀 사람 스프라이트 (12x20) =====
+  const PIXEL_SPRITE = [
+    "....XXXX....",
+    "...XXXXXX...",
+    "..XXXXXXXX..",
+    "..XX.XX.XX..",
+    "..XX.XX.XX..",
+    "..XXXXXXXX..",  // 머리/어깨
+    "...XXXXXX...",
+    "...X.XX.X...",
+    "..XXXXXXXX..",  // 가슴/몸통
+    "..XXXXXXXX..",
+    "..XX.XX.XX..",  // 팔
+    "..XX.XX.XX..",
+    "...XXXXXX...",  // 허리
+    "...X.XX.X...",
+    "..XX.XX.XX..",  // 허벅지
+    "..XX.XX.XX..",
+    "...X....X...",  // 종아리
+    "...X....X...",
+    "...X....X...",  // 발목
+    "..XXX..XXX.."   // 발
+  ];
+
+  function drawPixelHuman(ctx, cx, baselineY, name, W){
+    // 셀 크기 ↑ (사람 형체 크게)
+    const cell = Math.max(3, Math.min(9, Math.floor(W * 0.006)));
+    const cols = PIXEL_SPRITE[0].length;
+    const rows = PIXEL_SPRITE.length;
+    const width = cols * cell;
+    const height = rows * cell;
+
+    const x0 = Math.round(cx - width/2);
+    const y0 = Math.round(baselineY - height);
+
+    // 그림자
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    for(let y=0; y<rows; y++){
+      const row = PIXEL_SPRITE[y];
+      for(let x=0; x<cols; x++){
+        if(row[x]==='X'){
+          ctx.fillRect(x0 + (x+1)*cell, y0 + (y+1)*cell, cell, cell);
+        }
+      }
+    }
+
+    // 본체
+    ctx.fillStyle = '#fff';
+    for(let y=0; y<rows; y++){
+      const row = PIXEL_SPRITE[y];
+      for(let x=0; x<cols; x++){
+        if(row[x]==='X'){
+          ctx.fillRect(x0 + x*cell, y0 + y*cell, cell, cell);
+        }
+      }
+    }
+
+    // 이름 (발 아래)
+    ctx.font = `700 ${Math.max(12, Math.min(28, Math.floor(W*0.024)))}px "Courier New", ui-monospace, monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const ny = Math.round(baselineY + Math.max(6, cell));
+    ctx.fillStyle = 'rgba(0,0,0,0.65)';
+    ctx.fillText(name, cx, ny-1);
+    ctx.fillText(name, cx, ny+1);
+    ctx.fillText(name, cx-1, ny);
+    ctx.fillText(name, cx+1, ny);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(name, cx, ny);
   }
 
   function getCharPos(now){
@@ -580,76 +688,42 @@
     return { x: seg.a.x + (seg.b.x - seg.a.x)*lt, y: seg.a.y + (seg.b.y - seg.a.y)*lt, t };
   }
 
-  // ===== 픽셀 사람 스프라이트 =====
-  const PIXEL_SPRITE = [
-    "....XX....",
-    "...XXXX...",
-    "..XXXXXX..",
-    "..XX..XX..",
-    "..XXXXXX..",
-    "...XXXX...",
-    ".XXXXXXX..",
-    ".XXXXXXX..",
-    ".XXXXXXX..",
-    "..XXXXXX..",
-    "...XXXX...",
-    "..XX..XX..",
-    "..XX..XX..",
-    "..XX..XX..",
-    "..XX..XX..",
-    "..XX..XX.."
-  ];
-
-  function drawPixelHuman(ctx, cx, baselineY, name, W){
-    const cell = Math.max(2, Math.min(6, Math.floor(W * 0.004)));
-    const cols = PIXEL_SPRITE[0].length;
-    const rows = PIXEL_SPRITE.length;
-    const width = cols * cell;
-    const height = rows * cell;
-
-    const x0 = Math.round(cx - width/2);
-    const y0 = Math.round(baselineY - height);
-
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    for(let y=0; y<rows; y++){
-      const row = PIXEL_SPRITE[y];
-      for(let x=0; x<cols; x++){
-        if(row[x]==='#'){
-          ctx.fillRect(x0 + (x+1)*cell, y0 + (y+1)*cell, cell, cell);
-        }
-      }
-    }
-
-    ctx.fillStyle = '#fff';
-    for(let y=0; y<rows; y++){
-      const row = PIXEL_SPRITE[y];
-      for(let x=0; x<cols; x++){
-        if(row[x]==='#'){
-          ctx.fillRect(x0 + x*cell, y0 + y*cell, cell, cell);
-        }
-      }
-    }
-
-    ctx.font = `700 ${Math.max(12, Math.min(24, Math.floor(W*0.022)))}px "Courier New", ui-monospace, monospace`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    const ny = Math.round(baselineY + Math.max(4, cell));
-    ctx.fillStyle = 'rgba(0,0,0,0.65)';
-    ctx.fillText(name, cx, ny-1);
-    ctx.fillText(name, cx, ny+1);
-    ctx.fillText(name, cx-1, ny);
-    ctx.fillText(name, cx+1, ny);
-    ctx.fillStyle = '#fff';
-    ctx.fillText(name, cx, ny);
-  }
-
   function drawCharacter(W,H){
     const now = performance.now();
     const p = getCharPos(now);
     if(!p){ return; }
     const ctx = vctx;
     drawPixelHuman(ctx, Math.round(p.x), Math.round(p.y), displayName, W);
-    if(now - charStartTime >= CHAR_DURATION){ charActive=false; }
+    if(now - charStartTime >= CHAR_DURATION){
+      charActive=false;
+      stopRunTimer();
+    }
+  }
+
+  // ===== 8분 타이머 (MAP 옆 표시) =====
+  function fmt(mmss){
+    const m = Math.floor(mmss/60);
+    const s = mmss%60;
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+  function startRunTimer(){
+    const start = performance.now();
+    runTimer.style.display = 'block';
+    // 초기값
+    runTimer.textContent = "08:00";
+    if(timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(()=>{
+      const elapsed = performance.now() - start;
+      const remain = Math.max(0, Math.round((CHAR_DURATION - elapsed)/1000));
+      runTimer.textContent = fmt(remain);
+      if(remain<=0){
+        clearInterval(timerInterval);
+      }
+    }, 1000);
+  }
+  function stopRunTimer(){
+    if(timerInterval) clearInterval(timerInterval);
+    runTimer.textContent = "00:00";
   }
 
   // Capture
@@ -669,8 +743,8 @@
   (function buildDocGrid(){
     docGrid.innerHTML='';
     for(let i=1;i<=8;i++){
-      const b=document.createElement('button'); b.className='docBtn'; b.textContent=`Document ${i}`;
-      b.onclick=()=>{ docTitle.textContent=`Document ${i}`; docBody.innerHTML='준비중입니다.'; docPane.style.display='block'; };
+      const b=document.createElement('button'); b.className='docBtn uiBtn small'; b.textContent=`Document ${i}`;
+      b.onclick=()=>{ playClick(); docTitle.textContent=`Document ${i}`; docBody.innerHTML='준비중입니다.'; docPane.style.display='block'; };
       docGrid.appendChild(b);
     }
   })();
