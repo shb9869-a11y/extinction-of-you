@@ -69,7 +69,7 @@
     position:fixed; left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
     top:calc(var(--frame) + var(--ui-gap) + var(--safe-t)); z-index:180;}
 
-  /* 권한 게이트 (최초) */
+  /* 1) 권한 게이트 */
   #overlay{
     position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;
     padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));
@@ -77,7 +77,7 @@
   }
   #overlayContent{max-width:min(92vw, 72ch);font-family:"Courier New",ui-monospace,monospace;line-height:1.7;text-align:center}
 
-  /* 이름 입력(두 번째 화면) */
+  /* 2) 이름 입력 */
   #nameOverlay{position:fixed; inset:0; z-index:260; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.85); color:#fff;}
   #nameCard{ width:min(92vw,600px); text-align:center; font-family:"Courier New",ui-monospace,monospace; }
   #nameCard h2{ margin:0 0 12px 0; letter-spacing:.08em; font-size:clamp(16px,3.2vmin,24px); }
@@ -85,11 +85,11 @@
   #nameRow{ display:flex; gap:10px; margin-top:12px; justify-content:center; }
   #nameRow .uiBtn{ padding:10px 14px; }
 
-  /* PRESET */
+  /* 3) 프리셋 */
   #preset{position:fixed;inset:0;z-index:250;background:#000;display:none;cursor:pointer}
   #presetCanvas{position:absolute;left:0;top:0;width:100%;height:100%}
 
-  /* WELCOME (이전 스타일 유지) */
+  /* 4) WELCOME (고정 스타일) */
   #overlayWelcome{
     position:fixed;inset:0;z-index:220;display:none;align-items:center;justify-content:center;color:#fff;background:rgba(0,0,0,.55);
     padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;}
@@ -173,7 +173,7 @@
     <canvas id="presetCanvas"></canvas>
   </div>
 
-  <!-- WELCOME (고정 스타일) -->
+  <!-- 4) WELCOME (고정 스타일) -->
   <div id="overlayWelcome">
     <div id="welcomeCard">
       <div style="letter-spacing:.1em;margin-bottom:12px;">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
@@ -322,7 +322,6 @@
     showName();
   }
   permBtn.addEventListener('click', gate, {passive:true});
-  // 터치 어디든 허용 (버튼이 반응 안하는 환경 대비)
   ['pointerdown','touchstart','click','keydown'].forEach(evt=>{
     window.addEventListener(evt,()=>{ if(overlay.style.display!=='none') gate(); }, {once:true, capture:true, passive:true});
   });
@@ -383,7 +382,7 @@
   addEventListener('resize', ()=>{ if(preset.style.display==='block') drawPreset(); }, {passive:true});
   preset.addEventListener('click', ()=>{
     preset.style.display='none';
-    showWelcome(); // 권한/카메라는 이미 시작됨
+    showWelcome(); // 권한/카메라 이미 시작됨
   }, {passive:true});
 
   // Welcome → Intro → Title → Character move
@@ -517,42 +516,112 @@
     return { x: seg.a.x + (seg.b.x - seg.a.x)*lt, y: seg.a.y + (seg.b.y - seg.a.y)*lt, t };
   }
 
+  // --- 사람 실루엣 + 이름(아래) ---
   function drawCharacter(W,H){
     const now = performance.now();
     const p = getCharPos(now);
     if(!p){ return; }
     const ctx = vctx;
-    const label = displayName;
+
+    // 크기 스케일 (프레임/화면 기준)
+    const s = Math.max(18, Math.min(42, Math.min(W,H)*0.035)); // 전체 스케일
+    const headR = s*0.28;
+    const bodyH = s*0.95;
+    const shoulderW = s*0.55;
+    const hipW = s*0.40;
+
+    // y 기준: p.y는 캐릭터의 발 위치로 볼 수도 있으나,
+    // 여기서는 p를 몸통 중앙 기준으로 약간 올려서 배치
+    const cx = p.x;
+    const cy = p.y - s*0.15;
+
     ctx.save();
-    ctx.font = `700 ${Math.max(12, Math.min(24, W*0.02))}px "Courier New", ui-monospace, monospace`;
-    const metrics = ctx.measureText(label);
-    const tw = metrics.width, th = Math.max(20, parseInt(ctx.font,10) + 6);
-    const padX = 10, padY = 6, bw = tw + padX*2, bh = th + padY*2;
-    const bx = p.x - bw/2, by = p.y - bh - 8;
+    ctx.lineJoin='round'; ctx.lineCap='round';
 
-    // 라벨 박스
-    roundRect(ctx, bx, by, bw, bh, 8);
-    ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.fill();
-    ctx.lineWidth=1; ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.stroke();
-    ctx.fillStyle='#fff';
-    ctx.fillText(label, bx + padX, by + padY + th*0.8 - 4);
+    // 바깥 글로우
+    ctx.shadowColor='rgba(0,0,0,0.6)';
+    ctx.shadowBlur=8;
 
-    // 위치 점
-    ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI*2);
-    ctx.fillStyle='rgba(255,255,255,.85)'; ctx.fill();
+    // 몸(가슴~골반) 실루엣
+    ctx.beginPath();
+    // 상체 라운드 사다리꼴
+    roundedTrapezoid(ctx,
+      cx - shoulderW/2, cy - bodyH*0.35,  // 상단 좌
+      cx + shoulderW/2, cy - bodyH*0.35,  // 상단 우
+      cx - hipW/2,      cy + bodyH*0.15,  // 하단 좌
+      cx + hipW/2,      cy + bodyH*0.15,  // 하단 우
+      Math.min(12, s*0.25)
+    );
+    ctx.fillStyle='rgba(255,255,255,0.9)';
+    ctx.fill();
+
+    // 머리
+    ctx.beginPath();
+    ctx.arc(cx, cy - bodyH*0.55, headR, 0, Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,0.95)';
+    ctx.fill();
+
+    // 팔
+    ctx.beginPath();
+    ctx.moveTo(cx - shoulderW*0.52, cy - bodyH*0.25);
+    ctx.lineTo(cx - shoulderW*0.15, cy + bodyH*0.15);
+    ctx.moveTo(cx + shoulderW*0.52, cy - bodyH*0.25);
+    ctx.lineTo(cx + shoulderW*0.15, cy + bodyH*0.15);
+    ctx.lineWidth = Math.max(2, s*0.08);
+    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+    ctx.stroke();
+
+    // 다리
+    ctx.beginPath();
+    ctx.moveTo(cx - hipW*0.25, cy + bodyH*0.15);
+    ctx.lineTo(cx - hipW*0.25, cy + bodyH*0.62);
+    ctx.moveTo(cx + hipW*0.25, cy + bodyH*0.15);
+    ctx.lineTo(cx + hipW*0.25, cy + bodyH*0.62);
+    ctx.lineWidth = Math.max(2, s*0.09);
+    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+    ctx.stroke();
+
+    // 이름 라벨 (아래)
+    ctx.shadowBlur=0;
+    ctx.font = `700 ${Math.max(12, Math.min(26, W*0.022))}px "Courier New", ui-monospace, monospace`;
+    ctx.textAlign='center'; ctx.textBaseline='top';
+    const labelY = cy + bodyH*0.70;
+    // 얇은 외곽선 효과
+    drawTextWithOutline(ctx, displayName, cx, labelY, '#fff', 'rgba(0,0,0,0.65)');
+
     ctx.restore();
 
     if(now - charStartTime >= CHAR_DURATION){ charActive=false; }
   }
 
-  function roundRect(ctx, x,y,w,h,r){
-    const rr = Math.min(r, w/2, h/2);
+  function drawTextWithOutline(ctx, text, x, y, fill, outline){
+    ctx.fillStyle = outline;
+    ctx.fillText(text, x, y-1);
+    ctx.fillText(text, x, y+1);
+    ctx.fillText(text, x-1, y);
+    ctx.fillText(text, x+1, y);
+    ctx.fillStyle = fill;
+    ctx.fillText(text, x, y);
+  }
+
+  function roundedTrapezoid(ctx, x1,y1, x2,y2, x3,y3, x4,y4, r){
+    // 좌->우 상변, 우측면, 하변, 좌측면 순서
+    const pts = [{x:x1,y:y1},{x:x2,y:y2},{x:x4,y:y4},{x:x3,y:y3}];
     ctx.beginPath();
-    ctx.moveTo(x+rr,y);
-    ctx.arcTo(x+w,y,x+w,y+h,rr);
-    ctx.arcTo(x+w,y+h,x,y+h,rr);
-    ctx.arcTo(x,y+h,x,y,rr);
-    ctx.arcTo(x,y,x+w,y,rr);
+    for(let i=0;i<pts.length;i++){
+      const p0 = pts[(i-1+pts.length)%pts.length];
+      const p1 = pts[i];
+      const p2 = pts[(i+1)%pts.length];
+      const v01x = p1.x - p0.x, v01y = p1.y - p0.y;
+      const v12x = p2.x - p1.x, v12y = p2.y - p1.y;
+      const len01 = Math.hypot(v01x, v01y) || 1;
+      const len12 = Math.hypot(v12x, v12y) || 1;
+      const rUse = Math.min(r, len01*0.5, len12*0.5);
+      const pA = { x: p1.x - v01x/len01 * rUse, y: p1.y - v01y/len01 * rUse };
+      const pB = { x: p1.x + v12x/len12 * rUse, y: p1.y + v12y/len12 * rUse };
+      if(i===0){ ctx.moveTo(pA.x, pA.y); } else { ctx.lineTo(pA.x, pA.y); }
+      ctx.quadraticCurveTo(p1.x, p1.y, pB.x, pB.y);
+    }
     ctx.closePath();
   }
 
@@ -585,8 +654,7 @@
   mapBtn.addEventListener('click', openMap, {passive:true});
   btnExitMap.addEventListener('click', closeMap, {passive:true});
 
-  // Start state: 권한 오버레이 보임
-  // overlay → gate() → nameOverlay → preset → welcome ...
+  // boot: 권한 → 이름 → 프리셋 ...
 })();
 </script>
 </body>
