@@ -239,6 +239,12 @@
   /* Utils */
   function fadeShow(el, dur=2000, display='flex'){ el.style.display=display; el.style.opacity='0'; el.style.transition=`opacity ${dur}ms ease`; requestAnimationFrame(()=>el.style.opacity='1'); }
   function fadeHide(el, dur=2000){ el.style.transition=`opacity ${dur}ms ease`; el.style.opacity='0'; setTimeout(()=>{ el.style.display='none'; }, dur); }
+  // 오버랩 페이드(동시에 from-out / to-in)
+  function overlapFade(fromEl, toEl, dur=1600, displayTo='flex'){
+    if(toEl){ toEl.style.display=displayTo; toEl.style.opacity='0'; toEl.style.transition=`opacity ${dur}ms ease`; requestAnimationFrame(()=>toEl.style.opacity='1'); }
+    if(fromEl){ fromEl.style.transition=`opacity ${dur}ms ease`; fromEl.style.opacity='0'; setTimeout(()=>{ fromEl.style.display='none'; }, dur); }
+  }
+
   const sleep = ms => new Promise(r=>setTimeout(r,ms));
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const map=(v,inMin,inMax,outMin,outMax)=>outMin+(outMax-outMin)*((v-inMin)/(inMax-inMin));
@@ -340,15 +346,17 @@
     }catch(e){}
   }
 
+  // ↓↓↓ 인트로 타자 입력 사운드 — 톤/볼륨 낮춤 (클릭과 비슷한 느낌)
   function typeTick(){
     try{
       ensureAudio();
-      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-      o.type='square'; o.frequency.value=900;
+      const o=audioCtx.createOscillator(), g=audioCtx.createGain(), f=audioCtx.createBiquadFilter();
+      o.type='square'; o.frequency.value=420;
+      f.type='lowpass'; f.frequency.value=900;
       g.gain.value=0.0001;
-      g.gain.exponentialRampToValueAtTime(0.16, audioCtx.currentTime+0.02);
+      g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime+0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.10);
-      o.connect(g).connect(audioCtx.destination);
+      o.connect(f).connect(g).connect(audioCtx.destination);
       o.start(); o.stop(audioCtx.currentTime+0.12);
     }catch(e){}
   }
@@ -468,6 +476,10 @@
   async function startMicFXFadeIn(fadeSec=3.0){
     try{
       await ensureResumed();
+
+      // Ambient는 마이크 들어올 때 교차 페이드로 사라짐
+      try{ Ambient.stop(fadeSec); }catch{}
+
       if(!micStream) micStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}, video:false});
       if(!micSrc) micSrc = audioCtx.createMediaStreamSource(micStream);
 
@@ -682,14 +694,14 @@
     requestAnimationFrame(saverLoop);
   }
 
+  // 프리셋 → 웰컴 : 1.6s 오버랩
   preset.addEventListener('click', async ()=>{
     playWoongClick();
-    fadeHide(preset, 220);
     await startCameraFresh(false);
-    fadeShow(welcome, 280);
+    overlapFade(preset, welcome, 1600, 'flex');
   }, {passive:true});
 
-  /* Intro: big → body → 타이머(70s) */
+  /* Intro: big → body → 타이머(15s) */
   function captureIntroTexts(){
     const els = Array.from(document.querySelectorAll('#introBox p, #introBox li'));
     els.forEach(el=>{ el.dataset.text = (el.textContent||'').trim(); el.textContent=''; });
@@ -718,19 +730,22 @@
 
   async function showIntroFlow(){
     introBigText.textContent='';
-    fadeShow(introBig, 180, 'flex');
+    // 웰컴 → 인트로 빅타이틀 오버랩
+    overlapFade(welcome, introBig, 1600, 'flex');
+    await sleep(200); // 약간의 지연으로 부드럽게
     await typeSentence(introBigText, 'INTRODUCTION', 45);
-    await sleep(1000);
-    fadeHide(introBig, 280);
+    await sleep(800);
+    // 빅타이틀 → 인트로 본문 오버랩
+    overlapFade(introBig, intro, 1600, 'flex');
 
-    fadeShow(intro, 300, 'flex');
     const els = captureIntroTexts();
     for(const el of els){
       await typeElementBySentence(el, el.dataset.text||'');
       await sleep(120);
     }
 
-    let left = 70;
+    // 인트로 타이머: 마지막 입력 후 15초만 표시
+    let left = 15;
     introCount.style.display = 'block';
     introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
     const iv = setInterval(()=>{
@@ -740,7 +755,7 @@
       if(left<=0){ clearInterval(iv); startTransition(); }
     },1000);
   }
-  goIntroBtn.addEventListener('click', ()=>{ ensureResumed().then(()=>{ playWoongClick(); fadeHide(welcome, 240); showIntroFlow(); }); }, {passive:true});
+  goIntroBtn.addEventListener('click', ()=>{ ensureResumed().then(()=>{ playWoongClick(); showIntroFlow(); }); }, {passive:true});
 
   /* 8-minute timer */
   let eightTimer = null, eightLeft = 8*60;
@@ -759,6 +774,7 @@
 
   /* Transition */
   async function startTransition(){
+    // 인트로 본문 페이드아웃은 타이머 0에서 자연 소멸되도록
     fadeHide(intro, 320);
 
     titleText.textContent='GOOD NIGHT';
@@ -781,20 +797,24 @@
 
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
-    await LongDrone.start();
+    await LongDrone.start(); // 부웅부웅
 
     startEightTimer();
 
     await sleep(1100);
     firstSleep.style.transition='opacity 8000ms ease';
     firstSleep.style.opacity='0';
+
+    // 드론 먼저 사라짐
     LongDrone.stop(4.5);
-    Ambient.stop(4.5);
+
     await sleep(8200);
     firstSleep.style.display='none';
     firstSleep.style.transition='';
 
     await sleep(400);
+
+    // 여기서 마이크가 들어오면서 Ambient가 함께 페이드아웃
     await startMicFXFadeIn(2.8);
 
     controls.classList.add('show');
