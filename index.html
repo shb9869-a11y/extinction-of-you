@@ -84,6 +84,7 @@
 
   .credits{ font-family:"Courier New",ui-monospace,monospace; letter-spacing:.08em; }
 
+  /* 세로(가로 금지) 안내 */
   #rotateOverlay{
     position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;
     background:#000;color:#fff;font-family:"Courier New",ui-monospace,monospace;text-align:center;padding:40px;
@@ -121,8 +122,7 @@
   /* Intro body */
   #introOverlay{position:fixed; inset:0; z-index:230; display:none; align-items:flex-start; justify-content:center; color:#fff; background:rgba(0,0,0,.35); padding:calc(24px + var(--safe-t)) calc(16px + var(--safe-r)) calc(20px + var(--safe-b)) calc(16px + var(--safe-l)); font-family:"Courier New",ui-monospace,monospace; overflow-y:auto; -webkit-overflow-scrolling:touch;}
   #introBox{ width:min(92vw, 860px); margin:0 auto; }
-  /* 작은 INTRODUCTION 머리는 삭제됨 */
-  #introBox h2{ display:none; }
+  #introBox h2{ display:none; } /* 상단 작은 제목 제거 */
   #introBox p{font-size:var(--fs-body); line-height:1.85; text-align:center; text-shadow:0 1px 2px rgba(0,0,0,.6);}
   #introBox ol{padding-left:1.2em; margin:.4em 0 1.2em 0; text-align:left;}
   #introBox li{font-size:var(--fs-body); line-height:1.85; text-shadow:0 1px 2px rgba(0,0,0,.6);}
@@ -154,6 +154,7 @@
   <button id="audioToggle" class="uiBtn small">AUDIO</button>
   <div id="runTimer" aria-live="polite">08:00</div>
 
+  <!-- 세로(가로 금지) 안내 -->
   <div id="rotateOverlay"><div>This content supports landscape mode only.<br/>Please rotate your device.</div></div>
 
   <!-- Gate -->
@@ -198,7 +199,6 @@
 
   <!-- Intro body -->
   <div id="introOverlay" class="fade"><div id="introBox">
-    <!-- h2 삭제됨 -->
     <p>지금 이 화면을 보고 있는 당신,</p>
     <p>주변의 소리에 천천히 귀를 기울이며 공간을 거닐기 시작합니다.</p>
     <p>지금부터 당신은 약 30분 간, 짧은 단잠에 들게 됩니다.</p>
@@ -243,18 +243,24 @@
   setAppH(); addEventListener('resize', setAppH, {passive:true});
   if (window.visualViewport){ visualViewport.addEventListener('resize', ()=>setTimeout(setAppH,50)); }
 
-  /* Orientation overlay */
+  /* 세로(가로 금지) 안내: matchMedia + viewport 동시 사용 */
   const rotateOverlay = document.getElementById('rotateOverlay');
-  function checkOrientation(){
-    const isPortrait = window.matchMedia("(orientation: portrait)").matches;
-    rotateOverlay.style.display = isPortrait ? 'flex' : 'none';
+  function isPortrait(){
+    const vv = window.visualViewport;
+    const w = (vv ? vv.width : window.innerWidth);
+    const h = (vv ? vv.height : window.innerHeight);
+    const m = window.matchMedia && window.matchMedia("(orientation: portrait)");
+    return (m && m.matches) || (h > w);
   }
-  addEventListener('orientationchange', checkOrientation, {passive:true});
-  addEventListener('resize', checkOrientation, {passive:true});
-  checkOrientation();
+  function updateRotateOverlay(){ rotateOverlay.style.display = isPortrait() ? 'flex' : 'none'; }
+  ['load','pageshow','resize','orientationchange','visibilitychange'].forEach(ev=>{
+    addEventListener(ev, updateRotateOverlay, {passive:true});
+  });
+  updateRotateOverlay();
 
   /* Refs */
   const overlay = qs('#overlay');
+  const overlayEl = qs('#overlay');
   const permBtn = qs('#permGateBtn');
   const nameOverlay = qs('#nameOverlay');
   const nickInput = qs('#nick');
@@ -306,7 +312,7 @@
       o2.connect(g2).connect(audioCtx.destination); o2.start(); o2.stop(now+0.36);
     }catch(e){}
   }
-  function playWoongHuge(){ // + 버튼용 (확실히 크게)
+  function playWoongHuge(){ // + 버튼용
     try{
       ensureAudio();
       const now = audioCtx.currentTime;
@@ -322,7 +328,7 @@
     try{
       ensureAudio();
       const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-      o.type='square'; o.frequency.value=950; // 낮춤
+      o.type='square'; o.frequency.value=950;
       g.gain.value=0.0001;
       g.gain.exponentialRampToValueAtTime(0.16, audioCtx.currentTime+0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.10);
@@ -335,7 +341,7 @@
       ensureAudio();
       const o=audioCtx.createOscillator(), g=audioCtx.createGain();
       const last5 = left<=5;
-      o.type='square'; o.frequency.value= last5 ? 850 : 650; // 살짝 낮춤
+      o.type='square'; o.frequency.value= last5 ? 850 : 650;
       g.gain.value=0.0001;
       g.gain.exponentialRampToValueAtTime(last5?0.30:0.18, audioCtx.currentTime+0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.12);
@@ -409,7 +415,7 @@
       g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.8);
       running=true;
     }
-    function stop(fade=4.0){ // 페이드 더 길게
+    function stop(fade=4.0){
       if(!running) return;
       const t=audioCtx.currentTime;
       g.gain.linearRampToValueAtTime(0.0001, t+fade);
@@ -429,7 +435,7 @@
       {t:1.14, dur:0.35, f:108, g:0.54},
       {t:1.46, dur:0.30, f:105, g:0.58},
       {t:1.72, dur:0.30, f:102, g:0.62},
-      {t:2.00, dur:2.10, f:95,  g:0.70}, // 꼬리 살짝 더 길게
+      {t:2.00, dur:2.10, f:95,  g:0.70},
     ];
     for(const p of pattern){
       const o=audioCtx.createOscillator(), g=audioCtx.createGain();
@@ -521,33 +527,42 @@
   zoomIn.addEventListener('click', ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); playWoongHuge(); }, {passive:true});
   zoomOut.addEventListener('click', ()=>{ ZOOM=Math.max(0.35, ZOOM-0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
 
-  /* Permissions (자이로 허용) */
-  async function requestMotionPermissions(){
-    const needsIOS = typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function';
-    try{ if(needsIOS){ await DeviceOrientationEvent.requestPermission().catch(()=>{}); } }catch{}
-  }
-  async function gate(){
+  /* ---------- 권한 게이트: '동기 제스처' 콜스택에서 모두 처리 ---------- */
+  function immediateGestureStart(e){
+    e && e.preventDefault && e.preventDefault();
+
+    // 1) 동작 센서(iOS) 권한
     try{
-      await requestMotionPermissions();
-      const tmp = await navigator.mediaDevices.getUserMedia({
-        video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},
-        audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}
-      });
-      tmp.getTracks().forEach(t=>t.stop());
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission().catch(()=>{});
+      }
+    }catch(_) {}
+
+    // 2) 오디오 컨텍스트 즉시 활성 + 클릭음
+    try{ ensureAudio(); audioCtx.resume && audioCtx.resume(); }catch(_){}
+    playWoongClick();
+
+    // 3) 카메라/마이크 권한 프롬프트 → 닉네임 화면
+    navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'environment', width:{ideal:1280}, height:{ideal:720}},
+      audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}
+    })
+    .then(s=>{
+      s.getTracks().forEach(t=>t.stop());
       camPermGranted = true;
-    }catch(e){ console.warn('permission error:', e); }
-    fadeHide(overlay, 400);
-
-    await ensureResumed();
-    Ambient.start(0.8, 1.0);
-
-    fadeShow(nameOverlay, 400);
-    setTimeout(()=>nickInput.focus(), 60);
+    })
+    .catch(err=>{ console.warn('permission error:', err); })
+    .finally(()=>{
+      fadeHide(overlay, 300);
+      Ambient.start(0.8, 1.0);
+      fadeShow(nameOverlay, 400);
+      setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 60);
+    });
   }
-  function gateWithWoong(){ ensureResumed().then(()=>{ playWoongClick(); gate(); }); }
-  permBtn.addEventListener('click', gateWithWoong, {passive:true});
-  ['pointerdown','touchstart','click','keydown'].forEach(evt=>{
-    window.addEventListener(evt,()=>{ if(overlay.style.display!=='none'){ gateWithWoong(); } }, {once:true, capture:true, passive:true});
+  ['click','touchstart','pointerdown'].forEach(type=>{
+    permBtn.addEventListener(type, immediateGestureStart, {passive:false});
+    overlayEl.addEventListener(type, immediateGestureStart, {passive:false});
   });
 
   /* Name */
@@ -569,7 +584,7 @@
     preset.style.display='block'; preset.classList.add('show');
     fadeShow(preset, 250);
     initSaver();
-    startCameraFresh(true);  // 워밍업(메타데이터 준비)
+    startCameraFresh(true);  // 메타데이터 워밍업
   }
   function initSaver(){
     const w = preset.clientWidth, h = preset.clientHeight;
@@ -648,7 +663,6 @@
   /* Intro: big title → body, 문장마다 1초 대기 */
   function captureIntroTexts(){
     const els = Array.from(document.querySelectorAll('#introBox p, #introBox li'));
-    // 문장 단위로 쪼개기 위해 data-text 저장
     els.forEach(el=>{ el.dataset.text = (el.textContent||'').trim(); el.textContent=''; });
     return els;
   }
@@ -659,10 +673,9 @@
       intro.scrollTop = intro.scrollHeight;
       await sleep(speed);
     }
-    await sleep(1000); // 문장 간 1초 대기
+    await sleep(1000);
   }
   function splitSentences(str){
-    // ., ?, !, …, '다.' 패턴 근사 분할
     const re = /(.*?[\.\?\!…]|.*?다\.)\s*/g;
     const out=[]; let m; let last=0;
     while((m=re.exec(str))){ out.push(m[0].trim()); last=re.lastIndex; }
@@ -682,7 +695,7 @@
     await sleep(1000);
     fadeHide(introBig, 280);
 
-    // 2) 본문 & 카운트다운 (문장 단위 타이핑)
+    // 2) 본문 & 카운트다운
     fadeShow(intro, 300, 'flex');
 
     let left = 40; introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
@@ -718,7 +731,7 @@
     },1000);
   }
 
-  /* Transition — 오버랩 1.5초 증가 */
+  /* Transition — 오버랩 여유 */
   async function startTransition(){
     fadeHide(intro, 320);
 
@@ -727,7 +740,7 @@
     titleScreen.style.background='#000'; titleText.style.color='#fff';
 
     await lowWoongSequence();
-    const until = performance.now()+3700; // +1500ms
+    const until = performance.now()+3700;
     let flag=false;
     while(performance.now()<until){
       flag=!flag;
@@ -745,8 +758,8 @@
 
     startEightTimer();
 
-    await sleep(1100); // 살짝 늘림
-    firstSleep.style.transition='opacity 8000ms ease'; // 더 길게
+    await sleep(1100);
+    firstSleep.style.transition='opacity 8000ms ease';
     firstSleep.style.opacity='0';
     LongDrone.stop(4.5);
     Ambient.stop(4.5);
@@ -778,13 +791,13 @@
         camVideo.srcObject = camStream;
       }
 
-      // 메타데이터 대기 → 즉시 리사이즈
       await camVideo.play().catch(()=>{});
       if (camVideo.readyState < 1) {
         await new Promise(res => camVideo.addEventListener('loadedmetadata', res, {once:true}));
       }
       metaReady = true;
       resizeCam();
+      warmupFrames = 20; // 초기 커버 안정화
 
       if(!vctx){
         vctx = view.getContext('2d',{alpha:false});
@@ -803,7 +816,7 @@
     const scale = matchMedia('(orientation: landscape)').matches? 0.86 : 0.9;
     if(proc){ proc.width=Math.floor(w*scale); proc.height=Math.floor(h*scale); }
   }
-  addEventListener('resize', ()=>{ setTimeout(resizeCam,30); warmupFrames=10; }, {passive:true});
+  addEventListener('resize', ()=>{ setTimeout(resizeCam,30); warmupFrames=20; }, {passive:true});
   document.addEventListener('visibilitychange', async ()=>{
     if(document.visibilityState==='visible' && camVideo){
       try{
@@ -811,7 +824,7 @@
         if(!camStream || camStream.getVideoTracks().every(t=>t.readyState!=='live')){
           await startCameraFresh();
         }
-        warmupFrames=10;
+        warmupFrames=20;
       }catch{}
     }
   });
@@ -929,7 +942,6 @@
     const W=view.width/(window.devicePixelRatio||1), H=view.height/(window.devicePixelRatio||1);
     const PW=proc.width, PH=proc.height;
 
-    // 초기 몇 프레임 강제 재측정(cover 안정화)
     if(warmupFrames>0){ resizeCam(); warmupFrames--; }
 
     pctx.fillStyle='rgba(0,0,0,.14)'; pctx.fillRect(0,0,PW,PH);
@@ -968,9 +980,8 @@
     if(charActive){ drawCharacter(W,H); }
   }
 
-  /* Capture (그대로) */
+  /* Capture */
   let captureAnimating = false;
-  const captureBtn = qs('#captureBtn');
   captureBtn.addEventListener('click', ()=>{
     if(captureAnimating) return;
     playWoongClick();
