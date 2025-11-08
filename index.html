@@ -153,10 +153,10 @@
 </style>
 </head>
 
-<!-- 인라인 핸들러: 어떤 브라우저에서도 반드시 한 번은 잡히게 -->
-<body onpointerdown="window.bootGesture && window.bootGesture(event)"
-      ontouchstart="window.bootGesture && window.bootGesture(event)"
-      onclick="window.bootGesture && window.bootGesture(event)">
+<body
+  onpointerdown="window.bootGesture && window.bootGesture(event)"
+  ontouchstart="window.bootGesture && window.bootGesture(event)"
+  onclick="window.bootGesture && window.bootGesture(event)">
 
   <canvas id="view"></canvas>
   <canvas id="freezeLayer"></canvas>
@@ -174,7 +174,6 @@
   <button id="audioToggle" class="uiBtn small">AUDIO</button>
   <div id="runTimer" aria-live="polite">08:00</div>
 
-  <!-- 세로 금지 안내 (인라인 핸들러 백업 포함) -->
   <div id="rotateOverlay"
        onpointerdown="window.bootGesture && window.bootGesture(event)"
        ontouchstart="window.bootGesture && window.bootGesture(event)"
@@ -182,7 +181,6 @@
     <div>This content supports landscape mode only.<br/>Please rotate your device.</div>
   </div>
 
-  <!-- Gate (오버레이 전체에 인라인 핸들러) -->
   <div id="overlay" class="fade show"
        onpointerdown="window.bootGesture && window.bootGesture(event)"
        ontouchstart="window.bootGesture && window.bootGesture(event)"
@@ -194,7 +192,6 @@
     </div>
   </div>
 
-  <!-- Name -->
   <div id="nameOverlay" class="fade">
     <div id="nameCard">
       <h2>TELL ME YOUR NAME</h2>
@@ -205,12 +202,10 @@
     </div>
   </div>
 
-  <!-- Preset -->
   <div id="preset" class="fade" title="Tap to continue">
     <canvas id="presetCanvas"></canvas>
   </div>
 
-  <!-- Welcome -->
   <div id="overlayWelcome" class="fade">
     <div id="welcomeCard">
       <div class="credits" style="margin-bottom:12px;">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
@@ -220,10 +215,8 @@
     </div>
   </div>
 
-  <!-- Intro big title -->
   <div id="introBig" class="fade"><div id="introBigText"></div></div>
 
-  <!-- Intro body -->
   <div id="introOverlay" class="fade"><div id="introBox">
     <p>지금 이 화면을 보고 있는 당신,</p>
     <p>주변의 소리에 천천히 귀를 기울이며 공간을 거닐기 시작합니다.</p>
@@ -244,31 +237,26 @@
     <div style="height:12vh"></div>
   </div></div>
 
-  <!-- Title transition -->
   <div id="titleScreen"><div id="titleText"></div></div>
   <div id="firstSleep"><div id="firstSleepText">THE FIRST SLEEP</div></div>
 
 <script>
 (() => {
-  /* Manifest */
   (function injectManifest(){
     const manifest = {"name":"SLEEEEEP","short_name":"SLEEEEEP","display":"standalone","start_url":"./","background_color":"#000","theme_color":"#000","icons":[]};
     const url = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:"application/manifest+json"}));
     const link = document.createElement('link'); link.rel='manifest'; link.href=url; document.head.appendChild(link);
   })();
 
-  /* Shorthands */
   const sleep = ms => new Promise(r=>setTimeout(r,ms));
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const map=(v,inMin,inMax,outMin,outMax)=>outMin+(outMax-outMin)*((v-inMin)/(inMax-inMin));
   const qs = s => document.querySelector(s);
 
-  /* Stable 100svh */
   function setAppH(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
   setAppH(); addEventListener('resize', setAppH, {passive:true});
   if (window.visualViewport){ visualViewport.addEventListener('resize', ()=>setTimeout(setAppH,50)); }
 
-  /* Orientation gate */
   const rotateOverlay = document.getElementById('rotateOverlay');
   function isPortraitStrict(){
     try{
@@ -300,7 +288,6 @@
   });
   applyOrientationGate();
 
-  /* Refs */
   const overlayEl = qs('#overlay');
   const nameOverlay = qs('#nameOverlay');
   const nickInput = qs('#nick');
@@ -325,12 +312,10 @@
   const freezeLayer = qs('#freezeLayer');
   const runTimer = qs('#runTimer');
 
-  /* State */
   let camPermGranted = false;
   let camStream = null, camVideo = null, vctx = null, proc = null, pctx = null, ZOOM = 1.0;
   let animStarted = false, capturing = false;
 
-  /* ===== Audio ===== */
   let audioCtx = null;
   function ensureAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
   async function ensureResumed(){ try{ ensureAudio(); if(audioCtx.state==='suspended') await audioCtx.resume(); }catch{} }
@@ -467,7 +452,6 @@
     }
   }
 
-  /* Mic FX (기울임에 따라 패닝/톤) */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, comp=null, micBus=null;
   function makeImpulse(ctx, seconds=5.0, decay=7.0){
     const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
@@ -538,18 +522,15 @@
     if(dryGain) dryGain.gain.value = clamp(1.0 - wetGain.gain.value*0.45, 0.2, 1.0);
   }
 
-  /* Zoom (중복 선언 제거 버전) */
   function updateZoomLabel(){ zoomVal.textContent = ZOOM.toFixed(1)+'×'; }
   updateZoomLabel();
   zoomIn.addEventListener('click', ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
   zoomOut.addEventListener('click', ()=>{ ZOOM=Math.max(0.35, ZOOM-0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
 
-  /* === 강제 부트스트랩: 어떤 탭/클릭/포인터든 한번만 === */
   let bootstrapped = false;
   async function bootCore(){
     if(bootstrapped) return; bootstrapped = true;
 
-    // 세로면 회전 안내만
     if(isPortraitStrict()){
       document.body.classList.add('portrait-block');
       rotateOverlay.classList.add('blocking');
@@ -578,29 +559,35 @@
 
     overlayEl.style.transition='opacity 300ms ease'; overlayEl.style.opacity='0';
     setTimeout(()=>{ overlayEl.style.display='none'; }, 300);
-    Ambient.start(0.8, 1.0); // 닉네임 화면부터 배경음 시작
+    Ambient.start(0.8, 1.0);
 
-    // 이름 화면
     nameOverlay.style.display='flex'; nameOverlay.style.opacity='0';
     requestAnimationFrame(()=>nameOverlay.style.opacity='1');
     setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 60);
   }
 
-  // 인라인 핸들러가 호출하는 함수 (전역 노출)
+  // ▶ 첫 화면 터치 보장: 오버레이가 보일 때만 부팅, 이후에는 무시 (입력 방해 X)
   window.bootGesture = (ev)=>{
-    // 오버레이가 보일 때(= 아직 부팅 전)만 기본동작 막고 부팅
-    const overlayVisible = overlayEl && overlayEl.style.display !== 'none';
-    if (overlayVisible && ev && ev.preventDefault) ev.preventDefault();
-    if (overlayVisible) bootCore();
-    // 이미 부팅된 뒤에는 아무 것도 하지 않음 → 입력/포커스 정상
+    const visible = overlayEl && overlayEl.offsetParent !== null && overlayEl.style.display !== 'none';
+    if (!visible) return;
+    if (ev && ev.preventDefault) ev.preventDefault();
+    bootCore();
   };
 
-  // addEventListener 백업
-  ['pointerdown','touchstart','click'].forEach(t=>{
-    document.addEventListener(t, (e)=>{
-      if(overlayEl.style.display!=='none') { e.preventDefault(); bootCore(); }
-    }, {capture:true, passive:false});
-  });
+  // ▶ 강제 다중 바인딩(버튼/오버레이/바디)
+  (function forceGateBindings(){
+    const overlay = document.getElementById('overlay');
+    const gateBtn = document.getElementById('permGateBtn');
+    const callBoot = (e)=>{ if(e && e.preventDefault) e.preventDefault(); bootCore(); };
+    ['click','pointerdown','touchstart','touchend'].forEach(t=>{
+      gateBtn.addEventListener(t, callBoot, {capture:true, passive:false});
+      overlay.addEventListener(t, callBoot, {capture:true, passive:false});
+      document.body.addEventListener(t, (e)=>{
+        const visible = overlay && overlay.offsetParent !== null && overlay.style.display !== 'none';
+        if (visible) callBoot(e);
+      }, {capture:true, passive:false});
+    });
+  })();
 
   /* Name */
   let displayName = 'YOU';
@@ -615,13 +602,13 @@
   nameSubmit.addEventListener('click', acceptName, {passive:true});
   nickInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ acceptName(); }});
 
-  /* Preset (여기서 카메라 워밍업 시작 → 렉 최소화) */
+  /* Preset */
   let saverObjs = []; let saverMode = 'scatter'; let saverT0 = 0;
   function showPreset(){
     preset.style.display='block'; preset.classList.add('show');
     preset.style.opacity='0'; requestAnimationFrame(()=>preset.style.opacity='1');
     initSaver();
-    startCameraFresh(true); // 워밍업만
+    startCameraFresh(true);
   }
   function initSaver(){
     const w = preset.clientWidth, h = preset.clientHeight;
@@ -690,13 +677,13 @@
     preset.style.transition='opacity 220ms ease'; preset.style.opacity='0';
     setTimeout(async ()=>{
       preset.style.display='none';
-      await startCameraFresh(false); // 실제 루프 가동
+      await startCameraFresh(false);
       welcome.style.display='flex'; welcome.style.opacity='0';
       requestAnimationFrame(()=>welcome.style.opacity='1');
     }, 240);
   }, {passive:true});
 
-  /* Intro flow (90s 타이머, 마지막에만 표시) */
+  /* Intro */
   function captureIntroTexts(){
     const els = Array.from(document.querySelectorAll('#introBox p, #introBox li'));
     els.forEach(el=>{ el.dataset.text = (el.textContent||'').trim(); el.textContent=''; });
@@ -733,11 +720,11 @@
     setTimeout(()=>{ introBig.style.display='none'; }, 300);
 
     intro.style.display='flex'; intro.style.opacity='0';
-    requestAnimationFrame(()=>intro.style.opacity='1');
+    requestAnimationFrame(()=>intro.style.opacity='1'));
     const els = captureIntroTexts();
     for(const el of els){ await typeElementBySentence(el, el.dataset.text||''); await sleep(120); }
 
-    let left = 90;  // 90초
+    let left = 90;
     introCount.style.display = 'block';
     introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
     const iv = setInterval(()=>{
@@ -891,7 +878,6 @@
     ctx.globalAlpha=1;
   }
 
-  /* Character path 'ㄹ' */
   let charActive = false;
   let charStartTime = 0;
   const CHAR_DURATION = 480000;
@@ -984,7 +970,6 @@
     ctx.restore();
   }
 
-  /* Render loop */
   function loopCam(){
     requestAnimationFrame(loopCam);
     if(capturing) return;
@@ -1019,7 +1004,6 @@
     }
   }
 
-  /* Capture → 픽셀화 소멸 */
   let captureAnimating = false;
   captureBtn.addEventListener('click', ()=>{
     if(captureAnimating) return;
@@ -1059,9 +1043,7 @@
     }, 100);
   });
 
-  /* Load: 제스처 기다림 */
   window.addEventListener('load', ()=>{ /* wait for user gesture */ });
-
 })();
 </script>
 </body>
