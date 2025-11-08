@@ -126,7 +126,7 @@
   #introBox p{font-size:var(--fs-body); line-height:1.85; text-align:center; text-shadow:0 1px 2px rgba(0,0,0,.6);}
   #introBox ol{padding-left:1.2em; margin:.4em 0 1.2em 0; text-align:left;}
   #introBox li{font-size:var(--fs-body); line-height:1.85; text-shadow:0 1px 2px rgba(0,0,0,.6);}
-  #introCount{ text-align:center; font-size:var(--fs-strong); margin-top:12px; }
+  #introCount{ text-align:center; font-size:var(--fs-strong); margin-top:12px; display:none; } /* ← 처음엔 숨김 */
 
   #titleScreen{ position:fixed; inset:0; z-index:240; display:none; align-items:center; justify-content:center; background:#000; color:#fff; text-align:center; }
   #titleText{font-weight:900; letter-spacing:.06em; line-height:1.05; font-size:clamp(24px, 10vmin, 96px); text-transform:uppercase;}
@@ -295,7 +295,7 @@
   function ensureAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
   async function ensureResumed(){ try{ ensureAudio(); if(audioCtx.state==='suspended') await audioCtx.resume(); }catch{} }
 
-  /* Woong clicks — 크게 (≈3배) */
+  /* Woong click (크게) */
   function playWoongClick(){
     try{
       ensureAudio();
@@ -313,12 +313,12 @@
     }catch(e){}
   }
 
-  /* Typing tick — 낮은 톤 */
+  /* Typing tick — 낮게 */
   function typeTick(){
     try{
       ensureAudio();
       const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-      o.type='square'; o.frequency.value=900; // 더 낮게
+      o.type='square'; o.frequency.value=900;
       g.gain.value=0.0001;
       g.gain.exponentialRampToValueAtTime(0.16, audioCtx.currentTime+0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.10);
@@ -419,9 +419,9 @@
     await ensureResumed();
     const base = audioCtx.currentTime;
     const reps = 5;
-    const gap = 0.6;     // 각 사이 간격
-    const dur = 0.5;     // 동일 길이
-    const freq = 105;    // 동일 톤
+    const gap = 0.6;
+    const dur = 0.5;
+    const freq = 105;
     const gainVal = 0.70;
     for(let i=0;i<reps;i++){
       const t = base + i*gap;
@@ -487,8 +487,8 @@
   }
   function onTiltAudio(e){
     if(!audioCtx) return;
-    const gamma = clamp(e.gamma ?? 0, -60, 60); // -좌 +우
-    const beta  = clamp(e.beta ?? 0, -60, 60);  // -뒤로 젖힘 +숙임
+    const gamma = clamp(e.gamma ?? 0, -60, 60);
+    const beta  = clamp(e.beta ?? 0, -60, 60);
 
     let panVal = 0;
     if(gamma > 2) panVal = +1;
@@ -508,17 +508,16 @@
     if(dryGain) dryGain.gain.value = clamp(1.0 - wetGain.gain.value*0.45, 0.2, 1.0);
   }
 
-  /* Zoom label — 플러스/마이너스도 같은 '부웅' */
+  /* Zoom label */
   function updateZoomLabel(){ zoomVal.textContent = ZOOM.toFixed(1)+'×'; }
   updateZoomLabel();
   zoomIn.addEventListener('click', ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
   zoomOut.addEventListener('click', ()=>{ ZOOM=Math.max(0.35, ZOOM-0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
 
-  /* ---------- 권한 게이트: '동기 제스처' 콜스택에서 모두 처리 ---------- */
+  /* ---------- 권한 게이트 ---------- */
   function immediateGestureStart(e){
     e && e.preventDefault && e.preventDefault();
 
-    // 1) 동작 센서(iOS) 권한
     try{
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -526,11 +525,9 @@
       }
     }catch(_) {}
 
-    // 2) 오디오 컨텍스트 즉시 활성 + 클릭음
     try{ ensureAudio(); audioCtx.resume && audioCtx.resume(); }catch(_){}
     playWoongClick();
 
-    // 3) 카메라/마이크 권한 프롬프트 → 닉네임 화면
     navigator.mediaDevices.getUserMedia({
       video:{facingMode:'environment', width:{ideal:1280}, height:{ideal:720}, aspectRatio: {ideal: 16/9}},
       audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}
@@ -542,7 +539,6 @@
     .catch(err=>{ console.warn('permission error:', err); })
     .finally(()=>{
       fadeHide(overlay, 300);
-      // 앰비언트는 닉네임 단계부터
       Ambient.start(0.8, 1.0);
       fadeShow(nameOverlay, 400);
       setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 60);
@@ -572,7 +568,7 @@
     preset.style.display='block'; preset.classList.add('show');
     fadeShow(preset, 250);
     initSaver();
-    startCameraFresh(true);  // 메타데이터 워밍업
+    startCameraFresh(true);
   }
   function initSaver(){
     const w = preset.clientWidth, h = preset.clientHeight;
@@ -640,7 +636,6 @@
     requestAnimationFrame(saverLoop);
   }
 
-  // 프리셋 클릭 → Welcome (카메라 실제 시작)
   preset.addEventListener('click', async ()=>{
     playWoongClick();
     fadeHide(preset, 220);
@@ -648,7 +643,7 @@
     fadeShow(welcome, 280);
   }, {passive:true});
 
-  /* Intro: big title → body, 문장마다 1초 대기, 총 10초 연장(카운트다운 50s) */
+  /* Intro: big title → body → (끝에) 타이머 등장 & 70초 카운트다운 */
   function captureIntroTexts(){
     const els = Array.from(document.querySelectorAll('#introBox p, #introBox li'));
     els.forEach(el=>{ el.dataset.text = (el.textContent||'').trim(); el.textContent=''; });
@@ -683,25 +678,26 @@
     await sleep(1000);
     fadeHide(introBig, 280);
 
-    // 2) 본문 & 카운트다운 (40→50초)
+    // 2) 본문 먼저 타이핑
     fadeShow(intro, 300, 'flex');
+    const els = captureIntroTexts();
+    for(const el of els){
+      await typeElementBySentence(el, el.dataset.text||'');
+      await sleep(120);
+    }
 
-    let left = 50; introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
+    // 3) (맨 마지막) 타이머 등장 후 카운트다운 시작 — 70초
+    let left = 70;
+    introCount.style.display = 'block';
+    introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
     const iv = setInterval(()=>{
       left = Math.max(0, left-1);
       introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
       countdownTick(left);
       if(left<=0){ clearInterval(iv); startTransition(); }
     },1000);
-
-    (async ()=>{
-      const els = captureIntroTexts();
-      for(const el of els){
-        await typeElementBySentence(el, el.dataset.text||'');
-        await sleep(120);
-      }
-    })();
   }
+  const goIntroBtn = document.getElementById('goIntro');
   goIntroBtn.addEventListener('click', ()=>{ ensureResumed().then(()=>{ playWoongClick(); fadeHide(welcome, 240); showIntroFlow(); }); }, {passive:true});
 
   /* 8-minute timer */
@@ -727,7 +723,6 @@
     titleScreen.style.display='flex';
     titleScreen.style.background='#000'; titleText.style.color='#fff';
 
-    // 동일 길이 5회 '붑-붑...'
     await lowWoongSequence();
 
     const until = performance.now()+3700;
@@ -765,7 +760,7 @@
     beginCharacter();
   }
 
-  /* Camera — 자동 회전/커버 최적화 (portrait feed 강제 회전) */
+  /* Camera — 자동 회전/커버 */
   let metaReady = false, warmupFrames=0;
   async function startCameraFresh(warmupOnly=false){
     try{
@@ -794,7 +789,7 @@
       }
       metaReady = true;
       resizeCam();
-      warmupFrames = 30; // 더 강하게
+      warmupFrames = 30;
 
       if(!vctx){
         vctx = view.getContext('2d',{alpha:false});
@@ -826,7 +821,7 @@
     }
   });
 
-  // 커버 계산: 회전/비회전 두 경우 중 빈 영역이 더 작은 쪽 선택
+  // 커버 계산: 회전/비회전 중 빈 영역 작은 쪽
   function drawBestCover(ctx, video, W, H, PW, PH){
     const vw=video.videoWidth||0, vh=video.videoHeight||0;
     if(!vw||!vh) return;
@@ -961,7 +956,7 @@
     if(t01>=1){ charActive=false; }
   }
 
-  /* Main render loop with strict cover & warmup recalc */
+  /* Main render loop */
   function loopCam(){
     requestAnimationFrame(loopCam);
     if(capturing) return;
@@ -974,7 +969,7 @@
 
     pctx.fillStyle='rgba(0,0,0,.14)'; pctx.fillRect(0,0,PW,PH);
 
-    if(camVideo && metaReady && camVideo.readyState>=2){
+    if(camVideo && camVideo.readyState>=2){
       drawBestCover(pctx, camVideo, W, H, PW, PH);
       const frame=pctx.getImageData(0,0,PW,PH),d=frame.data;
       for(let i=0;i<d.length;i+=4){const g=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0; d[i]=d[i+1]=d[i+2]=g;}
@@ -987,7 +982,7 @@
     if(charActive){ drawCharacter(W,H); }
   }
 
-  /* Capture — 원본 섞기 제거(픽셀화→소멸) */
+  /* Capture — 픽셀화→소멸 */
   let captureAnimating = false;
   captureBtn.addEventListener('click', ()=>{
     if(captureAnimating) return;
@@ -1033,7 +1028,6 @@
         fx2.imageSmoothingEnabled=false;
         fx2.globalAlpha = 1.0;
         fx2.drawImage(off,0,0,w,h,0,0,W,H);
-        // 원본 블렌딩 제거 (의도: 픽셀화되며 사라짐)
         px = px * step + 0.35;
         requestAnimationFrame(anim);
       }
