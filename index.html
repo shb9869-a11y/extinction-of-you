@@ -84,7 +84,7 @@
 
   .credits{ font-family:"Courier New",ui-monospace,monospace; letter-spacing:.08em; }
 
-  /* 세로(가로 금지) 안내 — 포인터 이벤트로 하위 차단 */
+  /* 세로(가로 금지) 안내 — 세로일 때만 진짜로 블록 */
   #rotateOverlay{
     position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;
     background:#000;color:#fff;font-family:"Courier New",ui-monospace,monospace;text-align:center;padding:40px;
@@ -95,8 +95,8 @@
   body.portrait-block #preset,
   body.portrait-block #overlayWelcome { pointer-events:none; }
 
-  /* Gate */
-  #overlay{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));color:#fff;background:rgba(0,0,0,.85)}
+  /* Gate (초기 탭 허용을 위해 명시) */
+  #overlay{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));color:#fff;background:rgba(0,0,0,.85); pointer-events:auto;}
   #overlayContent{max-width:min(92vw, 72ch);font-family:"Courier New",ui-monospace,monospace;line-height:1.7;text-align:center}
   .gateLine{display:inline-block;font-family:"Courier New",ui-monospace,monospace;font-size:var(--fs-strong);border:none;background:transparent;color:#fff;cursor:pointer;padding:6px 10px}
   .gateHint{opacity:.7;margin-top:6px}
@@ -239,12 +239,10 @@
   /* Utils */
   function fadeShow(el, dur=2000, display='flex'){ el.style.display=display; el.style.opacity='0'; el.style.transition=`opacity ${dur}ms ease`; requestAnimationFrame(()=>el.style.opacity='1'); }
   function fadeHide(el, dur=2000){ el.style.transition=`opacity ${dur}ms ease`; el.style.opacity='0'; setTimeout(()=>{ el.style.display='none'; }, dur); }
-  // 오버랩 페이드(동시에 from-out / to-in)
   function overlapFade(fromEl, toEl, dur=1600, displayTo='flex'){
     if(toEl){ toEl.style.display=displayTo; toEl.style.opacity='0'; toEl.style.transition=`opacity ${dur}ms ease`; requestAnimationFrame(()=>toEl.style.opacity='1'); }
     if(fromEl){ fromEl.style.transition=`opacity ${dur}ms ease`; fromEl.style.opacity='0'; setTimeout(()=>{ fromEl.style.display='none'; }, dur); }
   }
-
   const sleep = ms => new Promise(r=>setTimeout(r,ms));
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const map=(v,inMin,inMax,outMin,outMax)=>outMin+(outMax-outMin)*((v-inMin)/(inMax-inMin));
@@ -254,26 +252,16 @@
   setAppH(); addEventListener('resize', setAppH, {passive:true});
   if (window.visualViewport){ visualViewport.addEventListener('resize', ()=>setTimeout(setAppH,50)); }
 
-  /* === 가로 전용 처리 (세로 금지) === */
+  /* === 가로 전용 처리 (세로 금지) — 안정화 === */
   const rotateOverlay = document.getElementById('rotateOverlay');
-  function isPortraitStrict(){
-    try{
-      const vv = window.visualViewport;
-      const w = (vv ? vv.width : window.innerWidth);
-      const h = (vv ? vv.height : window.innerHeight);
-      const so = (screen.orientation && screen.orientation.type) || '';
-      const ang = (screen.orientation && typeof screen.orientation.angle==='number') ? screen.orientation.angle
-                : (typeof window.orientation==='number' ? Math.abs(window.orientation) : 0);
-      const logicalPortrait = h > w;
-      const oriPortrait = /portrait/i.test(so) || ang===0 || ang===180;
-      return logicalPortrait || oriPortrait;
-    }catch(e){ return window.innerHeight > window.innerWidth; }
-  }
+  // iOS에서 orientation API 불안정 → 너비/높이만으로 판단
+  function isPortraitStrict(){ return window.innerHeight > window.innerWidth; }
   function applyOrientationGate(){
     const portrait = isPortraitStrict();
     if(portrait){
       document.body.classList.add('portrait-block');
       rotateOverlay.classList.add('blocking');
+      rotateOverlay.style.display='flex';
     }else{
       document.body.classList.remove('portrait-block');
       rotateOverlay.classList.remove('blocking');
@@ -281,17 +269,10 @@
     }
   }
   ['load','pageshow','resize','orientationchange','visibilitychange'].forEach(ev=>{
-    addEventListener(ev, ()=>{ 
-      const wasPortrait = document.body.classList.contains('portrait-block');
-      applyOrientationGate();
-      if(isPortraitStrict()){
-        rotateOverlay.style.display='flex';
-      }else if(wasPortrait){
-        rotateOverlay.style.display='none';
-      }
-    }, {passive:true});
+    addEventListener(ev, ()=>{ applyOrientationGate(); }, {passive:true});
   });
-  applyOrientationGate();
+  // 로드 직후 2회 재평가(모바일 사파리 초기 치수 튕김 보정)
+  addEventListener('load', ()=>{ setTimeout(applyOrientationGate, 120); setTimeout(applyOrientationGate, 420); });
 
   /* Refs */
   const overlayEl = qs('#overlay');
@@ -346,7 +327,7 @@
     }catch(e){}
   }
 
-  // ↓↓↓ 인트로 타자 입력 사운드 — 톤/볼륨 낮춤 (클릭과 비슷한 느낌)
+  // 인트로 타자 소리(낮은 톤 유지)
   function typeTick(){
     try{
       ensureAudio();
@@ -463,7 +444,7 @@
     }
   }
 
-  /* Mic FX (패닝/톤 감도 ↑) */
+  /* Mic FX */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, comp=null, micBus=null;
   function makeImpulse(ctx, seconds=5.0, decay=7.0){
     const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
@@ -476,10 +457,7 @@
   async function startMicFXFadeIn(fadeSec=3.0){
     try{
       await ensureResumed();
-
-      // Ambient는 마이크 들어올 때 교차 페이드로 사라짐
       try{ Ambient.stop(fadeSec); }catch{}
-
       if(!micStream) micStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}, video:false});
       if(!micSrc) micSrc = audioCtx.createMediaStreamSource(micStream);
 
@@ -544,7 +522,7 @@
   zoomIn.addEventListener('click', ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
   zoomOut.addEventListener('click', ()=>{ ZOOM=Math.max(0.35, ZOOM-0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
 
-  /* ---------- 권한 게이트: 어디를 눌러도 반드시 작동 ---------- */
+  /* ---------- 권한 게이트: 어디를 눌러도 반드시 작동 (백업 다중 바인딩) ---------- */
   let bootstrapped = false;
   async function immediateGestureStart(e){
     if(bootstrapped) return;
@@ -588,24 +566,22 @@
   // 버튼/오버레이 직접
   permBtn.addEventListener('click', immediateGestureStart, {passive:false});
   overlayEl.addEventListener('click', immediateGestureStart, {passive:false});
+  overlayEl.addEventListener('pointerdown', immediateGestureStart, {passive:false});
+  overlayEl.addEventListener('touchend', immediateGestureStart, {passive:false});
 
-  // 문서 전체 백업 리스너(캡처 단계에서 1회)
-  ['pointerdown','touchend','click'].forEach(type=>{
-    document.addEventListener(type, (e)=>{
+  // 문서/바디 백업 리스너(어떤 경우에도 잡도록)
+  ['pointerdown','touchend','click','keydown'].forEach(type=>{
+    const handler = (e)=>{
+      if(type==='keydown' && !['Enter',' '].includes(e.key)) return;
       if(overlayEl.style.display!== 'none') immediateGestureStart(e);
-    }, {once:false, capture:true, passive:false});
+    };
+    document.addEventListener(type, handler, {capture:true, passive:false});
+    document.body.addEventListener(type, handler, {capture:true, passive:false});
+    window.addEventListener(type, handler, {capture:true, passive:false});
   });
 
   // 회전 시 다시 금지 오버레이 반영
-  addEventListener('orientationchange', ()=>{
-    if(isPortraitStrict()){
-      rotateOverlay.style.display='flex';
-      document.body.classList.add('portrait-block');
-    }else{
-      rotateOverlay.style.display='none';
-      document.body.classList.remove('portrait-block');
-    }
-  }, {passive:true});
+  addEventListener('orientationchange', ()=>{ applyOrientationGate(); }, {passive:true});
 
   /* Name */
   let displayName = 'YOU';
@@ -730,12 +706,10 @@
 
   async function showIntroFlow(){
     introBigText.textContent='';
-    // 웰컴 → 인트로 빅타이틀 오버랩
     overlapFade(welcome, introBig, 1600, 'flex');
-    await sleep(200); // 약간의 지연으로 부드럽게
+    await sleep(200);
     await typeSentence(introBigText, 'INTRODUCTION', 45);
     await sleep(800);
-    // 빅타이틀 → 인트로 본문 오버랩
     overlapFade(introBig, intro, 1600, 'flex');
 
     const els = captureIntroTexts();
@@ -744,7 +718,6 @@
       await sleep(120);
     }
 
-    // 인트로 타이머: 마지막 입력 후 15초만 표시
     let left = 15;
     introCount.style.display = 'block';
     introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
@@ -774,7 +747,6 @@
 
   /* Transition */
   async function startTransition(){
-    // 인트로 본문 페이드아웃은 타이머 0에서 자연 소멸되도록
     fadeHide(intro, 320);
 
     titleText.textContent='GOOD NIGHT';
@@ -797,15 +769,13 @@
 
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
-    await LongDrone.start(); // 부웅부웅
+    await LongDrone.start();
 
     startEightTimer();
 
     await sleep(1100);
     firstSleep.style.transition='opacity 8000ms ease';
     firstSleep.style.opacity='0';
-
-    // 드론 먼저 사라짐
     LongDrone.stop(4.5);
 
     await sleep(8200);
@@ -813,8 +783,6 @@
     firstSleep.style.transition='';
 
     await sleep(400);
-
-    // 여기서 마이크가 들어오면서 Ambient가 함께 페이드아웃
     await startMicFXFadeIn(2.8);
 
     controls.classList.add('show');
