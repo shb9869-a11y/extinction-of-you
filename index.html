@@ -84,11 +84,16 @@
 
   .credits{ font-family:"Courier New",ui-monospace,monospace; letter-spacing:.08em; }
 
-  /* 세로(가로 금지) 안내 */
+  /* 세로(가로 금지) 안내 — 포인터 이벤트로 하위 차단 */
   #rotateOverlay{
     position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;
     background:#000;color:#fff;font-family:"Courier New",ui-monospace,monospace;text-align:center;padding:40px;
   }
+  #rotateOverlay.blocking{display:flex; pointer-events:all;}
+  body.portrait-block #overlay,
+  body.portrait-block #nameOverlay,
+  body.portrait-block #preset,
+  body.portrait-block #overlayWelcome { pointer-events:none; }
 
   /* Gate */
   #overlay{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));color:#fff;background:rgba(0,0,0,.85)}
@@ -126,7 +131,7 @@
   #introBox p{font-size:var(--fs-body); line-height:1.85; text-align:center; text-shadow:0 1px 2px rgba(0,0,0,.6);}
   #introBox ol{padding-left:1.2em; margin:.4em 0 1.2em 0; text-align:left;}
   #introBox li{font-size:var(--fs-body); line-height:1.85; text-shadow:0 1px 2px rgba(0,0,0,.6);}
-  #introCount{ text-align:center; font-size:var(--fs-strong); margin-top:12px; display:none; } /* ← 처음엔 숨김 */
+  #introCount{ text-align:center; font-size:var(--fs-strong); margin-top:12px; display:none; }
 
   #titleScreen{ position:fixed; inset:0; z-index:240; display:none; align-items:center; justify-content:center; background:#000; color:#fff; text-align:center; }
   #titleText{font-weight:900; letter-spacing:.06em; line-height:1.05; font-size:clamp(24px, 10vmin, 96px); text-transform:uppercase;}
@@ -243,23 +248,46 @@
   setAppH(); addEventListener('resize', setAppH, {passive:true});
   if (window.visualViewport){ visualViewport.addEventListener('resize', ()=>setTimeout(setAppH,50)); }
 
-  /* 세로(가로 금지) 안내 */
+  /* === 가로 전용 처리 (세로 금지) === */
   const rotateOverlay = document.getElementById('rotateOverlay');
-  function isPortrait(){
-    const vv = window.visualViewport;
-    const w = (vv ? vv.width : window.innerWidth);
-    const h = (vv ? vv.height : window.innerHeight);
-    const m = window.matchMedia && window.matchMedia("(orientation: portrait)");
-    return (m && m.matches) || (h > w);
+  function isPortraitStrict(){
+    try{
+      const vv = window.visualViewport;
+      const w = (vv ? vv.width : window.innerWidth);
+      const h = (vv ? vv.height : window.innerHeight);
+      const so = (screen.orientation && screen.orientation.type) || '';
+      const ang = (screen.orientation && typeof screen.orientation.angle==='number') ? screen.orientation.angle
+                : (typeof window.orientation==='number' ? Math.abs(window.orientation) : 0);
+      const logicalPortrait = h > w;
+      const oriPortrait = /portrait/i.test(so) || ang===0 || ang===180;
+      return logicalPortrait || oriPortrait;
+    }catch(e){ return window.innerHeight > window.innerWidth; }
   }
-  function updateRotateOverlay(){ rotateOverlay.style.display = isPortrait() ? 'flex' : 'none'; }
+  function applyOrientationGate(){
+    const portrait = isPortraitStrict();
+    if(portrait){
+      document.body.classList.add('portrait-block');
+      rotateOverlay.classList.add('blocking');
+    }else{
+      document.body.classList.remove('portrait-block');
+      rotateOverlay.classList.remove('blocking');
+      rotateOverlay.style.display='none';
+    }
+  }
   ['load','pageshow','resize','orientationchange','visibilitychange'].forEach(ev=>{
-    addEventListener(ev, updateRotateOverlay, {passive:true});
+    addEventListener(ev, ()=>{ 
+      const wasPortrait = document.body.classList.contains('portrait-block');
+      applyOrientationGate();
+      if(isPortraitStrict()){
+        rotateOverlay.style.display='flex';
+      }else if(wasPortrait){
+        rotateOverlay.style.display='none';
+      }
+    }, {passive:true});
   });
-  updateRotateOverlay();
+  applyOrientationGate();
 
   /* Refs */
-  const overlay = qs('#overlay');
   const overlayEl = qs('#overlay');
   const permBtn = qs('#permGateBtn');
   const nameOverlay = qs('#nameOverlay');
@@ -290,12 +318,11 @@
   let camStream = null, camVideo = null, vctx = null, proc = null, pctx = null, ZOOM = 1.0;
   let animStarted = false, capturing = false;
 
-  /* ===== Audio base ===== */
+  /* ===== Audio ===== */
   let audioCtx = null;
   function ensureAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
   async function ensureResumed(){ try{ ensureAudio(); if(audioCtx.state==='suspended') await audioCtx.resume(); }catch{} }
 
-  /* Woong click (크게) */
   function playWoongClick(){
     try{
       ensureAudio();
@@ -313,7 +340,6 @@
     }catch(e){}
   }
 
-  /* Typing tick — 낮게 */
   function typeTick(){
     try{
       ensureAudio();
@@ -340,7 +366,6 @@
     }catch(e){}
   }
 
-  /* Ambient */
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, loops=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
@@ -372,7 +397,7 @@
       const g=ctx.createGain(); g.gain.value=0.02; const f=ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=800; f.Q.value=0.7;
       s.connect(f).connect(g); connectDryWet(g); s.start(); loops.push(()=>{ try{s.stop();}catch{} });
     }
-    async function start(fadeIn=1.0, target=1.0){
+    async function start(fadeIn=0.8, target=1.0){
       await ensureResumed(); if(running) return; makeBus(); running=true; airyNoise();
       const seq=[57,52,48,43]; let i=0; (function tick(){ if(!running) return; slowPad(seq[i%seq.length]); i++; setTimeout(tick,8000); })();
       const t=(ctx||audioCtx).currentTime;
@@ -389,7 +414,6 @@
     return { start, stop, isRunning:()=>running };
   })();
 
-  /* First Sleep Drone — 볼륨 절반 이하 */
   const LongDrone = (() => {
     let o, g, lfo, running=false;
     async function start(){
@@ -414,15 +438,10 @@
     return { start, stop, isRunning:()=>running };
   })();
 
-  /* Lightning-like woong — 동일 길이 5회 */
   async function lowWoongSequence(){
     await ensureResumed();
     const base = audioCtx.currentTime;
-    const reps = 5;
-    const gap = 0.6;
-    const dur = 0.5;
-    const freq = 105;
-    const gainVal = 0.70;
+    const reps = 5, gap = 0.6, dur = 0.5, freq = 105, gainVal = 0.70;
     for(let i=0;i<reps;i++){
       const t = base + i*gap;
       const o=audioCtx.createOscillator(), g=audioCtx.createGain();
@@ -508,46 +527,73 @@
     if(dryGain) dryGain.gain.value = clamp(1.0 - wetGain.gain.value*0.45, 0.2, 1.0);
   }
 
-  /* Zoom label */
   function updateZoomLabel(){ zoomVal.textContent = ZOOM.toFixed(1)+'×'; }
   updateZoomLabel();
   zoomIn.addEventListener('click', ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
   zoomOut.addEventListener('click', ()=>{ ZOOM=Math.max(0.35, ZOOM-0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
 
-  /* ---------- 권한 게이트 ---------- */
-  function immediateGestureStart(e){
-    e && e.preventDefault && e.preventDefault();
+  /* ---------- 권한 게이트: 어디를 눌러도 반드시 작동 ---------- */
+  let bootstrapped = false;
+  async function immediateGestureStart(e){
+    if(bootstrapped) return;
+    bootstrapped = true;
+    if(e && typeof e.preventDefault==='function') e.preventDefault();
+
+    // 세로 상태면 안내만 띄우고 종료 (회전 후 다시 탭)
+    if(isPortraitStrict()){
+      rotateOverlay.style.display='flex';
+      document.body.classList.add('portrait-block');
+      bootstrapped = false; // 회전 후 다시 누를 수 있게
+      return;
+    }
 
     try{
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission().catch(()=>{});
+        await DeviceOrientationEvent.requestPermission().catch(()=>{});
       }
     }catch(_) {}
 
-    try{ ensureAudio(); audioCtx.resume && audioCtx.resume(); }catch(_){}
+    try{ ensureAudio(); audioCtx.resume && await audioCtx.resume(); }catch(_){}
     playWoongClick();
 
-    navigator.mediaDevices.getUserMedia({
-      video:{facingMode:'environment', width:{ideal:1280}, height:{ideal:720}, aspectRatio: {ideal: 16/9}},
-      audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}
-    })
-    .then(s=>{
-      s.getTracks().forEach(t=>t.stop());
+    // 권한 확인(첫 탭 제스처 안에서)
+    try{
+      const tmp = await navigator.mediaDevices.getUserMedia({
+        video:{facingMode:'environment', width:{ideal:1280}, height:{ideal:720}, aspectRatio:{ideal:16/9}},
+        audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}
+      });
+      tmp.getTracks().forEach(t=>t.stop());
       camPermGranted = true;
-    })
-    .catch(err=>{ console.warn('permission error:', err); })
-    .finally(()=>{
-      fadeHide(overlay, 300);
-      Ambient.start(0.8, 1.0);
-      fadeShow(nameOverlay, 400);
-      setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 60);
-    });
+    }catch(err){ console.warn('permission error:', err); }
+
+    fadeHide(overlayEl, 300);
+    Ambient.start(0.8, 1.0);
+    fadeShow(nameOverlay, 400);
+    setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 60);
   }
-  ['click','touchstart','pointerdown'].forEach(type=>{
-    permBtn.addEventListener(type, immediateGestureStart, {passive:false});
-    overlayEl.addEventListener(type, immediateGestureStart, {passive:false});
+
+  // 버튼/오버레이 직접
+  permBtn.addEventListener('click', immediateGestureStart, {passive:false});
+  overlayEl.addEventListener('click', immediateGestureStart, {passive:false});
+
+  // 문서 전체 백업 리스너(캡처 단계에서 1회)
+  ['pointerdown','touchend','click'].forEach(type=>{
+    document.addEventListener(type, (e)=>{
+      if(overlayEl.style.display!== 'none') immediateGestureStart(e);
+    }, {once:false, capture:true, passive:false});
   });
+
+  // 회전 시 다시 금지 오버레이 반영
+  addEventListener('orientationchange', ()=>{
+    if(isPortraitStrict()){
+      rotateOverlay.style.display='flex';
+      document.body.classList.add('portrait-block');
+    }else{
+      rotateOverlay.style.display='none';
+      document.body.classList.remove('portrait-block');
+    }
+  }, {passive:true});
 
   /* Name */
   let displayName = 'YOU';
@@ -643,7 +689,7 @@
     fadeShow(welcome, 280);
   }, {passive:true});
 
-  /* Intro: big title → body → (끝에) 타이머 등장 & 70초 카운트다운 */
+  /* Intro: big → body → 타이머(70s) */
   function captureIntroTexts(){
     const els = Array.from(document.querySelectorAll('#introBox p, #introBox li'));
     els.forEach(el=>{ el.dataset.text = (el.textContent||'').trim(); el.textContent=''; });
@@ -671,14 +717,12 @@
   }
 
   async function showIntroFlow(){
-    // 1) 화면 가득 INTRODUCTION
     introBigText.textContent='';
     fadeShow(introBig, 180, 'flex');
     await typeSentence(introBigText, 'INTRODUCTION', 45);
     await sleep(1000);
     fadeHide(introBig, 280);
 
-    // 2) 본문 먼저 타이핑
     fadeShow(intro, 300, 'flex');
     const els = captureIntroTexts();
     for(const el of els){
@@ -686,7 +730,6 @@
       await sleep(120);
     }
 
-    // 3) (맨 마지막) 타이머 등장 후 카운트다운 시작 — 70초
     let left = 70;
     introCount.style.display = 'block';
     introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
@@ -697,7 +740,6 @@
       if(left<=0){ clearInterval(iv); startTransition(); }
     },1000);
   }
-  const goIntroBtn = document.getElementById('goIntro');
   goIntroBtn.addEventListener('click', ()=>{ ensureResumed().then(()=>{ playWoongClick(); fadeHide(welcome, 240); showIntroFlow(); }); }, {passive:true});
 
   /* 8-minute timer */
@@ -773,20 +815,14 @@
       }
       if(!camStream){
         camStream = await navigator.mediaDevices.getUserMedia({
-          video:{
-            facingMode:'environment',
-            width:{ideal:1920}, height:{ideal:1080},
-            aspectRatio:{ideal:16/9}
-          },
+          video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080}, aspectRatio:{ideal:16/9} },
           audio:false
         });
         camVideo.srcObject = camStream;
       }
 
       await camVideo.play().catch(()=>{});
-      if (camVideo.readyState < 1) {
-        await new Promise(res => camVideo.addEventListener('loadedmetadata', res, {once:true}));
-      }
+      if (camVideo.readyState < 1) await new Promise(res => camVideo.addEventListener('loadedmetadata', res, {once:true}));
       metaReady = true;
       resizeCam();
       warmupFrames = 30;
@@ -821,20 +857,17 @@
     }
   });
 
-  // 커버 계산: 회전/비회전 중 빈 영역 작은 쪽
   function drawBestCover(ctx, video, W, H, PW, PH){
     const vw=video.videoWidth||0, vh=video.videoHeight||0;
     if(!vw||!vh) return;
-
     function coverScore(rot){
       let rw = rot? vh: vw, rh = rot? vw: vh;
       const s = Math.max(PW/rw, PH/rh)*ZOOM;
-      const dw = rw*s, dh = rh*s;
+      const dw=rw*s, dh=rh*s;
       const letter = Math.max(0, (PW - dw)) + Math.max(0, (PH - dh));
       return {rot, s, dw, dh, letter};
     }
-    const a = coverScore(false);
-    const b = coverScore(true);
+    const a = coverScore(false); const b = coverScore(true);
     const best = (b.letter < a.letter) ? b : a;
 
     ctx.save();
@@ -1035,7 +1068,7 @@
     }, 100);
   });
 
-  /* Flow start on load */
+  /* Flow start on load — 사용자의 첫 제스처 대기 */
   window.addEventListener('load', ()=>{ /* wait for gesture */ });
 
 })();
