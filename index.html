@@ -89,6 +89,7 @@
     background:#000;color:#fff;font-family:"Courier New",ui-monospace,monospace;text-align:center;padding:40px;
   }
 
+  /* Gate */
   #overlay{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));color:#fff;background:rgba(0,0,0,.85)}
   #overlayContent{max-width:min(92vw, 72ch);font-family:"Courier New",ui-monospace,monospace;line-height:1.7;text-align:center}
   .gateLine{display:inline-block;font-family:"Courier New",ui-monospace,monospace;font-size:var(--fs-strong);border:none;background:transparent;color:#fff;cursor:pointer;padding:6px 10px}
@@ -97,11 +98,11 @@
   /* Name */
   #nameOverlay{position:fixed; inset:0; z-index:260; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.85); color:#fff;}
   #nameCard{ width:min(92vw,600px); text-align:center; font-family:"Courier New",ui-monospace,monospace; }
-  #nameCard h2{ margin:0 0 12px 0; letter-spacing:.08em; font-size:var(--fs-name); font-weight:400; } /* 볼드 해제 */
+  #nameCard h2{ margin:0 0 12px 0; letter-spacing:.08em; font-size:var(--fs-name); font-weight:400; }
   #nick{ width:100%; padding:12px 14px; background:#000; border:1px solid #555; color:#fff; font-size:var(--fs-name); outline:none; }
   #nameRow{ display:flex; gap:10px; margin-top:12px; justify-content:center; }
   #nameRow .uiBtn{ padding:10px 14px; }
-  #nameRow .uiBtn.flat{ font-family:"Courier New",ui-monospace,monospace; font-size:var(--fs-name); font-weight:400; } /* GO 동일 폰트/사이즈/두께 */
+  #nameRow .uiBtn.flat{ font-family:"Courier New",ui-monospace,monospace; font-size:var(--fs-name); font-weight:400; }
 
   /* Preset */
   #preset{position:fixed;inset:0;z-index:250;background:#000;display:none;cursor:pointer}
@@ -113,14 +114,15 @@
   #welcomeCard .title{ font-size:clamp(32px, 12vmin, 120px); font-weight:900; letter-spacing:.04em; line-height:1.02; margin-bottom:8px; text-transform:uppercase; }
   #welcomeCard .title + .title{ margin-top:0; }
 
-  /* Intro: big title */
+  /* Intro big title */
   #introBig{ position:fixed; inset:0; z-index:231; display:none; align-items:center; justify-content:center; pointer-events:none; }
   #introBigText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(28px, 11vmin, 110px); text-transform:uppercase; text-align:center; }
 
   /* Intro body */
   #introOverlay{position:fixed; inset:0; z-index:230; display:none; align-items:flex-start; justify-content:center; color:#fff; background:rgba(0,0,0,.35); padding:calc(24px + var(--safe-t)) calc(16px + var(--safe-r)) calc(20px + var(--safe-b)) calc(16px + var(--safe-l)); font-family:"Courier New",ui-monospace,monospace; overflow-y:auto; -webkit-overflow-scrolling:touch;}
   #introBox{ width:min(92vw, 860px); margin:0 auto; }
-  #introBox h2{margin:.2em 0 .6em 0; font-size:clamp(18px, 3.6vmin, 26px); letter-spacing:.1em; text-align:center;}
+  /* 작은 INTRODUCTION 머리는 삭제됨 */
+  #introBox h2{ display:none; }
   #introBox p{font-size:var(--fs-body); line-height:1.85; text-align:center; text-shadow:0 1px 2px rgba(0,0,0,.6);}
   #introBox ol{padding-left:1.2em; margin:.4em 0 1.2em 0; text-align:left;}
   #introBox li{font-size:var(--fs-body); line-height:1.85; text-shadow:0 1px 2px rgba(0,0,0,.6);}
@@ -154,7 +156,7 @@
 
   <div id="rotateOverlay"><div>This content supports landscape mode only.<br/>Please rotate your device.</div></div>
 
-  <!-- Permissions (EN / flat text) -->
+  <!-- Gate -->
   <div id="overlay" class="fade show">
     <div id="overlayContent">
       <div class="credits" style="margin-bottom:10px;">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
@@ -196,7 +198,7 @@
 
   <!-- Intro body -->
   <div id="introOverlay" class="fade"><div id="introBox">
-    <h2>INTRODUCTION</h2>
+    <!-- h2 삭제됨 -->
     <p>지금 이 화면을 보고 있는 당신,</p>
     <p>주변의 소리에 천천히 귀를 기울이며 공간을 거닐기 시작합니다.</p>
     <p>지금부터 당신은 약 30분 간, 짧은 단잠에 들게 됩니다.</p>
@@ -287,49 +289,45 @@
   function ensureAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
   async function ensureResumed(){ try{ ensureAudio(); if(audioCtx.state==='suspended') await audioCtx.resume(); }catch{} }
 
-  /* 부웅 클릭 사운드 — 더 크게(≈3x) */
+  /* Woong clicks */
   function playWoongClick(){
     try{
       ensureAudio();
       const now = audioCtx.currentTime;
-
-      // 메인 저음
-      const o1 = audioCtx.createOscillator();
-      const g1 = audioCtx.createGain();
-      const f1 = audioCtx.createBiquadFilter();
-      o1.type='sine';
-      o1.frequency.setValueAtTime(120, now);
-      o1.frequency.exponentialRampToValueAtTime(70, now+0.28);
-      g1.gain.value=0.0001;
-      g1.gain.exponentialRampToValueAtTime(0.60, now+0.03);   // ↑↑
-      g1.gain.exponentialRampToValueAtTime(0.0001, now+0.36);
+      const o1 = audioCtx.createOscillator(), g1 = audioCtx.createGain(), f1 = audioCtx.createBiquadFilter();
+      o1.type='sine'; o1.frequency.setValueAtTime(120, now); o1.frequency.exponentialRampToValueAtTime(70, now+0.28);
+      g1.gain.value=0.0001; g1.gain.exponentialRampToValueAtTime(0.60, now+0.03); g1.gain.exponentialRampToValueAtTime(0.0001, now+0.36);
       f1.type='lowpass'; f1.frequency.value=950; f1.Q.value=0.7;
-      o1.connect(f1).connect(g1).connect(audioCtx.destination);
-      o1.start(); o1.stop(now+0.38);
+      o1.connect(f1).connect(g1).connect(audioCtx.destination); o1.start(); o1.stop(now+0.38);
 
-      // 서브 옥타브로 더 두툼하게
-      const o2 = audioCtx.createOscillator();
-      const g2 = audioCtx.createGain();
+      const o2 = audioCtx.createOscillator(), g2 = audioCtx.createGain();
       o2.type='sine'; o2.frequency.setValueAtTime(60, now);
-      g2.gain.value=0.0001;
-      g2.gain.exponentialRampToValueAtTime(0.36, now+0.05);
-      g2.gain.exponentialRampToValueAtTime(0.0001, now+0.34);
-      o2.connect(g2).connect(audioCtx.destination);
-      o2.start(); o2.stop(now+0.36);
+      g2.gain.value=0.0001; g2.gain.exponentialRampToValueAtTime(0.36, now+0.05); g2.gain.exponentialRampToValueAtTime(0.0001, now+0.34);
+      o2.connect(g2).connect(audioCtx.destination); o2.start(); o2.stop(now+0.36);
+    }catch(e){}
+  }
+  function playWoongHuge(){ // + 버튼용 (확실히 크게)
+    try{
+      ensureAudio();
+      const now = audioCtx.currentTime;
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type='sawtooth'; o.frequency.setValueAtTime(95, now); o.frequency.exponentialRampToValueAtTime(55, now+0.32);
+      g.gain.value=0.0001; g.gain.exponentialRampToValueAtTime(0.95, now+0.03); g.gain.exponentialRampToValueAtTime(0.0001, now+0.42);
+      o.connect(g).connect(audioCtx.destination); o.start(); o.stop(now+0.44);
     }catch(e){}
   }
 
-  /* 타이핑 틱 & 카운트다운 틱 */
+  /* Typing tick — 낮은 톤 */
   function typeTick(){
     try{
       ensureAudio();
       const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-      o.type='square'; o.frequency.value=1800;
+      o.type='square'; o.frequency.value=950; // 낮춤
       g.gain.value=0.0001;
-      g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime+0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.08);
+      g.gain.exponentialRampToValueAtTime(0.16, audioCtx.currentTime+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.10);
       o.connect(g).connect(audioCtx.destination);
-      o.start(); o.stop(audioCtx.currentTime+0.09);
+      o.start(); o.stop(audioCtx.currentTime+0.12);
     }catch(e){}
   }
   function countdownTick(left){
@@ -337,9 +335,9 @@
       ensureAudio();
       const o=audioCtx.createOscillator(), g=audioCtx.createGain();
       const last5 = left<=5;
-      o.type='square'; o.frequency.value= last5 ? 950 : 700;
+      o.type='square'; o.frequency.value= last5 ? 850 : 650; // 살짝 낮춤
       g.gain.value=0.0001;
-      g.gain.exponentialRampToValueAtTime(last5?0.28:0.16, audioCtx.currentTime+0.02);
+      g.gain.exponentialRampToValueAtTime(last5?0.30:0.18, audioCtx.currentTime+0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.12);
       o.connect(g).connect(audioCtx.destination);
       o.start(); o.stop(audioCtx.currentTime+0.14);
@@ -395,7 +393,7 @@
     return { start, stop, isRunning:()=>running };
   })();
 
-  /* First Sleep Drone — 반 이상 줄인 볼륨 */
+  /* First Sleep Drone — 절반 이하 */
   const LongDrone = (() => {
     let o, g, lfo, running=false;
     async function start(){
@@ -408,10 +406,10 @@
       const lfoG = audioCtx.createGain(); lfoG.gain.value=0.10; lfo.connect(lfoG); lfoG.connect(g.gain);
       o.connect(g).connect(audioCtx.destination);
       o.start(); lfo.start();
-      g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.8); /* 이전 대비 더 낮음 */
+      g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.8);
       running=true;
     }
-    function stop(fade=2.5){
+    function stop(fade=4.0){ // 페이드 더 길게
       if(!running) return;
       const t=audioCtx.currentTime;
       g.gain.linearRampToValueAtTime(0.0001, t+fade);
@@ -420,18 +418,18 @@
     return { start, stop, isRunning:()=>running };
   })();
 
-  /* Lightning-like low-woong seq — 더 큼 */
+  /* Lightning-like woong — 더 큼 */
   async function lowWoongSequence(){
     await ensureResumed();
     const base = audioCtx.currentTime;
     const pattern = [
-      {t:0.00, dur:0.35, f:120, g:0.40},
-      {t:0.38, dur:0.35, f:115, g:0.44},
-      {t:0.76, dur:0.35, f:110, g:0.48},
-      {t:1.14, dur:0.35, f:108, g:0.52},
-      {t:1.46, dur:0.30, f:105, g:0.55},
-      {t:1.72, dur:0.30, f:102, g:0.58},
-      {t:2.00, dur:1.80, f:95,  g:0.65},
+      {t:0.00, dur:0.35, f:120, g:0.42},
+      {t:0.38, dur:0.35, f:115, g:0.46},
+      {t:0.76, dur:0.35, f:110, g:0.50},
+      {t:1.14, dur:0.35, f:108, g:0.54},
+      {t:1.46, dur:0.30, f:105, g:0.58},
+      {t:1.72, dur:0.30, f:102, g:0.62},
+      {t:2.00, dur:2.10, f:95,  g:0.70}, // 꼬리 살짝 더 길게
     ];
     for(const p of pattern){
       const o=audioCtx.createOscillator(), g=audioCtx.createGain();
@@ -441,11 +439,11 @@
       o.start(base + p.t);
       g.gain.linearRampToValueAtTime(p.g, base + p.t + 0.08);
       g.gain.exponentialRampToValueAtTime(0.0001, base + p.t + p.dur);
-      o.stop(base + p.t + p.dur + 0.05);
+      o.stop(base + p.t + p.dur + 0.06);
     }
   }
 
-  /* Mic FX with higher sensitivity (패닝/톤) */
+  /* Mic FX (패닝/톤 감도 ↑) */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, comp=null, micBus=null;
   function makeImpulse(ctx, seconds=5.0, decay=7.0){
     const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
@@ -499,13 +497,11 @@
     const gamma = clamp(e.gamma ?? 0, -60, 60); // -좌 +우
     const beta  = clamp(e.beta ?? 0, -60, 60);  // -뒤로 젖힘 +숙임
 
-    // 하드팬(감도↑)
     let panVal = 0;
     if(gamma > 2) panVal = +1;
     else if(gamma < -2) panVal = -1;
     if(panNode) panNode.pan.value = panVal;
 
-    // 톤/리버브(감도↑)
     const bassBoost = (beta>=0) ? map(beta, 0, 60, 0, 16) : map(beta, -60, 0, -4, 0);
     const trebleBoost = (beta<0) ? map(beta, -60, 0, 16, 0) : 0;
     if(lowshelf) lowshelf.gain.value = clamp(bassBoost, -8, 16);
@@ -519,10 +515,10 @@
     if(dryGain) dryGain.gain.value = clamp(1.0 - wetGain.gain.value*0.45, 0.2, 1.0);
   }
 
-  /* Zoom label */
+  /* Zoom label + big woong on + */
   function updateZoomLabel(){ zoomVal.textContent = ZOOM.toFixed(1)+'×'; }
   updateZoomLabel();
-  zoomIn.addEventListener('click', ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
+  zoomIn.addEventListener('click', ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); playWoongHuge(); }, {passive:true});
   zoomOut.addEventListener('click', ()=>{ ZOOM=Math.max(0.35, ZOOM-0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
 
   /* Permissions (자이로 허용) */
@@ -540,12 +536,12 @@
       tmp.getTracks().forEach(t=>t.stop());
       camPermGranted = true;
     }catch(e){ console.warn('permission error:', e); }
-    fadeHide(overlay, 600);
+    fadeHide(overlay, 400);
 
     await ensureResumed();
-    Ambient.start(1.0, 1.0);
+    Ambient.start(0.8, 1.0);
 
-    fadeShow(nameOverlay, 600);
+    fadeShow(nameOverlay, 400);
     setTimeout(()=>nickInput.focus(), 60);
   }
   function gateWithWoong(){ ensureResumed().then(()=>{ playWoongClick(); gate(); }); }
@@ -561,7 +557,7 @@
     if(v.length>0){ displayName = v; }
     await ensureResumed();
     playWoongClick();
-    fadeHide(nameOverlay, 400);
+    fadeHide(nameOverlay, 300);
     showPreset();
   }
   nameSubmit.addEventListener('click', acceptName, {passive:true});
@@ -571,9 +567,9 @@
   let saverObjs = []; let saverMode = 'scatter'; let saverT0 = 0;
   function showPreset(){
     preset.style.display='block'; preset.classList.add('show');
-    fadeShow(preset, 300);
+    fadeShow(preset, 250);
     initSaver();
-    startCameraFresh(true);  // 워밍업
+    startCameraFresh(true);  // 워밍업(메타데이터 준비)
   }
   function initSaver(){
     const w = preset.clientWidth, h = preset.clientHeight;
@@ -609,7 +605,6 @@
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,w,h); ctx.fillStyle='#000'; ctx.fillRect(0,0,w,h);
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    const t = now/1000;
 
     const dt = (now - saverT0)/1000;
     if(dt>Math.random()*2+6){
@@ -631,7 +626,7 @@
       if(o.x<0||o.x>w) o.vx*=-1;
       if(o.y<0||o.y>h) o.vy*=-1;
 
-      const wob = Math.sin(t*2 + o.phase)*0.12 + 1;
+      const wob = Math.sin(now/500 + o.phase)*0.12 + 1;
       ctx.save();
       ctx.translate(o.x, o.y); ctx.scale(wob, 1/wob);
       ctx.font = `900 ${o.size}px Impact, Anton, "Arial Black", system-ui, sans-serif`;
@@ -645,35 +640,49 @@
   // 프리셋 클릭 → Welcome (카메라 실제 시작)
   preset.addEventListener('click', async ()=>{
     playWoongClick();
-    fadeHide(preset, 250);
+    fadeHide(preset, 220);
     await startCameraFresh(false);
-    fadeShow(welcome, 300);
+    fadeShow(welcome, 280);
   }, {passive:true});
 
-  /* Intro: big title → body */
+  /* Intro: big title → body, 문장마다 1초 대기 */
   function captureIntroTexts(){
-    const els = Array.from(document.querySelectorAll('#introBox h2, #introBox p, #introBox li'));
+    const els = Array.from(document.querySelectorAll('#introBox p, #introBox li'));
+    // 문장 단위로 쪼개기 위해 data-text 저장
     els.forEach(el=>{ el.dataset.text = (el.textContent||'').trim(); el.textContent=''; });
     return els;
   }
-  async function typeElement(el, text, speed=40, withTick=true){
-    el.textContent='';
-    for(let i=0;i<text.length;i++){
-      el.textContent += text[i];
-      if(withTick && /\S/.test(text[i])) typeTick();
+  async function typeSentence(el, sentence, speed=38){
+    for(let i=0;i<sentence.length;i++){
+      el.textContent += sentence[i];
+      if(/\S/.test(sentence[i])) typeTick();
       intro.scrollTop = intro.scrollHeight;
       await sleep(speed);
     }
+    await sleep(1000); // 문장 간 1초 대기
   }
+  function splitSentences(str){
+    // ., ?, !, …, '다.' 패턴 근사 분할
+    const re = /(.*?[\.\?\!…]|.*?다\.)\s*/g;
+    const out=[]; let m; let last=0;
+    while((m=re.exec(str))){ out.push(m[0].trim()); last=re.lastIndex; }
+    if(last<str.length) out.push(str.slice(last).trim());
+    return out.filter(Boolean);
+  }
+  async function typeElementBySentence(el, text){
+    const sentences = splitSentences(text);
+    for(const s of sentences){ await typeSentence(el, s); }
+  }
+
   async function showIntroFlow(){
     // 1) 화면 가득 INTRODUCTION
     introBigText.textContent='';
-    fadeShow(introBig, 200, 'flex');
-    await typeElement(introBigText, 'INTRODUCTION', 50, true);
+    fadeShow(introBig, 180, 'flex');
+    await typeSentence(introBigText, 'INTRODUCTION', 45);
     await sleep(1000);
-    fadeHide(introBig, 300);
+    fadeHide(introBig, 280);
 
-    // 2) 본문 & 카운트다운
+    // 2) 본문 & 카운트다운 (문장 단위 타이핑)
     fadeShow(intro, 300, 'flex');
 
     let left = 40; introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
@@ -687,12 +696,12 @@
     (async ()=>{
       const els = captureIntroTexts();
       for(const el of els){
-        await typeElement(el, el.dataset.text||'', 40, true);
+        await typeElementBySentence(el, el.dataset.text||'');
         await sleep(120);
       }
     })();
   }
-  goIntroBtn.addEventListener('click', ()=>{ ensureResumed().then(()=>{ playWoongClick(); fadeHide(welcome, 250); showIntroFlow(); }); }, {passive:true});
+  goIntroBtn.addEventListener('click', ()=>{ ensureResumed().then(()=>{ playWoongClick(); fadeHide(welcome, 240); showIntroFlow(); }); }, {passive:true});
 
   /* 8-minute timer */
   let eightTimer = null, eightLeft = 8*60;
@@ -709,23 +718,24 @@
     },1000);
   }
 
-  /* Transition */
+  /* Transition — 오버랩 1.5초 증가 */
   async function startTransition(){
-    fadeHide(intro, 250);
+    fadeHide(intro, 320);
 
     titleText.textContent='GOOD NIGHT';
     titleScreen.style.display='flex';
     titleScreen.style.background='#000'; titleText.style.color='#fff';
 
     await lowWoongSequence();
-    const until = performance.now()+2200; let flag=false;
+    const until = performance.now()+3700; // +1500ms
+    let flag=false;
     while(performance.now()<until){
       flag=!flag;
       titleText.textContent = flag ? 'GOOD NIGHT' : 'THE FIRST SLEEP';
       titleScreen.style.background='rgba(255,255,255,0.96)'; titleText.style.color='#000';
-      await sleep(90);
+      await sleep(100);
       titleScreen.style.background='#000'; titleText.style.color='#fff';
-      await sleep(120);
+      await sleep(140);
     }
     titleScreen.style.display='none';
 
@@ -735,24 +745,25 @@
 
     startEightTimer();
 
-    await sleep(900);
-    firstSleep.style.transition='opacity 6500ms ease';
+    await sleep(1100); // 살짝 늘림
+    firstSleep.style.transition='opacity 8000ms ease'; // 더 길게
     firstSleep.style.opacity='0';
-    LongDrone.stop(3.6);
-    Ambient.stop(3.6);
-    await sleep(6800);
+    LongDrone.stop(4.5);
+    Ambient.stop(4.5);
+    await sleep(8200);
     firstSleep.style.display='none';
     firstSleep.style.transition='';
 
-    await sleep(300);
-    await startMicFXFadeIn(2.6);
+    await sleep(400);
+    await startMicFXFadeIn(2.8);
 
     controls.classList.add('show');
     captureBtn.classList.add('show');
     beginCharacter();
   }
 
-  /* Camera — 세로 소스 자동 회전 & cover */
+  /* Camera — 메타데이터 대기 + 세로 소스 자동 회전 + 강제 cover */
+  let metaReady = false, warmupFrames=0;
   async function startCameraFresh(warmupOnly=false){
     try{
       if(!camPermGranted){
@@ -766,7 +777,14 @@
         camStream = await navigator.mediaDevices.getUserMedia({ video:{facingMode:'environment', width:{ideal:1920}, height:{ideal:1080}}, audio:false });
         camVideo.srcObject = camStream;
       }
+
+      // 메타데이터 대기 → 즉시 리사이즈
       await camVideo.play().catch(()=>{});
+      if (camVideo.readyState < 1) {
+        await new Promise(res => camVideo.addEventListener('loadedmetadata', res, {once:true}));
+      }
+      metaReady = true;
+      resizeCam();
 
       if(!vctx){
         vctx = view.getContext('2d',{alpha:false});
@@ -785,7 +803,7 @@
     const scale = matchMedia('(orientation: landscape)').matches? 0.86 : 0.9;
     if(proc){ proc.width=Math.floor(w*scale); proc.height=Math.floor(h*scale); }
   }
-  addEventListener('resize', ()=>setTimeout(resizeCam,50), {passive:true});
+  addEventListener('resize', ()=>{ setTimeout(resizeCam,30); warmupFrames=10; }, {passive:true});
   document.addEventListener('visibilitychange', async ()=>{
     if(document.visibilityState==='visible' && camVideo){
       try{
@@ -793,6 +811,7 @@
         if(!camStream || camStream.getVideoTracks().every(t=>t.readyState!=='live')){
           await startCameraFresh();
         }
+        warmupFrames=10;
       }catch{}
     }
   });
@@ -901,7 +920,7 @@
     if(t01>=1){ charActive=false; }
   }
 
-  /* Main render loop with auto-rotate video */
+  /* Main render loop with strict cover & warmup recalc */
   function loopCam(){
     requestAnimationFrame(loopCam);
     if(capturing) return;
@@ -910,26 +929,26 @@
     const W=view.width/(window.devicePixelRatio||1), H=view.height/(window.devicePixelRatio||1);
     const PW=proc.width, PH=proc.height;
 
-    // 배경 잔상
+    // 초기 몇 프레임 강제 재측정(cover 안정화)
+    if(warmupFrames>0){ resizeCam(); warmupFrames--; }
+
     pctx.fillStyle='rgba(0,0,0,.14)'; pctx.fillRect(0,0,PW,PH);
 
-    if(camVideo && camVideo.readyState>=2){
+    if(camVideo && metaReady && camVideo.readyState>=2){
       const vw=camVideo.videoWidth||0, vh=camVideo.videoHeight||0;
       if(vw&&vh){
         const landscapeScreen = matchMedia('(orientation: landscape)').matches;
         const videoIsPortrait = vh>vw;
         pctx.save();
         if(landscapeScreen && videoIsPortrait){
-          // 90도 회전하여 cover
           pctx.translate(PW/2, PH/2);
           pctx.rotate(Math.PI/2);
-          const rw = vh, rh = vw; // 회전 후 기준
-          const cover=Math.max(PH/rh, PW/rw)*ZOOM; // 교체 주의
+          const rw = vh, rh = vw;
+          const cover=Math.max(PH/rh, PW/rw)*ZOOM;
           const dw=rw*cover, dh=rh*cover;
           pctx.globalAlpha=.7;
           pctx.drawImage(camVideo, -dw/2, -dh/2, dw, dh);
         }else{
-          // 일반 cover
           const cover=Math.max(PW/vw, PH/vh)*ZOOM;
           const dw=vw*cover, dh=vh*cover, dx=(PW-dw)/2, dy=(PH-dh)/2;
           pctx.globalAlpha=.7; pctx.drawImage(camVideo,dx,dy,dw,dh);
@@ -937,7 +956,6 @@
         pctx.restore();
         pctx.globalAlpha=1;
 
-        // 흑백 변환
         const frame=pctx.getImageData(0,0,PW,PH),d=frame.data;
         for(let i=0;i<d.length;i+=4){const g=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0; d[i]=d[i+1]=d[i+2]=g;}
         pctx.putImageData(frame,0,0);
@@ -950,8 +968,9 @@
     if(charActive){ drawCharacter(W,H); }
   }
 
-  /* Capture */
+  /* Capture (그대로) */
   let captureAnimating = false;
+  const captureBtn = qs('#captureBtn');
   captureBtn.addEventListener('click', ()=>{
     if(captureAnimating) return;
     playWoongClick();
