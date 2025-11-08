@@ -438,7 +438,7 @@
       const lfoG = audioCtx.createGain(); lfoG.gain.value=0.10; lfo.connect(lfoG); lfoG.connect(g.gain);
       o.connect(g).connect(audioCtx.destination);
       o.start(); lfo.start();
-      g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.8); /* 절반 이하로 낮춤 */
+      g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.8);
       running=true;
     }
     function stop(fade=4.0){
@@ -453,7 +453,7 @@
   async function lowWoongSequence(){
     await ensureResumed();
     const base = audioCtx.currentTime;
-    const reps = 5, gap = 0.6, dur = 0.5, freq = 105, gainVal = 0.70; /* 번개형 ‘붑’ 소리 더 큼 */
+    const reps = 5, gap = 0.6, dur = 0.5, freq = 105, gainVal = 0.70;
     for(let i=0;i<reps;i++){
       const t = base + i*gap;
       const o=audioCtx.createOscillator(), g=audioCtx.createGain();
@@ -538,9 +538,7 @@
     if(dryGain) dryGain.gain.value = clamp(1.0 - wetGain.gain.value*0.45, 0.2, 1.0);
   }
 
-  /* Zoom */
-  let ZOOM = 1.0;
-  const zoomIn = qs('#zoomIn'), zoomOut = qs('#zoomOut'), zoomVal = qs('#zoomVal');
+  /* Zoom (중복 선언 제거 버전) */
   function updateZoomLabel(){ zoomVal.textContent = ZOOM.toFixed(1)+'×'; }
   updateZoomLabel();
   zoomIn.addEventListener('click', ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
@@ -580,7 +578,7 @@
 
     overlayEl.style.transition='opacity 300ms ease'; overlayEl.style.opacity='0';
     setTimeout(()=>{ overlayEl.style.display='none'; }, 300);
-    Ambient.start(0.8, 1.0);
+    Ambient.start(0.8, 1.0); // 닉네임 화면부터 배경음 시작
 
     // 이름 화면
     nameOverlay.style.display='flex'; nameOverlay.style.opacity='0';
@@ -590,14 +588,11 @@
 
   // 인라인 핸들러가 호출하는 함수 (전역 노출)
   window.bootGesture = (ev)=>{
-    if(ev && ev.target === document.body && ev.type === 'click') {
-      // 일부 브라우저에서 body 클릭 버블만 잡히는 케이스 보정
-    }
     ev && ev.preventDefault && ev.preventDefault();
     bootCore();
   };
 
-  // addEventListener 백업 (혹시 인라인이 막히는 환경)
+  // addEventListener 백업
   ['pointerdown','touchstart','click'].forEach(t=>{
     document.addEventListener(t, (e)=>{
       if(overlayEl.style.display!=='none') { e.preventDefault(); bootCore(); }
@@ -698,7 +693,7 @@
     }, 240);
   }, {passive:true});
 
-  /* Intro flow (70s 타이머, 마지막에만 표시) */
+  /* Intro flow (90s 타이머, 마지막에만 표시) */
   function captureIntroTexts(){
     const els = Array.from(document.querySelectorAll('#introBox p, #introBox li'));
     els.forEach(el=>{ el.dataset.text = (el.textContent||'').trim(); el.textContent=''; });
@@ -739,7 +734,7 @@
     const els = captureIntroTexts();
     for(const el of els){ await typeElementBySentence(el, el.dataset.text||''); await sleep(120); }
 
-    let left = 70;
+    let left = 90;  // 70s → 90s 로 연장
     introCount.style.display = 'block';
     introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
     const iv = setInterval(()=>{
@@ -1060,13 +1055,6 @@
       })();
     }, 100);
   });
-
-  /* Name submit */
-  const nameSubmit = qs('#nameSubmit');
-  const goIntroBtn = qs('#goIntro');
-
-  /* Intro start */
-  // (goIntroBtn 리스너 위에서 이미 등록)
 
   /* Load: 제스처 기다림 */
   window.addEventListener('load', ()=>{ /* wait for user gesture */ });
