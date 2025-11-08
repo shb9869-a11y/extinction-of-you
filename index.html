@@ -84,11 +84,8 @@
 
   .credits{ font-family:"Courier New",ui-monospace,monospace; letter-spacing:.08em; }
 
-  /* 세로(가로 금지) 안내 */
-  #rotateOverlay{
-    position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;
-    background:#000;color:#fff;font-family:"Courier New",ui-monospace,monospace;text-align:center;padding:40px;
-  }
+  /* (요청) 세로 금지 오버레이 사용 안함 */
+  #rotateOverlay{ display:none !important; }
 
   /* Gate */
   #overlay{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));color:#fff;background:rgba(0,0,0,.85)}
@@ -154,8 +151,8 @@
   <button id="audioToggle" class="uiBtn small">AUDIO</button>
   <div id="runTimer" aria-live="polite">08:00</div>
 
-  <!-- 세로(가로 금지) 안내 -->
-  <div id="rotateOverlay"><div>This content supports landscape mode only.<br/>Please rotate your device.</div></div>
+  <!-- (비활성) 세로 안내 -->
+  <div id="rotateOverlay"><div></div></div>
 
   <!-- Gate -->
   <div id="overlay" class="fade show">
@@ -243,20 +240,9 @@
   setAppH(); addEventListener('resize', setAppH, {passive:true});
   if (window.visualViewport){ visualViewport.addEventListener('resize', ()=>setTimeout(setAppH,50)); }
 
-  /* 세로(가로 금지) 안내 */
+  /* (비활성) 세로 오버레이 강제 숨김 */
   const rotateOverlay = document.getElementById('rotateOverlay');
-  function isPortrait(){
-    const vv = window.visualViewport;
-    const w = (vv ? vv.width : window.innerWidth);
-    const h = (vv ? vv.height : window.innerHeight);
-    const m = window.matchMedia && window.matchMedia("(orientation: portrait)");
-    return (m && m.matches) || (h > w);
-  }
-  function updateRotateOverlay(){ rotateOverlay.style.display = isPortrait() ? 'flex' : 'none'; }
-  ['load','pageshow','resize','orientationchange','visibilitychange'].forEach(ev=>{
-    addEventListener(ev, updateRotateOverlay, {passive:true});
-  });
-  updateRotateOverlay();
+  rotateOverlay.style.display = 'none';
 
   /* Refs */
   const overlay = qs('#overlay');
@@ -318,7 +304,7 @@
     try{
       ensureAudio();
       const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-      o.type='square'; o.frequency.value=900; // 더 낮게
+      o.type='square'; o.frequency.value=900;
       g.gain.value=0.0001;
       g.gain.exponentialRampToValueAtTime(0.16, audioCtx.currentTime+0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.10);
@@ -389,7 +375,7 @@
     return { start, stop, isRunning:()=>running };
   })();
 
-  /* First Sleep Drone — 볼륨 절반 이하 */
+  /* First Sleep Drone */
   const LongDrone = (() => {
     let o, g, lfo, running=false;
     async function start(){
@@ -405,7 +391,7 @@
       g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.8);
       running=true;
     }
-    function stop(fade=4.0){
+    function stop(fade=4.5){
       if(!running) return;
       const t=audioCtx.currentTime;
       g.gain.linearRampToValueAtTime(0.0001, t+fade);
@@ -419,9 +405,9 @@
     await ensureResumed();
     const base = audioCtx.currentTime;
     const reps = 5;
-    const gap = 0.6;     // 각 사이 간격
-    const dur = 0.5;     // 동일 길이
-    const freq = 105;    // 동일 톤
+    const gap = 0.6;
+    const dur = 0.5;
+    const freq = 105;
     const gainVal = 0.70;
     for(let i=0;i<reps;i++){
       const t = base + i*gap;
@@ -436,7 +422,7 @@
     }
   }
 
-  /* Mic FX (패닝/톤 감도 ↑) */
+  /* Mic FX (기울기 반응) */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, comp=null, micBus=null;
   function makeImpulse(ctx, seconds=5.0, decay=7.0){
     const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
@@ -446,7 +432,7 @@
     }
     return ir;
   }
-  async function startMicFXFadeIn(fadeSec=3.0){
+  async function startMicFXFadeIn(fadeSec=2.8){
     try{
       await ensureResumed();
       if(!micStream) micStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}, video:false});
@@ -487,8 +473,8 @@
   }
   function onTiltAudio(e){
     if(!audioCtx) return;
-    const gamma = clamp(e.gamma ?? 0, -60, 60); // -좌 +우
-    const beta  = clamp(e.beta ?? 0, -60, 60);  // -뒤로 젖힘 +숙임
+    const gamma = clamp(e.gamma ?? 0, -60, 60);
+    const beta  = clamp(e.beta ?? 0, -60, 60);
 
     let panVal = 0;
     if(gamma > 2) panVal = +1;
@@ -518,7 +504,6 @@
   function immediateGestureStart(e){
     e && e.preventDefault && e.preventDefault();
 
-    // 1) 동작 센서(iOS) 권한
     try{
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -526,11 +511,9 @@
       }
     }catch(_) {}
 
-    // 2) 오디오 컨텍스트 즉시 활성 + 클릭음
     try{ ensureAudio(); audioCtx.resume && audioCtx.resume(); }catch(_){}
     playWoongClick();
 
-    // 3) 카메라/마이크 권한 프롬프트 → 닉네임 화면
     navigator.mediaDevices.getUserMedia({
       video:{facingMode:'environment', width:{ideal:1280}, height:{ideal:720}, aspectRatio: {ideal: 16/9}},
       audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}
@@ -542,8 +525,7 @@
     .catch(err=>{ console.warn('permission error:', err); })
     .finally(()=>{
       fadeHide(overlay, 300);
-      // 앰비언트는 닉네임 단계부터
-      Ambient.start(0.8, 1.0);
+      Ambient.start(0.8, 1.0);          // (요청) 닉네임부터 앰비언트
       fadeShow(nameOverlay, 400);
       setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 60);
     });
@@ -648,7 +630,7 @@
     fadeShow(welcome, 280);
   }, {passive:true});
 
-  /* Intro: big title → body, 문장마다 1초 대기, 총 10초 연장(카운트다운 50s) */
+  /* Intro: big title → body, 카운트다운 50s */
   function captureIntroTexts(){
     const els = Array.from(document.querySelectorAll('#introBox p, #introBox li'));
     els.forEach(el=>{ el.dataset.text = (el.textContent||'').trim(); el.textContent=''; });
@@ -676,14 +658,12 @@
   }
 
   async function showIntroFlow(){
-    // 1) 화면 가득 INTRODUCTION
     introBigText.textContent='';
     fadeShow(introBig, 180, 'flex');
     await typeSentence(introBigText, 'INTRODUCTION', 45);
     await sleep(1000);
     fadeHide(introBig, 280);
 
-    // 2) 본문 & 카운트다운 (40→50초)
     fadeShow(intro, 300, 'flex');
 
     let left = 50; introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
@@ -727,7 +707,6 @@
     titleScreen.style.display='flex';
     titleScreen.style.background='#000'; titleText.style.color='#fff';
 
-    // 동일 길이 5회 '붑-붑...'
     await lowWoongSequence();
 
     const until = performance.now()+3700;
@@ -765,7 +744,7 @@
     beginCharacter();
   }
 
-  /* Camera — 자동 회전/커버 최적화 (portrait feed 강제 회전) */
+  /* Camera */
   let metaReady = false, warmupFrames=0;
   async function startCameraFresh(warmupOnly=false){
     try{
@@ -794,7 +773,7 @@
       }
       metaReady = true;
       resizeCam();
-      warmupFrames = 30; // 더 강하게
+      warmupFrames = 30;
 
       if(!vctx){
         vctx = view.getContext('2d',{alpha:false});
@@ -826,7 +805,6 @@
     }
   });
 
-  // 커버 계산: 회전/비회전 두 경우 중 빈 영역이 더 작은 쪽 선택
   function drawBestCover(ctx, video, W, H, PW, PH){
     const vw=video.videoWidth||0, vh=video.videoHeight||0;
     if(!vw||!vh) return;
@@ -961,7 +939,7 @@
     if(t01>=1){ charActive=false; }
   }
 
-  /* Main render loop with strict cover & warmup recalc */
+  /* Main render loop */
   function loopCam(){
     requestAnimationFrame(loopCam);
     if(capturing) return;
@@ -1033,7 +1011,6 @@
         fx2.imageSmoothingEnabled=false;
         fx2.globalAlpha = 1.0;
         fx2.drawImage(off,0,0,w,h,0,0,W,H);
-        // 원본 블렌딩 제거 (의도: 픽셀화되며 사라짐)
         px = px * step + 0.35;
         requestAnimationFrame(anim);
       }
@@ -1041,8 +1018,8 @@
     }, 100);
   });
 
-  /* Flow start on load */
-  window.addEventListener('load', ()=>{ /* wait for gesture */ });
+  /* Flow start on load (게이트에서 시작) */
+  window.addEventListener('load', ()=>{});
 
 })();
 </script>
