@@ -84,7 +84,7 @@
 
   .credits{ font-family:"Courier New",ui-monospace,monospace; letter-spacing:.08em; }
 
-  /* 세로(가로 금지) 안내 — 포인터 이벤트로 하위 차단 */
+  /* 세로(가로 금지) 안내 */
   #rotateOverlay{
     position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;
     background:#000;color:#fff;font-family:"Courier New",ui-monospace,monospace;text-align:center;padding:40px;
@@ -95,13 +95,23 @@
   body.portrait-block #preset,
   body.portrait-block #overlayWelcome { pointer-events:none; }
 
+  /* 보안컨텍스트 경고 */
+  #insecureBanner{
+    position:fixed;left:0;right:0;top:0;z-index:1200;
+    background:#201a00;color:#ffd86b;border-bottom:1px solid #665500;
+    font-family:"Courier New",ui-monospace,monospace;
+    padding:calc(8px + var(--safe-t)) 12px 8px 12px; display:none;
+  }
+  #insecureBanner strong{letter-spacing:.02em}
+  #insecureBanner .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  #insecureBanner .uiBtn{border-color:#806f2a}
+
   /* Gate */
   #overlay{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));color:#fff;background:rgba(0,0,0,.85)}
   #overlayContent{max-width:min(92vw, 72ch);font-family:"Courier New",ui-monospace,monospace;line-height:1.7;text-align:center}
   .gateLine{display:inline-block;font-family:"Courier New",ui-monospace,monospace;font-size:var(--fs-strong);border:none;background:transparent;color:#fff;cursor:pointer;padding:6px 10px}
   .gateHint{opacity:.7;margin-top:6px}
-  /* 권한 실패 힌트 */
-  #overlayContent .warn{opacity:.85;margin-top:10px;color:#ffdf7a;font-family:"Courier New",ui-monospace,monospace;}
+  #overlayContent .warn{opacity:.9;margin-top:10px;color:#ffdf7a;font-family:"Courier New",ui-monospace,monospace;}
 
   /* Name */
   #nameOverlay{position:fixed; inset:0; z-index:260; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.85); color:#fff;}
@@ -145,6 +155,14 @@
 </style>
 </head>
 <body>
+  <div id="insecureBanner">
+    <div class="row">
+      <strong>iOS Safari는 카메라/마이크 권한에 HTTPS(또는 localhost)가 필요합니다.</strong>
+      <button id="tryAnyway" class="uiBtn small">일단 시도</button>
+      <button id="retryPerm" class="uiBtn small">권한 재시도</button>
+    </div>
+  </div>
+
   <canvas id="view"></canvas>
   <canvas id="freezeLayer"></canvas>
   <div class="frameBox" aria-hidden="true"></div>
@@ -165,13 +183,14 @@
   <div id="rotateOverlay"><div>This content supports landscape mode only.<br/>Please rotate your device.</div></div>
 
   <!-- Gate -->
-  <div id="overlay" class="fade show">
+  <div id="overlay" class="fade show" role="button" tabindex="0" aria-label="Tap to start">
     <div id="overlayContent">
       <div class="credits" style="margin-bottom:10px;">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
       <button id="permGateBtn" class="gateLine" type="button">
         Tap anywhere to allow Camera, Microphone & Motion sensors
       </button>
       <div class="gateHint">After allowing, you'll move to the name screen.</div>
+      <div id="permWarn" class="warn" style="display:none">권한 창이 지연되면 상단 배너의 <b>권한 재시도</b>를 눌러주세요.</div>
     </div>
   </div>
 
@@ -239,9 +258,12 @@
   })();
 
   /* Utils */
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isLocalhost = ['localhost','127.0.0.1','::1'].includes(location.hostname);
+  const isSecure = (location.protocol === 'https:') || isLocalhost;
   function fadeShow(el, dur=2000, display='flex'){ el.style.display=display; el.style.opacity='0'; el.style.transition=`opacity ${dur}ms ease`; requestAnimationFrame(()=>el.style.opacity='1'); }
   function fadeHide(el, dur=2000){ el.style.transition=`opacity ${dur}ms ease`; el.style.opacity='0'; setTimeout(()=>{ el.style.display='none'; }, dur); }
-  function crossFade(fromEl, toEl, dur=1800){ // 오버랩 페이드
+  function crossFade(fromEl, toEl, dur=1800){
     toEl.style.transition=`opacity ${dur}ms ease`; toEl.style.display='flex'; toEl.style.opacity='0';
     requestAnimationFrame(()=>{ toEl.style.opacity='1'; });
     fadeHide(fromEl, dur);
@@ -255,8 +277,8 @@
   setAppH(); addEventListener('resize', setAppH, {passive:true});
   if (window.visualViewport){ visualViewport.addEventListener('resize', ()=>setTimeout(setAppH,50)); }
 
-  /* === 가로 전용 처리 (세로 금지) === */
-  const rotateOverlay = document.getElementById('rotateOverlay');
+  /* Orientation gate */
+  const rotateOverlay = qs('#rotateOverlay');
   function isPortraitStrict(){
     try{
       const vv = window.visualViewport;
@@ -295,8 +317,13 @@
   applyOrientationGate();
 
   /* Refs */
+  const insecureBanner = qs('#insecureBanner');
+  const tryAnywayBtn = qs('#tryAnyway');
+  const retryPermBtn = qs('#retryPerm');
+
   const overlayEl = qs('#overlay');
   const permBtn = qs('#permGateBtn');
+  const permWarn = qs('#permWarn');
   const nameOverlay = qs('#nameOverlay');
   const nickInput = qs('#nick');
   const nameSubmit = qs('#nameSubmit');
@@ -347,13 +374,13 @@
     }catch(e){}
   }
 
-  // ⬇︎ 타자 소리: 클릭 사운드 톤에 맞춰 더 낮게
+  // 타자 소리 낮게
   function typeTick(){
     try{
       ensureAudio();
       const now = audioCtx.currentTime;
       const o=audioCtx.createOscillator(), g=audioCtx.createGain(), f=audioCtx.createBiquadFilter();
-      o.type='square'; o.frequency.setValueAtTime(220, now); // 낮게
+      o.type='square'; o.frequency.setValueAtTime(220, now);
       f.type='lowpass'; f.frequency.value=800;
       g.gain.value=0.0001;
       g.gain.exponentialRampToValueAtTime(0.18, now+0.02);
@@ -367,7 +394,7 @@
       ensureAudio();
       const o=audioCtx.createOscillator(), g=audioCtx.createGain();
       const last5 = left<=5;
-      o.type='square'; o.frequency.value= last5 ? 620 : 520; // 살짝 낮춤
+      o.type='square'; o.frequency.value= last5 ? 620 : 520;
       g.gain.value=0.0001;
       g.gain.exponentialRampToValueAtTime(last5?0.28:0.16, audioCtx.currentTime+0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.12);
@@ -465,7 +492,7 @@
     }
   }
 
-  /* Mic FX (패닝/톤 감도 ↑) */
+  /* Mic FX */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, comp=null, micBus=null;
   function makeImpulse(ctx, seconds=5.0, decay=7.0){
     const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
@@ -542,8 +569,7 @@
   zoomIn.addEventListener('click', ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
   zoomOut.addEventListener('click', ()=>{ ZOOM=Math.max(0.35, ZOOM-0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
 
-  /* ---------- 권한 게이트: 안전 재무장 추가 ---------- */
-  // 권한 헬퍼 + 타임아웃
+  /* 권한 게이트 + 환경 체크 */
   async function requestMotionPerm(){
     try{
       if (typeof DeviceOrientationEvent !== 'undefined' &&
@@ -568,15 +594,33 @@
 
   let bootstrapped = false;
   let lastPermFail = false;
-  async function immediateGestureStart(e){
-    if(e && typeof e.preventDefault==='function') e.preventDefault();
-    if(bootstrapped && !lastPermFail) return;
 
-    // 세로 상태면 안내 띄우고 재무장 허용
+  function showInsecureBannerIfNeeded(){
+    if(!isSecure && isIOS){
+      insecureBanner.style.display='block';
+      // iOS + 비보안: 기본적으로 getUserMedia 시도 막음
+    }else{
+      insecureBanner.style.display='none';
+    }
+  }
+  showInsecureBannerIfNeeded();
+
+  async function immediateGestureStart(e, force=false){
+    if(e && typeof e.preventDefault==='function') e.preventDefault();
+    if(bootstrapped && !lastPermFail && !force) return;
+
     if(isPortraitStrict()){
       rotateOverlay.style.display='flex';
       document.body.classList.add('portrait-block');
       bootstrapped=false; lastPermFail=true;
+      return;
+    }
+
+    // iOS + HTTP(.local/IP) → 안내만 띄우고 중단 (상단 배너로 수동 시도 가능)
+    if(!isSecure && isIOS && !force){
+      permWarn.style.display='block';
+      lastPermFail = true;
+      bootstrapped = false;
       return;
     }
 
@@ -587,7 +631,7 @@
     playWoongClick();
 
     const motionOK = await requestMotionPerm();
-    const mediaOK  = await withTimeout(requestUserMediaPair(), 3000);
+    const mediaOK  = await withTimeout(requestUserMediaPair(), 3500);
 
     if(motionOK && mediaOK === true){
       fadeHide(overlayEl, 300);
@@ -597,53 +641,39 @@
       return;
     }
 
-    // 실패/지연 → 재무장
     lastPermFail = true;
     bootstrapped = false;
     overlayEl.style.display='flex';
     overlayEl.style.opacity='1';
-    const oc=document.getElementById('overlayContent');
-    if(oc && !oc.querySelector('.warn')){
-      const w=document.createElement('div');
-      w.className='warn';
-      w.innerHTML='권한 창이 닫혔거나 지연되었습니다. 화면을 다시 탭하면 재시도합니다.';
-      oc.appendChild(w);
-    }
+    permWarn.style.display='block';
   }
 
-  // 버튼/오버레이 직접
+  // 상단 배너 버튼
+  tryAnywayBtn.addEventListener('click', (e)=> immediateGestureStart(e, true), {passive:false});
+  retryPermBtn.addEventListener('click', (e)=> immediateGestureStart(e, true), {passive:false});
+
+  // 게이트 버튼/오버레이
   ['click','pointerdown','touchstart','touchend','keydown'].forEach(ev=>{
     const handler = (e)=>{
       if(ev==='keydown' && !['Enter',' '].includes(e.key)) return;
-      immediateGestureStart(e);
+      immediateGestureStart(e, false);
     };
     permBtn.addEventListener(ev, handler, {passive:false});
     overlayEl.addEventListener(ev, handler, {passive:false});
   });
 
-  // 전역 백업 리스너
+  // 백업 리스너
   ['pointerdown','touchstart','touchend','click','keydown'].forEach(type=>{
     const handler = (e)=>{
       if(type==='keydown' && !['Enter',' '].includes(e.key)) return;
-      if(overlayEl.style.display!== 'none') immediateGestureStart(e);
+      if(overlayEl.style.display!== 'none') immediateGestureStart(e, false);
     };
     document.addEventListener(type, handler, {capture:true, passive:false});
     document.body.addEventListener(type, handler, {capture:true, passive:false});
     window.addEventListener(type, handler, {capture:true, passive:false});
   });
   window.addEventListener('pageshow', (e)=>{ if(e.persisted){ bootstrapped=false; }});
-  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible'){ bootstrapped=false; }});
-
-  // 회전 시 다시 금지 오버레이 반영
-  addEventListener('orientationchange', ()=>{
-    if(isPortraitStrict()){
-      rotateOverlay.style.display='flex';
-      document.body.classList.add('portrait-block');
-    }else{
-      rotateOverlay.style.display='none';
-      document.body.classList.remove('portrait-block');
-    }
-  }, {passive:true});
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible'){ bootstrapped=false; showInsecureBannerIfNeeded(); }});
 
   /* Name */
   let displayName = 'YOU';
@@ -735,11 +765,11 @@
   // 프리셋 → 웰컴: 오버랩 페이드
   preset.addEventListener('click', async ()=>{
     playWoongClick();
-    crossFade(preset, welcome, 1800);   // 1.8초 오버랩
+    crossFade(preset, welcome, 1800);
     await startCameraFresh(false);
   }, {passive:true});
 
-  /* Intro: big → body → 타이핑 끝나면 15초 타이머 */
+  /* Intro */
   function captureIntroTexts(){
     const els = Array.from(document.querySelectorAll('#introBox p, #introBox li'));
     els.forEach(el=>{ el.dataset.text = (el.textContent||'').trim(); el.textContent=''; });
@@ -773,7 +803,6 @@
     await sleep(1000);
     fadeHide(introBig, 280);
 
-    // 웰컴 → 인트로: 오버랩 페이드 1.8초
     crossFade(welcome, intro, 1800);
 
     const els = captureIntroTexts();
@@ -782,7 +811,7 @@
       await sleep(120);
     }
 
-    // ⬇︎ 모든 타이핑이 끝난 "직후"부터 15초 카운트다운 시작
+    // 타이핑 끝난 직후부터 15초
     let left = 15;
     introCount.style.display = 'block';
     introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
@@ -832,20 +861,17 @@
     }
     titleScreen.style.display='none';
 
-    // THE FIRST SLEEP 표시 + 드론(베이스) 시작
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
     await LongDrone.start();
 
     startEightTimer();
 
-    // 텍스트 서서히 사라짐
     await sleep(1100);
     firstSleep.style.transition='opacity 8000ms ease';
     firstSleep.style.opacity='0';
 
-    // ✅ 베이스 음악은 마이크 들어올 때 사라지도록: 마이크 페이드인과 동시 크로스페이드
-    // (Ambient는 이 타이밍에 함께 정리)
+    // 드론 → 마이크 크로스페이드
     await startMicFXFadeIn(2.8);
     LongDrone.stop(2.8);
     Ambient.stop(2.8);
@@ -859,7 +885,7 @@
     beginCharacter();
   }
 
-  /* Camera — 자동 회전/커버 */
+  /* Camera */
   let metaReady = false, warmupFrames=0;
   async function startCameraFresh(warmupOnly=false){
     try{
@@ -942,7 +968,7 @@
     ctx.globalAlpha=1;
   }
 
-  /* Character path 'ㄹ' */
+  /* Character */
   let charActive = false;
   let charStartTime = 0;
   const CHAR_DURATION = 480000;
@@ -1072,7 +1098,7 @@
     if(charActive){ drawCharacter(W,H); }
   }
 
-  /* Capture — 픽셀화→소멸 */
+  /* Capture */
   let captureAnimating = false;
   captureBtn.addEventListener('click', ()=>{
     if(captureAnimating) return;
@@ -1125,7 +1151,7 @@
     }, 100);
   });
 
-  /* Flow start on load — 사용자의 첫 제스처 대기 */
+  /* Start */
   window.addEventListener('load', ()=>{ /* wait for gesture */ });
 
 })();
