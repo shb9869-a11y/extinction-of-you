@@ -467,7 +467,7 @@
     }
   }
 
-  /* Mic FX (강한 패닝/톤) */
+  /* Mic FX (기울임에 따라 패닝/톤) */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, comp=null, micBus=null;
   function makeImpulse(ctx, seconds=5.0, decay=7.0){
     const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
@@ -569,7 +569,7 @@
 
     try{
       const tmp = await navigator.mediaDevices.getUserMedia({
-        video:{facingMode:'environment', width:{ideal:1280}, height:{ideal:720}, aspectRatio:{ideal:16/9}},
+        video:{facingMode:{exact:'environment'}, width:{ideal:1920}, height:{ideal:1080}, aspectRatio:{ideal:16/9}},
         audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}
       });
       tmp.getTracks().forEach(t=>t.stop());
@@ -588,8 +588,11 @@
 
   // 인라인 핸들러가 호출하는 함수 (전역 노출)
   window.bootGesture = (ev)=>{
-    ev && ev.preventDefault && ev.preventDefault();
-    bootCore();
+    // 오버레이가 보일 때(= 아직 부팅 전)만 기본동작 막고 부팅
+    const overlayVisible = overlayEl && overlayEl.style.display !== 'none';
+    if (overlayVisible && ev && ev.preventDefault) ev.preventDefault();
+    if (overlayVisible) bootCore();
+    // 이미 부팅된 뒤에는 아무 것도 하지 않음 → 입력/포커스 정상
   };
 
   // addEventListener 백업
@@ -734,7 +737,7 @@
     const els = captureIntroTexts();
     for(const el of els){ await typeElementBySentence(el, el.dataset.text||''); await sleep(120); }
 
-    let left = 90;  // 70s → 90s 로 연장
+    let left = 90;  // 90초
     introCount.style.display = 'block';
     introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
     const iv = setInterval(()=>{
@@ -810,7 +813,7 @@
   async function startCameraFresh(warmupOnly=false){
     try{
       if(!camPermGranted){
-        await navigator.mediaDevices.getUserMedia({video:true, audio:true}).then(s=>{ s.getTracks().forEach(t=>t.stop()); camPermGranted=true; });
+        await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:'environment'}}, audio:true}).then(s=>{ s.getTracks().forEach(t=>t.stop()); camPermGranted=true; });
       }
       if(!camVideo){
         camVideo = document.createElement('video');
@@ -818,7 +821,7 @@
       }
       if(!camStream){
         camStream = await navigator.mediaDevices.getUserMedia({
-          video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080}, aspectRatio:{ideal:16/9} },
+          video:{ facingMode:{exact:'environment'}, width:{ideal:1920}, height:{ideal:1080}, aspectRatio:{ideal:16/9} },
           audio:false
         });
         camVideo.srcObject = camStream;
