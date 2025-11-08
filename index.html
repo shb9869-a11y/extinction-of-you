@@ -30,8 +30,14 @@
     --safe-r: env(safe-area-inset-right, 0px);
   }
 
-  html,body{margin:0;height:var(--appH);background:#000;overflow:hidden;touch-action:manipulation}
+  html,body{
+    margin:0;height:var(--appH);background:#000;overflow:hidden;
+    touch-action:manipulation; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent;
+  }
   body{font-family:Impact,"Anton","Arial Black",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans KR",sans-serif;}
+  *{ -webkit-user-select:none; user-select:none; }
+  input,textarea{ -webkit-user-select:text; user-select:text; }
+
   .fade{opacity:0; transition:opacity 2000ms ease}
   .fade.show{opacity:1}
 
@@ -84,7 +90,7 @@
 
   .credits{ font-family:"Courier New",ui-monospace,monospace; letter-spacing:.08em; }
 
-  /* 세로(가로 금지) 안내 — 포인터 이벤트로 하위 차단 */
+  /* 세로 금지 안내 */
   #rotateOverlay{
     position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;
     background:#000;color:#fff;font-family:"Courier New",ui-monospace,monospace;text-align:center;padding:40px;
@@ -95,13 +101,17 @@
   body.portrait-block #preset,
   body.portrait-block #overlayWelcome { pointer-events:none; }
 
-  /* Gate */
-  #overlay{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));color:#fff;background:rgba(0,0,0,.85)}
+  /* GATE */
+  #overlay{
+    position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;
+    padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));
+    color:#fff;background:rgba(0,0,0,.85)
+  }
   #overlayContent{max-width:min(92vw, 72ch);font-family:"Courier New",ui-monospace,monospace;line-height:1.7;text-align:center}
   .gateLine{display:inline-block;font-family:"Courier New",ui-monospace,monospace;font-size:var(--fs-strong);border:none;background:transparent;color:#fff;cursor:pointer;padding:6px 10px}
   .gateHint{opacity:.7;margin-top:6px}
 
-  /* Name */
+  /* NAME */
   #nameOverlay{position:fixed; inset:0; z-index:260; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.85); color:#fff;}
   #nameCard{ width:min(92vw,600px); text-align:center; font-family:"Courier New",ui-monospace,monospace; }
   #nameCard h2{ margin:0 0 12px 0; letter-spacing:.08em; font-size:var(--fs-name); font-weight:400; }
@@ -110,21 +120,21 @@
   #nameRow .uiBtn{ padding:10px 14px; }
   #nameRow .uiBtn.flat{ font-family:"Courier New",ui-monospace,monospace; font-size:var(--fs-name); font-weight:400; }
 
-  /* Preset */
+  /* PRESET */
   #preset{position:fixed;inset:0;z-index:250;background:#000;display:none;cursor:pointer}
   #presetCanvas{position:absolute;left:0;top:0;width:100%;height:100%}
 
-  /* Welcome */
+  /* WELCOME */
   #overlayWelcome{position:fixed;inset:0;z-index:220;display:none;align-items:center;justify-content:center;color:#fff;background:rgba(0,0,0,.55);padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;}
   #welcomeCard{ text-align:center; max-width:min(92vw, 900px); }
   #welcomeCard .title{ font-size:clamp(32px, 12vmin, 120px); font-weight:900; letter-spacing:.04em; line-height:1.02; margin-bottom:8px; text-transform:uppercase; }
   #welcomeCard .title + .title{ margin-top:0; }
 
-  /* Intro big title */
+  /* INTRO BIG */
   #introBig{ position:fixed; inset:0; z-index:231; display:none; align-items:center; justify-content:center; pointer-events:none; }
   #introBigText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(28px, 11vmin, 110px); text-transform:uppercase; text-align:center; }
 
-  /* Intro body */
+  /* INTRO BODY */
   #introOverlay{position:fixed; inset:0; z-index:230; display:none; align-items:flex-start; justify-content:center; color:#fff; background:rgba(0,0,0,.35); padding:calc(24px + var(--safe-t)) calc(16px + var(--safe-r)) calc(20px + var(--safe-b)) calc(16px + var(--safe-l)); font-family:"Courier New",ui-monospace,monospace; overflow-y:auto; -webkit-overflow-scrolling:touch;}
   #introBox{ width:min(92vw, 860px); margin:0 auto; }
   #introBox h2{ display:none; }
@@ -142,7 +152,12 @@
   #docOverlay, #mapOverlay { display:none; }
 </style>
 </head>
-<body>
+
+<!-- 인라인 핸들러: 어떤 브라우저에서도 반드시 한 번은 잡히게 -->
+<body onpointerdown="window.bootGesture && window.bootGesture(event)"
+      ontouchstart="window.bootGesture && window.bootGesture(event)"
+      onclick="window.bootGesture && window.bootGesture(event)">
+
   <canvas id="view"></canvas>
   <canvas id="freezeLayer"></canvas>
   <div class="frameBox" aria-hidden="true"></div>
@@ -159,16 +174,22 @@
   <button id="audioToggle" class="uiBtn small">AUDIO</button>
   <div id="runTimer" aria-live="polite">08:00</div>
 
-  <!-- 세로(가로 금지) 안내 -->
-  <div id="rotateOverlay"><div>This content supports landscape mode only.<br/>Please rotate your device.</div></div>
+  <!-- 세로 금지 안내 (인라인 핸들러 백업 포함) -->
+  <div id="rotateOverlay"
+       onpointerdown="window.bootGesture && window.bootGesture(event)"
+       ontouchstart="window.bootGesture && window.bootGesture(event)"
+       onclick="window.bootGesture && window.bootGesture(event)">
+    <div>This content supports landscape mode only.<br/>Please rotate your device.</div>
+  </div>
 
-  <!-- Gate -->
-  <div id="overlay" class="fade show">
+  <!-- Gate (오버레이 전체에 인라인 핸들러) -->
+  <div id="overlay" class="fade show"
+       onpointerdown="window.bootGesture && window.bootGesture(event)"
+       ontouchstart="window.bootGesture && window.bootGesture(event)"
+       onclick="window.bootGesture && window.bootGesture(event)">
     <div id="overlayContent">
       <div class="credits" style="margin-bottom:10px;">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
-      <button id="permGateBtn" class="gateLine" type="button">
-        Tap anywhere to allow Camera, Microphone & Motion sensors
-      </button>
+      <button id="permGateBtn" class="gateLine" type="button">Tap anywhere to allow Camera, Microphone & Motion sensors</button>
       <div class="gateHint">After allowing, you'll move to the name screen.</div>
     </div>
   </div>
@@ -236,19 +257,18 @@
     const link = document.createElement('link'); link.rel='manifest'; link.href=url; document.head.appendChild(link);
   })();
 
-  /* Utils */
-  function fadeShow(el, dur=2000, display='flex'){ el.style.display=display; el.style.opacity='0'; el.style.transition=`opacity ${dur}ms ease`; requestAnimationFrame(()=>el.style.opacity='1'); }
-  function fadeHide(el, dur=2000){ el.style.transition=`opacity ${dur}ms ease`; el.style.opacity='0'; setTimeout(()=>{ el.style.display='none'; }, dur); }
+  /* Shorthands */
   const sleep = ms => new Promise(r=>setTimeout(r,ms));
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const map=(v,inMin,inMax,outMin,outMax)=>outMin+(outMax-outMin)*((v-inMin)/(inMax-inMin));
   const qs = s => document.querySelector(s);
 
+  /* Stable 100svh */
   function setAppH(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
   setAppH(); addEventListener('resize', setAppH, {passive:true});
   if (window.visualViewport){ visualViewport.addEventListener('resize', ()=>setTimeout(setAppH,50)); }
 
-  /* === 가로 전용 처리 (세로 금지) === */
+  /* Orientation gate */
   const rotateOverlay = document.getElementById('rotateOverlay');
   function isPortraitStrict(){
     try{
@@ -268,6 +288,7 @@
     if(portrait){
       document.body.classList.add('portrait-block');
       rotateOverlay.classList.add('blocking');
+      rotateOverlay.style.display='flex';
     }else{
       document.body.classList.remove('portrait-block');
       rotateOverlay.classList.remove('blocking');
@@ -275,21 +296,12 @@
     }
   }
   ['load','pageshow','resize','orientationchange','visibilitychange'].forEach(ev=>{
-    addEventListener(ev, ()=>{ 
-      const wasPortrait = document.body.classList.contains('portrait-block');
-      applyOrientationGate();
-      if(isPortraitStrict()){
-        rotateOverlay.style.display='flex';
-      }else if(wasPortrait){
-        rotateOverlay.style.display='none';
-      }
-    }, {passive:true});
+    addEventListener(ev, applyOrientationGate, {passive:true});
   });
   applyOrientationGate();
 
   /* Refs */
   const overlayEl = qs('#overlay');
-  const permBtn = qs('#permGateBtn');
   const nameOverlay = qs('#nameOverlay');
   const nickInput = qs('#nick');
   const nameSubmit = qs('#nameSubmit');
@@ -329,13 +341,13 @@
       const now = audioCtx.currentTime;
       const o1 = audioCtx.createOscillator(), g1 = audioCtx.createGain(), f1 = audioCtx.createBiquadFilter();
       o1.type='sine'; o1.frequency.setValueAtTime(120, now); o1.frequency.exponentialRampToValueAtTime(70, now+0.28);
-      g1.gain.value=0.0001; g1.gain.exponentialRampToValueAtTime(1.80, now+0.02); g1.gain.exponentialRampToValueAtTime(0.0001, now+0.40);
+      g1.gain.value=0.0001; g1.gain.exponentialRampToValueAtTime(2.2, now+0.02); g1.gain.exponentialRampToValueAtTime(0.0001, now+0.40);
       f1.type='lowpass'; f1.frequency.value=1000; f1.Q.value=0.8;
       o1.connect(f1).connect(g1).connect(audioCtx.destination); o1.start(); o1.stop(now+0.42);
 
       const o2 = audioCtx.createOscillator(), g2 = audioCtx.createGain();
       o2.type='sine'; o2.frequency.setValueAtTime(60, now);
-      g2.gain.value=0.0001; g2.gain.exponentialRampToValueAtTime(1.20, now+0.03); g2.gain.exponentialRampToValueAtTime(0.0001, now+0.38);
+      g2.gain.value=0.0001; g2.gain.exponentialRampToValueAtTime(1.6, now+0.03); g2.gain.exponentialRampToValueAtTime(0.0001, now+0.38);
       o2.connect(g2).connect(audioCtx.destination); o2.start(); o2.stop(now+0.40);
     }catch(e){}
   }
@@ -346,7 +358,7 @@
       const o=audioCtx.createOscillator(), g=audioCtx.createGain();
       o.type='square'; o.frequency.value=900;
       g.gain.value=0.0001;
-      g.gain.exponentialRampToValueAtTime(0.16, audioCtx.currentTime+0.02);
+      g.gain.exponentialRampToValueAtTime(0.14, audioCtx.currentTime+0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.10);
       o.connect(g).connect(audioCtx.destination);
       o.start(); o.stop(audioCtx.currentTime+0.12);
@@ -359,7 +371,7 @@
       const last5 = left<=5;
       o.type='square'; o.frequency.value= last5 ? 820 : 630;
       g.gain.value=0.0001;
-      g.gain.exponentialRampToValueAtTime(last5?0.30:0.18, audioCtx.currentTime+0.02);
+      g.gain.exponentialRampToValueAtTime(last5?0.30:0.20, audioCtx.currentTime+0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.12);
       o.connect(g).connect(audioCtx.destination);
       o.start(); o.stop(audioCtx.currentTime+0.14);
@@ -426,7 +438,7 @@
       const lfoG = audioCtx.createGain(); lfoG.gain.value=0.10; lfo.connect(lfoG); lfoG.connect(g.gain);
       o.connect(g).connect(audioCtx.destination);
       o.start(); lfo.start();
-      g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.8);
+      g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.8); /* 절반 이하로 낮춤 */
       running=true;
     }
     function stop(fade=4.0){
@@ -441,7 +453,7 @@
   async function lowWoongSequence(){
     await ensureResumed();
     const base = audioCtx.currentTime;
-    const reps = 5, gap = 0.6, dur = 0.5, freq = 105, gainVal = 0.70;
+    const reps = 5, gap = 0.6, dur = 0.5, freq = 105, gainVal = 0.70; /* 번개형 ‘붑’ 소리 더 큼 */
     for(let i=0;i<reps;i++){
       const t = base + i*gap;
       const o=audioCtx.createOscillator(), g=audioCtx.createGain();
@@ -455,7 +467,7 @@
     }
   }
 
-  /* Mic FX (패닝/톤 감도 ↑) */
+  /* Mic FX (강한 패닝/톤) */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, comp=null, micBus=null;
   function makeImpulse(ctx, seconds=5.0, decay=7.0){
     const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
@@ -508,7 +520,6 @@
     if(!audioCtx) return;
     const gamma = clamp(e.gamma ?? 0, -60, 60);
     const beta  = clamp(e.beta ?? 0, -60, 60);
-
     let panVal = 0;
     if(gamma > 2) panVal = +1;
     else if(gamma < -2) panVal = -1;
@@ -527,23 +538,25 @@
     if(dryGain) dryGain.gain.value = clamp(1.0 - wetGain.gain.value*0.45, 0.2, 1.0);
   }
 
+  /* Zoom */
+  let ZOOM = 1.0;
+  const zoomIn = qs('#zoomIn'), zoomOut = qs('#zoomOut'), zoomVal = qs('#zoomVal');
   function updateZoomLabel(){ zoomVal.textContent = ZOOM.toFixed(1)+'×'; }
   updateZoomLabel();
   zoomIn.addEventListener('click', ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
   zoomOut.addEventListener('click', ()=>{ ZOOM=Math.max(0.35, ZOOM-0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
 
-  /* ---------- 권한 게이트: 어디를 눌러도 반드시 작동 ---------- */
+  /* === 강제 부트스트랩: 어떤 탭/클릭/포인터든 한번만 === */
   let bootstrapped = false;
-  async function immediateGestureStart(e){
-    if(bootstrapped) return;
-    bootstrapped = true;
-    if(e && typeof e.preventDefault==='function') e.preventDefault();
+  async function bootCore(){
+    if(bootstrapped) return; bootstrapped = true;
 
-    // 세로 상태면 안내만 띄우고 종료 (회전 후 다시 탭)
+    // 세로면 회전 안내만
     if(isPortraitStrict()){
-      rotateOverlay.style.display='flex';
       document.body.classList.add('portrait-block');
-      bootstrapped = false; // 회전 후 다시 누를 수 있게
+      rotateOverlay.classList.add('blocking');
+      rotateOverlay.style.display='flex';
+      bootstrapped = false;
       return;
     }
 
@@ -552,12 +565,10 @@
           typeof DeviceOrientationEvent.requestPermission === 'function') {
         await DeviceOrientationEvent.requestPermission().catch(()=>{});
       }
-    }catch(_) {}
+    }catch(_){}
 
-    try{ ensureAudio(); audioCtx.resume && await audioCtx.resume(); }catch(_){}
-    playWoongClick();
+    await ensureResumed(); playWoongClick();
 
-    // 권한 확인(첫 탭 제스처 안에서)
     try{
       const tmp = await navigator.mediaDevices.getUserMedia({
         video:{facingMode:'environment', width:{ideal:1280}, height:{ideal:720}, aspectRatio:{ideal:16/9}},
@@ -565,35 +576,33 @@
       });
       tmp.getTracks().forEach(t=>t.stop());
       camPermGranted = true;
-    }catch(err){ console.warn('permission error:', err); }
+    }catch(e){ console.warn('permission error:', e); }
 
-    fadeHide(overlayEl, 300);
+    overlayEl.style.transition='opacity 300ms ease'; overlayEl.style.opacity='0';
+    setTimeout(()=>{ overlayEl.style.display='none'; }, 300);
     Ambient.start(0.8, 1.0);
-    fadeShow(nameOverlay, 400);
+
+    // 이름 화면
+    nameOverlay.style.display='flex'; nameOverlay.style.opacity='0';
+    requestAnimationFrame(()=>nameOverlay.style.opacity='1');
     setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 60);
   }
 
-  // 버튼/오버레이 직접
-  permBtn.addEventListener('click', immediateGestureStart, {passive:false});
-  overlayEl.addEventListener('click', immediateGestureStart, {passive:false});
-
-  // 문서 전체 백업 리스너(캡처 단계에서 1회)
-  ['pointerdown','touchend','click'].forEach(type=>{
-    document.addEventListener(type, (e)=>{
-      if(overlayEl.style.display!== 'none') immediateGestureStart(e);
-    }, {once:false, capture:true, passive:false});
-  });
-
-  // 회전 시 다시 금지 오버레이 반영
-  addEventListener('orientationchange', ()=>{
-    if(isPortraitStrict()){
-      rotateOverlay.style.display='flex';
-      document.body.classList.add('portrait-block');
-    }else{
-      rotateOverlay.style.display='none';
-      document.body.classList.remove('portrait-block');
+  // 인라인 핸들러가 호출하는 함수 (전역 노출)
+  window.bootGesture = (ev)=>{
+    if(ev && ev.target === document.body && ev.type === 'click') {
+      // 일부 브라우저에서 body 클릭 버블만 잡히는 케이스 보정
     }
-  }, {passive:true});
+    ev && ev.preventDefault && ev.preventDefault();
+    bootCore();
+  };
+
+  // addEventListener 백업 (혹시 인라인이 막히는 환경)
+  ['pointerdown','touchstart','click'].forEach(t=>{
+    document.addEventListener(t, (e)=>{
+      if(overlayEl.style.display!=='none') { e.preventDefault(); bootCore(); }
+    }, {capture:true, passive:false});
+  });
 
   /* Name */
   let displayName = 'YOU';
@@ -602,19 +611,19 @@
     if(v.length>0){ displayName = v; }
     await ensureResumed();
     playWoongClick();
-    fadeHide(nameOverlay, 300);
-    showPreset();
+    nameOverlay.style.transition='opacity 300ms ease'; nameOverlay.style.opacity='0';
+    setTimeout(()=>{ nameOverlay.style.display='none'; showPreset(); }, 320);
   }
   nameSubmit.addEventListener('click', acceptName, {passive:true});
   nickInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ acceptName(); }});
 
-  /* Preset */
+  /* Preset (여기서 카메라 워밍업 시작 → 렉 최소화) */
   let saverObjs = []; let saverMode = 'scatter'; let saverT0 = 0;
   function showPreset(){
     preset.style.display='block'; preset.classList.add('show');
-    fadeShow(preset, 250);
+    preset.style.opacity='0'; requestAnimationFrame(()=>preset.style.opacity='1');
     initSaver();
-    startCameraFresh(true);
+    startCameraFresh(true); // 워밍업만
   }
   function initSaver(){
     const w = preset.clientWidth, h = preset.clientHeight;
@@ -652,10 +661,7 @@
     ctx.textAlign='center'; ctx.textBaseline='middle';
 
     const dt = (now - saverT0)/1000;
-    if(dt>Math.random()*2+6){
-      saverMode = (saverMode==='scatter' ? 'assemble' : 'scatter');
-      saverT0 = now;
-    }
+    if(dt>Math.random()*2+6){ saverMode = (saverMode==='scatter' ? 'assemble' : 'scatter'); saverT0 = now; }
 
     const targets = saverMode==='assemble' ? saverTargetsForWord() : null;
 
@@ -681,15 +687,18 @@
     }
     requestAnimationFrame(saverLoop);
   }
-
   preset.addEventListener('click', async ()=>{
     playWoongClick();
-    fadeHide(preset, 220);
-    await startCameraFresh(false);
-    fadeShow(welcome, 280);
+    preset.style.transition='opacity 220ms ease'; preset.style.opacity='0';
+    setTimeout(async ()=>{
+      preset.style.display='none';
+      await startCameraFresh(false); // 실제 루프 가동
+      welcome.style.display='flex'; welcome.style.opacity='0';
+      requestAnimationFrame(()=>welcome.style.opacity='1');
+    }, 240);
   }, {passive:true});
 
-  /* Intro: big → body → 타이머(70s) */
+  /* Intro flow (70s 타이머, 마지막에만 표시) */
   function captureIntroTexts(){
     const els = Array.from(document.querySelectorAll('#introBox p, #introBox li'));
     els.forEach(el=>{ el.dataset.text = (el.textContent||'').trim(); el.textContent=''; });
@@ -718,17 +727,17 @@
 
   async function showIntroFlow(){
     introBigText.textContent='';
-    fadeShow(introBig, 180, 'flex');
+    introBig.style.display='flex'; introBig.style.opacity='0';
+    requestAnimationFrame(()=>introBig.style.opacity='1');
     await typeSentence(introBigText, 'INTRODUCTION', 45);
     await sleep(1000);
-    fadeHide(introBig, 280);
+    introBig.style.transition='opacity 280ms ease'; introBig.style.opacity='0';
+    setTimeout(()=>{ introBig.style.display='none'; }, 300);
 
-    fadeShow(intro, 300, 'flex');
+    intro.style.display='flex'; intro.style.opacity='0';
+    requestAnimationFrame(()=>intro.style.opacity='1');
     const els = captureIntroTexts();
-    for(const el of els){
-      await typeElementBySentence(el, el.dataset.text||'');
-      await sleep(120);
-    }
+    for(const el of els){ await typeElementBySentence(el, el.dataset.text||''); await sleep(120); }
 
     let left = 70;
     introCount.style.display = 'block';
@@ -740,7 +749,7 @@
       if(left<=0){ clearInterval(iv); startTransition(); }
     },1000);
   }
-  goIntroBtn.addEventListener('click', ()=>{ ensureResumed().then(()=>{ playWoongClick(); fadeHide(welcome, 240); showIntroFlow(); }); }, {passive:true});
+  goIntroBtn.addEventListener('click', ()=>{ ensureResumed().then(()=>{ playWoongClick(); welcome.style.transition='opacity 240ms ease'; welcome.style.opacity='0'; setTimeout(()=>{ welcome.style.display='none'; showIntroFlow(); }, 260); }); }, {passive:true});
 
   /* 8-minute timer */
   let eightTimer = null, eightLeft = 8*60;
@@ -759,11 +768,11 @@
 
   /* Transition */
   async function startTransition(){
-    fadeHide(intro, 320);
+    intro.style.transition='opacity 320ms ease'; intro.style.opacity='0';
+    setTimeout(()=>{ intro.style.display='none'; }, 340);
 
     titleText.textContent='GOOD NIGHT';
-    titleScreen.style.display='flex';
-    titleScreen.style.background='#000'; titleText.style.color='#fff';
+    titleScreen.style.display='flex'; titleScreen.style.background='#000'; titleText.style.color='#fff';
 
     await lowWoongSequence();
 
@@ -779,8 +788,7 @@
     }
     titleScreen.style.display='none';
 
-    firstSleep.style.display='flex';
-    firstSleep.style.opacity='1';
+    firstSleep.style.display='flex'; firstSleep.style.opacity='1';
     await LongDrone.start();
 
     startEightTimer();
@@ -802,7 +810,7 @@
     beginCharacter();
   }
 
-  /* Camera — 자동 회전/커버 */
+  /* Camera */
   let metaReady = false, warmupFrames=0;
   async function startCameraFresh(warmupOnly=false){
     try{
@@ -978,18 +986,7 @@
     ctx.restore();
   }
 
-  function drawCharacter(W,H){
-    const now = performance.now();
-    const t01 = Math.min(1, (now - charStartTime)/CHAR_DURATION);
-    const pos = posOnRElse(t01);
-    const hop = Math.max(0, 10*Math.sin(t01* Math.PI*20));
-    PATH_POINTS.push({x:pos.x, y:pos.y});
-    drawPathSolid(vctx);
-    drawPixelHuman(vctx, Math.round(pos.x), Math.round(pos.y), displayName, W, hop);
-    if(t01>=1){ charActive=false; }
-  }
-
-  /* Main render loop */
+  /* Render loop */
   function loopCam(){
     requestAnimationFrame(loopCam);
     if(capturing) return;
@@ -1012,64 +1009,67 @@
     vctx.imageSmoothingEnabled = false;
     vctx.drawImage(proc,0,0,W,H);
 
-    if(charActive){ drawCharacter(W,H); }
+    if(charActive){
+      const now = performance.now();
+      const t01 = Math.min(1, (now - charStartTime)/CHAR_DURATION);
+      const pos = posOnRElse(t01);
+      const hop = Math.max(0, 10*Math.sin(t01* Math.PI*20));
+      PATH_POINTS.push({x:pos.x, y:pos.y});
+      drawPathSolid(vctx);
+      drawPixelHuman(vctx, Math.round(pos.x), Math.round(pos.y), displayName, W, hop);
+      if(t01>=1){ charActive=false; }
+    }
   }
 
-  /* Capture — 픽셀화→소멸 */
+  /* Capture → 픽셀화 소멸 */
   let captureAnimating = false;
   captureBtn.addEventListener('click', ()=>{
     if(captureAnimating) return;
     playWoongClick();
     captureAnimating = true;
-
     capturing = true;
+
     const cssW = view.clientWidth, cssH = view.clientHeight;
-    freezeLayer.width = cssW;
-    freezeLayer.height = cssH;
+    freezeLayer.width = cssW; freezeLayer.height = cssH;
     const fx = freezeLayer.getContext('2d');
     fx.imageSmoothingEnabled = false;
     fx.drawImage(view, 0, 0, view.width, view.height, 0, 0, cssW, cssH);
-    freezeLayer.style.display='block';
-    freezeLayer.style.opacity='1';
+    freezeLayer.style.display='block'; freezeLayer.style.opacity='1';
 
     setTimeout(()=>{
       const W = cssW, H = cssH;
-      let px = 1.0;
-      const step = 1.015;
-      const off = document.createElement('canvas');
-      const oc = off.getContext('2d');
+      let px = 1.0; const step = 1.015;
+      const off = document.createElement('canvas'), oc = off.getContext('2d');
       const fx2 = freezeLayer.getContext('2d');
 
-      function anim(){
+      (function anim(){
         if(px > 420){
-          freezeLayer.style.transition='opacity 2000ms ease';
-          freezeLayer.style.opacity='0';
-          setTimeout(()=>{
-            freezeLayer.style.display='none';
-            freezeLayer.style.transition='';
-            capturing = false;
-            captureAnimating = false;
-          }, 2020);
+          freezeLayer.style.transition='opacity 2000ms ease'; freezeLayer.style.opacity='0';
+          setTimeout(()=>{ freezeLayer.style.display='none'; freezeLayer.style.transition=''; capturing=false; captureAnimating=false; }, 2020);
           return;
         }
-        const w = Math.max(1, Math.floor(W/px));
-        const h = Math.max(1, Math.floor(H/px));
+        const w = Math.max(1, Math.floor(W/px)), h = Math.max(1, Math.floor(H/px));
         off.width = w; off.height = h;
         oc.imageSmoothingEnabled=false;
         oc.drawImage(freezeLayer,0,0,W,H,0,0,w,h);
         fx2.clearRect(0,0,W,H);
         fx2.imageSmoothingEnabled=false;
-        fx2.globalAlpha = 1.0;
         fx2.drawImage(off,0,0,w,h,0,0,W,H);
         px = px * step + 0.35;
         requestAnimationFrame(anim);
-      }
-      anim();
+      })();
     }, 100);
   });
 
-  /* Flow start on load — 사용자의 첫 제스처 대기 */
-  window.addEventListener('load', ()=>{ /* wait for gesture */ });
+  /* Name submit */
+  const nameSubmit = qs('#nameSubmit');
+  const goIntroBtn = qs('#goIntro');
+
+  /* Intro start */
+  // (goIntroBtn 리스너 위에서 이미 등록)
+
+  /* Load: 제스처 기다림 */
+  window.addEventListener('load', ()=>{ /* wait for user gesture */ });
 
 })();
 </script>
