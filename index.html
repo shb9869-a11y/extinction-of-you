@@ -84,18 +84,14 @@
 
   .credits{ font-family:"Courier New",ui-monospace,monospace; letter-spacing:.08em; }
 
-  /* 세로(가로 금지) 안내 — 세로일 때만 진짜로 블록 */
+  /* 회전 안내(절대 비차단) */
   #rotateOverlay{
     position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;
-    background:#000;color:#fff;font-family:"Courier New",ui-monospace,monospace;text-align:center;padding:40px;
+    background:rgba(0,0,0,.72);color:#fff;font-family:"Courier New",ui-monospace,monospace;text-align:center;padding:40px;
+    pointer-events:none; /* ← 핵심: 절대 터치 막지 않음 */
   }
-  #rotateOverlay.blocking{display:flex; pointer-events:all;}
-  body.portrait-block #overlay,
-  body.portrait-block #nameOverlay,
-  body.portrait-block #preset,
-  body.portrait-block #overlayWelcome { pointer-events:none; }
 
-  /* Gate (초기 탭 허용을 위해 명시) */
+  /* Gate */
   #overlay{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));color:#fff;background:rgba(0,0,0,.85); pointer-events:auto;}
   #overlayContent{max-width:min(92vw, 72ch);font-family:"Courier New",ui-monospace,monospace;line-height:1.7;text-align:center}
   .gateLine{display:inline-block;font-family:"Courier New",ui-monospace,monospace;font-size:var(--fs-strong);border:none;background:transparent;color:#fff;cursor:pointer;padding:6px 10px}
@@ -159,8 +155,8 @@
   <button id="audioToggle" class="uiBtn small">AUDIO</button>
   <div id="runTimer" aria-live="polite">08:00</div>
 
-  <!-- 세로(가로 금지) 안내 -->
-  <div id="rotateOverlay"><div>This content supports landscape mode only.<br/>Please rotate your device.</div></div>
+  <!-- 회전 안내(비차단) -->
+  <div id="rotateOverlay"><div>This content supports landscape mode.<br/>Rotate your device for the best view.</div></div>
 
   <!-- Gate -->
   <div id="overlay" class="fade show">
@@ -252,27 +248,16 @@
   setAppH(); addEventListener('resize', setAppH, {passive:true});
   if (window.visualViewport){ visualViewport.addEventListener('resize', ()=>setTimeout(setAppH,50)); }
 
-  /* === 가로 전용 처리 (세로 금지) — 안정화 === */
+  /* === 회전 안내(절대 비차단) === */
   const rotateOverlay = document.getElementById('rotateOverlay');
-  // iOS에서 orientation API 불안정 → 너비/높이만으로 판단
-  function isPortraitStrict(){ return window.innerHeight > window.innerWidth; }
-  function applyOrientationGate(){
-    const portrait = isPortraitStrict();
-    if(portrait){
-      document.body.classList.add('portrait-block');
-      rotateOverlay.classList.add('blocking');
-      rotateOverlay.style.display='flex';
-    }else{
-      document.body.classList.remove('portrait-block');
-      rotateOverlay.classList.remove('blocking');
-      rotateOverlay.style.display='none';
-    }
+  function isPortrait(){ return window.innerHeight > window.innerWidth; }
+  function applyOrientationHint(){
+    rotateOverlay.style.display = isPortrait() ? 'flex' : 'none';
   }
   ['load','pageshow','resize','orientationchange','visibilitychange'].forEach(ev=>{
-    addEventListener(ev, ()=>{ applyOrientationGate(); }, {passive:true});
+    addEventListener(ev, applyOrientationHint, {passive:true});
   });
-  // 로드 직후 2회 재평가(모바일 사파리 초기 치수 튕김 보정)
-  addEventListener('load', ()=>{ setTimeout(applyOrientationGate, 120); setTimeout(applyOrientationGate, 420); });
+  addEventListener('load', ()=>{ setTimeout(applyOrientationHint, 120); setTimeout(applyOrientationHint, 420); });
 
   /* Refs */
   const overlayEl = qs('#overlay');
@@ -327,7 +312,7 @@
     }catch(e){}
   }
 
-  // 인트로 타자 소리(낮은 톤 유지)
+  // 인트로 타자 소리(낮은 톤)
   function typeTick(){
     try{
       ensureAudio();
@@ -418,7 +403,7 @@
       g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.8);
       running=true;
     }
-    function stop(fade=4.0){
+    function stop(fade=4.5){
       if(!running) return;
       const t=audioCtx.currentTime;
       g.gain.linearRampToValueAtTime(0.0001, t+fade);
@@ -444,7 +429,7 @@
     }
   }
 
-  /* Mic FX */
+  /* Mic FX (마이크 페이드인 시 Ambient 제거) */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, comp=null, micBus=null;
   function makeImpulse(ctx, seconds=5.0, decay=7.0){
     const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
@@ -522,20 +507,12 @@
   zoomIn.addEventListener('click', ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
   zoomOut.addEventListener('click', ()=>{ ZOOM=Math.max(0.35, ZOOM-0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
 
-  /* ---------- 권한 게이트: 어디를 눌러도 반드시 작동 (백업 다중 바인딩) ---------- */
+  /* ---------- 권한 게이트: 어떤 경우에도 첫 제스처를 잡는다 ---------- */
   let bootstrapped = false;
   async function immediateGestureStart(e){
     if(bootstrapped) return;
     bootstrapped = true;
     if(e && typeof e.preventDefault==='function') e.preventDefault();
-
-    // 세로 상태면 안내만 띄우고 종료 (회전 후 다시 탭)
-    if(isPortraitStrict()){
-      rotateOverlay.style.display='flex';
-      document.body.classList.add('portrait-block');
-      bootstrapped = false; // 회전 후 다시 누를 수 있게
-      return;
-    }
 
     try{
       if (typeof DeviceOrientationEvent !== 'undefined' &&
@@ -563,14 +540,14 @@
     setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 60);
   }
 
-  // 버튼/오버레이 직접
-  permBtn.addEventListener('click', immediateGestureStart, {passive:false});
-  overlayEl.addEventListener('click', immediateGestureStart, {passive:false});
-  overlayEl.addEventListener('pointerdown', immediateGestureStart, {passive:false});
-  overlayEl.addEventListener('touchend', immediateGestureStart, {passive:false});
+  // 직접 타깃
+  ['click','pointerdown','touchstart','touchend'].forEach(ev=>{
+    overlayEl.addEventListener(ev, immediateGestureStart, {passive:false});
+    document.getElementById('permGateBtn').addEventListener(ev, immediateGestureStart, {passive:false});
+  });
 
-  // 문서/바디 백업 리스너(어떤 경우에도 잡도록)
-  ['pointerdown','touchend','click','keydown'].forEach(type=>{
+  // 전역 백업(문서/바디/윈도우)
+  ['pointerdown','touchstart','touchend','click','keydown'].forEach(type=>{
     const handler = (e)=>{
       if(type==='keydown' && !['Enter',' '].includes(e.key)) return;
       if(overlayEl.style.display!== 'none') immediateGestureStart(e);
@@ -579,9 +556,6 @@
     document.body.addEventListener(type, handler, {capture:true, passive:false});
     window.addEventListener(type, handler, {capture:true, passive:false});
   });
-
-  // 회전 시 다시 금지 오버레이 반영
-  addEventListener('orientationchange', ()=>{ applyOrientationGate(); }, {passive:true});
 
   /* Name */
   let displayName = 'YOU';
@@ -1056,7 +1030,7 @@
     }, 100);
   });
 
-  /* Flow start on load — 사용자의 첫 제스처 대기 */
+  /* 첫 제스처 대기 */
   window.addEventListener('load', ()=>{ /* wait for gesture */ });
 
 })();
