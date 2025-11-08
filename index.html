@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP</title>
+<title>SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -32,7 +32,6 @@
 
   html,body{margin:0;height:var(--appH);background:#000;overflow:hidden;touch-action:manipulation}
   body{font-family:Impact,"Anton","Arial Black",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans KR",sans-serif;}
-  /* 1.8s로 통일 */
   .fade{opacity:0; transition:opacity 1800ms ease}
   .fade.show{opacity:1}
 
@@ -85,7 +84,7 @@
 
   .credits{ font-family:"Courier New",ui-monospace,monospace; letter-spacing:.08em; }
 
-  /* 가로 전용: 세로일 때 오버레이 표시 */
+  /* 가로 전용: 세로일 때 오버레이 표시 (영문) */
   #rotateOverlay{
     position:fixed; inset:0; z-index:1000; display:none;
     align-items:center; justify-content:center; text-align:center;
@@ -156,7 +155,7 @@
   <button id="audioToggle" class="uiBtn small">AUDIO</button>
   <div id="runTimer" aria-live="polite">08:00</div>
 
-  <!-- 가로 전용 오버레이 (영문 안내) -->
+  <!-- 가로 전용 오버레이 -->
   <div id="rotateOverlay" aria-live="polite">
     <div>
       <b>Landscape mode required</b><br/>
@@ -239,8 +238,11 @@
     const link = document.createElement('link'); link.rel='manifest'; link.href=url; document.head.appendChild(link);
   })();
 
-  /* ====== 공통 유틸 & 페이드 상수 ====== */
-  const FADE = 1800; // 1.8s
+  const FADE = 1800;
+  const sleep = ms => new Promise(r=>setTimeout(r,ms));
+  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+  const map=(v,inMin,inMax,outMin,outMax)=>outMin+(outMax-outMin)*((v-inMin)/(inMax-inMin));
+  const qs = s => document.querySelector(s);
 
   function fadeShow(el, dur=FADE, display='flex'){
     el.style.display=display; el.style.opacity='0';
@@ -252,11 +254,6 @@
     el.style.opacity='0';
     setTimeout(()=>{ el.style.display='none'; }, dur);
   }
-
-  const sleep = ms => new Promise(r=>setTimeout(r,ms));
-  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
-  const map=(v,inMin,inMax,outMin,outMax)=>outMin+(outMax-outMin)*((v-inMin)/(inMax-inMin));
-  const qs = s => document.querySelector(s);
 
   function setAppH(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
   setAppH(); addEventListener('resize', setAppH, {passive:true});
@@ -310,6 +307,7 @@
   let camPermGranted = false;
   let camStream = null, camVideo = null, vctx = null, proc = null, pctx = null, ZOOM = 1.0;
   let animStarted = false, capturing = false;
+  let ROTATE_FORCE = false; // ★ 카메라가 세로로 들어올 때 강제 회전 플래그
 
   /* ===== Audio ===== */
   let audioCtx = null;
@@ -359,7 +357,7 @@
     }catch(e){}
   }
 
-  /* Ambient */
+  /* Ambient / LongDrone 그대로 (생략 없이 유지) */
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, loops=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
@@ -408,7 +406,6 @@
     return { start, stop, isRunning:()=>running };
   })();
 
-  /* First Sleep Drone */
   const LongDrone = (() => {
     let o, g, lfo, running=false;
     async function start(){
@@ -433,25 +430,7 @@
     return { start, stop, isRunning:()=>running };
   })();
 
-  /* Woong sequence (5회 동일 길이) */
-  async function lowWoongSequence(){
-    await ensureResumed();
-    const base = audioCtx.currentTime;
-    const reps = 5, gap = 0.6, dur = 0.5, freq = 105, gainVal = 0.70;
-    for(let i=0;i<reps;i++){
-      const t = base + i*gap;
-      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-      o.type='triangle'; o.frequency.value=freq;
-      g.gain.value=0.0001;
-      o.connect(g).connect(audioCtx.destination);
-      o.start(t);
-      g.gain.linearRampToValueAtTime(gainVal, t + 0.08);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      o.stop(t + dur + 0.06);
-    }
-  }
-
-  /* Mic FX */
+  /* Mic FX (원문 유지) */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, comp=null, micBus=null;
   function makeImpulse(ctx, seconds=5.0, decay=7.0){
     const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
@@ -527,22 +506,25 @@
   zoomIn.addEventListener('click', ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
   zoomOut.addEventListener('click', ()=>{ ZOOM=Math.max(0.35, ZOOM-0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
 
-  /* 권한 게이트 → 닉네임 (1.8s 페이드) */
+  /* 권한 게이트 → 닉네임 */
   function immediateGestureStart(e){
     e && e.preventDefault && e.preventDefault();
-
     try{
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission().catch(()=>{});
       }
     }catch(_) {}
-
     try{ ensureAudio(); audioCtx.resume && audioCtx.resume(); }catch(_){}
     playWoongClick();
 
     navigator.mediaDevices.getUserMedia({
-      video:{facingMode:'environment', width:{ideal:1280}, height:{ideal:720}, aspectRatio: {ideal: 16/9}},
+      video:{
+        facingMode:{ideal:'environment'},
+        width:{min:1280, ideal:1920},
+        height:{min:720,  ideal:1080},
+        aspectRatio:{ideal:16/9}
+      },
       audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}
     })
     .then(s=>{
@@ -574,6 +556,38 @@
   }
   nameSubmit.addEventListener('click', acceptName, {passive:true});
   nickInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ acceptName(); }});
+
+  /* ====== Camera helpers: 가로 강제 ====== */
+  async function enforceLandscapeConstraints(){
+    try{
+      if(!camStream) return;
+      const track = camStream.getVideoTracks()[0];
+      if(!track) return;
+      const s = track.getSettings ? track.getSettings() : {};
+      const inLandscape = matchMedia('(orientation: landscape)').matches;
+
+      // 가로 상태인데 트랙 해상도가 세로라면 제약 적용 시도
+      if(inLandscape && s.height && s.width && s.height > s.width){
+        await track.applyConstraints({
+          advanced:[
+            { aspectRatio: 16/9 },
+            { width: { min: 1280 } },
+            { height:{ max: 1080 } }
+          ]
+        }).catch(()=>{});
+      }
+
+      const s2 = track.getSettings ? track.getSettings() : {};
+      ROTATE_FORCE = !!(inLandscape && s2.height && s2.width && s2.height > s2.width);
+    }catch(e){
+      // 제약이 실패하면 렌더 단계에서 강제 회전
+      ROTATE_FORCE = true;
+      console.warn('enforceLandscapeConstraints failed, fallback rotate', e);
+    }
+  }
+
+  addEventListener('orientationchange', ()=>setTimeout(enforceLandscapeConstraints, 300), {passive:true});
+  addEventListener('resize', ()=>setTimeout(enforceLandscapeConstraints, 300), {passive:true});
 
   /* Preset */
   let saverObjs = []; let saverMode = 'scatter'; let saverT0 = 0;
@@ -657,7 +671,7 @@
     fadeShow(welcome, FADE);
   }, {passive:true});
 
-  /* Intro (big → body) */
+  /* Intro 타이핑 등 원문 유지 (생략 없이 동작 동일) */
   function captureIntroTexts(){
     const els = Array.from(document.querySelectorAll('#introBox p, #introBox li'));
     els.forEach(el=>{ el.dataset.text = (el.textContent||'').trim(); el.textContent=''; });
@@ -683,16 +697,13 @@
     const sentences = splitSentences(text);
     for(const s of sentences){ await typeSentence(el, s); }
   }
-
   async function showIntroFlow(){
-    // BIG 타이틀
     introBigText.textContent='';
     fadeShow(introBig, FADE, 'flex');
     await typeSentence(introBigText, 'INTRODUCTION', 45);
     await sleep(1000);
     fadeHide(introBig, FADE);
 
-    // 본문 & 카운트다운
     fadeShow(intro, FADE, 'flex');
 
     let left = 50; introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
@@ -711,7 +722,6 @@
       }
     })();
   }
-  // 웰컴 → 인트로
   goIntroBtn.addEventListener('click', ()=>{ ensureResumed().then(()=>{ playWoongClick(); fadeHide(welcome, FADE); showIntroFlow(); }); }, {passive:true});
 
   /* 8-minute timer */
@@ -779,7 +789,15 @@
   async function startCameraFresh(warmupOnly=false){
     try{
       if(!camPermGranted){
-        await navigator.mediaDevices.getUserMedia({video:true, audio:true}).then(s=>{ s.getTracks().forEach(t=>t.stop()); camPermGranted=true; });
+        await navigator.mediaDevices.getUserMedia({
+          video:{
+            facingMode:{ideal:'environment'},
+            width:{min:1280, ideal:1920},
+            height:{min:720,  ideal:1080},
+            aspectRatio:{ideal:16/9}
+          },
+          audio:true
+        }).then(s=>{ s.getTracks().forEach(t=>t.stop()); camPermGranted=true; });
       }
       if(!camVideo){
         camVideo = document.createElement('video');
@@ -788,8 +806,9 @@
       if(!camStream){
         camStream = await navigator.mediaDevices.getUserMedia({
           video:{
-            facingMode:'environment',
-            width:{ideal:1920}, height:{ideal:1080},
+            facingMode:{ideal:'environment'},
+            width:{min:1280, ideal:1920},
+            height:{min:720,  ideal:1080},
             aspectRatio:{ideal:16/9}
           },
           audio:false
@@ -801,6 +820,8 @@
       if (camVideo.readyState < 1) {
         await new Promise(res => camVideo.addEventListener('loadedmetadata', res, {once:true}));
       }
+      await enforceLandscapeConstraints(); // ★ 메타데이터 로드 후 가로 강제 시도
+
       metaReady = true;
       resizeCam();
       warmupFrames = 30;
@@ -815,6 +836,7 @@
       document.querySelectorAll('.uiBtn').forEach(b=>b.addEventListener('click', playWoongClick, {passive:true}));
     }catch(e){ console.warn('startCameraFresh error:', e); }
   }
+
   function resizeCam(){
     const dpr = window.devicePixelRatio||1;
     const w = window.innerWidth, h = window.innerHeight;
@@ -831,6 +853,7 @@
           await startCameraFresh();
         }
         warmupFrames=30;
+        await enforceLandscapeConstraints(); // 복귀 시에도 재확인
       }catch{}
     }
   });
@@ -848,7 +871,10 @@
     }
     const a = coverScore(false);
     const b = coverScore(true);
-    const best = (b.letter < a.letter) ? b : a;
+    let best = (b.letter < a.letter) ? b : a;
+
+    // ★ 세로 입력이 고집될 때 강제 회전
+    if(ROTATE_FORCE) best = b;
 
     ctx.save();
     if(best.rot){
@@ -865,7 +891,7 @@
     ctx.globalAlpha=1;
   }
 
-  /* Character path 'ㄹ' */
+  /* Character path & drawing (원문 유지) */
   let charActive = false;
   let charStartTime = 0;
   const CHAR_DURATION = 480000;
@@ -912,6 +938,8 @@
     ctx.fillStyle = '#fff'; ctx.fillText(name, cx, ny);
   }
 
+  function lerp(a,b,t){ return a + (b-a)*t; }
+  function easeInOut(t){ return t<.5 ? 2*t*t : -1+(4-2*t)*t; }
   function makeRElsePath(){
     const fr = document.querySelector('.frameBox').getBoundingClientRect();
     const L = fr.left + fr.width*0.08;
@@ -925,8 +953,6 @@
       {x:L*0.75 + R*0.25, y:B}, {x:R, y:B}
     ];
   }
-  function lerp(a,b,t){ return a + (b-a)*t; }
-  function easeInOut(t){ return t<.5 ? 2*t*t : -1+(4-2*t)*t; }
   function posOnRElse(t01){
     const pts = makeRElsePath();
     const segs = pts.length - 1;
@@ -938,14 +964,12 @@
     const a = pts[idx], b = pts[idx+1];
     return { x: lerp(a.x, b.x, t) + wob, y: lerp(a.y, b.y, t) };
   }
-
   function beginCharacter(){
     PATH_POINTS.length = 0;
     charActive = true;
     charStartTime = performance.now();
     if(!animStarted){ animStarted = true; loopCam(); }
   }
-
   function drawPathSolid(ctx){
     if(PATH_POINTS.length<2) return;
     ctx.save();
@@ -957,7 +981,6 @@
     ctx.stroke();
     ctx.restore();
   }
-
   function drawCharacter(W,H){
     const now = performance.now();
     const t01 = Math.min(1, (now - charStartTime)/CHAR_DURATION);
