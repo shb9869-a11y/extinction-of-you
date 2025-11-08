@@ -38,9 +38,6 @@
   #view{position:fixed;left:0;top:0;width:100%;height:var(--appH);display:block;z-index:0}
   #freezeLayer{position:fixed;inset:0;z-index:500;display:none}
 
-  /* 번개/섬광 FX 레이어 (타이틀보다 위) */
-  #fxLightning{position:fixed;inset:0;z-index:242;display:none;pointer-events:none}
-
   .frameBox{
     position:fixed;
     left:calc(var(--frame) + var(--safe-l));
@@ -134,7 +131,7 @@
 
   #titleScreen{ position:fixed; inset:0; z-index:240; display:none; align-items:center; justify-content:center; background:#000; color:#fff; text-align:center; }
   #titleText{font-weight:900; letter-spacing:.06em; line-height:1.05; font-size:clamp(24px, 10vmin, 96px); text-transform:uppercase;}
-  /* 섬광 보조 효과 */
+  /* 플래시 전용 클래스 */
   #titleScreen.flashWhite{ background:#fff !important; color:#000 !important; }
 
   #firstSleep{ position:fixed; inset:0; z-index:235; display:none; align-items:center; justify-content:center; pointer-events:none; }
@@ -146,7 +143,6 @@
 <body>
   <canvas id="view"></canvas>
   <canvas id="freezeLayer"></canvas>
-  <canvas id="fxLightning"></canvas>
   <div class="frameBox" aria-hidden="true"></div>
 
   <div class="controls" id="controls">
@@ -307,7 +303,6 @@
   const captureBtn = qs('#captureBtn');
   const view = qs('#view');
   const freezeLayer = qs('#freezeLayer');
-  const fxLightning = qs('#fxLightning');
   const runTimer = qs('#runTimer');
 
   /* ====== State ====== */
@@ -321,8 +316,6 @@
   let audioCtx = null;
   function ensureAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
   async function ensureResumed(){ try{ ensureAudio(); if(audioCtx.state==='suspended') await audioCtx.resume(); }catch{} }
-
-  /* iOS 오디오 강제 언락 */
   function unlockAudio(){
     try{
       ensureAudio();
@@ -350,7 +343,6 @@
       o2.connect(g2).connect(audioCtx.destination); o2.start(); o2.stop(now+0.40);
     }catch(e){}
   }
-
   function typeTick(){
     try{
       ensureAudio();
@@ -377,170 +369,11 @@
     }catch(e){}
   }
 
-  /* ===== Lightning FX ===== */
-  const Lightning = (() => {
-    let ctx, W=0, H=0, active=false, raf=0, flashAlpha=0, bolts=[];
-    function init(){
-      ctx = fxLightning.getContext('2d');
-      resize(true);
-    }
-    function resize(force=false){
-      const dpr = devicePixelRatio||1;
-      let w = fxLightning.clientWidth, h = fxLightning.clientHeight;
-      if(force || !w || !h){ w = innerWidth; h = innerHeight; }
-      fxLightning.width = w*dpr; fxLightning.height = h*dpr;
-      W=w; H=h;
-      ctx.setTransform(dpr,0,0,dpr,0,0);
-    }
-    function rand(a,b){ return a + Math.random()*(b-a); }
-    function boltPath(x0,y0,x1,y1, seg=18, jag=16){
-      const pts=[{x:x0,y:y0}];
-      for(let i=1;i<seg;i++){
-        const t=i/seg;
-        const x = x0 + (x1-x0)*t + rand(-jag,jag);
-        const y = y0 + (y1-y0)*t + rand( 80,220 )*t; // 아래로 흐르게
-        pts.push({x,y});
-      }
-      pts.push({x:x1,y:y1});
-      return pts;
-    }
-    function spawnBolt(){
-      const startX = rand(W*0.2, W*0.8);
-      const startY = 0;
-      const endX   = startX + rand(-W*0.15, W*0.15);
-      const endY   = rand(H*0.55, H*0.9);
-      const main = boltPath(startX,startY,endX,endY, 20, 18);
-      const branches = [];
-      const branchCount = 2 + (Math.random()*3|0);
-      for(let i=0;i<branchCount;i++){
-        const idx = 4 + (Math.random()*(main.length-6)|0);
-        const b0 = main[idx];
-        const bx = b0.x + rand(-120,120);
-        const by = b0.y + rand(80,220);
-        branches.push(boltPath(b0.x,b0.y,bx,by, 10, 12));
-      }
-      bolts.push({main,branches, life:200});
-      flashAlpha = Math.max(flashAlpha, 0.98);
-      Thunder.thump();
-    }
-    function drawBoltPath(path, w=3){
-      ctx.lineWidth=w;
-      ctx.lineCap='round';
-      ctx.strokeStyle='rgba(255,255,255,0.98)';
-      ctx.shadowBlur=22; ctx.shadowColor='rgba(255,255,255,0.95)';
-      ctx.beginPath();
-      ctx.moveTo(path[0].x, path[0].y);
-      for(let i=1;i<path.length;i++){ ctx.lineTo(path[i].x, path[i].y); }
-      ctx.stroke();
-      ctx.shadowBlur=0;
-    }
-    function tick(){
-      if(!active) return;
-      ctx.clearRect(0,0,W,H);
-      if(flashAlpha>0){
-        ctx.fillStyle=`rgba(255,255,255,${flashAlpha.toFixed(3)})`;
-        ctx.fillRect(0,0,W,H);
-        flashAlpha *= 0.78;
-      }
-      for(let i=bolts.length-1;i>=0;i--){
-        const b=bolts[i];
-        const age = 1 - (b.life/200);
-        const w = Math.max(1.4, 3.6*(1-age));
-        drawBoltPath(b.main, w);
-        b.branches.forEach(p=>drawBoltPath(p, Math.max(1, w*0.6)));
-        b.life -= 16;
-        if(b.life<=0) bolts.splice(i,1);
-      }
-      raf = requestAnimationFrame(tick);
-    }
-    function start(){
-      if(active) return;
-      active=true;
-      fxLightning.style.display='block';
-      tick();
-    }
-    function stop(){
-      active=false;
-      cancelAnimationFrame(raf);
-      ctx && ctx.clearRect(0,0,W,H);
-      fxLightning.style.display='none';
-      bolts.length=0; flashAlpha=0;
-    }
-    async function arm(){
-      fxLightning.style.display='block';
-      init(); resize(true);
-      await sleep(10);
-    }
-    async function strikeSequence(n=3, gapMin=90, gapMax=240){
-      start();
-      for(let i=0;i<n;i++){
-        spawnBolt();
-        await sleep(rand(gapMin,gapMax));
-        if(Math.random()<0.4){ spawnBolt(); await sleep(rand(60,120)); }
-      }
-      flashAlpha = Math.max(flashAlpha, 0.4);
-      await sleep(220);
-      stop();
-      Thunder.rumble();
-    }
-    return { arm, strikeSequence, stop, resize };
-  })();
-
-  /* 천둥 사운드 */
-  const Thunder = (() => {
-    function noiseBuffer(ctx, dur=2.5){
-      const len = ctx.sampleRate * dur;
-      const b = ctx.createBuffer(1, len, ctx.sampleRate);
-      const d = b.getChannelData(0);
-      for(let i=0;i<len;i++){ d[i] = (Math.random()*2-1) * (1 - i/len); }
-      return b;
-    }
-    function thump(){
-      try{
-        ensureAudio();
-        const now = audioCtx.currentTime;
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        o.type='sine'; o.frequency.setValueAtTime(95, now);
-        o.frequency.exponentialRampToValueAtTime(42, now+0.35);
-        g.gain.setValueAtTime(0.0001, now);
-        g.gain.exponentialRampToValueAtTime(1.1, now+0.02);   // ↑볼륨 업
-        g.gain.exponentialRampToValueAtTime(0.0001, now+0.55);
-        o.connect(g).connect(audioCtx.destination);
-        o.start(); o.stop(now+0.60);
-      }catch(e){}
-    }
-    function rumble(){
-      try{
-        ensureAudio();
-        const now = audioCtx.currentTime;
-        const src = audioCtx.createBufferSource();
-        src.buffer = noiseBuffer(audioCtx, 3.2);
-        const bp = audioCtx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=120; bp.Q.value=0.5;
-        const g = audioCtx.createGain(); g.gain.value=0.26;     // ↑볼륨 업
-        const con = audioCtx.createConvolver(); con.buffer = (()=>{
-          const ir = audioCtx.createBuffer(2, audioCtx.sampleRate*2, audioCtx.sampleRate);
-          for(let ch=0; ch<2; ch++){
-            const d = ir.getChannelData(ch);
-            for(let i=0;i<d.length;i++){ d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length, 2.2); }
-          }
-          return ir;
-        })();
-        src.connect(bp).connect(g).connect(con).connect(audioCtx.destination);
-        src.start(now);
-        g.gain.setValueAtTime(g.gain.value, now+0.1);
-        g.gain.linearRampToValueAtTime(0.0001, now+2.9);
-        src.stop(now+3.0);
-      }catch(e){}
-    }
-    return { thump, rumble };
-  })();
-
-  /* Woong sequence (5회 동일 길이, 볼륨 업) */
+  /* Woong sequence (5회 동일 길이) */
   async function lowWoongSequence(){
     await ensureResumed();
     const base = audioCtx.currentTime + 0.02;
-    const reps = 5, gap = 0.6, dur = 0.55, freq = 105, gainVal = 1.25; // ↑gain
+    const reps = 5, gap = 0.6, dur = 0.55, freq = 105, gainVal = 1.25;
     for(let i=0;i<reps;i++){
       const t = base + i*gap;
       const o=audioCtx.createOscillator(), g=audioCtx.createGain();
@@ -554,7 +387,7 @@
     }
   }
 
-  /* ===== Zoom ===== */
+  /* Zoom */
   function updateZoomLabel(){ zoomVal.textContent = ZOOM.toFixed(1)+'×'; }
   updateZoomLabel();
   zoomIn.addEventListener('click', ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
@@ -570,9 +403,7 @@
         DeviceOrientationEvent.requestPermission().catch(()=>{});
       }
     }catch(_) {}
-    ensureAudio();
-    unlockAudio();               // ★ 오디오 언락
-    audioCtx.resume && audioCtx.resume();
+    ensureAudio(); unlockAudio(); audioCtx.resume && audioCtx.resume();
     playWoongClick();
 
     navigator.mediaDevices.getUserMedia({
@@ -791,42 +622,33 @@
     },1000);
   }
 
-  /* Transition (+ 번개/섬광/웅웅) */
+  /* Transition — 번개 제거, 플래시만 */
   async function startTransition(){
     fadeHide(intro, FADE);
 
-    await ensureResumed();      // ★ 오디오 확실히 활성화
+    await ensureResumed();
     if(userInteracted) unlockAudio();
 
     titleText.textContent='GOOD NIGHT';
     titleScreen.style.display='flex';
     titleScreen.style.background='#000'; titleText.style.color='#fff';
 
-    // 번개 레이어 무조건 준비
-    fxLightning.style.display='block';
-    await Lightning.arm();
+    // 웅웅 시퀀스 시작
+    lowWoongSequence();
 
-    // 섬광+타이틀 플립 루프
-    const until = performance.now()+3800;
-    let flag=false, step=0;
-    while(performance.now()<until){
-      flag=!flag;
+    // 3.6~4.0초 사이 플래시 반복 (텍스트 토글 + 섬광)
+    const endAt = performance.now() + 3800;
+    let flag=false;
+    while(performance.now() < endAt){
+      flag = !flag;
       titleText.textContent = flag ? 'GOOD NIGHT' : 'THE FIRST SLEEP';
 
-      // 화면 보조 플래시
+      // 짧은 하얀 섬광
       titleScreen.classList.add('flashWhite');
-      setTimeout(()=>titleScreen.classList.remove('flashWhite'), 110);
+      setTimeout(()=>titleScreen.classList.remove('flashWhite'), 90);
 
-      // 번개 1~2회
-      await Lightning.strikeSequence(1 + (Math.random()<0.5?1:0), 70, 140);
-
-      // (동시에) 웅웅 시퀀스가 안 들리는 경우가 있어 먼저 스케줄만 깔아둠
-      if(step===0){ lowWoongSequence(); } // 첫 사이클에서 시작해 겹치도록
-      await sleep(120 + (step%2?40:0));
-      step++;
+      await sleep(120 + (Math.random()*60|0));
     }
-    Lightning.stop();
-    fxLightning.style.display='none';
 
     titleScreen.style.display='none';
 
@@ -853,7 +675,7 @@
     beginCharacter();
   }
 
-  /* Ambient / LongDrone (원본과 동일) */
+  /* Ambient / LongDrone (동일) */
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, loops=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
@@ -1054,11 +876,6 @@
     view.width=w*dpr; view.height=h*dpr; if(vctx) vctx.setTransform(dpr,0,0,dpr,0,0);
     const scale = matchMedia('(orientation: landscape)').matches? 0.86 : 0.9;
     if(proc){ proc.width=Math.floor(w*scale); proc.height=Math.floor(h*scale); }
-    // FX 레이어도 리사이즈
-    const lctx = fxLightning.getContext('2d');
-    const cw = Math.max(1, (fxLightning.clientWidth||w)); const ch = Math.max(1, (fxLightning.clientHeight||h));
-    fxLightning.width = cw*dpr; fxLightning.height = ch*dpr;
-    lctx.setTransform(dpr,0,0,dpr,0,0);
   }
   addEventListener('resize', ()=>{ setTimeout(resizeCam,30); warmupFrames=30; }, {passive:true});
   document.addEventListener('visibilitychange', async ()=>{
