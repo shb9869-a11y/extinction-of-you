@@ -452,7 +452,7 @@
   });
 
   /* Name → Preset */
-  let displayName = 'YOU';
+  let displayName = '____';
   async function acceptName(){
     const v = (nickInput.value||'').trim();
     if(v.length>0){ displayName = v; }
@@ -591,13 +591,7 @@
 
     fadeShow(intro, FADE, 'flex');
 
-    let left = 50; introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
-    const iv = setInterval(()=>{
-      left = Math.max(0, left-1);
-      introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
-      countdownTick(left);
-      if(left<=0){ clearInterval(iv); startTransition(); }
-    },1000);
+    introCount.textContent = '';
 
     const lines = captureIntroTexts().map(l=>l.replaceAll('____', displayName));
     let prevText = '';
@@ -610,6 +604,17 @@
       await sleep(1800);
       prevText = line;
     }
+
+    await sleep(400);
+    let left = 10;
+    introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
+    countdownTick(left);
+    const iv = setInterval(()=>{
+      left = Math.max(0, left-1);
+      introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
+      countdownTick(left);
+      if(left<=0){ clearInterval(iv); startTransition(); }
+    },1000);
   }
   document.getElementById('goIntro').addEventListener('click', ()=>{ ensureResumed().then(()=>{ playWoongClick(); fadeHide(welcome, FADE); showIntroFlow(); }); }, {passive:true});
 
