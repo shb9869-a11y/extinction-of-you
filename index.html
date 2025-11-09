@@ -20,7 +20,6 @@
     --fs-strong: clamp(14px, 2.8vmin, 20px);
     --fs-small: clamp(11px, 1.8vmin, 14px);
     --fs-name: clamp(16px,3.2vmin,22px);
-    --fs-intro: clamp(14px, 2.6vmin, 17px);
 
     --pad-btn-y: clamp(6px, 1.1vmin, 10px);
     --pad-btn-x: clamp(10px, 1.8vmin, 20px);
@@ -56,7 +55,7 @@
 
   .uiBtn{background:transparent;color:#fff;border:none;font-size:var(--fs-strong);
     padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",ui-monospace,monospace;white-space:nowrap;cursor:pointer;user-select:none}
-  .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
+  .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc( var(--pad-btn-x)*0.6)}
   .uiBtn.flat{border:none;background:transparent;text-decoration:none}
   .uiBtn[disabled]{opacity:.35;pointer-events:none;filter:grayscale(1)}
   .hide{display:none !important;}
@@ -118,62 +117,48 @@
   #preset{position:fixed;inset:0;z-index:250;background:#000;display:none;cursor:pointer}
   #presetCanvas{position:absolute;left:0;top:0;width:100%;height:100%}
 
-  /* Welcome */
-  #overlayWelcome{position:fixed;inset:0;z-index:220;display:none;align-items:center;justify-content:center;color:#fff;background:rgba(0,0,0,.55);padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;}
-  #welcomeCard{ text-align:center; max-width:min(92vw, 900px); }
-  #welcomeCard .title{ font-size:clamp(32px, 12vmin, 120px); font-weight:900; letter-spacing:.04em; line-height:1.02; margin-bottom:8px; text-transform:uppercase; }
-  #welcomeCard .title + .title{ margin-top:0; }
-
-  /* Big Titles */
-  #introBig,#firstSleep,#goodNight{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; pointer-events:none; }
-  #introBig{ z-index:231; } 
-  #firstSleep{ z-index:235; }
-  #goodNight{ z-index:234; }
-  #introBigText,#firstSleepText,#goodNightText{
-    color:#fff; font-weight:900; letter-spacing:.06em;
-    font-size:clamp(48px, 22vmin, 260px);
-    text-transform:uppercase; text-align:center; white-space:nowrap;
-    text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7);
-    padding:0 .02em;
+  /* Welcome (센터 보정) */
+  #overlayWelcome{
+    position:fixed; inset:0; z-index:220;
+    display:none; align-items:center; justify-content:center; gap:0;
+    color:#fff;background:rgba(0,0,0,.55);
+    padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;
+    text-align:center;
   }
+  #welcomeCard{ display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; max-width:min(92vw, 900px); margin:0 auto; }
+  #welcomeCard .title{ font-size:clamp(32px, 12vmin, 120px); font-weight:900; letter-spacing:.04em; line-height:1.02; margin:0 0 6px 0; text-transform:uppercase; }
+  #welcomeCard .title + .title{ margin-top:0; }
+  #goIntro{ margin-top:10px; }
 
-  /* ===== 새 인트로: 대화 박스(말풍선) ===== */
+  /* Big title → INTRODUCTION (짧게만) */
+  #introBig{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; pointer-events:none; z-index:231;}
+  #introBigText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(48px, 22vmin, 260px); text-transform:uppercase; text-align:center; white-space:nowrap; text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7); padding:0 .02em; }
+
+  /* 새 인트로: 말풍선(심플 블랙 박스) */
   #dialogueWrap{
     position:fixed; left:calc(var(--frame) + var(--safe-l)); right:calc(var(--frame) + var(--safe-r));
     bottom:calc(var(--frame) + var(--safe-b)); z-index:233;
     display:none; align-items:flex-end; justify-content:center; pointer-events:none;
   }
   #dialogueBox{
-    width:100%;
-    max-width:1200px;
-    background:#0a0a0a;
-    border:2px solid #fff;
-    outline:4px solid #000; /* 픽셀 테두리 느낌 */
-    padding:12px 16px;
-    box-shadow:0 6px 0 rgba(255,255,255,0.12), 0 0 0 8px rgba(255,255,255,0.08) inset;
+    width:100%; max-width:1200px;
+    background:#000; /* 심플 블랙 */
+    border:1px solid rgba(255,255,255,.25);
+    padding:14px 16px;
     font-family:"Courier New",ui-monospace,monospace;
-    color:#fff;
-    line-height:1.6;
+    color:#fff; line-height:1.7;
   }
-  #dialogueName{ font-weight:700; letter-spacing:.04em; margin-bottom:4px; opacity:.9; }
-  #dialogueText{ font-size:clamp(14px, 2.6vmin, 20px); min-height:3lh; }
+  #dialogueText{ font-size:clamp(14px, 2.6vmin, 19px); min-height:3lh; }
 
-  /* NOTE Popup */
-  #notePopup{
-    position:fixed; inset:0; z-index:900; display:none;
-    align-items:center; justify-content:center; background:rgba(0,0,0,.72);
+  /* First Sleep */
+  #firstSleep{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; pointer-events:none; z-index:235; }
+  #firstSleepText{
+    color:#fff; font-weight:900; letter-spacing:.06em;
+    font-size:clamp(48px, 22vmin, 260px);
+    text-transform:uppercase; text-align:center; white-space:nowrap;
+    text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7);
+    padding:0 .02em;
   }
-  #noteCard{
-    width:min(92vw, 640px);
-    background:#0b0b0b; color:#fff; border:1px solid #333;
-    padding:18px; box-shadow:0 10px 30px rgba(0,0,0,.6);
-    font-family:"Courier New",ui-monospace,monospace; line-height:1.7;
-  }
-  #noteCard h3{ margin:0 0 6px 0; letter-spacing:.06em; font-weight:700; font-size:clamp(15px,3vmin,20px); }
-  #noteCard p{ margin:4px 0; font-size:clamp(12px,2.4vmin,16px); }
-  #noteActions{ margin-top:10px; text-align:right; }
-
-  #flash{ position:fixed; inset:0; background:#fff; z-index:236; display:none; opacity:0; pointer-events:none; mix-blend-mode:screen; }
 </style>
 </head>
 <body>
@@ -228,45 +213,28 @@
     <canvas id="presetCanvas"></canvas>
   </div>
 
-  <!-- Welcome -->
+  <!-- Welcome (센터 고정) -->
   <div id="overlayWelcome" class="fade">
     <div id="welcomeCard">
       <div class="credits" style="margin-bottom:12px;">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
       <div class="title">SLEEEEEEEEEEEEEEEEEEEEEEEEEP,</div>
       <div class="title">SLEEEEEEEEEEEEEEEEEEEEEEEEEP</div>
-      <button id="goIntro" class="uiBtn flat" type="button" style="margin-top:6px">PRESS HERE TO SLEEP</button>
+      <button id="goIntro" class="uiBtn flat" type="button">PRESS HERE TO SLEEP</button>
     </div>
   </div>
 
-  <!-- Big “INTRODUCTION” title (짧게 노출) -->
+  <!-- INTRODUCTION (짧게) -->
   <div id="introBig" class="fade"><div id="introBigText">INTRODUCTION</div></div>
 
-  <!-- 새 인트로: 대화 박스 -->
+  <!-- 인트로 말풍선 -->
   <div id="dialogueWrap">
     <div id="dialogueBox">
-      <div id="dialogueName">VOICE</div>
       <div id="dialogueText" aria-live="polite"></div>
     </div>
   </div>
 
-  <!-- Good Night / First Sleep / Flash -->
-  <div id="goodNight"><div id="goodNightText">GOOD NIGHT</div></div>
+  <!-- THE FIRST SLEEP -->
   <div id="firstSleep"><div id="firstSleepText">THE FIRST SLEEP</div></div>
-  <div id="flash"></div>
-
-  <!-- NOTE Popup -->
-  <div id="notePopup" class="fade" role="dialog" aria-modal="true" aria-labelledby="noteTitle">
-    <div id="noteCard">
-      <h3 id="noteTitle">NOTE</h3>
-      <p>※ “THE FIRST SLEEP”은 눈으로 타자를 인식해 나가는 챕터입니다.</p>
-      <p>※ 앞으로 당신의 태블릿 위로 타자와 몇가지 흔적들이 텍스트로 제시될 것입니다.</p>
-      <p>※ 당신은 내면 세계의 탐험가로써 그 흔적들을 화면 아래 ‘CAPTURE’와 ‘+’, ‘-’버튼을 눌러 포착하세요.</p>
-      <p>※ 확인하셨다면, 아래 ‘OK’버튼을 눌러주세요</p>
-      <div id="noteActions">
-        <button id="noteOk" class="uiBtn flat" type="button">OK</button>
-      </div>
-    </div>
-  </div>
 
 <script>
 (() => {
@@ -306,8 +274,7 @@
   const rotateOverlay = document.getElementById('rotateOverlay');
   function isPortrait(){ return window.innerHeight > window.innerWidth; }
   function updateRotateOverlay(){
-    const por = isPortrait();
-    rotateOverlay.style.display = por ? 'flex' : 'none';
+    rotateOverlay.style.display = isPortrait() ? 'flex' : 'none';
   }
   ['load','pageshow','resize','orientationchange','visibilitychange'].forEach(ev=>{
     addEventListener(ev, updateRotateOverlay, {passive:true});
@@ -330,13 +297,10 @@
 
   const dialogueWrap = qs('#dialogueWrap');
   const dialogueText = qs('#dialogueText');
-  const dialogueName = qs('#dialogueName');
 
   const firstSleep = qs('#firstSleep');
   const firstSleepText = qs('#firstSleepText');
-  const goodNight = qs('#goodNight');
-  const goodNightText = qs('#goodNightText');
-  const flash = qs('#flash');
+
   const controls = qs('#controls');
   const zoomIn = qs('#zoomIn');
   const zoomOut = qs('#zoomOut');
@@ -345,10 +309,6 @@
   const view = qs('#view');
   const freezeLayer = qs('#freezeLayer');
   const runTimer = qs('#runTimer');
-
-  const notePopup = qs('#notePopup');
-  const noteOk = qs('#noteOk');
-  const noteCard = qs('#noteCard');
 
   /* ====== State ====== */
   let camPermGranted = false;
@@ -581,7 +541,6 @@
 
   /* ===== 새 인트로 데이터 ===== */
   function captureIntroTexts(){
-    // (기존 텍스트 그대로 – 빈칸에 닉네임 바인딩)
     const lines = [
       "안녕하세요?",
       "작게 대답해주세요.",
@@ -589,7 +548,7 @@
       "대답을 해주셔야 프로그램이 진행될 수 있습니다.",
       "안녕하세요?",
       "감사합니다.",
-      "지금 이 화면을 보고 있는 당신은 _____의 내면 세계를 탐험하는 탐험가입니다.",
+      "지금 이 화면을 보고 있는 당신은 " + displayName + "의 내면 세계를 탐험하는 탐험가입니다.",
       "지금부터 우리는 주변의 소리에 귀를 기울이며 30분 간의 짧은 낮잠에 빠져볼 것입니다.",
       "자, 천천히 공간을 거닐어보세요.",
       "무릎을 들고, 발을 앞으로 뻗어보세요.",
@@ -609,22 +568,22 @@
       "마치 꿈 속에서 만난 누군가가 ... 그게 누구였지? ... 하고 떠오르지 않는 것처럼",
       "이곳은 바로 ‘너’가 사라진 공간",
       "‘너’가 제거된, 제거해버린",
-      "_____의 내면 세계입니다",
-      "그리고 당신은 지금 이 순간 _____의 내면 세계로 발을 디딥니다",
+      displayName + "의 내면 세계입니다",
+      "그리고 당신은 지금 이 순간 " + displayName + "의 내면 세계로 발을 디딥니다",
       "두 번의 심호흡을 하기도 하면서, 후 -- 하, 후 .... 하 ~",
       "이제 눈으로 감고, 천천히 수면 아래로 내려갑니다.",
       "귀를 기울여 ‘보세요’",
       "내면의 미로를 탐험하여 사라진 ‘너’의 소리에",
       "말이 길었습니다. 잠시 후에 만나요."
     ];
-    return lines.map(l=>l.replaceAll('____', displayName));
+    return lines;
   }
 
   /* ===== 인트로: 대화 박스 + 캐릭터 워크 ===== */
   let introWalking = false;
   let introStartTime = 0;
   const INTRO_WALK_DURATION = 60_000; // 1분
-  const DIALOGUE_TOTAL = INTRO_WALK_DURATION; // 문장 재생 총 길이 = 1분
+  const BETWEEN_LINES_WAIT = 1500; // 각 줄 완료 후 1.5초 대기
   let dialogueLines = [];
   let dialogueIndex = 0;
 
@@ -652,16 +611,16 @@
   }
 
   async function showIntroFlow(){
-    // INTRODUCTION 큰 타이틀 짧게
+    // INTRODUCTION 타이틀 짧게
     introBig.style.display='flex';
     introBig.style.opacity='0';
     await nextFrame();
     fitTitleLine(introBigText);
     introBig.style.transition='opacity 800ms ease';
     introBig.style.opacity='1';
-    await sleep(1400);
+    await sleep(1200);
     introBig.style.opacity='0';
-    await sleep(900);
+    await sleep(700);
     introBig.style.display='none';
 
     // 대화 데이터 준비
@@ -677,31 +636,28 @@
     introWalking = true;
     introStartTime = performance.now();
 
-    // 문장별 시간 분배: 총 60초를 줄 수만큼 균등(마지막에 약간 여유)
-    const perLine = Math.max(1200, Math.floor(DIALOGUE_TOTAL / dialogueLines.length));
+    // 각 줄: 타이핑 → 1.5초 대기 → 다음
     while(dialogueIndex < dialogueLines.length){
       const sentence = dialogueLines[dialogueIndex];
-      const typeTime = Math.min(2400, Math.max(900, Math.floor(sentence.length*34))); // 타자 시간
-      const hold = Math.max(300, perLine - typeTime); // 잔여 대기
       await typeSentenceTo(dialogueText, sentence, 34);
-      await sleep(hold);
+      await sleep(BETWEEN_LINES_WAIT);
       dialogueIndex++;
     }
 
-    // 60초에 못 미치면 맞춰 기다리기
+    // 인트로가 남았다면 1분에 맞춰 대기
     const elapsed = performance.now() - introStartTime;
     if(elapsed < INTRO_WALK_DURATION){
       await sleep(INTRO_WALK_DURATION - elapsed);
     }
 
-    // 박스 숨김
+    // 말풍선 사라짐
     dialogueWrap.style.transition='opacity 600ms ease';
     dialogueWrap.style.opacity='0';
     await sleep(650);
     dialogueWrap.style.display='none';
 
-    // 1초 후 “뚜웅” → 전환
-    await sleep(1000);
+    // “뚜웅” → 바로 THE FIRST SLEEP
+    await sleep(400);
     await playTduung();
     startTransition();
   }
@@ -723,7 +679,7 @@
     },1000);
   }
 
-  /* Ambient */
+  /* Ambient (배경 음악) */
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, loops=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
@@ -769,7 +725,8 @@
       master.gain.linearRampToValueAtTime(0.0001, t+fade);
       setTimeout(()=>{ loops.forEach(fn=>{try{fn();}catch{}}); loops=[]; running=false; }, fade*1000+120);
     }
-    return { start, stop, isRunning:()=>running };
+    function setLevel(val=1){ if(master){ master.gain.value = val; } }
+    return { start, stop, isRunning:()=>running, setLevel };
   })();
 
   /* Mic FX */
@@ -939,7 +896,7 @@
     ctx.globalAlpha=1;
   }
 
-  /* ===== 픽셀 캐릭터 & 풀숲 ===== */
+  /* ===== 픽셀 캐릭터 & 풀숲 (중앙 높이 경로) ===== */
   const PIXEL_SPRITE = [
     "..XXXXXX....",".XXXXXXXX...",".XX.XX.XX...",".XXXXXXXX...",
     "..XXXXXX....",".XXXXXXXX...",".XXXXXXXX...",".XX.XX.XX...",
@@ -975,20 +932,11 @@
         if(row[x]==='X'){ ctx.fillRect(x0 + x*cell, y0 + y*cell, cell, cell); }
       }
     }
-    // 이름 라벨
-    ctx.font = `700 ${Math.max(10, Math.min(18, Math.floor(W*0.014)))}px "Courier New", ui-monospace, monospace`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    const ny = Math.round(baselineY + Math.max(2, cell));
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    ctx.fillText(name, cx, ny-1); ctx.fillText(name, cx, ny+1);
-    ctx.fillText(name, cx-1, ny); ctx.fillText(name, cx+1, ny);
-    ctx.fillStyle = '#fff'; ctx.fillText(name, cx, ny);
-
+    // 라벨은 생략(가독성 위해 캐릭터 단독 노출)
     ctx.globalAlpha = 1;
   }
 
   function drawBush(ctx, x, baselineY, scale=1){
-    // 간단한 픽셀 풀숲
     const cell = Math.max(2, Math.floor(scale));
     ctx.save();
     ctx.translate(x, baselineY);
@@ -1012,7 +960,6 @@
     ctx.restore();
   }
 
-  /* ===== 캐릭터 워크 위치 계산 ===== */
   function lerp(a,b,t){ return a + (b-a)*t; }
   function easeInOut(t){ return t<.5 ? 2*t*t : -1+(4-2*t)*t; }
 
@@ -1020,26 +967,21 @@
     if(!introWalking) return;
     const now = performance.now();
     let t = clamp((now - introStartTime)/INTRO_WALK_DURATION, 0, 1);
-    const fr = getFrameRect();
-    const groundY = fr.bottom - fr.height*0.10; // 바닥선
-    const leftX = fr.left + fr.width*0.08;
-    const rightX = fr.right - fr.width*0.12;
 
-    // 풀숲 (도착 지점)
-    drawBush(ctx, rightX, groundY, Math.max(2, W*0.006));
+    // 화면 중앙 높이에서 좌→우
+    const baselineY = Math.round(H * 0.60);
+    const leftX  = Math.round(W * 0.08);
+    const rightX = Math.round(W * 0.92);
 
-    // 캐릭터 좌표 (부드러운 이징)
+    // 우측 풀숲
+    drawBush(ctx, rightX, baselineY, Math.max(2, W*0.006));
+
     const tt = easeInOut(t);
     const cx = lerp(leftX, rightX, tt);
     const hop = Math.max(0, 10*Math.sin(tt* Math.PI*20));
-    const alpha = 1;
+    drawPixelHuman(ctx, Math.round(cx), baselineY, '', W, hop, 1);
 
-    drawPixelHuman(ctx, Math.round(cx), Math.round(groundY), displayName, W, hop, alpha);
-
-    // 끝나면 walking 종료
-    if(t>=1){
-      introWalking = false;
-    }
+    if(t>=1){ introWalking = false; }
   }
 
   /* ===== 메인 렌더 루프 ===== */
@@ -1065,12 +1007,13 @@
     vctx.imageSmoothingEnabled = false;
     vctx.drawImage(proc,0,0,W,H);
 
-    // 인트로 워크 레이어
+    // 인트로 워크 레이어(화면 중앙 높이)
     drawIntroWalkLayer(vctx, W, H);
   }
 
-  /* ===== Capture (기존) ===== */
+  /* ===== Capture (기존 유지) ===== */
   let captureAnimating = false;
+  const captureBtn = document.getElementById('captureBtn');
   captureBtn.addEventListener('click', async ()=>{
     if(captureAnimating) return;
     await playWoongClick();
@@ -1129,21 +1072,9 @@
     requestAnimationFrame(anim);
   });
 
-  /* ===== Transition & 이후 흐름 ===== */
+  /* ===== Transition: 바로 THE FIRST SLEEP, 음악은 사라질 때 페이드아웃 ===== */
   async function startTransition(){
-    // GOOD NIGHT
-    goodNight.style.display='flex';
-    goodNight.style.opacity='0';
-    await nextFrame();
-    fitTitleLine(goodNightText);
-    goodNight.style.transition='opacity 600ms ease';
-    goodNight.style.opacity='1';
-    await sleep(900);
-    goodNight.style.opacity='0';
-    await sleep(650);
-    goodNight.style.display='none';
-
-    // FIRST SLEEP
+    // THE FIRST SLEEP 표시
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
     await nextFrame();
@@ -1152,45 +1083,44 @@
     await ensureResumed();
     startEightTimer();
 
+    // UI 등장
     await nextFrame();
     controls.classList.add('show');
     captureBtn.classList.add('show');
 
-    Ambient.stop(4.0);
+    // 마이크 FX 페이드 인 시작 (기존 앰비언트는 유지)
     await startMicFXFadeIn(4.0);
 
-    await sleep(900);
-    firstSleep.style.transition='opacity 8000ms ease';
+    // FIRST SLEEP 유지 후 천천히 사라짐 + 같은 타이밍으로 앰비언트 페이드 아웃
+    await sleep(900); // 잠깐 유지
+    const fadeDur = 8000;
+    firstSleep.style.transition=`opacity ${fadeDur}ms ease`;
     firstSleep.style.opacity='0';
-    await sleep(8200);
+    // 배경음과 동시 페이드아웃
+    Ambient.stop(fadeDur/1000);
+    await sleep(fadeDur+200);
     firstSleep.style.display='none';
     firstSleep.style.transition='';
-
-    showNotePopup();
-  }
-
-  /* NOTE 팝업 */
-  function showNotePopup(){
-    function bgTrap(e){ if(!e.target.closest('#noteCard')){ e.stopPropagation(); e.preventDefault(); } }
-    ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{
-      notePopup.addEventListener(ev, bgTrap, {passive:false});
-    });
-    fadeShow(notePopup, 300, 'flex');
-    setTimeout(()=>{ noteOk && noteOk.focus && noteOk.focus(); }, 50);
-    noteOk.onclick = async (e)=>{
-      e.stopPropagation();
-      await playWoongClick();
-      fadeHide(notePopup, 250);
-      // 캐릭터 모드(본편)는 기존 루프에 이미 탑재되어 있음
-    };
+    // 이후 NOTE 등은 기존 흐름에 따라 별도 팝업이 있다면 여기에 연결하면 됨
   }
 
   /* ===== 시작 ===== */
   window.addEventListener('load', ()=>{
+    // 웰컴 중앙 정렬 보장
+    const wc = document.getElementById('overlayWelcome');
+    wc.style.display = 'none';
     fitTitleLine(introBigText);
     fitTitleLine(firstSleepText);
-    fitTitleLine(goodNightText);
   });
+
+  /* ===== 메인 루프 시작 트리거 ===== */
+  let vctx, pctx;
+  const view = document.getElementById('view');
+  const freezeLayer = document.getElementById('freezeLayer');
+
+  let warmupFrames = 0;
+
+  // 루프 스타트는 카메라 준비 이후
 })();
 </script>
 </body>
