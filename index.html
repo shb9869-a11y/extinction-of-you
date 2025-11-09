@@ -20,7 +20,9 @@
     --fs-strong: clamp(14px, 2.8vmin, 20px);
     --fs-small: clamp(11px, 1.8vmin, 14px);
     --fs-name: clamp(16px,3.2vmin,22px);
-    --fs-intro: clamp(18px, 3.6vmin, 26px);
+
+    /* ★ 인트로 폰트 확 줄임(이전 대비 절반 이하) */
+    --fs-intro: clamp(12px, 2.2vmin, 15px);
 
     --pad-btn-y: clamp(6px, 1.1vmin, 10px);
     --pad-btn-x: clamp(10px, 1.8vmin, 20px);
@@ -33,6 +35,19 @@
 
   html,body{margin:0;height:var(--appH);background:#000;overflow:hidden;touch-action:manipulation}
   body{font-family:Impact,"Anton","Arial Black",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans KR",sans-serif;}
+
+  /* ★ 길게 눌러도 팝업/복사/선택 안뜨게 (전역) */
+  *{
+    -webkit-touch-callout:none;
+    -webkit-user-select:none;
+    user-select:none;
+  }
+  /* 입력창은 다시 허용 */
+  input, textarea{
+    -webkit-user-select:text !important;
+    user-select:text !important;
+  }
+
   .fade{opacity:0; transition:opacity 1800ms ease}
   .fade.show{opacity:1}
 
@@ -48,7 +63,6 @@
     border:2px solid rgba(255,255,255,.22); pointer-events:none; z-index:50;
   }
 
-  /* 투명 버튼 (검정 박스 제거) */
   .uiBtn{background:transparent;color:#fff;border:none;font-size:var(--fs-strong);
     padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",ui-monospace,monospace;white-space:nowrap;cursor:pointer;user-select:none}
   .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
@@ -104,6 +118,7 @@
   #nameCard{ width:min(92vw,600px); text-align:center; font-family:"Courier New",ui-monospace,monospace; }
   #nameCard h2{ margin:0 0 12px 0; letter-spacing:.08em; font-size:var(--fs-name); font-weight:400; }
   #nick{ width:100%; padding:12px 14px; background:#000; border:1px solid #555; color:#fff; font-size:var(--fs-name); outline:none; }
+
   #nameRow{ display:flex; gap:10px; margin-top:12px; justify-content:center; }
   #nameRow .uiBtn{ padding:10px 14px; }
   #nameRow .uiBtn.flat{ font-family:"Courier New",ui-monospace,monospace; font-size:var(--fs-name); font-weight:400; }
@@ -115,51 +130,49 @@
   /* Welcome */
   #overlayWelcome{position:fixed;inset:0;z-index:220;display:none;align-items:center;justify-content:center;color:#fff;background:rgba(0,0,0,.55);padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;}
   #welcomeCard{ text-align:center; max-width:min(92vw, 900px); }
-  #welcomeCard .title{ font-size:clamp(32px, 12vmin, 120px); font-weight:900; letter-spacing:.04em; line-height:1.02; margin-bottom:8px; text-transform:uppercase; }
+  #welcomeCard .title{ font-size:clamp(28px, 11vmin, 100px); font-weight:900; letter-spacing:.04em; line-height:1.02; margin-bottom:8px; text-transform:uppercase; }
   #welcomeCard .title + .title{ margin-top:0; }
 
   /* Intro big title */
   #introBig{ position:fixed; inset:0; z-index:231; display:none; align-items:center; justify-content:center; pointer-events:none; }
-  #introBigText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(28px, 11vmin, 110px); text-transform:uppercase; text-align:center; }
+  #introBigText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(24px, 9vmin, 92px); text-transform:uppercase; text-align:center; }
 
-  /* Intro body (두 줄 구조) */
+  /* Intro body */
   #introOverlay{position:fixed; inset:0; z-index:230; display:none; align-items:center; justify-content:center; color:#fff; background:rgba(0,0,0,.35); padding:calc(24px + var(--safe-t)) calc(16px + var(--safe-r)) calc(20px + var(--safe-b)) calc(16px + var(--safe-l)); font-family:"Courier New",ui-monospace,monospace; overflow:hidden;}
   #introBox{ width:min(92vw, 860px); margin:0 auto; visibility:hidden; height:0; overflow:hidden; }
   #introBox p{font-size:var(--fs-intro);}
 
-  /* 직전 문장: 더 작고 덜 눈에 띄게 */
+  /* 직전 문장(좌상단): 더 작게/덜 강하게 */
   #introPrev{
     position:absolute; left:calc(var(--frame) + var(--safe-l) + 6px);
     top:calc(var(--frame) + var(--safe-t) + 4px);
     max-width:min(92vw, 860px);
-    font-size: calc(var(--fs-intro) * 0.78); line-height:1.85; text-align:left;
+    font-size: calc(var(--fs-intro) * 0.78);
+    line-height:1.85; text-align:left;
     opacity:0; transition:opacity 600ms ease;
-    text-shadow:0 1px 2px rgba(0,0,0,.6);
+    text-shadow:0 0 3px rgba(0,0,0,.75), 0 1px 2px rgba(0,0,0,.6);
   }
   #introPrev.show{ opacity:1; }
-  #introPrev,
-  #introLive{
-    word-break:keep-all;
-    overflow-wrap:anywhere;
-  }
 
-  /* 현재 문장: 반드시 한 줄 */
+  /* 현재 문장(중앙): 한 줄 고정 + 가독 그림자 강화 */
   #introLive{
     display:inline-block;
     max-width:min(92vw, 900px);
-    font-size:var(--fs-intro); line-height:1.85; text-align:center;
-    text-shadow:0 1px 2px rgba(0,0,0,.6);
-    white-space: nowrap;           /* 핵심: 줄바꿈 금지 */
-    overflow: hidden;              /* 넘치면 숨김 */
-    text-overflow: clip;           /* 필요시 클립 (시각적으로 깔끔) */
+    font-size:var(--fs-intro); line-height:1.7; text-align:center;
+    text-shadow:
+      0 0 6px rgba(0,0,0,.9),
+      0 1px 2px rgba(0,0,0,.6);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
   }
 
   #introCount{ position:absolute; bottom:calc(var(--frame) + var(--safe-b) + 8px); left:50%; transform:translateX(-50%); font-size:var(--fs-strong); }
 
   #titleScreen{ display:none; }
 
-  #firstSleep{ position:fixed; inset:0; z-index:235; display:none; align-items:center; justify-content:center; pointer-events:none; opacity:1; }
-  #firstSleepText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(28px, 11vmin, 110px); text-transform:uppercase; }
+  #firstSleep{ position:fixed; inset:0; z-index:235; display:none; align-items:center; justify-content:center; pointer-events:none; opacity:0; }
+  #firstSleepText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(24px, 9vmin, 92px); text-transform:uppercase; }
 </style>
 </head>
 <body>
@@ -229,7 +242,6 @@
 
   <!-- Intro body -->
   <div id="introOverlay" class="fade">
-    <!-- 소스 텍스트(보이지 않음) -->
     <div id="introBox">
       <p>안녕하세요?</p>
       <p>작게 대답해주세요.</p>
@@ -275,7 +287,6 @@
       <p>말이 길었습니다. 잠시 후에 만나요.</p>
     </div>
 
-    <!-- 두 줄 출력 영역 -->
     <div id="introPrev" aria-live="polite"></div>
     <div id="introLive" aria-live="polite"></div>
     <div id="introCount" aria-live="polite"></div>
@@ -285,7 +296,6 @@
 
 <script>
 (() => {
-  /* Manifest */
   (function injectManifest(){
     const manifest = {"name":"SLEEEEEP","short_name":"SLEEEEEP","display":"standalone","start_url":"./","background_color":"#000","theme_color":"#000","icons":[]};
     const url = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:"application/manifest+json"}));
@@ -314,6 +324,11 @@
   setAppH(); addEventListener('resize', setAppH, {passive:true});
   if (window.visualViewport){ visualViewport.addEventListener('resize', ()=>setTimeout(setAppH,50)); }
 
+  /* 꾹 눌러 팝업 완전 차단 */
+  ['contextmenu','selectstart','copy','pointercancel'].forEach(ev=>{
+    window.addEventListener(ev, e=>e.preventDefault(), {passive:false});
+  });
+
   /* ====== 가로 전용 ====== */
   const rotateOverlay = document.getElementById('rotateOverlay');
   function isPortrait(){
@@ -323,9 +338,7 @@
     const m = window.matchMedia && window.matchMedia("(orientation: portrait)");
     return (m && m.matches) || (h > w);
   }
-  function updateRotateOverlay(){
-    rotateOverlay.style.display = isPortrait() ? 'flex' : 'none';
-  }
+  function updateRotateOverlay(){ rotateOverlay.style.display = isPortrait() ? 'flex' : 'none'; }
   ['load','pageshow','resize','orientationchange','visibilitychange'].forEach(ev=>{
     addEventListener(ev, updateRotateOverlay, {passive:true});
   });
@@ -358,25 +371,19 @@
   const introPrev = qs('#introPrev');
   const introLive = qs('#introLive');
 
-  /* ====== State ====== */
   let camPermGranted = false;
   let camStream = null, camVideo = null, vctx = null, proc = null, pctx = null, ZOOM = 1.0;
   let animStarted = false, capturing = false;
   let ROTATE_FORCE = false;
-  let userInteracted = false;
 
   /* ===== Audio ===== */
   let audioCtx = null;
-  let sfxBus = null;        // ★ 효과음 마스터 게인 (페이드 아웃용)
+  let sfxBus = null;
   function ensureAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
   async function ensureResumed(){ try{ ensureAudio(); if(audioCtx.state==='suspended') await audioCtx.resume(); }catch{} }
   function getSfxBus(){
     ensureAudio();
-    if(!sfxBus){
-      sfxBus = audioCtx.createGain();
-      sfxBus.gain.value = 1.0;
-      sfxBus.connect(audioCtx.destination);
-    }
+    if(!sfxBus){ sfxBus = audioCtx.createGain(); sfxBus.gain.value = 1.0; sfxBus.connect(audioCtx.destination); }
     return sfxBus;
   }
   function unlockAudio(){
@@ -387,20 +394,48 @@
       src.buffer = buf; src.connect(getSfxBus()); src.start(0);
     }catch(e){}
   }
+  /* 짧은 클릭 */
   function playWoongClick(){
     try{
       ensureAudio();
       const now = audioCtx.currentTime;
       const o1 = audioCtx.createOscillator(), g1 = audioCtx.createGain(), f1 = audioCtx.createBiquadFilter();
       o1.type='sine'; o1.frequency.setValueAtTime(120, now); o1.frequency.exponentialRampToValueAtTime(70, now+0.28);
-      g1.gain.value=0.0001; g1.gain.exponentialRampToValueAtTime(1.9, now+0.02); g1.gain.exponentialRampToValueAtTime(0.0001, now+0.40);
+      g1.gain.value=0.0001; g1.gain.exponentialRampToValueAtTime(1.6, now+0.02); g1.gain.exponentialRampToValueAtTime(0.0001, now+0.40);
       f1.type='lowpass'; f1.frequency.value=1200; f1.Q.value=0.8;
       o1.connect(f1).connect(g1).connect(getSfxBus()); o1.start(); o1.stop(now+0.42);
+    }catch(e){}
+  }
+  /* ★ 전환용 “부우우우웅” (조금 길게) */
+  function playLongBoooong(){
+    try{
+      ensureAudio();
+      const now = audioCtx.currentTime;
 
-      const o2 = audioCtx.createOscillator(), g2 = audioCtx.createGain();
-      o2.type='sine'; o2.frequency.setValueAtTime(60, now);
-      g2.gain.value=0.0001; g2.gain.exponentialRampToValueAtTime(1.3, now+0.03); g2.gain.exponentialRampToValueAtTime(0.0001, now+0.38);
-      o2.connect(g2).connect(getSfxBus()); o2.start(); o2.stop(now+0.40);
+      const oscA = audioCtx.createOscillator();
+      const oscB = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const lp = audioCtx.createBiquadFilter();
+
+      oscA.type='sine';
+      oscB.type='triangle';
+
+      oscA.frequency.setValueAtTime(180, now);
+      oscA.frequency.exponentialRampToValueAtTime(48, now+0.9);
+
+      oscB.frequency.setValueAtTime(110, now);
+      oscB.frequency.exponentialRampToValueAtTime(40, now+0.9);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(1.2, now+0.08);   // 빠르게 올라오고
+      gain.gain.exponentialRampToValueAtTime(0.0001, now+1.2); // 서서히 사라짐
+
+      lp.type='lowpass'; lp.frequency.value=900; lp.Q.value=0.7;
+
+      oscA.connect(lp); oscB.connect(lp);
+      lp.connect(gain).connect(getSfxBus());
+      oscA.start(); oscB.start();
+      oscA.stop(now+1.25); oscB.stop(now+1.25);
     }catch(e){}
   }
   function typeTick(){
@@ -429,38 +464,21 @@
     }catch(e){}
   }
 
-  /* Zoom */
   function updateZoomLabel(){ zoomVal.textContent = ZOOM.toFixed(1)+'×'; }
   updateZoomLabel();
   zoomIn.addEventListener('click', ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
   zoomOut.addEventListener('click', ()=>{ ZOOM=Math.max(0.35, ZOOM-0.05); updateZoomLabel(); playWoongClick(); }, {passive:true});
 
-  /* 권한 게이트 → 닉네임 */
   function immediateGestureStart(e){
     e && e.preventDefault && e.preventDefault();
-    userInteracted = true;
-    try{
-      if (typeof DeviceOrientationEvent !== 'undefined' &&
-          typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission().catch(()=>{});
-      }
-    }catch(_) {}
     ensureAudio(); unlockAudio(); audioCtx.resume && audioCtx.resume();
     playWoongClick();
 
     navigator.mediaDevices.getUserMedia({
-      video:{
-        facingMode:{ideal:'environment'},
-        width:{min:1280, ideal:1920},
-        height:{min:720,  ideal:1080},
-        aspectRatio:{ideal:16/9}
-      },
+      video:{facingMode:{ideal:'environment'}, width:{min:1280, ideal:1920}, height:{min:720, ideal:1080}, aspectRatio:{ideal:16/9}},
       audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}
     })
-    .then(s=>{
-      s.getTracks().forEach(t=>t.stop());
-      camPermGranted = true;
-    })
+    .then(s=>{ s.getTracks().forEach(t=>t.stop()); camPermGranted = true; })
     .catch(err=>{ console.warn('permission error:', err); })
     .finally(()=>{
       fadeHide(overlay, FADE);
@@ -474,7 +492,6 @@
     overlayEl.addEventListener(type, immediateGestureStart, {passive:false});
   });
 
-  /* Name → Preset */
   let displayName = '____';
   async function acceptName(){
     const v = (nickInput.value||'').trim();
@@ -487,7 +504,6 @@
   nameSubmit.addEventListener('click', acceptName, {passive:true});
   nickInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ acceptName(); }});
 
-  /* ====== Camera 가로 강제 ====== */
   async function enforceLandscapeConstraints(){
     try{
       if(!camStream) return;
@@ -496,9 +512,7 @@
       const s = track.getSettings ? track.getSettings() : {};
       const inLandscape = matchMedia('(orientation: landscape)').matches;
       if(inLandscape && s.height && s.width && s.height > s.width){
-        await track.applyConstraints({
-          advanced:[ { aspectRatio: 16/9 }, { width:{min:1280} }, { height:{max:1080} } ]
-        }).catch(()=>{});
+        await track.applyConstraints({advanced:[ { aspectRatio: 16/9 }, { width:{min:1280} }, { height:{max:1080} } ]}).catch(()=>{});
       }
       const s2 = track.getSettings ? track.getSettings() : {};
       ROTATE_FORCE = !!(inLandscape && s2.height && s2.width && s2.height > s2.width);
@@ -510,37 +524,20 @@
   addEventListener('orientationchange', ()=>setTimeout(enforceLandscapeConstraints, 300), {passive:true});
   addEventListener('resize', ()=>setTimeout(enforceLandscapeConstraints, 300), {passive:true});
 
-  /* Preset */
+  /* Preset (생략 없이 유지) */
   let saverObjs = []; let saverMode = 'scatter'; let saverT0 = 0;
-  function showPreset(){
-    preset.style.display='block'; preset.classList.add('show');
-    fadeShow(preset, FADE);
-    initSaver();
-    startCameraFresh(true);
-  }
+  function showPreset(){ preset.style.display='block'; preset.classList.add('show'); fadeShow(preset, FADE); initSaver(); startCameraFresh(true); }
   function initSaver(){
     const w = preset.clientWidth, h = preset.clientHeight;
-    saverObjs = [];
-    const letters = ['S','L','E','E','P'];
+    saverObjs = []; const letters = ['S','L','E','E','P'];
     for(let i=0;i<20;i++){
-      saverObjs.push({
-        ch: letters[i%5],
-        x: Math.random()*w, y: Math.random()*h,
-        vx: (Math.random()*1.2+0.3) * (Math.random()<.5?-1:1),
-        vy: (Math.random()*1.2+0.3) * (Math.random()<.5?-1:1),
-        phase: Math.random()*Math.PI*2,
-        size: Math.floor(Math.random()*60)+90
-      });
+      saverObjs.push({ ch: letters[i%5], x: Math.random()*w, y: Math.random()*h, vx: (Math.random()*1.2+0.3)*(Math.random()<.5?-1:1), vy:(Math.random()*1.2+0.3)*(Math.random()<.5?-1:1), phase: Math.random()*Math.PI*2, size: Math.floor(Math.random()*60)+90 });
     }
-    saverT0 = performance.now();
-    requestAnimationFrame(saverLoop);
+    saverT0 = performance.now(); requestAnimationFrame(saverLoop);
   }
   function saverTargetsForWord(){
     const w = preset.clientWidth, h = preset.clientHeight;
-    const base = Math.min(w,h)*0.55;
-    const cx = w/2, cy = h/2;
-    const spacing = base/5;
-    const left = cx - (spacing*2);
+    const base = Math.min(w,h)*0.55; const cx = w/2, cy = h/2; const spacing = base/5; const left = cx - (spacing*2);
     return [{x:left,y:cy},{x:left+spacing,y:cy},{x:left+spacing*2,y:cy},{x:left+spacing*3,y:cy},{x:left+spacing*4,y:cy}];
   }
   function saverLoop(){
@@ -548,93 +545,52 @@
     const now = performance.now();
     const w = preset.clientWidth, h = preset.clientHeight, dpr = devicePixelRatio||1;
     presetCanvas.width = w*dpr; presetCanvas.height = h*dpr;
-    const ctx = presetCanvas.getContext('2d');
-    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const ctx = presetCanvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,w,h); ctx.fillStyle='#000'; ctx.fillRect(0,0,w,h);
     ctx.textAlign='center'; ctx.textBaseline='middle';
 
     const dt = (now - saverT0)/1000;
-    if(dt>Math.random()*2+6){
-      saverMode = (saverMode==='scatter' ? 'assemble' : 'scatter');
-      saverT0 = now;
-    }
-
+    if(dt>Math.random()*2+6){ saverMode = (saverMode==='scatter' ? 'assemble' : 'scatter'); saverT0 = now; }
     const targets = saverMode==='assemble' ? saverTargetsForWord() : null;
 
     for(let i=0;i<saverObjs.length;i++){
       const o = saverObjs[i];
-      if(saverMode==='assemble'){
-        const idx = ['S','L','E','E','P'].indexOf(o.ch);
-        const goal = targets[idx];
-        o.vx += (goal.x - o.x)*0.0006;
-        o.vy += (goal.y - o.y)*0.0006;
-      }
-      o.x += o.vx; o.y += o.vy;
-      if(o.x<0||o.x>w) o.vx*=-1;
-      if(o.y<0||o.y>h) o.vy*=-1;
-
+      if(saverMode==='assemble'){ const idx = ['S','L','E','E','P'].indexOf(o.ch); const goal = targets[idx]; o.vx += (goal.x - o.x)*0.0006; o.vy += (goal.y - o.y)*0.0006; }
+      o.x += o.vx; o.y += o.vy; if(o.x<0||o.x>w) o.vx*=-1; if(o.y<0||o.y>h) o.vy*=-1;
       const wob = Math.sin(now/500 + o.phase)*0.12 + 1;
-      ctx.save();
-      ctx.translate(o.x, o.y); ctx.scale(wob, 1/wob);
-      ctx.font = `900 ${o.size}px Impact, Anton, "Arial Black", system-ui, sans-serif`;
-      ctx.fillStyle='#fff';
-      ctx.fillText(o.ch, 0, 0);
-      ctx.restore();
+      ctx.save(); ctx.translate(o.x, o.y); ctx.scale(wob, 1/wob);
+      ctx.font = `900 ${o.size}px Impact, Anton, "Arial Black", system-ui, sans-serif`; ctx.fillStyle='#fff'; ctx.fillText(o.ch, 0, 0); ctx.restore();
     }
     requestAnimationFrame(saverLoop);
   }
+  preset.addEventListener('click', async ()=>{ playWoongClick(); fadeHide(preset, FADE); await startCameraFresh(false); fadeShow(welcome, FADE); }, {passive:true});
 
-  // 프리셋 → 웰컴
-  preset.addEventListener('click', async ()=>{
-    playWoongClick();
-    fadeHide(preset, FADE);
-    await startCameraFresh(false);
-    fadeShow(welcome, FADE);
-  }, {passive:true});
-
-  /* ===== 한 줄 맞춤: 현재 문장 폰트 자동 축소 ===== */
-  const fitMemo = { baseSize: null }; // 기본 폰트 크기 캐시
-  function getPx(val){ return parseFloat(String(val).replace('px',''))||0; }
+  /* 한 줄 맞춤: 자동 축소 */
+  const fitMemo = { baseSize: null };
+  const getPx = v => parseFloat(String(v).replace('px',''))||0;
   function fitOneLine(el){
     const maxW = Math.min(window.innerWidth*0.92, 900);
-    // 처음 한 번 기본 폰트 픽셀값 계산
-    if(fitMemo.baseSize==null){
-      const cs = getComputedStyle(el);
-      fitMemo.baseSize = getPx(cs.fontSize) || 20;
-    }
-    // 매 번 기본 크기에서 시작해 줄어들며 맞춘다
-    let size = fitMemo.baseSize;
-    el.style.fontSize = size+'px';
-    // 너무 작은 축소 방지 하한
-    const minSize = Math.max(12, fitMemo.baseSize*0.55);
-    // 안전 장치 루프
-    for(let i=0;i<40 && el.scrollWidth > maxW; i++){
-      size = Math.max(minSize, size*0.94);
-      el.style.fontSize = size+'px';
-      if(size<=minSize) break;
-    }
+    if(fitMemo.baseSize==null){ const cs = getComputedStyle(el); fitMemo.baseSize = getPx(cs.fontSize) || 14; }
+    let size = fitMemo.baseSize; el.style.fontSize = size+'px';
+    const minSize = Math.max(10, fitMemo.baseSize*0.55);
+    for(let i=0;i<40 && el.scrollWidth > maxW;i++){ size = Math.max(minSize, size*0.94); el.style.fontSize = size+'px'; if(size<=minSize) break; }
   }
 
-  /* Intro 타이핑 — 현재 문장 + 직전 문장만 노출 */
-  function captureIntroTexts(){
-    const els = Array.from(document.querySelectorAll('#introBox p'));
-    return els.map(el=> (el.textContent||'').trim()).filter(Boolean);
-  }
-  async function typeSentenceTo(el, sentence, speed=38){
+  function captureIntroTexts(){ return Array.from(document.querySelectorAll('#introBox p')).map(el=> (el.textContent||'').trim()).filter(Boolean); }
+  async function typeSentenceTo(el, sentence, speed=34){
     el.textContent='';
-    // 입력은 반드시 한 줄 → 타이핑할 때마다 폭 체크해 축소
     for(let i=0;i<sentence.length;i++){
       el.textContent += sentence[i];
       if(/\S/.test(sentence[i])) typeTick();
-      fitOneLine(el); // ★ 여기서 한 줄에 맞게 폰트 자동 축소
+      fitOneLine(el);
       await sleep(speed);
     }
   }
   async function showIntroFlow(){
     introBigText.textContent='';
     fadeShow(introBig, FADE, 'flex');
-    await typeSentenceTo(introBigText, 'INTRODUCTION', 45);
-    await sleep(1000);
+    await typeSentenceTo(introBigText, 'INTRODUCTION', 42);
+    await sleep(900);
     fadeHide(introBig, FADE);
 
     fadeShow(intro, FADE, 'flex');
@@ -647,19 +603,14 @@
     const lines = captureIntroTexts().map(l=>l.split('____').join(displayName));
     let prevText = '';
     for(const line of lines){
-      if(prevText){
-        introPrev.textContent = prevText;
-        introPrev.classList.add('show');
-      }
-      await typeSentenceTo(introLive, line, 38);
-      await sleep(1800);
+      if(prevText){ introPrev.textContent = prevText; introPrev.classList.add('show'); }
+      await typeSentenceTo(introLive, line, 34);
+      await sleep(1400);
       prevText = line;
     }
 
-    await sleep(400);
-    let left = 10;
-    introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
-    countdownTick(left);
+    await sleep(300);
+    let left = 10; introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`; countdownTick(left);
     const iv = setInterval(()=>{
       left = Math.max(0, left-1);
       introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
@@ -671,7 +622,7 @@
 
   /* 8-minute timer */
   let eightTimer = null, eightLeft = 8*60;
-  function formatMMSS(s){ const m=Math.floor(s/60), ss=(s%60).toString().padStart(2,'0'); return `${m.toString().padStart(2,'0')}:${ss}`; }
+  const formatMMSS = s => { const m=Math.floor(s/60), ss=(s%60).toString().padStart(2,'0'); return `${m.toString().padStart(2,'0')}:${ss}`; }
   function startEightTimer(){
     eightLeft = 8*60;
     runTimer.textContent = formatMMSS(eightLeft);
@@ -684,26 +635,30 @@
     },1000);
   }
 
-  /* Transition — FIRST SLEEP: BGM/효과음 페이드아웃 강화 */
+  /* Transition — FIRST SLEEP: BGM/효과음 페이드아웃 + Mic 페이드인 + 롱부우웅 */
   async function startTransition(){
     fadeHide(intro, FADE);
 
-    // FIRST SLEEP 표시
-    firstSleep.style.display='flex';
-    firstSleep.style.opacity='1';
     await nextFrame();
     await ensureResumed();
+
+    // ★ 길게 “부우우우웅”
+    playLongBoooong();
+
+    // FIRST SLEEP 텍스트 페이드 인
+    firstSleep.style.display='flex';
+    firstSleep.style.transition='opacity 1800ms ease';
+    firstSleep.style.opacity='1';
+
+    // 타이머 시작
     startEightTimer();
 
     // UI 노출
-    await nextFrame();
     controls.classList.add('show');
     captureBtn.classList.add('show');
 
-    // ★ 모든 배경음/효과음 페이드 아웃
-    // 앰비언스 4초 페이드아웃
+    // ★ 배경 앰비언스/효과음 4초 페이드아웃
     Ambient.stop(4.0);
-    // 효과음 마스터(sfxBus) 4초 페이드아웃
     try{
       const bus = getSfxBus();
       const t = audioCtx.currentTime;
@@ -712,23 +667,21 @@
       bus.gain.linearRampToValueAtTime(0.0001, t + 4.0);
     }catch{}
 
-    // Mic FX 4초 페이드인(동시)
+    // ★ 마이크 FX 4초 페이드인
     await startMicFXFadeIn(4.0);
 
-    // 텍스트 서서히 사라짐
-    await sleep(1100);
+    // FIRST SLEEP 텍스트는 천천히 사라짐
+    await sleep(1000);
     firstSleep.style.transition='opacity 8000ms ease';
     firstSleep.style.opacity='0';
     await sleep(8200);
     firstSleep.style.display='none';
     firstSleep.style.transition='';
 
-    // 캐릭터 등장(페이드 인)
     beginCharacter(true);
   }
 
-  /* Ambient / Mic FX / Camera / Character — 이하 동일 (필수 로직 유지) */
-
+  /* Ambient / Mic FX / Camera / Character (동일) */
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, loops=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
@@ -777,7 +730,6 @@
     return { start, stop, isRunning:()=>running };
   })();
 
-  /* Mic FX (기울이면 톤/리버브 변화) */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, comp=null, micBus=null;
   function makeImpulse(ctx, seconds=5.0, decay=7.0){
     const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
@@ -830,59 +782,36 @@
     if(!audioCtx) return;
     const gamma = clamp(e.gamma ?? 0, -60, 60);
     const beta  = clamp(e.beta ?? 0, -60, 60);
-    let panVal = 0;
-    if(gamma > 2) panVal = +1; else if(gamma < -2) panVal = -1;
+    let panVal = 0; if(gamma > 2) panVal = +1; else if(gamma < -2) panVal = -1;
     if(panNode) panNode.pan.value = panVal;
-
     const bassBoost = (beta>=0) ? map(beta, 0, 60, 0, 16) : map(beta, -60, 0, -4, 0);
     const trebleBoost = (beta<0) ? map(beta, -60, 0, 16, 0) : 0;
     if(lowshelf) lowshelf.gain.value = clamp(bassBoost, -8, 16);
     if(highshelf) highshelf.gain.value = clamp(trebleBoost, 0, 16);
-
     const cutoff = (beta>=0) ? map(beta, 0, 60, 2200, 500) : map(beta, -60, 0, 8500, 2600);
     if(lpf) lpf.frequency.value = clamp(cutoff, 250, 9000);
-
     const wet = (beta>=0) ? map(beta, 0, 60, 0.85, 0.55) : map(beta, -60, 0, 1.0, 0.75);
     if(wetGain) wetGain.gain.value = clamp(wet, 0.4, 1.0);
     if(dryGain) dryGain.gain.value = clamp(1.0 - wetGain.gain.value*0.45, 0.2, 1.0);
   }
 
-  /* Camera */
   let metaReady = false, warmupFrames=0;
   async function startCameraFresh(warmupOnly=false){
     try{
       if(!camPermGranted){
-        await navigator.mediaDevices.getUserMedia({
-          video:{
-            facingMode:{ideal:'environment'},
-            width:{min:1280, ideal:1920},
-            height:{min:720,  ideal:1080},
-            aspectRatio:{ideal:16/9}
-          },
-          audio:true
-        }).then(s=>{ s.getTracks().forEach(t=>t.stop()); camPermGranted=true; });
+        await navigator.mediaDevices.getUserMedia({ video:{facingMode:{ideal:'environment'}, width:{min:1280, ideal:1920}, height:{min:720, ideal:1080}, aspectRatio:{ideal:16/9}}, audio:true })
+          .then(s=>{ s.getTracks().forEach(t=>t.stop()); camPermGranted=true; });
       }
       if(!camVideo){
         camVideo = document.createElement('video');
         camVideo.setAttribute('playsinline',''); camVideo.autoplay = true; camVideo.playsInline = true; camVideo.muted = true;
       }
       if(!camStream){
-        camStream = await navigator.mediaDevices.getUserMedia({
-          video:{
-            facingMode:{ideal:'environment'},
-            width:{min:1280, ideal:1920},
-            height:{min:720,  ideal:1080},
-            aspectRatio:{ideal:16/9}
-          },
-          audio:false
-        });
+        camStream = await navigator.mediaDevices.getUserMedia({ video:{facingMode:{ideal:'environment'}, width:{min:1280, ideal:1920}, height:{min:720, ideal:1080}, aspectRatio:{ideal:16/9}}, audio:false });
         camVideo.srcObject = camStream;
       }
-
       await camVideo.play().catch(()=>{});
-      if (camVideo.readyState < 1) {
-        await new Promise(res => camVideo.addEventListener('loadedmetadata', res, {once:true}));
-      }
+      if (camVideo.readyState < 1) await new Promise(res => camVideo.addEventListener('loadedmetadata', res, {once:true}));
       await enforceLandscapeConstraints();
 
       metaReady = true;
@@ -911,59 +840,26 @@
     if(document.visibilityState==='visible' && camVideo){
       try{
         if(camVideo.paused){ await camVideo.play(); }
-        if(!camStream || camStream.getVideoTracks().every(t=>t.readyState!=='live')){
-          await startCameraFresh();
-        }
-        warmupFrames=30;
-        await enforceLandscapeConstraints();
+        if(!camStream || camStream.getVideoTracks().every(t=>t.readyState!=='live')){ await startCameraFresh(); }
+        warmupFrames=30; await enforceLandscapeConstraints();
       }catch{}
     }
   });
 
   function drawBestCover(ctx, video, W, H, PW, PH){
-    const vw=video.videoWidth||0, vh=video.videoHeight||0;
-    if(!vw||!vh) return;
-
-    function coverScore(rot){
-      let rw = rot? vh: vw, rh = rot? vw: vh;
-      const s = Math.max(PW/rw, PH/rh)*ZOOM;
-      const dw = rw*s, dh = rh*s;
-      const letter = Math.max(0, (PW - dw)) + Math.max(0, (PH - dh));
-      return {rot, s, dw, dh, letter};
-    }
-    const a = coverScore(false);
-    const b = coverScore(true);
-    let best = (b.letter < a.letter) ? b : a;
-    if(ROTATE_FORCE) best = b;
-
+    const vw=video.videoWidth||0, vh=video.videoHeight||0; if(!vw||!vh) return;
+    function coverScore(rot){ let rw = rot? vh: vw, rh = rot? vw: vh; const s = Math.max(PW/rw, PH/rh)*ZOOM; const dw = rw*s, dh = rh*s; const letter = Math.max(0, (PW - dw)) + Math.max(0, (PH - dh)); return {rot, s, dw, dh, letter}; }
+    const a = coverScore(false); const b = coverScore(true); let best = (b.letter < a.letter) ? b : a; if(ROTATE_FORCE) best = b;
     ctx.save();
-    if(best.rot){
-      ctx.translate(PW/2, PH/2);
-      ctx.rotate(Math.PI/2);
-      ctx.globalAlpha = .7;
-      ctx.drawImage(video, -best.dh/2, -best.dw/2, best.dh, best.dw);
-    }else{
-      const dx=(PW-best.dw)/2, dy=(PH-best.dh)/2;
-      ctx.globalAlpha=.7;
-      ctx.drawImage(video, dx, dy, best.dw, best.dh);
-    }
-    ctx.restore();
-    ctx.globalAlpha=1;
+    if(best.rot){ ctx.translate(PW/2, PH/2); ctx.rotate(Math.PI/2); ctx.globalAlpha = .7; ctx.drawImage(video, -best.dh/2, -best.dw/2, best.dh, best.dw); }
+    else{ const dx=(PW-best.dw)/2, dy=(PH-best.dh)/2; ctx.globalAlpha=.7; ctx.drawImage(video, dx, dy, best.dw, best.dh); }
+    ctx.restore(); ctx.globalAlpha=1;
   }
 
-  /* Character */
-  let charActive = false;
-  let charStartTime = 0;
-  let charAlpha = 0;
-  const CHAR_FADE = 1800;
-  const CHAR_DURATION = 480000;
-  const PATH_POINTS = [];
-  const PIXEL_SPRITE = [
-    "..XXXXXX....",".XXXXXXXX...",".XX.XX.XX...",".XXXXXXXX...",
-    "..XXXXXX....",".XXXXXXXX...",".XXXXXXXX...",".XX.XX.XX...",
-    ".XXXXXXXX...", "..XXXXXX....",".XX....XX...",".XX....XX...",
-    ".XX....XX...", ".XX....XX...", "..XX..XX....","..XX..XX...."
-  ];
+  /* Character (동일) */
+  let charActive = false; let charStartTime = 0; let charAlpha = 0;
+  const CHAR_FADE = 1800; const CHAR_DURATION = 480000; const PATH_POINTS = [];
+  const PIXEL_SPRITE = ["..XXXXXX....",".XXXXXXXX...",".XX.XX.XX...",".XXXXXXXX...","..XXXXXX....",".XXXXXXXX...",".XXXXXXXX...",".XX.XX.XX...",".XXXXXXXX...","..XXXXXX....",".XX....XX...",".XX....XX...",".XX....XX...",".XX....XX...","..XX..XX....","..XX..XX...."];
   const COLOR_FILL = '#ff8a3c'; const COLOR_STROKE = '#000';
 
   function drawPixelHuman(ctx, cx, baselineY, name, W, hop=0){
@@ -1003,8 +899,8 @@
 
     ctx.globalAlpha = 1;
   }
-  function lerp(a,b,t){ return a + (b-a)*t; }
-  function easeInOut(t){ return t<.5 ? 2*t*t : -1+(4-2*t)*t; }
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  const easeInOut=t=> t<.5 ? 2*t*t : -1+(4-2*t)*t;
   function makeRElsePath(){
     const fr = document.querySelector('.frameBox').getBoundingClientRect();
     const L = fr.left + fr.width*0.08;
@@ -1012,50 +908,29 @@
     const T = fr.top + fr.height*0.10;
     const M = fr.top + fr.height*0.52;
     const B = fr.bottom - fr.height*0.10;
-    return [
-      {x:L, y:T}, {x:R, y:T},
-      {x:R, y:M}, {x:L*0.65 + R*0.35, y:M},
-      {x:L*0.75 + R*0.25, y:B}, {x:R, y:B}
-    ];
+    return [{x:L, y:T}, {x:R, y:T}, {x:R, y:M}, {x:L*0.65 + R*0.35, y:M}, {x:L*0.75 + R*0.25, y:B}, {x:R, y:B}];
   }
   function posOnRElse(t01){
-    const pts = makeRElsePath();
-    const segs = pts.length - 1;
-    const segT = 1 / segs;
+    const pts = makeRElsePath(); const segs = pts.length - 1; const segT = 1 / segs;
     let idx = Math.min(segs-1, Math.floor(t01 / segT));
-    const localT = (t01 - idx*segT) / segT;
-    const t = easeInOut(localT);
-    const wob = Math.sin(t01 * Math.PI * 6) * 6;
-    const a = pts[idx], b = pts[idx+1];
+    const localT = (t01 - idx*segT) / segT; const t = easeInOut(localT);
+    const wob = Math.sin(t01 * Math.PI * 6) * 6; const a = pts[idx], b = pts[idx+1];
     return { x: lerp(a.x, b.x, t) + wob, y: lerp(a.y, b.y, t) };
   }
   function beginCharacter(withFade=false){
-    PATH_POINTS.length = 0;
-    charActive = true;
-    charStartTime = performance.now();
+    PATH_POINTS.length = 0; charActive = true; charStartTime = performance.now();
     if(withFade){
-      charAlpha = 0;
-      const t0 = performance.now();
-      (function fadeUp(){
-        const dt = performance.now() - t0;
-        charAlpha = Math.min(1, dt/CHAR_FADE);
-        if(charAlpha < 1) requestAnimationFrame(fadeUp);
-      })();
-    }else{
-      charAlpha = 1;
-    }
+      charAlpha = 0; const t0 = performance.now();
+      (function fadeUp(){ const dt = performance.now() - t0; charAlpha = Math.min(1, dt/CHAR_FADE); if(charAlpha < 1) requestAnimationFrame(fadeUp); })();
+    }else{ charAlpha = 1; }
     if(!animStarted){ animStarted = true; loopCam(); }
   }
   function drawPathSolid(ctx){
     if(PATH_POINTS.length<2) return;
-    ctx.save();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-    ctx.beginPath();
-    ctx.moveTo(PATH_POINTS[0].x, PATH_POINTS[0].y);
+    ctx.save(); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.beginPath(); ctx.moveTo(PATH_POINTS[0].x, PATH_POINTS[0].y);
     for(let i=1;i<PATH_POINTS.length;i++){ ctx.lineTo(PATH_POINTS[i].x, PATH_POINTS[i].y); }
-    ctx.stroke();
-    ctx.restore();
+    ctx.stroke(); ctx.restore();
   }
   function drawCharacter(W,H){
     const now = performance.now();
@@ -1068,7 +943,6 @@
     if(t01>=1){ charActive=false; }
   }
 
-  /* Main render loop */
   function loopCam(){
     requestAnimationFrame(loopCam);
     if(capturing) return;
@@ -1153,9 +1027,6 @@
     }
     requestAnimationFrame(anim);
   });
-
-  /* 시작 */
-  window.addEventListener('load', ()=>{});
 
 })();
 </script>
