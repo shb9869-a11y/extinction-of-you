@@ -47,6 +47,19 @@
     border:2px solid rgba(255,255,255,.22); pointer-events:none; z-index:50;
   }
 
+  /* ===================== 🔥 버튼 검정 박스 제거 추가부분 🔥 ===================== */
+  .controls .uiBtn.small,
+  #captureBtn.uiBtn.small {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    -webkit-appearance: none;
+    appearance: none;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.55);
+  }
+  /* ========================================================================== */
+
   .uiBtn{background:#000;color:#fff;border:1px solid #444;font-size:var(--fs-strong);
     padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",ui-monospace,monospace;white-space:nowrap;cursor:pointer;user-select:none}
   .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
@@ -54,7 +67,6 @@
   .uiBtn[disabled]{opacity:.35;pointer-events:none;filter:grayscale(1)}
   .hide{display:none !important;}
 
-  /* ↑ z-index를 FIRST SLEEP(235)보다 크게 올림 */
   .controls{
     position:fixed;
     right:calc(var(--frame) + var(--ui-gap) + var(--safe-r));
@@ -63,12 +75,12 @@
   .controls.show{opacity:1}
   .readout{min-width:48px;text-align:center;opacity:.9;font-family:"Courier New",ui-monospace,monospace;font-size:var(--fs-small);color:#ddd}
 
-  /* CAPTURE 버튼도 FIRST SLEEP 위로 */
   .btn-capture{
     position:fixed;
     left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
     bottom:calc(var(--frame) + var(--ui-gap) + var(--safe-b));
-    z-index:450; opacity:0; transition:opacity 1800ms ease;}
+    z-index:450; opacity:0; transition:opacity 1800ms ease;
+  }
   .btn-capture.show{opacity:1}
 
   #mapLauncher, #docLauncher, #audioToggle { display:none; }
@@ -77,7 +89,7 @@
     position:fixed;
     right:calc(var(--frame) + var(--ui-gap) + var(--safe-r));
     top:calc(var(--frame) + var(--ui-gap) + var(--safe-t));
-    z-index:460;  /* 타이머도 위로 올림(선호에 따라 유지/조정) */
+    z-index:460;
     font-family:"Courier New",ui-monospace,monospace;
     font-size:var(--fs-strong);
     color:#fff; opacity:.95;
@@ -85,63 +97,14 @@
     display:none;
   }
 
-  .credits{ font-family:"Courier New",ui-monospace,monospace; letter-spacing:.08em; }
-
   #rotateOverlay{
     position:fixed; inset:0; z-index:1000; display:none;
     align-items:center; justify-content:center; text-align:center;
     background:#000; color:#fff; padding:40px; font-family:"Courier New",ui-monospace,monospace;
   }
-
-  /* Gate */
-  #overlay{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));color:#fff;background:rgba(0,0,0,.85)}
-  #overlayContent{max-width:min(92vw, 72ch);font-family:"Courier New",ui-monospace,monospace;line-height:1.7;text-align:center}
-  .gateLine{display:inline-block;font-family:"Courier New",ui-monospace,monospace;font-size:var(--fs-strong);border:none;background:transparent;color:#fff;cursor:pointer;padding:6px 10px}
-  .gateHint{opacity:.7;margin-top:6px}
-
-  /* Name */
-  #nameOverlay{position:fixed; inset:0; z-index:260; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.85); color:#fff;}
-  #nameCard{ width:min(92vw,600px); text-align:center; font-family:"Courier New",ui-monospace,monospace; }
-  #nameCard h2{ margin:0 0 12px 0; letter-spacing:.08em; font-size:var(--fs-name); font-weight:400; }
-  #nick{ width:100%; padding:12px 14px; background:#000; border:1px solid #555; color:#fff; font-size:var(--fs-name); outline:none; }
-  #nameRow{ display:flex; gap:10px; margin-top:12px; justify-content:center; }
-  #nameRow .uiBtn{ padding:10px 14px; }
-  #nameRow .uiBtn.flat{ font-family:"Courier New",ui-monospace,monospace; font-size:var(--fs-name); font-weight:400; }
-
-  /* Preset */
-  #preset{position:fixed;inset:0;z-index:250;background:#000;display:none;cursor:pointer}
-  #presetCanvas{position:absolute;left:0;top:0;width:100%;height:100%}
-
-  /* Welcome */
-  #overlayWelcome{position:fixed;inset:0;z-index:220;display:none;align-items:center;justify-content:center;color:#fff;background:rgba(0,0,0,.55);padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;}
-  #welcomeCard{ text-align:center; max-width:min(92vw, 900px); }
-  #welcomeCard .title{ font-size:clamp(32px, 12vmin, 120px); font-weight:900; letter-spacing:.04em; line-height:1.02; margin-bottom:8px; text-transform:uppercase; }
-  #welcomeCard .title + .title{ margin-top:0; }
-
-  /* Intro big title */
-  #introBig{ position:fixed; inset:0; z-index:231; display:none; align-items:center; justify-content:center; pointer-events:none; }
-  #introBigText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(28px, 11vmin, 110px); text-transform:uppercase; text-align:center; }
-
-  /* Intro body */
-  #introOverlay{position:fixed; inset:0; z-index:230; display:none; align-items:flex-start; justify-content:center; color:#fff; background:rgba(0,0,0,.35); padding:calc(24px + var(--safe-t)) calc(16px + var(--safe-r)) calc(20px + var(--safe-b)) calc(16px + var(--safe-l)); font-family:"Courier New",ui-monospace,monospace; overflow-y:auto; -webkit-overflow-scrolling:touch;}
-  #introBox{ width:min(92vw, 860px); margin:0 auto; }
-  #introBox h2{ display:none; }
-  #introBox p{font-size:var(--fs-body); line-height:1.85; text-align:center; text-shadow:0 1px 2px rgba(0,0,0,.6);}
-  #introBox ol{padding-left:1.2em; margin:.4em 0 1.2em 0; text-align:left;}
-  #introBox li{font-size:var(--fs-body); line-height:1.85; text-shadow:0 1px 2px rgba(0,0,0,.6);}
-  #introCount{ text-align:center; font-size:var(--fs-strong); margin-top:12px; }
-
-  #titleScreen{ position:fixed; inset:0; z-index:240; display:none; align-items:center; justify-content:center; background:#000; color:#fff; text-align:center; }
-  #titleText{font-weight:900; letter-spacing:.06em; line-height:1.05; font-size:clamp(24px, 10vmin, 96px); text-transform:uppercase;}
-  #titleScreen.flashWhite{ background:#fff !important; color:#000 !important; }
-
-  /* FIRST SLEEP 오버레이 (pointer-events: none; UI 클릭 방해 X) */
-  #firstSleep{ position:fixed; inset:0; z-index:235; display:none; align-items:center; justify-content:center; pointer-events:none; }
-  #firstSleepText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(28px, 11vmin, 110px); text-transform:uppercase; }
-
-  #docOverlay, #mapOverlay { display:none; }
 </style>
 </head>
+
 <body>
   <canvas id="view"></canvas>
   <canvas id="freezeLayer"></canvas>
@@ -152,9 +115,9 @@
     <div class="readout"><span id="zoomVal">1.0×</span></div>
     <button class="uiBtn small" id="zoomIn">+</button>
   </div>
-  <button id="captureBtn" class="uiBtn small btn-capture">CAPTURE</button>
 
-  <button id="docLauncher" class="uiBtn small">DOCUMENT</button>
+  <button id="captureBtn" class="uiBtn small btn-capture">CAPTURE</button>
+    <button id="docLauncher" class="uiBtn small">DOCUMENT</button>
   <button id="mapLauncher" class="uiBtn small">MAP</button>
   <button id="audioToggle" class="uiBtn small">AUDIO</button>
   <div id="runTimer" aria-live="polite">08:00</div>
@@ -208,31 +171,34 @@
   <div id="introBig" class="fade"><div id="introBigText"></div></div>
 
   <!-- Intro body -->
-  <div id="introOverlay" class="fade"><div id="introBox">
-    <p>지금 이 화면을 보고 있는 당신,</p>
-    <p>주변의 소리에 천천히 귀를 기울이며 공간을 거닐기 시작합니다.</p>
-    <p>지금부터 당신은 약 30분 간, 짧은 단잠에 들게 됩니다.</p>
-    <ol>
-      <li>당신이 거닐고 있는 이곳의 세계관 설명입니다.</li>
-      <li>우리는 언제나 타자와 함께 존재해왔습니다. 친구, 엄마, 누나, 아버지, 지나가는 저 사람과 같이 말이죠.</li>
-      <li>그러나 어느 순간, ‘너’로 존재했던 그들은 ‘너’가 아닌 ‘그것’으로 전락하기 시작했습니다.</li>
-      <li>이제는 그 어느곳에서도 ‘너’를 찾아볼 수는 없습니다.</li>
-      <li>‘그것’으로 전락한 ‘너’들은 서서히 우리의 내면 속에서 희미해져 가고 있기 때문이죠.</li>
-      <li>마치 꿈 속에서 분명 누군가를 만난 것 같은데, 그게 누구인지 떠오르지 않는 것처럼.</li>
-      <li>네, 그렇습니다. 이곳은 바로, 그 ‘너’가 사라져버린, ‘너’를 제거해버린, 누군가의 내면 세계입니다.</li>
-    </ol>
-    <p>당신의 의식이 서서히 희미해져가는 지금, 두 번의 심호흡을 크게 한 후,</p>
-    <p>이 내면의 미로를 거닐며, 천천히 눈을 감고,</p>
-    <p>이 세상에서 사라져버린 ‘너’의 이야기에 귀를 기울입니다.</p>
-    <div id="introCount" aria-live="polite"></div>
-    <div style="height:12vh"></div>
-  </div></div>
+  <div id="introOverlay" class="fade">
+    <div id="introBox">
+      <p>지금 이 화면을 보고 있는 당신,</p>
+      <p>주변의 소리에 천천히 귀를 기울이며 공간을 거닐기 시작합니다.</p>
+      <p>지금부터 당신은 약 30분 간, 짧은 단잠에 들게 됩니다.</p>
+      <ol>
+        <li>당신이 거닐고 있는 이곳의 세계관 설명입니다.</li>
+        <li>우리는 언제나 타자와 함께 존재해왔습니다. 친구, 엄마, 누나, 아버지, 지나가는 저 사람과 같이 말이죠.</li>
+        <li>그러나 어느 순간, ‘너’로 존재했던 그들은 ‘너’가 아닌 ‘그것’으로 전락하기 시작했습니다.</li>
+        <li>이제는 그 어느곳에서도 ‘너’를 찾아볼 수는 없습니다.</li>
+        <li>‘그것’으로 전락한 ‘너’들은 서서히 우리의 내면 속에서 희미해져 가고 있기 때문이죠.</li>
+        <li>마치 꿈 속에서 분명 누군가를 만난 것 같은데, 그게 누구인지 떠오르지 않는 것처럼.</li>
+        <li>네, 그렇습니다. 이곳은 바로, 그 ‘너’가 사라져버린, ‘너’를 제거해버린, 누군가의 내면 세계입니다.</li>
+      </ol>
+      <p>당신의 의식이 서서히 희미해져가는 지금, 두 번의 심호흡을 크게 한 후,</p>
+      <p>이 내면의 미로를 거닐며, 천천히 눈을 감고,</p>
+      <p>이 세상에서 사라져버린 ‘너’의 이야기에 귀를 기울입니다.</p>
+      <div id="introCount" aria-live="polite"></div>
+      <div style="height:12vh"></div>
+    </div>
+  </div>
 
   <!-- Title transition -->
   <div id="titleScreen"><div id="titleText"></div></div>
-  <div id="firstSleep"><div id="firstSleepText">THE FIRST SLEEP</div></div>
 
-<script>
+  <!-- First Sleep overlay -->
+  <div id="firstSleep"><div id="firstSleepText">THE FIRST SLEEP</div></div>
+  <script>
 (() => {
   /* Manifest */
   (function injectManifest(){
@@ -367,6 +333,80 @@
       o.start(); o.stop(audioCtx.currentTime+0.14);
     }catch(e){}
   }
+
+  /* Ambient pad */
+  const Ambient = (() => {
+    let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, loops=[];
+    function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
+    function makeBus(){
+      ctx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+      master = ctx.createGain(); master.gain.value = 0.0001;
+      delay = ctx.createDelay(2.5); delay.delayTime.value = 0.35;
+      fb = ctx.createGain(); fb.gain.value = 0.35; delay.connect(fb).connect(delay);
+      hp = ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=150;
+      lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=4500;
+      mix = ctx.createGain(); mix.gain.value=0.6; mix.connect(hp).connect(lp).connect(master);
+      busGain = ctx.createGain(); busGain.gain.value=0.9; busGain.connect(master);
+      master.connect(ctx.destination);
+    }
+    function connectDryWet(node){ node.connect(busGain); node.connect(delay); delay.connect(mix); }
+    function slowPad(root){
+      const out = ctx.createGain(); out.gain.value=0.35;
+      const filt = ctx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=600; filt.Q.value=0.6;
+      const lfo = ctx.createOscillator(); const lfoG = ctx.createGain();
+      lfo.type='sine'; lfo.frequency.value=0.05; lfoG.gain.value=220; lfo.connect(lfoG); lfoG.connect(filt.frequency); lfo.start();
+      [0,7,12].forEach((i,k)=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=midi(root+i); o.detune.value=(k-1)*6;
+        const g=ctx.createGain(); g.gain.value=0.08; o.connect(g).connect(filt); o.start(); loops.push(()=>g.disconnect()); });
+      filt.connect(out); connectDryWet(out); loops.push(()=>{ try{ out.disconnect(); }catch{} });
+    }
+    function airyNoise(){
+      const b=ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate), d=b.getChannelData(0);
+      for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.15;
+      const s=ctx.createBufferSource(); s.buffer=b; s.loop=true;
+      const g=ctx.createGain(); g.gain.value=0.02; const f=ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=800; f.Q.value=0.7;
+      s.connect(f).connect(g); connectDryWet(g); s.start(); loops.push(()=>{ try{s.stop();}catch{} });
+    }
+    async function start(fadeIn=1.0, target=1.0){
+      await ensureResumed(); if(running) return; makeBus(); running=true; airyNoise();
+      const seq=[57,52,48,43]; let i=0; (function tick(){ if(!running) return; slowPad(seq[i%seq.length]); i++; setTimeout(tick,8000); })();
+      const t=(ctx||audioCtx).currentTime;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setValueAtTime(master.gain.value, t);
+      master.gain.exponentialRampToValueAtTime(target, t+fadeIn);
+    }
+    function stop(fade=2.0){
+      if(!running||!master) return;
+      const t=(ctx||audioCtx).currentTime;
+      master.gain.linearRampToValueAtTime(0.0001, t+fade);
+      setTimeout(()=>{ loops.forEach(fn=>{try{fn();}catch{}}); loops=[]; running=false; }, fade*1000+120);
+    }
+    return { start, stop, isRunning:()=>running };
+  })();
+
+  /* Long drone */
+  const LongDrone = (() => {
+    let o, g, lfo, running=false;
+    async function start(){
+      await ensureResumed();
+      if(running) return;
+      o = audioCtx.createOscillator(); g = audioCtx.createGain(); lfo = audioCtx.createOscillator();
+      o.type='sawtooth'; o.frequency.value=70;
+      g.gain.value=0.0001;
+      lfo.type='sine'; lfo.frequency.value=0.7;
+      const lfoG = audioCtx.createGain(); lfoG.gain.value=0.10; lfo.connect(lfoG); lfoG.connect(g.gain);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(); lfo.start();
+      g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.8);
+      running=true;
+    }
+    function stop(fade=4.5){
+      if(!running) return;
+      const t=audioCtx.currentTime;
+      g.gain.linearRampToValueAtTime(0.0001, t+fade);
+      setTimeout(()=>{ try{o.stop();lfo.stop();}catch{} running=false; }, fade*1000+120);
+    }
+    return { start, stop, isRunning:()=>running };
+  })();
 
   /* Woong sequence (5회 동일 길이) */
   async function lowWoongSequence(){
@@ -635,25 +675,25 @@
     // 웅웅 시퀀스
     lowWoongSequence();
 
-    // 플래시 반복 + 텍스트 토글
+    // 플래시 반복 + 텍스트 토글 (번개 X, 순수 플래시)
     const endAt = performance.now() + 3800;
     let flag=false;
     while(performance.now() < endAt){
       flag = !flag;
       titleText.textContent = flag ? 'GOOD NIGHT' : 'THE FIRST SLEEP';
-      titleScreen.classList.add('flashWhite');
+      titleScreen.classList.add('flashWhite');               // 하얗게 깜빡
       setTimeout(()=>titleScreen.classList.remove('flashWhite'), 90);
       await sleep(120 + (Math.random()*60|0));
     }
     titleScreen.style.display='none';
 
-    // FIRST SLEEP 등장
+    // FIRST SLEEP 등장 (pointer-events: none; UI 방해 없음)
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
     await LongDrone.start();
     startEightTimer();
 
-    /* === 여기서 UI를 먼저 보여준다 (FIRST SLEEP 위에 떠 있음; z-index로 보장) === */
+    // === UI 먼저 보여주고 (FIRST SLEEP 위에 떠있음; z-index로 보장) ===
     controls.classList.add('show');
     captureBtn.classList.add('show');
 
@@ -674,81 +714,6 @@
     // 캐릭터 시작
     beginCharacter();
   }
-
-  /* Ambient / LongDrone / Mic FX / Camera / Character 등
-     (직전 버전과 동일 — 생략 없이 포함) */
-
-  const Ambient = (() => {
-    let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, loops=[];
-    function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
-    function makeBus(){
-      ctx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
-      master = ctx.createGain(); master.gain.value = 0.0001;
-      delay = ctx.createDelay(2.5); delay.delayTime.value = 0.35;
-      fb = ctx.createGain(); fb.gain.value = 0.35; delay.connect(fb).connect(delay);
-      hp = ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=150;
-      lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=4500;
-      mix = ctx.createGain(); mix.gain.value=0.6; mix.connect(hp).connect(lp).connect(master);
-      busGain = ctx.createGain(); busGain.gain.value=0.9; busGain.connect(master);
-      master.connect(ctx.destination);
-    }
-    function connectDryWet(node){ node.connect(busGain); node.connect(delay); delay.connect(mix); }
-    function slowPad(root){
-      const out = ctx.createGain(); out.gain.value=0.35;
-      const filt = ctx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=600; filt.Q.value=0.6;
-      const lfo = ctx.createOscillator(); const lfoG = ctx.createGain();
-      lfo.type='sine'; lfo.frequency.value=0.05; lfoG.gain.value=220; lfo.connect(lfoG); lfoG.connect(filt.frequency); lfo.start();
-      [0,7,12].forEach((i,k)=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=midi(root+i); o.detune.value=(k-1)*6;
-        const g=ctx.createGain(); g.gain.value=0.08; o.connect(g).connect(filt); o.start(); loops.push(()=>g.disconnect()); });
-      filt.connect(out); connectDryWet(out); loops.push(()=>{ try{ out.disconnect(); }catch{} });
-    }
-    function airyNoise(){
-      const b=ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate), d=b.getChannelData(0);
-      for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.15;
-      const s=ctx.createBufferSource(); s.buffer=b; s.loop=true;
-      const g=ctx.createGain(); g.gain.value=0.02; const f=ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=800; f.Q.value=0.7;
-      s.connect(f).connect(g); connectDryWet(g); s.start(); loops.push(()=>{ try{s.stop();}catch{} });
-    }
-    async function start(fadeIn=1.0, target=1.0){
-      await ensureResumed(); if(running) return; makeBus(); running=true; airyNoise();
-      const seq=[57,52,48,43]; let i=0; (function tick(){ if(!running) return; slowPad(seq[i%seq.length]); i++; setTimeout(tick,8000); })();
-      const t=(ctx||audioCtx).currentTime;
-      master.gain.cancelScheduledValues(t);
-      master.gain.setValueAtTime(master.gain.value, t);
-      master.gain.exponentialRampToValueAtTime(target, t+fadeIn);
-    }
-    function stop(fade=2.0){
-      if(!running||!master) return;
-      const t=(ctx||audioCtx).currentTime;
-      master.gain.linearRampToValueAtTime(0.0001, t+fade);
-      setTimeout(()=>{ loops.forEach(fn=>{try{fn();}catch{}}); loops=[]; running=false; }, fade*1000+120);
-    }
-    return { start, stop, isRunning:()=>running };
-  })();
-
-  const LongDrone = (() => {
-    let o, g, lfo, running=false;
-    async function start(){
-      await ensureResumed();
-      if(running) return;
-      o = audioCtx.createOscillator(); g = audioCtx.createGain(); lfo = audioCtx.createOscillator();
-      o.type='sawtooth'; o.frequency.value=70;
-      g.gain.value=0.0001;
-      lfo.type='sine'; lfo.frequency.value=0.7;
-      const lfoG = audioCtx.createGain(); lfoG.gain.value=0.10; lfo.connect(lfoG); lfoG.connect(g.gain);
-      o.connect(g).connect(audioCtx.destination);
-      o.start(); lfo.start();
-      g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.8);
-      running=true;
-    }
-    function stop(fade=4.5){
-      if(!running) return;
-      const t=audioCtx.currentTime;
-      g.gain.linearRampToValueAtTime(0.0001, t+fade);
-      setTimeout(()=>{ try{o.stop();lfo.stop();}catch{} running=false; }, fade*1000+120);
-    }
-    return { start, stop, isRunning:()=>running };
-  })();
 
   /* Mic FX */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, comp=null, micBus=null;
@@ -1108,5 +1073,3 @@
 
 })();
 </script>
-</body>
-</html>
