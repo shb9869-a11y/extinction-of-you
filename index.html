@@ -51,18 +51,14 @@
     border:2px solid rgba(255,255,255,.22); pointer-events:none; z-index:50;
   }
 
-  /* 기본 버튼 룩 */
-  .uiBtn{
-    background:#000;color:#fff;border:1px solid #444;font-size:var(--fs-strong);
-    padding:var(--pad-btn-y) var(--pad-btn-x);
-    font-family:"Courier New",ui-monospace,monospace;white-space:nowrap;cursor:pointer;user-select:none
-  }
+  .uiBtn{background:#000;color:#fff;border:1px solid #444;font-size:var(--fs-strong);
+    padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",ui-monospace,monospace;white-space:nowrap;cursor:pointer;user-select:none}
   .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
   .uiBtn.flat{border:none;background:transparent;text-decoration:none}
   .uiBtn[disabled]{opacity:.35;pointer-events:none;filter:grayscale(1)}
   .hide{display:none !important;}
 
-  /* 캡처 + 확대/축소 버튼은 검정 박스 제거 */
+  /* 캡처/줌 버튼—검정 박스 제거 */
   .controls .uiBtn, .btn-capture{background:transparent !important;border:none !important;box-shadow:none !important;text-shadow:0 0 8px rgba(0,0,0,.55);}
 
   .controls{
@@ -136,13 +132,20 @@
   #introBig{ position:fixed; inset:0; z-index:231; display:none; align-items:center; justify-content:center; pointer-events:none; }
   #introBigText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(28px, 11vmin, 110px); text-transform:uppercase; text-align:center; }
 
-  /* Intro body (중앙 타이핑 → 위로 누적) */
+  /* Intro body: 위 고정 뷰포트 + 중앙 타이핑 + 아래 카운트 */
   #introOverlay{position:fixed; inset:0; z-index:230; display:none; align-items:stretch; justify-content:center; color:#fff; background:rgba(0,0,0,.35); padding:calc(24px + var(--safe-t)) calc(16px + var(--safe-r)) calc(20px + var(--safe-b)) calc(16px + var(--safe-l)); font-family:"Courier New",ui-monospace,monospace; overflow:hidden;}
   #introBox{ position:relative; width:min(92vw, 860px); margin:0 auto; height:calc(100% - 24px); }
-  #introHistory{ position:absolute; left:0; right:0; top:0; padding:0 6px; }
-  #introHistory p{ margin:.2em 0; font-size:var(--fs-body); line-height:1.85; opacity:.82; text-shadow:0 1px 2px rgba(0,0,0,.5); }
-  #introCurrent{ position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); text-align:center; padding:0 6px; }
-  #introCurrent p{ display:inline-block; margin:0; font-size:var(--fs-body); line-height:1.9; text-shadow:0 1px 2px rgba(0,0,0,.7); }
+
+  /* 위쪽 누적 영역(고정 높이, 내부 리스트를 translateY로 위로 미는 방식) */
+  #introHistoryViewport{ position:absolute; left:0; right:0; top:0; height:46%; overflow:hidden; }
+  #introHistoryList{ position:absolute; left:0; right:0; top:0; will-change:transform; }
+  #introHistoryList p{ margin:.18em 0; font-size:var(--fs-body); line-height:1.85; opacity:.82; text-shadow:0 1px 2px rgba(0,0,0,.5); }
+
+  /* 중앙 현재 줄 */
+  #introCurrent{ position:absolute; left:0; right:0; top:56%; transform:translateY(-50%); text-align:center; padding:0 6px; }
+  #introCurrent p{ display:inline-block; margin:0; font-size:var(--fs-body); line-height:1.9; text-shadow:0 1px 2px rgba(0,0,0,.7); white-space:pre-wrap; }
+
+  /* 하단 타이머 */
   #introCount{ position:absolute; left:0; right:0; bottom:0; text-align:center; font-size:var(--fs-strong); margin:0 0 4px 0; }
 
   #titleScreen{ position:fixed; inset:0; z-index:240; display:none; align-items:center; justify-content:center; background:#000; color:#fff; text-align:center; }
@@ -221,11 +224,12 @@
   <!-- Intro big title -->
   <div id="introBig" class="fade"><div id="introBigText"></div></div>
 
-  <!-- Intro body -->
+  <!-- Intro body (새 구조) -->
   <div id="introOverlay" class="fade">
     <div id="introBox">
-      <!-- 새 구조: 위(히스토리) / 중앙(현재) / 아래 카운트 -->
-      <div id="introHistory"></div>
+      <div id="introHistoryViewport">
+        <div id="introHistoryList"></div>
+      </div>
       <div id="introCurrent"><p id="introCurrentLine"></p></div>
       <div id="introCount" aria-live="polite"></div>
     </div>
@@ -372,7 +376,7 @@
     }catch(e){}
   }
 
-  /* Ambient pad */
+  /* Ambient pad (지수 페이드아웃) */
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, loops=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
@@ -412,11 +416,17 @@
       master.gain.setValueAtTime(master.gain.value, t);
       master.gain.exponentialRampToValueAtTime(target, t+fadeIn);
     }
-    function stop(fade=4.0){              /* ← 4초 페이드 */
+    function stop(fade=4.0){                 /* ← 지수 페이드아웃 */
       if(!running||!master) return;
       const t=(ctx||audioCtx).currentTime;
-      master.gain.linearRampToValueAtTime(0.0001, t+fade);
-      setTimeout(()=>{ loops.forEach(fn=>{try{fn();}catch{}}); loops=[]; running=false; }, fade*1000+120);
+      try{
+        master.gain.cancelScheduledValues(t);
+        master.gain.setValueAtTime(Math.max(1e-4, master.gain.value), t);
+        master.gain.exponentialRampToValueAtTime(0.0001, t+fade);
+      }catch{
+        master.gain.linearRampToValueAtTime(0.0001, t+fade);
+      }
+      setTimeout(()=>{ loops.forEach(fn=>{try{fn();}catch{}}); loops=[]; running=false; }, fade*1000+160);
     }
     return { start, stop, isRunning:()=>running };
   })();
@@ -627,7 +637,7 @@
     fadeShow(welcome, FADE);
   }, {passive:true});
 
-  /* Intro 중앙 타이핑 → 위로 누적 */
+  /* Intro 중앙 타이핑 → 위로 누적(스크롤 애니메이션) */
   const INTRO_LINES = [
     "지금 이 화면을 보고 있는 당신,",
     "주변의 소리에 천천히 귀를 기울이며 공간을 거닐기 시작합니다.",
@@ -651,15 +661,20 @@
       await sleep(speed);
     }
   }
+  let histOffset = 0; // 누적 이동량(px, 음수)
   async function showIntroFlow(){
-    introBigText.textContent='';
-    fadeShow(introBig, FADE, 'flex');
+    const histViewport = qs('#introHistoryViewport');
+    const histList = qs('#introHistoryList');
+    const curr = qs('#introCurrentLine');
+
+    // 타이틀
+    const introBig = qs('#introBig'); const introBigText = qs('#introBigText');
+    introBigText.textContent=''; fadeShow(introBig, FADE, 'flex');
     await typeLine(introBigText, 'INTRODUCTION', 45);
-    await sleep(1000);
-    fadeHide(introBig, FADE);
+    await sleep(1000); fadeHide(introBig, FADE);
 
+    // 오버레이 표시 + 타이머
     fadeShow(intro, FADE, 'flex');
-
     let left = 50; introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
     const iv = setInterval(()=>{
       left = Math.max(0, left-1);
@@ -668,26 +683,29 @@
       if(left<=0){ clearInterval(iv); startTransition(); }
     },1000);
 
-    const hist = qs('#introHistory');
-    const curr = qs('#introCurrentLine');
-
+    // 줄 타이핑 & 위로 스크롤
     for(const line of INTRO_LINES){
       await typeLine(curr, line, 38);
       await sleep(DWELL);
-      // 위로 올려서 누적 (최대 7줄만 보이게)
+
+      // 새 단락 생성 후 리스트에 추가
       const p = document.createElement('p'); p.textContent = curr.textContent;
-      hist.appendChild(p);
-      if(hist.children.length>7) hist.removeChild(hist.firstElementChild);
+      p.style.margin = '.18em 0'; p.style.lineHeight='1.85';
+      histList.appendChild(p);
+
+      // 줄 높이 측정 후 그 높이만큼 위로 스크롤 애니메이션
+      await new Promise(r=>requestAnimationFrame(r));
+      const dy = p.offsetHeight; // 실제 렌더된 높이
+      histOffset -= dy;
+      histList.style.transition = 'transform 380ms ease';
+      histList.style.transform = `translateY(${histOffset}px)`;
+      await sleep(420);
+      histList.style.transition = 'none';
+
       curr.textContent = '';
-      // 살짝 스크롤/이동 느낌
-      hist.style.transition='transform 350ms ease';
-      hist.style.transform='translateY(-6px)';
-      await sleep(360);
-      hist.style.transition='none';
-      hist.style.transform='translateY(0)';
     }
   }
-  goIntroBtn.addEventListener('click', ()=>{ ensureResumed().then(()=>{ playWoongClick(); fadeHide(welcome, FADE); showIntroFlow(); }); }, {passive:true});
+  qs('#goIntro').addEventListener('click', ()=>{ ensureResumed().then(()=>{ playWoongClick(); fadeHide(document.querySelector('#overlayWelcome'), FADE); showIntroFlow(); }); }, {passive:true});
 
   /* 8-minute timer */
   let eightTimer = null, eightLeft = 8*60;
@@ -704,21 +722,20 @@
     },1000);
   }
 
-  /* Transition — 플래시만 (UI는 독립표시 유지) */
+  /* Transition — 플래시만 (UI 유지) + 페이드아웃 음악 */
   async function startTransition(){
     fadeHide(intro, FADE);
 
     await ensureResumed();
     if(userInteracted) unlockAudio();
 
+    // 플래시
+    const titleScreen = qs('#titleScreen'); const titleText = qs('#titleText');
     titleText.textContent='GOOD NIGHT';
     titleScreen.style.display='flex';
     titleScreen.style.background='#000'; titleText.style.color='#fff';
-
-    // 웅웅 시퀀스
     lowWoongSequence();
 
-    // 플래시 반복 + 텍스트 토글
     const endAt = performance.now() + 3800;
     let flag=false;
     while(performance.now() < endAt){
@@ -730,13 +747,13 @@
     }
     titleScreen.style.display='none';
 
-    // FIRST SLEEP
+    // FIRST SLEEP & 타이머
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
     await LongDrone.start();
     startEightTimer();
 
-    // UI 먼저 노출
+    // UI 먼저
     controls.classList.add('show');
     captureBtn.classList.add('show');
 
@@ -745,7 +762,7 @@
     firstSleep.style.transition='opacity 8000ms ease';
     firstSleep.style.opacity='0';
 
-    /* LongDrone 끝 → Ambient 4초 페이드로 종료 */
+    // 배경음 자연 페이드아웃
     LongDrone.stop(4.5);
     setTimeout(()=>{ Ambient.stop(4.0); }, 4800);
 
@@ -909,7 +926,7 @@
     if(!vw||!vh) return;
 
     const inLandscape = matchMedia('(orientation: landscape)').matches;
-    const forceRot = inLandscape && (vh > vw); // 가로일 때 세로 영상이면 무조건 회전
+    const forceRot = inLandscape && (vh > vw); // 가로일 때 세로 영상이면 강제 회전
 
     function coverScore(rot){
       let rw = rot? vh: vw, rh = rot? vw: vh;
