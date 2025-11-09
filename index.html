@@ -138,7 +138,9 @@
   #introPrev.show{ opacity:1; }
   #introPrev,
   #introLive{
-    white-space:nowrap;
+    white-space:normal;
+    word-break:keep-all;
+    overflow-wrap:anywhere;
   }
   #introLive{
     display:inline-block;
@@ -598,8 +600,11 @@
     fadeShow(intro, FADE, 'flex');
 
     introCount.textContent = '';
+    introPrev.textContent = '';
+    introPrev.classList.remove('show');
+    introLive.textContent = '';
 
-    const lines = captureIntroTexts().map(l=>l.replaceAll('____', displayName));
+    const lines = captureIntroTexts().map(l=>l.split('____').join(displayName));
     let prevText = '';
     for(const line of lines){
       if(prevText){
