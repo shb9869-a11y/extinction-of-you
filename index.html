@@ -123,7 +123,7 @@
   #welcomeCard .title{ font-size:clamp(32px, 12vmin, 120px); font-weight:900; letter-spacing:.04em; line-height:1.02; margin-bottom:8px; text-transform:uppercase; }
   #welcomeCard .title + .title{ margin-top:0; }
 
-  /* Intro big title & First Sleep & Good Night */
+  /* Intro big title / First Sleep / Good Night */
   #introBig,#firstSleep,#goodNight{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; pointer-events:none; }
   #introBig{ z-index:231; } 
   #firstSleep{ z-index:235; }
@@ -182,10 +182,11 @@
   #noteCard p{ margin:4px 0; font-size:clamp(12px,2.4vmin,16px); }
   #noteActions{ margin-top:10px; text-align:right; }
 
-  /* 번개 플래시 */
+  /* 스트로브(번개) 레이어: 전체 백색 대신 투명도 빠른 점멸 */
   #flash{
     position:fixed; inset:0; background:#fff; z-index:236; display:none; opacity:0;
     pointer-events:none;
+    mix-blend-mode:screen;
   }
 </style>
 </head>
@@ -741,16 +742,16 @@
     return els.map(el=> (el.textContent||'').trim()).filter(Boolean);
   }
 
-  /* ===== INTRO 흐름 (타이핑 없음 + 페이드 인/아웃) ===== */
+  /* ===== INTRO 흐름 (타이핑 없음 + 1.5s 정지 후 본문) ===== */
   async function showIntroFlow(){
-    // INTRODUCTION: 페이드 인 → 1초 유지 → 페이드 아웃
+    // INTRODUCTION: 페이드 인 → 1.5초 유지 → 페이드 아웃 + 본문 페이드 인
     introBig.style.opacity='0';
     introBig.style.display='flex';
     fitTitleLine(introBigText);
     await nextFrame();
     introBig.style.transition='opacity 800ms ease';
     introBig.style.opacity='1';
-    await sleep(1000);
+    await sleep(1500); // ← 요청: 1.5초 정지
     intro.style.display='flex';
     intro.style.opacity='0';
     intro.style.transition='opacity 1200ms ease';
@@ -813,25 +814,54 @@
     },1000);
   }
 
-  /* 번개 효과 */
-  async function lightningFlash(times=2){
-    for(let i=0;i<times;i++){
-      flash.style.display='block';
-      flash.style.transition='opacity 0ms';
-      flash.style.opacity='0';
-      await nextFrame();
-      flash.style.transition='opacity 80ms ease';
-      flash.style.opacity='0.95';
-      await sleep(100);
-      flash.style.transition='opacity 220ms ease';
-      flash.style.opacity='0';
-      await sleep(240);
-      flash.style.display='none';
-      await sleep(120);
+  /* 번개: 초고속 스트로브 + 낮은 우웅 펄스(5회) */
+  async function lightningStrobeWithBass(){
+    await ensureResumed();
+    const pulses = 5;              // 우웅 우웅… 5회
+    const onDur = 60;              // ms: 번개 켜짐
+    const offDur = 70;             // ms: 번개 꺼짐
+    const flashMax = 0.95;         // 최대 밝기
+    const gapAfter = 220;          // 마지막 후 유지 간격
+
+    // 배스 펄스 생성자
+    function bassPulse(dur=0.24, fStart=78, fEnd=52){
+      const now = audioCtx.currentTime;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      const bp = audioCtx.createBiquadFilter();
+      bp.type='lowpass'; bp.frequency.value = 400;
+      o.type='sine';
+      o.frequency.setValueAtTime(fStart, now);
+      o.frequency.exponentialRampToValueAtTime(fEnd, now+dur*0.9);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(0.9, now+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+dur);
+      o.connect(bp).connect(g).connect(audioCtx.destination);
+      o.start(); o.stop(now+dur+0.02);
     }
+
+    flash.style.display='block';
+    flash.style.transition='none';
+    flash.style.opacity='0';
+
+    for(let i=0;i<pulses;i++){
+      // 오디오 펄스
+      try{ bassPulse(0.24 + i*0.01, 82 - i*2, 50 - i*1); }catch{}
+
+      // 화면 스트로브
+      flash.style.transition='opacity 40ms ease';
+      flash.style.opacity=flashMax;
+      await sleep(onDur);
+      flash.style.transition='opacity 70ms ease';
+      flash.style.opacity=0;
+      await sleep(offDur);
+    }
+
+    await sleep(gapAfter);
+    flash.style.display='none';
   }
 
-  /* Transition — GOOD NIGHT → FIRST SLEEP (+번개) */
+  /* Transition — GOOD NIGHT → FIRST SLEEP (스트로브 중 텍스트 유지, 이후 서서히 페이드아웃) */
   async function startTransition(){
     fadeHide(intro, FADE);
 
@@ -847,7 +877,7 @@
     await sleep(650);
     goodNight.style.display='none';
 
-    // FIRST SLEEP 등장 + 번개 플래시
+    // FIRST SLEEP 등장 (스트로브 중에도 유지)
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
     await nextFrame();
@@ -863,10 +893,13 @@
     Ambient.stop(4.0);
     await startMicFXFadeIn(4.0);
 
-    // 번개 연출
-    await lightningFlash(2);
+    // 파바바박 + 우웅우웅…
+    await lightningStrobeWithBass();
 
-    // THE FIRST SLEEP 천천히 사라짐
+    // 스트로브 끝나도 "THE FIRST SLEEP" 잠시 남김
+    await sleep(900);
+
+    // 이제 서서히 사라짐
     firstSleep.style.transition='opacity 8000ms ease';
     firstSleep.style.opacity='0';
     await sleep(8200);
@@ -950,7 +983,7 @@
   })();
 
   /* Mic FX */
-  let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, comp=null, micBus=null;
+  let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null;
   function makeImpulse(ctx, seconds=5.0, decay=7.0){
     const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
     for(let ch=0; ch<2; ch++){
@@ -966,16 +999,15 @@
       if(!micSrc) micSrc = audioCtx.createMediaStreamSource(micStream);
 
       panNode = audioCtx.createStereoPanner(); panNode.pan.value = 0.0;
-      const lpf = audioCtx.createBiquadFilter(); lpf.type='lowpass'; lpf.frequency.value=2200; lpf.Q.value=0.9;
-      const lowshelf = audioCtx.createBiquadFilter(); lowshelf.type='lowshelf'; lowshelf.frequency.value=200; lowshelf.gain.value=0;
-      const highshelf = audioCtx.createBiquadFilter(); highshelf.type='highshelf'; highshelf.frequency.value=3800; highshelf.gain.value=0;
-      const revConvolver = audioCtx.createConvolver(); revConvolver.buffer = makeImpulse(audioCtx, 5.0, 7.0);
-      const dryGain = audioCtx.createGain(); dryGain.gain.value=0.0;
-      const wetGain = audioCtx.createGain(); wetGain.gain.value=0.0;
+      lpf = audioCtx.createBiquadFilter(); lpf.type='lowpass'; lpf.frequency.value=2200; lpf.Q.value=0.9;
+      lowshelf = audioCtx.createBiquadFilter(); lowshelf.type='lowshelf'; lowshelf.frequency.value=200; lowshelf.gain.value=0;
+      highshelf = audioCtx.createBiquadFilter(); highshelf.type='highshelf'; highshelf.frequency.value=3800; highshelf.gain.value=0;
+      revConvolver = audioCtx.createConvolver(); revConvolver.buffer = makeImpulse(audioCtx, 5.0, 7.0);
+      dryGain = audioCtx.createGain(); dryGain.gain.value=0.0;
+      wetGain = audioCtx.createGain(); wetGain.gain.value=0.0;
       const out = audioCtx.createGain(); out.gain.value=0.98;
 
-      micSrc
-        .connect(lowshelf).connect(highshelf).connect(lpf).connect(panNode);
+      micSrc.connect(lowshelf).connect(highshelf).connect(lpf).connect(panNode);
       panNode.connect(dryGain);
       panNode.connect(revConvolver);
       revConvolver.connect(wetGain);
@@ -1000,12 +1032,18 @@
     const bassBoost = (beta>=0) ? map(beta, 0, 60, 0, 16) : map(beta, -60, 0, -4, 0);
     const trebleBoost = (beta<0) ? map(beta, -60, 0, 16, 0) : 0;
 
-    const lpfNode = null; // (이미 상단에서 지역으로 선언, 여기선 값 갱신만)
-    // 아래는 보호적 접근(실제 상단 지역 변수와 동기화되어 작동)
-    try{
+    // 필터/레벨은 상단 노드에 이미 바인딩됨
+    if(lowshelf) lowshelf.gain.value = clamp(bassBoost, -8, 16);
+    if(highshelf) highshelf.gain.value = clamp(trebleBoost, 0, 16);
+    if(lpf){
       const cutoff = (beta>=0) ? map(beta, 0, 60, 2200, 500) : map(beta, -60, 0, 8500, 2600);
-      // lpf가 상단 지역이라 직접 참조 불가 -> document에 저장해도 되지만 간단히 무시
-    }catch{}
+      lpf.frequency.value = clamp(cutoff, 250, 9000);
+    }
+    if(wetGain && dryGain){
+      const wet = (beta>=0) ? map(beta, 0, 60, 0.85, 0.55) : map(beta, -60, 0, 1.0, 0.75);
+      wetGain.gain.value = clamp(wet, 0.4, 1.0);
+      dryGain.gain.value = clamp(1.0 - wetGain.gain.value*0.45, 0.2, 1.0);
+    }
   }
 
   /* Camera */
