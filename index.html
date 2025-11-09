@@ -92,16 +92,18 @@
 
   .credits{ font-family:"Courier New",ui-monospace,monospace; letter-spacing:.08em; }
 
+  /* 회전 오버레이: 표시 시 뒤 컨텐츠 차단 */
   #rotateOverlay{
     position:fixed; inset:0; z-index:1000; display:none;
     align-items:center; justify-content:center; text-align:center;
     background:#000; color:#fff; padding:40px; font-family:"Courier New",ui-monospace,monospace;
+    pointer-events:auto;
   }
 
   /* Gate */
-  #overlay{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));color:#fff;background:rgba(0,0,0,.85)}
+  #overlay{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));color:#fff;background:rgba(0,0,0,.85); pointer-events:auto;}
   #overlayContent{max-width:min(92vw, 72ch);font-family:"Courier New",ui-monospace,monospace;line-height:1.7;text-align:center}
-  .gateLine{display:inline-block;font-family:"Courier New",ui-monospace,monospace;font-size:var(--fs-strong);border:none;background:transparent;color:#fff;cursor:pointer;padding:6px 10px}
+  .gateLine{display:inline-block;font-family:"Courier New",ui-monospace,monospace;font-size:var(--fs-strong);border:none;background:transparent;color:#fff;cursor:pointer;padding:6px 10px;width:100%}
   .gateHint{opacity:.7;margin-top:6px}
 
   /* Name */
@@ -182,7 +184,7 @@
   #noteCard p{ margin:4px 0; font-size:clamp(12px,2.4vmin,16px); }
   #noteActions{ margin-top:10px; text-align:right; }
 
-  /* 스트로브(번개) 레이어: 전체 백색 대신 투명도 빠른 점멸 */
+  /* 스트로브(번개) 레이어 */
   #flash{
     position:fixed; inset:0; background:#fff; z-index:236; display:none; opacity:0;
     pointer-events:none;
@@ -362,15 +364,10 @@
 
   /* ====== 가로 전용 ====== */
   const rotateOverlay = document.getElementById('rotateOverlay');
-  function isPortrait(){
-    const vv = window.visualViewport;
-    const w = vv ? vv.width : innerWidth;
-    const h = vv ? vv.height : innerHeight;
-    const m = window.matchMedia && window.matchMedia("(orientation: portrait)");
-    return (m && m.matches) || (h > w);
-  }
+  function isPortrait(){ return window.innerHeight > window.innerWidth; }
   function updateRotateOverlay(){
-    rotateOverlay.style.display = isPortrait() ? 'flex' : 'none';
+    const por = isPortrait();
+    rotateOverlay.style.display = por ? 'flex' : 'none';
   }
   ['load','pageshow','resize','orientationchange','visibilitychange'].forEach(ev=>{
     addEventListener(ev, updateRotateOverlay, {passive:true});
@@ -379,7 +376,6 @@
 
   /* ====== Refs ====== */
   const overlay = qs('#overlay');
-  const overlayEl = qs('#overlay');
   const permBtn = qs('#permGateBtn');
   const nameOverlay = qs('#nameOverlay');
   const nickInput = qs('#nick');
@@ -417,7 +413,6 @@
   let camStream = null, camVideo = null, vctx = null, proc = null, pctx = null, ZOOM = 1.0;
   let animStarted = false, capturing = false;
   let ROTATE_FORCE = false;
-  let userInteracted = false;
 
   /* ===== Audio ===== */
   let audioCtx = null;
@@ -527,17 +522,16 @@
   }
   addEventListener('resize', ()=>{ setTimeout(()=>{ fitTitleLine(introBigText); fitTitleLine(firstSleepText); fitTitleLine(goodNightText); }, 40); }, {passive:true});
 
-  /* ===== 권한 게이트 (전역 폴백 포함) ===== */
-  function immediateGestureStart(e){
+  /* ===== 권한 게이트 ===== */
+  async function immediateGestureStart(e){
     e && e.preventDefault && e.preventDefault();
-    userInteracted = true;
     try{
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission().catch(()=>{});
       }
     }catch(_) {}
-    ensureAudio(); ensureResumed(); playWoongClick();
+    ensureAudio(); await ensureResumed(); playWoongClick();
 
     navigator.mediaDevices.getUserMedia({
       video:{
@@ -562,16 +556,16 @@
   }
   ['click','touchstart','pointerdown'].forEach(type=>{
     permBtn.addEventListener(type, immediateGestureStart, {passive:false});
-    overlayEl.addEventListener(type, immediateGestureStart, {passive:false});
+    overlay.addEventListener(type, immediateGestureStart, {passive:false});
   });
-  // 전역 첫 제스처 폴백
+  // 전역 폴백 (여러 번 눌러도 정상 동작)
   function firstGestureFallback(ev){
     if(getComputedStyle(overlay).display !== 'none'){
       immediateGestureStart(ev);
     }
   }
   ['click','touchstart','pointerdown','keydown'].forEach(ev=>{
-    document.addEventListener(ev, firstGestureFallback, {passive:false, once:true});
+    document.addEventListener(ev, firstGestureFallback, {passive:false});
   });
 
   /* Name → Preset */
@@ -594,7 +588,7 @@
       const track = camStream.getVideoTracks()[0];
       if(!track) return;
       const s = track.getSettings ? track.getSettings() : {};
-      const inLandscape = matchMedia('(orientation: landscape)').matches;
+      const inLandscape = !isPortrait();
       if(inLandscape && s.height && s.width && s.height > s.width){
         await track.applyConstraints({
           advanced:[ { aspectRatio: 16/9 }, { width:{min:1280} }, { height:{max:1080} } ]
@@ -742,7 +736,7 @@
     return els.map(el=> (el.textContent||'').trim()).filter(Boolean);
   }
 
-  /* ===== INTRO 흐름 (타이핑 없음 + 1.5s 정지 후 본문) ===== */
+  /* ===== INTRO 흐름 (타이틀 1.5s 정지 → 본문 타이핑) ===== */
   async function showIntroFlow(){
     // INTRODUCTION: 페이드 인 → 1.5초 유지 → 페이드 아웃 + 본문 페이드 인
     introBig.style.opacity='0';
@@ -751,7 +745,7 @@
     await nextFrame();
     introBig.style.transition='opacity 800ms ease';
     introBig.style.opacity='1';
-    await sleep(1500); // ← 요청: 1.5초 정지
+    await sleep(1500);
     intro.style.display='flex';
     intro.style.opacity='0';
     intro.style.transition='opacity 1200ms ease';
@@ -814,16 +808,10 @@
     },1000);
   }
 
-  /* 번개: 초고속 스트로브 + 낮은 우웅 펄스(5회) */
+  /* 번개 스트로브 + 저역 펄스 (원 코드 유지, 필요 시 호출) */
   async function lightningStrobeWithBass(){
     await ensureResumed();
-    const pulses = 5;              // 우웅 우웅… 5회
-    const onDur = 60;              // ms: 번개 켜짐
-    const offDur = 70;             // ms: 번개 꺼짐
-    const flashMax = 0.95;         // 최대 밝기
-    const gapAfter = 220;          // 마지막 후 유지 간격
-
-    // 배스 펄스 생성자
+    const pulses = 5, onDur = 60, offDur = 70, flashMax = 0.95, gapAfter = 220;
     function bassPulse(dur=0.24, fStart=78, fEnd=52){
       const now = audioCtx.currentTime;
       const o = audioCtx.createOscillator();
@@ -839,16 +827,11 @@
       o.connect(bp).connect(g).connect(audioCtx.destination);
       o.start(); o.stop(now+dur+0.02);
     }
-
     flash.style.display='block';
     flash.style.transition='none';
     flash.style.opacity='0';
-
     for(let i=0;i<pulses;i++){
-      // 오디오 펄스
       try{ bassPulse(0.24 + i*0.01, 82 - i*2, 50 - i*1); }catch{}
-
-      // 화면 스트로브
       flash.style.transition='opacity 40ms ease';
       flash.style.opacity=flashMax;
       await sleep(onDur);
@@ -856,12 +839,11 @@
       flash.style.opacity=0;
       await sleep(offDur);
     }
-
     await sleep(gapAfter);
     flash.style.display='none';
   }
 
-  /* Transition — GOOD NIGHT → FIRST SLEEP (스트로브 중 텍스트 유지, 이후 서서히 페이드아웃) */
+  /* Transition — GOOD NIGHT → FIRST SLEEP → NOTE 팝업 */
   async function startTransition(){
     fadeHide(intro, FADE);
 
@@ -877,7 +859,7 @@
     await sleep(650);
     goodNight.style.display='none';
 
-    // FIRST SLEEP 등장 (스트로브 중에도 유지)
+    // FIRST SLEEP 등장
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
     await nextFrame();
@@ -893,13 +875,10 @@
     Ambient.stop(4.0);
     await startMicFXFadeIn(4.0);
 
-    // 파바바박 + 우웅우웅…
-    await lightningStrobeWithBass();
+    // 필요시 효과 사용: await lightningStrobeWithBass();
 
-    // 스트로브 끝나도 "THE FIRST SLEEP" 잠시 남김
+    // 타이틀 유지 후 서서히 페이드아웃
     await sleep(900);
-
-    // 이제 서서히 사라짐
     firstSleep.style.transition='opacity 8000ms ease';
     firstSleep.style.opacity='0';
     await sleep(8200);
@@ -910,21 +889,14 @@
     showNotePopup();
   }
 
-  /* NOTE 팝업 로직 (OK 클릭 보장) */
+  /* NOTE 팝업 (OK 클릭 보장) */
   function showNotePopup(){
-    // 배경 입력 차단: 카드 바깥만 막기
-    function bgTrap(e){
-      if(!e.target.closest('#noteCard')){
-        e.stopPropagation(); e.preventDefault();
-      }
-    }
+    function bgTrap(e){ if(!e.target.closest('#noteCard')){ e.stopPropagation(); e.preventDefault(); } }
     ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{
       notePopup.addEventListener(ev, bgTrap, {passive:false});
     });
-
     fadeShow(notePopup, 300, 'flex');
     setTimeout(()=>{ noteOk && noteOk.focus && noteOk.focus(); }, 50);
-
     noteOk.onclick = async (e)=>{
       e.stopPropagation();
       await playWoongClick();
@@ -1032,7 +1004,6 @@
     const bassBoost = (beta>=0) ? map(beta, 0, 60, 0, 16) : map(beta, -60, 0, -4, 0);
     const trebleBoost = (beta<0) ? map(beta, -60, 0, 16, 0) : 0;
 
-    // 필터/레벨은 상단 노드에 이미 바인딩됨
     if(lowshelf) lowshelf.gain.value = clamp(bassBoost, -8, 16);
     if(highshelf) highshelf.gain.value = clamp(trebleBoost, 0, 16);
     if(lpf){
@@ -1102,7 +1073,7 @@
     const dpr = window.devicePixelRatio||1;
     const w = window.innerWidth, h = window.innerHeight;
     view.width=w*dpr; view.height=h*dpr; if(vctx) vctx.setTransform(dpr,0,0,dpr,0,0);
-    const scale = matchMedia('(orientation: landscape)').matches? 0.86 : 0.9;
+    const scale = (!isPortrait())? 0.86 : 0.9;
     if(proc){ proc.width=Math.floor(w*scale); proc.height=Math.floor(h*scale); }
   }
   addEventListener('resize', ()=>{ setTimeout(resizeCam,30); warmupFrames=30; }, {passive:true});
@@ -1359,7 +1330,6 @@
     fitTitleLine(firstSleepText);
     fitTitleLine(goodNightText);
   });
-
 })();
 </script>
 </body>
