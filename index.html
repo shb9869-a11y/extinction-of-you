@@ -30,8 +30,8 @@
     --safe-r: env(safe-area-inset-right, 0px);
 
     /* Intro 오프셋 (패널/캐릭터 위치) */
-    --dialogue-offset-vh: 8vh;  /* 패널을 이만큼 위로 들어 올림 */
-    --char-offset-vh: 16vh;     /* 캐릭터는 패널보다 더 위 */
+    --dialogue-offset-vh: 8vh;  /* 패널을 이만큼 위로 */
+    --char-offset-vh: 16vh;     /* 캐릭터는 그보다 더 위 */
   }
 
   html,body{margin:0;height:var(--appH);background:#000;overflow:hidden;touch-action:manipulation}
@@ -146,7 +146,7 @@
   #introBig{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; pointer-events:none; z-index:231;}
   #introBigText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(48px, 22vmin, 260px); text-transform:uppercase; text-align:center; white-space:nowrap; text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7); padding:0 .02em; }
 
-  /* 인트로 대화 패널: 아래까지 꽉 채우기 (offset만큼 들어 올린 상태) */
+  /* 인트로 대화 패널: 아래까지 꽉 채우기 (offset만큼 들어 올림) */
   #dialogueWrap{
     position:fixed; left:calc(var(--frame) + var(--safe-l)); right:calc(var(--frame) + var(--safe-r));
     bottom:0; z-index:233;
@@ -659,7 +659,7 @@
     await sleep(700);
     introBig.style.display='none';
 
-    // 대화 패널
+    // 대화 패널 + 걷기 시작
     dialogueLines = captureIntroTexts();
     dialogueIndex = 0;
     dialogueWrap.style.display='flex';
@@ -667,7 +667,7 @@
     dialogueWrap.style.transition='opacity 800ms ease';
     requestAnimationFrame(()=> dialogueWrap.style.opacity='1');
 
-    introWalking = true;
+    introWalking = true;                 // 여기서 시작
     introStartTime = performance.now();
 
     while(dialogueIndex < dialogueLines.length){
@@ -677,9 +677,12 @@
       dialogueIndex++;
     }
 
-    // 1분 걷기 맞춤
+    // 총 1분 채우기(캐릭터는 끝까지 계속 이동)
     const elapsed = performance.now() - introStartTime;
     if(elapsed < INTRO_WALK_DURATION) await sleep(INTRO_WALK_DURATION - elapsed);
+
+    // 인트로 종료 직전에만 멈춤
+    introWalking = false;
 
     // 패널 종료
     dialogueWrap.style.transition='opacity 600ms ease';
@@ -903,7 +906,6 @@
       return {rot, s, dw, dh, letter};
     }
     const a = coverScore(false);
-    a; // keep
     const b = coverScore(true);
     let best = (b.letter < a.letter) ? b : a;
     if(ROTATE_FORCE) best = b;
@@ -968,7 +970,6 @@
     const blades = Math.max(20, Math.floor(W*0.05));
     const maxH = Math.max(24, Math.floor(W*0.05));
     ctx.save();
-    // 잎(블레이드)
     for(let i=0;i<blades;i++){
       const bx = x + (Math.random()*W*0.02 - W*0.01);
       const h = maxH * (0.5 + Math.random()*0.8);
@@ -982,7 +983,6 @@
       ctx.fillStyle = `hsl(${110+Math.random()*20}, ${50+Math.random()*30}%, ${35+Math.random()*20}%)`;
       ctx.fill();
     }
-    // 덩어리(픽셀풍)
     const cell = Math.max(2*dpr, 3);
     ctx.imageSmoothingEnabled = false;
     ctx.fillStyle = '#0b2';
@@ -1008,7 +1008,6 @@
     ctx.fillStyle = 'rgba(0,0,0,0.85)';
     ctx.strokeStyle = 'rgba(255,255,255,0.35)';
     ctx.lineWidth = 1;
-    // rounded rect
     ctx.beginPath();
     ctx.moveTo(bx+r,by);
     ctx.arcTo(bx+w,by,bx+w,by+h,r);
@@ -1017,7 +1016,6 @@
     ctx.arcTo(bx,by,bx+w,by,r);
     ctx.closePath();
     ctx.fill(); ctx.stroke();
-    // 꼬리
     ctx.beginPath();
     ctx.moveTo(x-6, by+h-1);
     ctx.lineTo(x, by+h+6);
@@ -1030,43 +1028,42 @@
     ctx.restore();
   }
 
-  /* 나선형 계열 경로 + 실선 트레일 */
+  /* 나선형 계열 경로 */
   let introTrail = [];
   function spiralPos(t01, W, H){
     const baselineY = Math.round(H * 0.60 - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--char-offset-vh'))/100)*H);
-    const L = Math.round(W * 0.08);
     const R = Math.round(W * 0.92);
-    // 중심은 화면 중간 정도, 우측으로 갈수록 반경이 줄며 R에 도착
     const cx = W*0.46, cy = baselineY - H*0.06;
-    const turns = 2.2;                   // 회전 수
+    const turns = 2.2;
     const theta = turns * Math.PI * 2 * t01;
-    const r0 = W*0.22, r1 = W*0.02;      // 시작/끝 반경
+    const r0 = W*0.22, r1 = W*0.02;
     const r = r0 + (r1 - r0) * t01;
     let sx = cx + r * Math.cos(theta);
     let sy = cy + r * Math.sin(theta);
-    // 오른쪽 도착점으로 천천히 끌어당김(베지어 보정 느낌)
     const pull = t01*t01;
     sx = sx*(1-pull) + R*pull;
     sy = sy*(1-pull) + baselineY*pull;
     return {x:sx, y:sy, baselineY};
   }
 
-  function drawTrail(ctx){
+  /* 점선(도트) 트레일 */
+  function drawDottedTrail(ctx){
     if(introTrail.length<2) return;
     ctx.save();
-    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(introTrail[0].x, introTrail[0].y);
-    for(let i=1;i<introTrail.length;i++){
-      ctx.lineTo(introTrail[i].x, introTrail[i].y);
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    const step = 3;           // 점 간격(샘플링)
+    const radius = 1.6;       // 점 크기
+    for(let i=0;i<introTrail.length;i+=step){
+      const p = introTrail[i];
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, radius, 0, Math.PI*2);
+      ctx.closePath();
+      ctx.fill();
     }
-    ctx.stroke();
     ctx.restore();
   }
 
   /* ===== 메인 렌더 루프 ===== */
-  // 말풍선 텍스트 순환
   const bubbleSeq = ["HELLO", "…", "HI", "…", "HELLO!", "…"];
   let bubbleTimer = 0, bubbleIdx = 0;
 
@@ -1095,15 +1092,17 @@
     // 인트로 걷기 레이어
     if(introWalking){
       const now = performance.now();
-      let t = Math.max(0, Math.min(1, (now - introStartTime)/INTRO_WALK_DURATION));
+      const tRaw = (now - introStartTime)/INTRO_WALK_DURATION;
+      const t = Math.max(0, Math.min(1, tRaw)); // 0~1로 클램프하되 멈추진 않음
       const pos = spiralPos(t, W, H);
-      // 풀숲(도착 지점에 강조)
+
+      // 도착 지점 풀
       drawGrassPatch(vctx, Math.round(W*0.92), pos.baselineY, W);
 
-      // 트레일 기록 & 드로우
+      // 트레일 기록 & '점선' 그리기
       introTrail.push({x:pos.x, y:pos.y});
-      if(introTrail.length>1600) introTrail.shift();
-      drawTrail(vctx);
+      if(introTrail.length>1800) introTrail.shift();
+      drawDottedTrail(vctx);
 
       // 캐릭터
       const hop = Math.max(0, 10*Math.sin(t* Math.PI*20));
@@ -1115,8 +1114,6 @@
         bubbleTimer = now;
       }
       drawBubble(vctx, Math.round(pos.x), Math.round(pos.baselineY)-28, bubbleSeq[bubbleIdx]);
-
-      if(t>=1){ introWalking = false; }
     }
   }
 
