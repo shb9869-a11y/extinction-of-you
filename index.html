@@ -16,13 +16,10 @@
   --frame: clamp(16px, 4vmin, 40px);
   --ui-gap: 8px;
 
-  --fs-body: clamp(14px, 2.6vmin, 18px);      /* ⬅ 인트로 본문 살짝 키움 */
-  --fs-strong: clamp(18px, 3.2vmin, 24px);    /* ⬅ 강조 더 큼 */
+  --fs-body: clamp(12px, 2.2vmin, 16px);
+  --fs-strong: clamp(14px, 2.8vmin, 20px);
   --fs-small: clamp(11px, 1.8vmin, 14px);
-  --fs-name: clamp(18px,3.4vmin,24px);
-
-  --fs-intro-big: clamp(32px, 14vmin, 140px); /* ⬅ 인트로 대제목 더 큼 */
-  --fs-intro-live: clamp(16px, 2.8vmin, 20px);/* 흐르는 라이브 라인도 살짝 키움 */
+  --fs-name: clamp(16px,3.2vmin,22px);
 
   --pad-btn-y: clamp(6px, 1.1vmin, 10px);
   --pad-btn-x: clamp(10px, 1.8vmin, 20px);
@@ -38,10 +35,8 @@ body{font-family:Impact,"Anton","Arial Black",system-ui,-apple-system,"Segoe UI"
 .fade{opacity:0; transition:opacity 1800ms ease}
 .fade.show{opacity:1}
 
-#view{position:fixed;left:0;top:0;width:100%;height:var(--appH);display:block;z-index:0}
-
-/* freezeLayer: 캡처 픽셀화용 캔버스 올리는 레이어 */
-#freezeLayer{position:fixed;inset:0;z-index:500;display:none;background:transparent;pointer-events:none}
+#view{position:fixed;left:0;top:0;width:100%;height:var(--appH);display:block;z-index:0;object-fit:cover;background:#000}
+#freezeLayer{position:fixed;inset:0;z-index:500;display:none}
 
 .frameBox{
   position:fixed;
@@ -52,7 +47,7 @@ body{font-family:Impact,"Anton","Arial Black",system-ui,-apple-system,"Segoe UI"
   border:2px solid rgba(255,255,255,.22); pointer-events:none; z-index:50;
 }
 
-/* 투명 버튼 (검정 박스 제거) */
+/* 투명 버튼 */
 .uiBtn{background:transparent;color:#fff;border:none;font-size:var(--fs-strong);
   padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",ui-monospace,monospace;white-space:nowrap;cursor:pointer;user-select:none}
 .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
@@ -64,8 +59,7 @@ body{font-family:Impact,"Anton","Arial Black",system-ui,-apple-system,"Segoe UI"
   position:fixed;
   right:calc(var(--frame) + var(--ui-gap) + var(--safe-r));
   bottom:calc(var(--frame) + var(--ui-gap) + var(--safe-b));
-  z-index:400;display:flex;gap:6px;align-items:center; opacity:0; transition:opacity 400ms ease; /* ⬅ 렉 줄이려고 짧게 */
-}
+  z-index:400;display:flex;gap:6px;align-items:center; opacity:0; transition:opacity 1800ms ease;}
 .controls.show{opacity:1}
 .readout{min-width:48px;text-align:center;opacity:.9;font-family:"Courier New",ui-monospace,monospace;font-size:var(--fs-small);color:#ddd}
 
@@ -73,8 +67,7 @@ body{font-family:Impact,"Anton","Arial Black",system-ui,-apple-system,"Segoe UI"
   position:fixed;
   left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
   bottom:calc(var(--frame) + var(--ui-gap) + var(--safe-b));
-  z-index:450; opacity:0; transition:opacity 400ms ease; /* ⬅ 렉 줄임 */
-}
+  z-index:450; opacity:0; transition:opacity 1800ms ease;}
 .btn-capture.show{opacity:1}
 
 #mapLauncher, #docLauncher, #audioToggle { display:none; }
@@ -114,7 +107,7 @@ body{font-family:Impact,"Anton","Arial Black",system-ui,-apple-system,"Segoe UI"
 #nameRow .uiBtn{ padding:10px 14px; }
 #nameRow .uiBtn.flat{ font-family:"Courier New",ui-monospace,monospace; font-size:var(--fs-name); font-weight:400; }
 
-/* Preset */
+/* Preset (캔버스 배경 자리) */
 #preset{position:fixed;inset:0;z-index:250;background:#000;display:none;cursor:pointer}
 #presetCanvas{position:absolute;left:0;top:0;width:100%;height:100%}
 
@@ -126,354 +119,420 @@ body{font-family:Impact,"Anton","Arial Black",system-ui,-apple-system,"Segoe UI"
 
 /* Intro big title */
 #introBig{ position:fixed; inset:0; z-index:231; display:none; align-items:center; justify-content:center; pointer-events:none; }
-#introBigText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:var(--fs-intro-big); text-transform:uppercase; text-align:center; }
+#introBigText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(28px, 11vmin, 110px); text-transform:uppercase; text-align:center; }
 
-/* Intro body (두 줄 구조) */
+/* Intro body (두 줄 구조 + 라이브 진행) */
 #introOverlay{position:fixed; inset:0; z-index:230; display:none; align-items:center; justify-content:center; color:#fff; background:rgba(0,0,0,.35); padding:calc(24px + var(--safe-t)) calc(16px + var(--safe-r)) calc(20px + var(--safe-b)) calc(16px + var(--safe-l)); font-family:"Courier New",ui-monospace,monospace; overflow:hidden;}
 #introBox{ width:min(92vw, 860px); margin:0 auto; visibility:hidden; height:0; overflow:hidden; }
-#introBox p{font-size:var(--fs-body);}
+#introBox p{font-size:var(--fs-body);margin:.2em 0;}
 
 #introPrev{
   position:absolute; left:calc(var(--frame) + var(--safe-l) + 6px);
   top:calc(var(--frame) + var(--safe-t) + 4px);
   max-width:min(92vw, 860px);
-  font-size:var(--fs-intro-live); line-height:1.9; text-align:left;
-  opacity:0; transition:opacity 400ms ease; /* ⬅ 가볍게 */
+  font-size:var(--fs-body); line-height:1.85; text-align:left;
+  opacity:0; transition:opacity 600ms ease;
   text-shadow:0 1px 2px rgba(0,0,0,.6);
-  white-space:nowrap;
 }
 #introPrev.show{ opacity:1; }
-
+#introPrev, #introLive{ white-space:nowrap; }
 #introLive{
   display:inline-block;
   max-width:min(92vw, 900px);
-  font-size:var(--fs-intro-live); line-height:1.9; text-align:center;
+  font-size:var(--fs-body); line-height:1.85; text-align:center;
   text-shadow:0 1px 2px rgba(0,0,0,.6);
-  white-space:nowrap;
 }
+#introCount{ display:block; text-align:center; font-size:var(--fs-strong); margin-top:10px; }
 
-/* First sleep 뒤 UI 깔끔히 등장시키기 위해 간단 페이드 */
-.fadeFast{opacity:0;transition:opacity 240ms ease;}
-.fadeFast.show{opacity:1;}
+/* 카운터/런타임 */
+#runTimer{ display:none; }
+
+/* 픽셀화 캡처 레이어 */
+#freezeLayer canvas{ width:100%; height:100%; display:block; }
 </style>
 </head>
 <body>
-<canvas id="view"></canvas>
-<canvas id="freezeLayer"></canvas>
 
+<video id="view" playsinline muted></video>
 <div class="frameBox"></div>
 
-<!-- 간단한 컨트롤 (예: + - ) -->
-<div id="controls" class="controls">
-  <button id="btnMinus" class="uiBtn small">-</button>
-  <span class="readout" id="readout">0</span>
-  <button id="btnPlus" class="uiBtn small">+</button>
-</div>
-<button id="btnCapture" class="uiBtn btn-capture">CAPTURE</button>
-<div id="runTimer"></div>
+<div id="rotateOverlay"><div>
+  <p>가로 모드로 돌려주세요.</p>
+</div></div>
 
-<!-- GATE -->
-<div id="overlay" class="fade show" role="dialog" aria-modal="true">
+<!-- 게이트 -->
+<div id="overlay">
   <div id="overlayContent">
-    <button id="gateBtn" class="gateLine">안녕하세요?</button>
-    <div class="gateHint">작게 대답해주세요.</div>
+    <p class="credits">SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP</p>
+    <button id="gate" class="gateLine">터치하여 시작</button>
+    <div class="gateHint">오디오/센서 권한 요청이 표시될 수 있습니다.</div>
   </div>
 </div>
 
-<!-- NAME -->
+<!-- 닉네임 -->
 <div id="nameOverlay">
   <div id="nameCard">
     <h2>TELL ME YOUR NAME</h2>
-    <input id="nick" type="text" autocomplete="off" placeholder="____" />
+    <input id="nick" type="text" placeholder="여기에 입력" maxlength="24" autocomplete="off" />
     <div id="nameRow">
-      <button id="nameGo" class="uiBtn flat">GO</button>
+      <button id="goName" class="uiBtn">GO</button>
     </div>
   </div>
 </div>
 
-<!-- PRESET (탭) -->
-<div id="preset"><canvas id="presetCanvas"></canvas></div>
+<!-- 프리셋 자리 -->
+<div id="preset">
+  <canvas id="presetCanvas"></canvas>
+</div>
 
-<!-- WELCOME -->
-<div id="overlayWelcome">
+<!-- 웰컴 -->
+<div id="overlayWelcome" class="fade">
   <div id="welcomeCard">
     <div class="title">WELCOME</div>
-    <div class="title">SLEEEEEP</div>
-    <div style="margin-top:12px">
-      <button id="goIntro" class="uiBtn">START INTRO</button>
-    </div>
+    <div class="title">TO SLEEEEEP</div>
+    <button id="goIntro" class="uiBtn small">CONTINUE</button>
   </div>
 </div>
 
-<!-- INTRO -->
+<!-- 인트로 타이틀 -->
 <div id="introBig"><div id="introBigText">THE FIRST SLEEP</div></div>
+
+<!-- 인트로 본문 -->
 <div id="introOverlay">
-  <div id="introBox">
-    <div id="introPrev"></div>
-    <div id="introLive"></div>
-    <div id="introCount" style="text-align:center;margin-top:16px"></div>
+  <div id="introPrev"></div>
+  <div id="introLive"></div>
+  <div id="introCount"></div>
+  <div id="introBox" aria-hidden="true">
+    <!-- (스크립트에서 배열로 관리) -->
   </div>
 </div>
+
+<!-- 런타임 타이머 -->
+<div id="runTimer"></div>
+
+<!-- 메인 컨트롤 -->
+<div class="controls" id="ctrls">
+  <button id="minus" class="uiBtn">−</button>
+  <span class="readout" id="readout">0</span>
+  <button id="plus" class="uiBtn">+</button>
+</div>
+<button id="capture" class="uiBtn btn-capture">CAPTURE</button>
+
+<!-- 픽셀화 캡처 레이어 -->
+<div id="freezeLayer"></div>
 
 <script>
-(() => {
-  const $ = s => document.querySelector(s);
-  const overlay = $('#overlay');
-  const nameOverlay = $('#nameOverlay');
-  const overlayWelcome = $('#overlayWelcome');
-  const introBig = $('#introBig');
-  const introOverlay = $('#introOverlay');
-  const introPrev = $('#introPrev');
-  const introLive = $('#introLive');
-  const introBox = $('#introBox');
-  const introCount = $('#introCount');
-  const controls = $('#controls');
-  const btnCapture = $('#btnCapture');
-  const readout = $('#readout');
-  const view = $('#view');
-  const freezeLayer = $('#freezeLayer');
-  const gateBtn = $('#gateBtn');
-  const nameGo = $('#nameGo');
-  const nickInput = $('#nick');
+(()=>{
 
-  let displayName = '____';
+/* ===== 유틸 ===== */
+const $ = s=>document.querySelector(s);
+const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
 
-  /* ========= 오디오 클릭 사운드 (간단 목업) ========= */
-  const clickCtx = new (window.AudioContext||window.webkitAudioContext)();
-  function ensureResumed(){ if (clickCtx.state !== 'running') return clickCtx.resume(); return Promise.resolve(); }
-  function playWoongClick() {
-    const o = clickCtx.createOscillator();
-    const g = clickCtx.createGain();
-    o.type='sine';
-    o.frequency.value=440;
-    g.gain.value=0.12;
-    o.connect(g).connect(clickCtx.destination);
-    o.start();
-    setTimeout(()=>{o.stop()},80);
+/* ===== 엘리먼트 ===== */
+const gate = $('#gate');
+const overlay = $('#overlay');
+
+const nameOverlay = $('#nameOverlay');
+const nickInput = $('#nick');
+const goName = $('#goName');
+
+const preset = $('#preset');
+const presetCanvas = $('#presetCanvas');
+
+const welcome = $('#overlayWelcome');
+const goIntro = $('#goIntro');
+
+const introBig = $('#introBig');
+const introOverlay = $('#introOverlay');
+const introPrev = $('#introPrev');
+const introLive = $('#introLive');
+const introCount = $('#introCount');
+
+const ctrls = $('#ctrls');
+const btnMinus = $('#minus');
+const btnPlus = $('#plus');
+const readout = $('#readout');
+const btnCapture = $('#capture');
+const freezeLayer = $('#freezeLayer');
+
+const view = $('#view');
+const rotateOverlay = $('#rotateOverlay');
+const runTimer = $('#runTimer');
+
+let displayName = '____';
+let value = 0;
+
+/* ===== 오디오 컨텍스트 & 클릭 사운드(간단한 비프) ===== */
+let actx;
+function ensureAudio(){
+  if(!actx){
+    try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }
+    catch(e){}
   }
+  if(actx && actx.state==='suspended') actx.resume();
+}
+function playClick(freq=660, dur=0.08){
+  if(!actx) return;
+  const o = actx.createOscillator();
+  const g = actx.createGain();
+  o.type = 'square'; o.frequency.value = freq;
+  g.gain.value = 0.12;
+  o.connect(g).connect(actx.destination);
+  o.start();
+  o.stop(actx.currentTime + dur);
+}
 
-  /* ========= 캔버스 초기 ========= */
-  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio||1));
-  function fitCanvas(c){
-    const w = c.width = Math.floor(innerWidth * dpr);
-    const h = c.height = Math.floor((window.visualViewport?.height || innerHeight) * dpr);
-    c.style.width = '100%';
-    c.style.height = '100%';
-    return {w,h,ctx:c.getContext('2d')};
-  }
-  const viewCtxObj = fitCanvas(view);
-  window.addEventListener('resize', ()=>fitCanvas(view), {passive:true});
+/* ===== 권한 요청 (마이크 / 기울기) ===== */
+async function requestPermissions(){
+  // 오디오 컨텍스트 언락
+  ensureAudio();
+  // 마이크(미사용이더라도 사전 허용 플로우)
+  try{
+    const s = await navigator.mediaDevices.getUserMedia({audio:true});
+    setTimeout(()=>s.getTracks().forEach(t=>t.stop()), 500);
+  }catch(e){ /* 무시하고 진행 */ }
 
-  /* ========= GATE → NAME ========= */
-  gateBtn.addEventListener('click', async ()=>{
-    await ensureResumed(); playWoongClick();
-    overlay.classList.remove('show'); // fade out
-    overlay.style.transition='opacity 300ms ease';
-    requestAnimationFrame(()=> overlay.style.opacity = '0');
-    setTimeout(()=>{
-      overlay.style.display='none';
-      nameOverlay.style.display='flex';
-    },300);
-  }, {passive:true});
-
-  /* ========= NAME → WELCOME ========= */
-  nameGo.addEventListener('click', async ()=>{
-    await ensureResumed(); playWoongClick();
-    const v = (nickInput.value||'').trim();
-    if(v) displayName = v;
-    nameOverlay.style.display='none';
-    overlayWelcome.style.display='flex';
-  }, {passive:true});
-
-  /* ========= WELCOME → INTRO ========= */
-  $('#goIntro').addEventListener('click', async ()=>{
-    await ensureResumed(); playWoongClick();
-    overlayWelcome.style.display='none';
-    showIntroFlow();
-  }, {passive:true});
-
-  /* ========= INTRO 문단 =========
-     — 문단 단위로 표시. 각 문단 사이에 짧은 정지.
-     — ____ 자리에 displayName 주입.
-  */
-  const INTRO_LINES = [
-`안녕하세요?
-작게 대답해주세요.
-안녕하세요?
-대답을 해주셔야 프로그램이 진행될 수 있습니다.
-안녕하세요?
-감사합니다.`,
-
-`지금 이 화면을 보고 있는 당신은 ${'____'}의 내면 세계를 탐험하는 탐험가입니다.
-지금부터 우리는 주변의 소리에 귀를 기울이며
-30분 간의 짧은 낮잠에 빠져볼 것입니다.
-자, 천천히 공간을 거닐어보세요.
-무릎을 들고, 발을 앞으로 뻗어보세요.
-참 잘했어요.
-맞아요. 그래 맞아요. 우리는 늘 그랬어요.`,
-
-`우리는 언제나 타자와 함께 존재해 왔습니다.
-가족, 친구, 교수님, 지나가는 그들, 그리고 당신과 처음 만나는 저도 우리는 늘 함께 존재해왔습니다
-그러나 어느 순간 ‘너’로 불리던 그들은 ‘그것’으로 전락했습니다
-이유는 아무도 몰라요. 그저 우리가 ‘너’들을 ‘그것’들로 부르기 시작한 것이죠.`,
-
-`김춘추의 <꽃>이 떠오르네요.
-(진지한 톤으로) 내가 그의 이름을 불러주기 전에는 그는 다만 하나의 몸짓에 지나지 않았다.
-크으으으으으으....
-네. 각설하고.`,
-
-`이제 우리는 어느 곳에서도 ‘너’를 찾아볼 수 없습니다.
-우리는 이제 ‘너’가 사라진 세상에 살아가고 있으니까요.
-그런 특정했던 ‘너’는 서서히 희미해지고 퇴색되고 잊혀지고 잃어지고 앓아가고 있습니다`,
-
-`마치 꿈 속에서 만난 누군가가
-...
-그게 누구였지?
-...
-하고 떠오르지 않는 것처럼`,
-
-`이곳은 바로 ‘너’가 사라진 공간
-‘너’가 제거된, 제거해버린
-${'____'}의 내면 세계입니다
-그리고 당신은 지금 이 순간 ${'____'}의 내면 세계로 발을 디딥니다`,
-
-`두 번의 심호흡을 하기도 하면서,
-후 --
-하,
-후 ....
-하 ~ 
-이제 눈으로 감고,
-천천히 수면 아래로 내려갑니다.
-귀를 기울여 ‘보세요’
-내면의 미로를 탐험하여 사라진 ‘너’의 소리에
-말이 길었습니다. 잠시 후에 만나요.`
-];
-
-  function linesWithName(arr){
-    return arr.map(p => p.replaceAll('____', displayName));
-  }
-
-  function sleep(ms){ return new Promise(res=>setTimeout(res, ms)); }
-
-  /* ========= INTRO 표시 흐름 (렉 줄임) ========= */
-  async function showIntroFlow(){
-    // 대제목 먼저 짧게
-    introBig.style.display='flex';
-    introBig.classList.add('fadeFast');
-    requestAnimationFrame(()=> introBig.classList.add('show'));
-    await sleep(1000);
-    introBig.classList.remove('show');
-    await sleep(260);
-    introBig.style.display='none';
-
-    // 본문 표시
-    introOverlay.style.display='flex';
-    introBox.style.visibility='visible';
-    introBox.style.height='auto';
-    introPrev.textContent = '';
-    introLive.textContent = '';
-    introCount.textContent = '';
-
-    const paras = linesWithName(INTRO_LINES);
-
-    for (let i=0;i<paras.length;i++){
-      // 이전 문단을 위(좌측)에 남기고, 현재 문단은 중앙 스트림
-      introPrev.textContent = i>0 ? paras[i-1] : '';
-      introPrev.classList.add('show');
-
-      // 타자 효과 없이 문단 단위로 등장 (렉 최소화)
-      introLive.textContent = paras[i];
-      await sleep(1600);  // 문단 간 템포
+  // 기울기 센서 권한 (iOS 13+)
+  try{
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+      const p = await DeviceMotionEvent.requestPermission();
     }
+  }catch(e){}
+}
 
-    // 카운트다운 10초만 노출
-    let left = 10;
+/* ===== 카메라(후면 우선) ===== */
+async function startCamera(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+  const opt = {video:{facingMode:{exact:'environment'}}, audio:false};
+  try{
+    const s = await navigator.mediaDevices.getUserMedia(opt);
+    view.srcObject = s; view.muted = true; await view.play();
+  }catch(e){
+    // fallback
+    try{
+      const s2 = await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+      view.srcObject = s2; view.muted = true; await view.play();
+    }catch(e2){
+      // 카메라 없이 진행
+    }
+  }
+}
+
+/* ===== 화면 방향 안내 ===== */
+function checkOrientation(){
+  const isPortrait = window.matchMedia("(orientation: portrait)").matches;
+  rotateOverlay.style.display = isPortrait ? 'flex' : 'none';
+}
+window.addEventListener('orientationchange', checkOrientation);
+window.addEventListener('resize', checkOrientation);
+
+/* ===== 페이드 유틸 ===== */
+function fadeShow(el, as='block'){ el.style.display = as; requestAnimationFrame(()=>el.classList.add('show')); }
+function fadeHide(el){ el.classList.remove('show'); setTimeout(()=>{ el.style.display='none';}, 1800); }
+
+/* ===== 텍스트 소스 ===== */
+function captureIntroTexts(){
+  return [
+    '안녕하세요?',
+    '대답을 해주셔야 프로그램이 진행될 수 있습니다.',
+    '안녕하세요?',
+    '감사합니다.',
+    `지금 이 화면을 보고 있는 당신은`,
+    `${displayName}의 내면 세계를 탐험하는 탐험가입니다.`,
+    '지금부터 우리는 주변의 소리에 귀를 기울이며',
+    '30분 간의 짧은 낮잠에 빠져볼 것입니다.',
+    '자, 천천히 공간을 거닐어보세요.',
+    '무릎을 들고, 발을 앞으로 뻗어보세요.',
+    '참 잘했어요.',
+    '맞아요. 그래 맞아요. 우리는 늘 그랬어요.',
+    '우리는 언제나 타자와 함께 존재해 왔습니다.',
+    '가족, 친구, 교수님, 지나가는 그들, 그리고 당신과 처음 만나는 저도',
+    '우리는 늘 함께 존재해왔습니다.',
+    '그러나 어느 순간 ‘너’로 불리던 그들은',
+    '‘그것’으로 전락했습니다.',
+    '이유는 아무도 몰라요.',
+    '그저 우리가 ‘너’들을 ‘그것’들로 부르기 시작한 것이죠.',
+    '김춘추의 <꽃>이 떠오르네요.',
+    '내가 그의 이름을 불러주기 전에는 그는 다만 하나의 몸짓에 지나지 않았다.',
+    '크으으으으으으....',
+    '네. 각설하고.',
+    '이제 우리는 어느 곳에서도 ‘너’를 찾아볼 수 없습니다.',
+    '우리는 이제 ‘너’가 사라진 세상에 살아가고 있으니까요.',
+    '그런 특정했던 ‘너’는 서서히 희미해지고 퇴색되고 잊혀지고 잃어지고 앓아가고 있습니다.',
+    '마치 꿈 속에서 만난 누군가가',
+    '...',
+    '그게 누구였지?',
+    '...',
+    '하고 떠오르지 않는 것처럼',
+    '이곳은 바로 ‘너’가 사라진 공간',
+    '‘너’가 제거된, 제거해버린',
+    `${displayName}의 내면 세계입니다.`,
+    '그리고 당신은 지금 이 순간',
+    `${displayName}의 내면 세계로 발을 디딥니다.`,
+    '두 번의 심호흡을 하기도 하면서,',
+    '후 --',
+    '하,'
+  ];
+}
+
+/* ===== 인트로 진행 ===== */
+async function showIntroFlow(){
+  // 큰 타이틀
+  introBig.style.display = 'flex';
+  await sleep(1400);
+  introBig.style.display = 'none';
+
+  // 본문
+  introPrev.innerHTML = '';
+  introLive.innerHTML = '';
+  introCount.textContent = '';
+  introOverlay.style.display = 'flex';
+  await sleep(50);
+  introPrev.classList.add('show');
+
+  const lines = captureIntroTexts();
+  let prevText = '';
+  for (const line of lines){
+    introPrev.innerHTML = prevText;
+    introLive.textContent = line;
+    await sleep(1800);
+    prevText += (prevText ? '<br>' : '') + line;
+  }
+
+  // 모든 문장 후 10초 카운트다운
+  await sleep(400);
+  let left = 10;
+  introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
+  const iv = setInterval(()=>{
+    left = Math.max(0, left-1);
     introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
-    const timerId = setInterval(()=>{
-      left = Math.max(0, left-1);
-      introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
-      if(left<=0){
-        clearInterval(timerId);
-        startTransition();
-      }
-    },1000);
-  }
-
-  /* ========= INTRO → FIRST SLEEP 전환 (UI 렉 방지) ========= */
-  function startTransition(){
-    // 인트로 요소 먼저 깔끔히 숨김
-    introOverlay.style.display='none';
-    introBig.style.display='none';
-
-    // 다음 프레임에서 UI 등장 (레이아웃 스레싱 회피)
-    requestAnimationFrame(()=>{
-      controls.classList.add('show');
-      btnCapture.classList.add('show');
-      $('#runTimer').style.display='block';
-    });
-  }
-
-  /* ========= + / - 데모 ========= */
-  let val = 0;
-  $('#btnPlus').addEventListener('click', ()=>{ val++; readout.textContent = String(val); playWoongClick(); }, {passive:true});
-  $('#btnMinus').addEventListener('click', ()=>{ val--; readout.textContent = String(val); playWoongClick(); }, {passive:true});
-
-  /* ========= CAPTURE: 픽셀화 → 사라짐 (원본 재등장 X) ========= */
-  btnCapture.addEventListener('click', async ()=>{
-    await ensureResumed(); playWoongClick();
-    await pixelateAndVanish();
-  }, {passive:true});
-
-  async function pixelateAndVanish(){
-    // freezeLayer에 현재 화면 렌더(여기선 view 캔버스를 그대로 복사)
-    const {w,h,ctx} = fitCanvas(freezeLayer);
-    freezeLayer.style.display='block';
-
-    // view를 이미지로 가져오기 (여기서는 데모라 검정 배경에 글자 가정)
-    ctx.drawImage(view,0,0,w,h);
-
-    // 픽셀화 애니메이션: 다운스케일 → 업스케일 반복으로 블럭화
-    const steps = 10;
-    for(let i=0;i<steps;i++){
-      const scale = Math.max(0.08, 1 - i*(0.085)); // 점점 작게
-      const sw = Math.max(1, Math.floor(w*scale));
-      const sh = Math.max(1, Math.floor(h*scale));
-
-      // 임시 캔버스에 축소 후 다시 확대
-      const tmp = document.createElement('canvas');
-      tmp.width = sw; tmp.height = sh;
-      const tctx = tmp.getContext('2d');
-      tctx.imageSmoothingEnabled = false;
-      tctx.drawImage(freezeLayer, 0,0,w,h, 0,0,sw,sh);
-
-      ctx.imageSmoothingEnabled = false;
-      ctx.clearRect(0,0,w,h);
-      ctx.drawImage(tmp, 0,0,sw,sh, 0,0,w,h);
-
-      await sleep(28);
+    if(left<=0){
+      clearInterval(iv);
+      startTransition();
     }
+  }, 1000);
+}
 
-    // 검정으로 페이드아웃
-    await fadeToBlack(ctx, w, h);
+/* ===== 메인 진입 & UI ===== */
+function startMainUI(){
+  ctrls.classList.add('show');
+  btnCapture.classList.add('show');
+  runTimer.style.display = 'block';
 
-    // 완전히 종료: freezeLayer 숨기고 내용 클리어 (원본 재등장 방지)
-    freezeLayer.style.display='none';
-    const fctx = freezeLayer.getContext('2d');
-    fctx && fctx.clearRect(0,0,freezeLayer.width,freezeLayer.height);
-  }
+  // 런타임(예: 경과 시간) 표시
+  const t0 = Date.now();
+  setInterval(()=>{
+    const s = Math.floor((Date.now()-t0)/1000);
+    const mm = String(Math.floor(s/60)).padStart(2,'0');
+    const ss = String(s%60).padStart(2,'0');
+    runTimer.textContent = `${mm}:${ss}`;
+  }, 1000);
+}
 
-  async function fadeToBlack(ctx, w, h){
-    ctx.save();
-    for(let a=0; a<=1.0; a+=0.12){
-      ctx.fillStyle = `rgba(0,0,0,${a.toFixed(2)})`;
-      ctx.fillRect(0,0,w,h);
-      await sleep(24);
+/* ===== 트랜지션 (인트로 → 메인) ===== */
+async function startTransition(){
+  introOverlay.style.display='none';
+  // 페이드로 전환 효과 추가 가능
+  startMainUI();
+}
+
+/* ===== 캡처: 화면 프리즈 → 픽셀화 → 소멸 ===== */
+async function doCapture(){
+  playClick(520);
+  // 프리즈 캔버스 생성
+  const w = window.innerWidth, h = window.innerHeight;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+
+  // 비디오 또는 화면 캡처
+  try{
+    if(view && view.srcObject){
+      ctx.drawImage(view, 0, 0, w, h);
+    }else{
+      // 비디오 없으면 그냥 검정 바탕
+      ctx.fillStyle='#000'; ctx.fillRect(0,0,w,h);
     }
-    ctx.restore();
+  }catch(e){
+    ctx.fillStyle='#000'; ctx.fillRect(0,0,w,h);
   }
 
-  // 초기 값 표시
-  readout.textContent = '0';
+  freezeLayer.innerHTML = '';
+  freezeLayer.appendChild(c);
+  freezeLayer.style.display = 'block';
+
+  // 픽셀화 애니메이션
+  for(let s=16; s>=1; s=Math.max(1, Math.floor(s*0.7))){
+    const tmp = document.createElement('canvas');
+    tmp.width = Math.max(1, Math.floor(w/s));
+    tmp.height = Math.max(1, Math.floor(h/s));
+    const tctx = tmp.getContext('2d');
+    tctx.imageSmoothingEnabled = false;
+    tctx.drawImage(c, 0,0, tmp.width, tmp.height);
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0,0,w,h);
+    ctx.drawImage(tmp, 0,0, tmp.width, tmp.height, 0,0, w, h);
+    await sleep(40);
+  }
+
+  // 서서히 투명 → 제거
+  c.style.transition='opacity 1200ms ease';
+  c.style.opacity='1';
+  await sleep(20);
+  c.style.opacity='0';
+  await sleep(1300);
+  freezeLayer.style.display='none';
+  freezeLayer.innerHTML='';
+}
+
+/* ===== 이벤트 바인딩 ===== */
+gate.addEventListener('click', async ()=>{
+  try{
+    ensureAudio();
+    await requestPermissions();
+    await startCamera();
+  }finally{
+    overlay.style.display='none';
+    nameOverlay.style.display='flex';
+    nickInput.focus();
+  }
+});
+
+goName.addEventListener('click', ()=>{
+  const v = (nickInput.value||'').trim();
+  if(v.length>0) displayName = v;
+  nameOverlay.style.display='none';
+  preset.style.display='block'; // 필요 시 프리셋 애니메이션 자리
+  // 간단한 웰컴으로 전환
+  fadeShow(welcome, 'flex');
+});
+
+goIntro.addEventListener('click', ()=>{
+  ensureAudio();
+  playClick();
+  fadeHide(welcome);
+  showIntroFlow();
+}, {passive:true});
+
+btnMinus.addEventListener('click', ()=>{
+  value = clamp(value-1, -99, 999);
+  readout.textContent = value;
+  playClick(420);
+});
+
+btnPlus.addEventListener('click', ()=>{
+  value = clamp(value+1, -99, 999);
+  readout.textContent = value;
+  playClick(760);
+});
+
+btnCapture.addEventListener('click', doCapture, {passive:true});
+
+/* 초기 셋업 */
+readout.textContent = value;
+checkOrientation();
+
 })();
 </script>
 </body>
