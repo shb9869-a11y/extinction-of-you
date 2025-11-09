@@ -28,6 +28,10 @@
     --safe-b: env(safe-area-inset-bottom, 0px);
     --safe-l: env(safe-area-inset-left, 0px);
     --safe-r: env(safe-area-inset-right, 0px);
+
+    /* NEW: 인트로 말풍선/캐릭터 위치 오프셋 */
+    --dialogue-offset-vh: 8vh; /* 말풍선 위로 */
+    --char-offset-vh: 16vh;    /* 캐릭터는 말풍선의 2배 위로 */
   }
 
   html,body{margin:0;height:var(--appH);background:#000;overflow:hidden;touch-action:manipulation}
@@ -117,12 +121,12 @@
   #preset{position:fixed;inset:0;z-index:250;background:#000;display:none;cursor:pointer}
   #presetCanvas{position:absolute;left:0;top:0;width:100%;height:100%}
 
-  /* Welcome — iPad에서도 완전 센터 */
+  /* Welcome — 완전 센터 */
   #overlayWelcome{
     position:fixed; inset:0; z-index:220;
-    display:none; place-items:center;  /* ← 그리드로 중앙정렬 보장 */
+    display:none; place-items:center;
     color:#fff;background:rgba(0,0,0,.55);
-    padding:0;                          /* 패딩 제거로 치우침 방지 */
+    padding:0;
   }
   #overlayWelcome::before{
     content:""; position:absolute; inset:0;
@@ -142,10 +146,10 @@
   #introBig{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; pointer-events:none; z-index:231;}
   #introBigText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(48px, 22vmin, 260px); text-transform:uppercase; text-align:center; white-space:nowrap; text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7); padding:0 .02em; }
 
-  /* Intro — 말풍선 박스(블랙) */
+  /* Intro — 말풍선 박스(블랙) (위로 올림) */
   #dialogueWrap{
     position:fixed; left:calc(var(--frame) + var(--safe-l)); right:calc(var(--frame) + var(--safe-r));
-    bottom:calc(var(--frame) + var(--safe-b)); z-index:233;
+    bottom:calc(var(--frame) + var(--safe-b) + var(--dialogue-offset-vh)); z-index:233;
     display:none; align-items:flex-end; justify-content:center; pointer-events:none;
   }
   #dialogueBox{
@@ -167,6 +171,21 @@
     text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7);
     padding:0 .02em;
   }
+
+  /* NOTICE 팝업 */
+  #noticePopup{
+    position:fixed; inset:0; z-index:900; display:none;
+    align-items:center; justify-content:center; background:rgba(0,0,0,.72);
+  }
+  #noticeCard{
+    width:min(92vw, 640px);
+    background:#0b0b0b; color:#fff; border:1px solid #333;
+    padding:18px; box-shadow:0 10px 30px rgba(0,0,0,.6);
+    font-family:"Courier New",ui-monospace,monospace; line-height:1.7;
+  }
+  #noticeCard h3{ margin:0 0 6px 0; letter-spacing:.06em; font-weight:700; font-size:clamp(15px,3vmin,20px); }
+  #noticeCard p{ margin:4px 0; font-size:clamp(12px,2.4vmin,16px); }
+  #noticeActions{ margin-top:10px; text-align:right; }
 </style>
 </head>
 <body>
@@ -244,6 +263,20 @@
   <!-- THE FIRST SLEEP -->
   <div id="firstSleep"><div id="firstSleepText">THE FIRST SLEEP</div></div>
 
+  <!-- NOTICE Popup -->
+  <div id="noticePopup" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle">
+    <div id="noticeCard">
+      <h3 id="noticeTitle">NOTICE</h3>
+      <p>※ “THE FIRST SLEEP”은 눈으로 타자를 인식해 나가는 챕터입니다.</p>
+      <p>※ 앞으로 당신의 태블릿 위로 타자와 몇가지 흔적들이 텍스트로 제시될 것입니다.</p>
+      <p>※ 당신은 내면 세계의 탐험가로써 그 흔적들을 화면 아래 ‘CAPTURE’와 ‘+’, ‘-’버튼을 눌러 포착하세요.</p>
+      <p>※ 확인하셨다면, 아래 ‘OK’버튼을 눌러주세요</p>
+      <div id="noticeActions">
+        <button id="noticeOk" class="uiBtn flat" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+
 <script>
 (() => {
   /* Manifest */
@@ -318,10 +351,14 @@
   const zoomIn = qs('#zoomIn');
   const zoomOut = qs('#zoomOut');
   const zoomVal = qs('#zoomVal');
-  const captureBtn = qs('#captureBtn'); // ← 중복 선언 제거 (여기 한 번만)
+  const captureBtn = qs('#captureBtn');
   const view = qs('#view');
   const freezeLayer = qs('#freezeLayer');
   const runTimer = qs('#runTimer');
+
+  const noticePopup = qs('#noticePopup');
+  const noticeOk = qs('#noticeOk');
+  const noticeCard = qs('#noticeCard');
 
   /* ====== State ====== */
   let camPermGranted = false;
@@ -391,7 +428,7 @@
   zoomIn.addEventListener('click', async ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); await playWoongClick(); }, {passive:true});
   zoomOut.addEventListener('click', async ()=>{ ZOOM=Math.max(0.35, ZOOM-0.05); updateZoomLabel(); await playWoongClick(); }, {passive:true});
 
-  /* ===== 권한 게이트 (견고하게) ===== */
+  /* ===== 권한 게이트 ===== */
   async function immediateGestureStart(e){
     e && e.preventDefault && e.preventDefault();
     try{
@@ -423,12 +460,10 @@
       setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 60);
     });
   }
-  // 오버레이와 버튼 전체에 제스처 바인딩
   ['click','touchstart','pointerdown'].forEach(type=>{
     permBtn.addEventListener(type, immediateGestureStart, {passive:false});
     overlay.addEventListener(type, immediateGestureStart, {passive:false});
     window.addEventListener(type, (ev)=>{
-      // 첫 화면에서 오버레이가 보이는 동안, 어디 누르든 실행
       if(getComputedStyle(overlay).display !== 'none'){ immediateGestureStart(ev); }
     }, {passive:false});
   });
@@ -469,7 +504,7 @@
   addEventListener('orientationchange', ()=>setTimeout(enforceLandscapeConstraints, 300), {passive:true});
   addEventListener('resize', ()=>setTimeout(enforceLandscapeConstraints, 300), {passive:true});
 
-  /* Preset (그대로) */
+  /* Preset */
   let saverObjs = []; let saverMode = 'scatter'; let saverT0 = 0;
   function showPreset(){
     preset.style.display='block'; preset.classList.add('show');
@@ -550,7 +585,7 @@
     fadeShow(welcome, FADE);
   }, {passive:true});
 
-  /* ===== 새 인트로 데이터 ===== */
+  /* ===== 새 인트로 텍스트 ===== */
   function captureIntroTexts(){
     const lines = [
       "안녕하세요?","작게 대답해주세요.","안녕하세요?","대답을 해주셔야 프로그램이 진행될 수 있습니다.","안녕하세요?","감사합니다.",
@@ -647,7 +682,7 @@
     await sleep(650);
     dialogueWrap.style.display='none';
 
-    // “뚜웅” → 바로 FIRST SLEEP
+    // “뚜웅” → FIRST SLEEP
     await sleep(400);
     await playTduung();
     startTransition();
@@ -720,7 +755,7 @@
     return { start, stop, isRunning:()=>running };
   })();
 
-  /* Mic FX (생략 없이 유지) */
+  /* Mic FX */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null;
   function makeImpulse(ctx, seconds=5.0, decay=7.0){
     const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
@@ -783,15 +818,13 @@
     }
   }
 
-  /* Camera */
+  /* Camera & Render */
   let metaReady = false;
   async function startCameraFresh(warmupOnly=false){
     try{
       if(!camPermGranted){
         await navigator.mediaDevices.getUserMedia({
-          video:{
-            facingMode:{ideal:'environment'},
-          },
+          video:{ facingMode:{ideal:'environment'} },
           audio:true
         }).then(s=>{ s.getTracks().forEach(t=>t.stop()); camPermGranted=true; });
       }
@@ -865,7 +898,7 @@
       return {rot, s, dw, dh, letter};
     }
     const a = coverScore(false);
-       const b = coverScore(true);
+    const b = coverScore(true);
     let best = (b.letter < a.letter) ? b : a;
     if(ROTATE_FORCE) best = b;
 
@@ -884,7 +917,7 @@
     ctx.globalAlpha=1;
   }
 
-  /* ===== 픽셀 캐릭터 & 풀숲 (중앙 높이) ===== */
+  /* ===== 픽셀 캐릭터 & 풀숲 (중앙 높이보다 위로) ===== */
   const PIXEL_SPRITE = [
     "..XXXXXX....",".XXXXXXXX...",".XX.XX.XX...",".XXXXXXXX...",
     "..XXXXXX....",".XXXXXXXX...",".XXXXXXXX...",".XX.XX.XX...",
@@ -949,10 +982,12 @@
     const now = performance.now();
     let t = Math.max(0, Math.min(1, (now - introStartTime)/INTRO_WALK_DURATION));
 
-    const baselineY = Math.round(H * 0.60);
+    /* 중앙 60%에서 캐릭터를 위로 16vh 올림 */
+    const baselineY = Math.round(H * 0.60 - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--char-offset-vh'))/100)*H);
     const leftX  = Math.round(W * 0.08);
     const rightX = Math.round(W * 0.92);
 
+    /* 풀숲은 캐릭터와 같은 베이스라인 */
     drawBush(ctx, rightX, baselineY, Math.max(2, W*0.006));
 
     const tt = easeInOut(t);
@@ -1049,7 +1084,7 @@
     requestAnimationFrame(anim);
   });
 
-  /* ===== Transition: FIRST SLEEP (배경음은 사라질 때 페이드아웃) ===== */
+  /* ===== Transition: FIRST SLEEP → NOTICE (배경음은 사라질 때 페이드아웃) ===== */
   async function startTransition(){
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
@@ -1073,6 +1108,31 @@
     await sleep(fadeDur+200);
     firstSleep.style.display='none';
     firstSleep.style.transition='';
+
+    // FIRST SLEEP 사라진 뒤 NOTICE 팝업
+    showNoticePopup();
+  }
+
+  /* NOTICE 팝업 로직 */
+  function showNoticePopup(){
+    function bgTrap(e){
+      if(!e.target.closest('#noticeCard')){
+        e.stopPropagation(); e.preventDefault();
+      }
+    }
+    ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{
+      noticePopup.addEventListener(ev, bgTrap, {passive:false});
+    });
+
+    fadeShow(noticePopup, 280, 'flex');
+    setTimeout(()=>{ noticeOk && noticeOk.focus && noticeOk.focus(); }, 50);
+
+    noticeOk.onclick = async (e)=>{
+      e.stopPropagation();
+      await playWoongClick();
+      fadeHide(noticePopup, 250);
+      // 이후 자유 탐험 진행
+    };
   }
 
   /* ===== 시작 ===== */
