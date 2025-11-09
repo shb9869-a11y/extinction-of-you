@@ -54,18 +54,21 @@
   .uiBtn[disabled]{opacity:.35;pointer-events:none;filter:grayscale(1)}
   .hide{display:none !important;}
 
+  /* ↑ z-index를 FIRST SLEEP(235)보다 크게 올림 */
   .controls{
     position:fixed;
     right:calc(var(--frame) + var(--ui-gap) + var(--safe-r));
     bottom:calc(var(--frame) + var(--ui-gap) + var(--safe-b));
-    z-index:100;display:flex;gap:6px;align-items:center; opacity:0; transition:opacity 1800ms ease;}
+    z-index:400;display:flex;gap:6px;align-items:center; opacity:0; transition:opacity 1800ms ease;}
   .controls.show{opacity:1}
   .readout{min-width:48px;text-align:center;opacity:.9;font-family:"Courier New",ui-monospace,monospace;font-size:var(--fs-small);color:#ddd}
+
+  /* CAPTURE 버튼도 FIRST SLEEP 위로 */
   .btn-capture{
     position:fixed;
     left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
     bottom:calc(var(--frame) + var(--ui-gap) + var(--safe-b));
-    z-index:150; opacity:0; transition:opacity 1800ms ease;}
+    z-index:450; opacity:0; transition:opacity 1800ms ease;}
   .btn-capture.show{opacity:1}
 
   #mapLauncher, #docLauncher, #audioToggle { display:none; }
@@ -74,7 +77,7 @@
     position:fixed;
     right:calc(var(--frame) + var(--ui-gap) + var(--safe-r));
     top:calc(var(--frame) + var(--ui-gap) + var(--safe-t));
-    z-index:181;
+    z-index:460;  /* 타이머도 위로 올림(선호에 따라 유지/조정) */
     font-family:"Courier New",ui-monospace,monospace;
     font-size:var(--fs-strong);
     color:#fff; opacity:.95;
@@ -84,7 +87,6 @@
 
   .credits{ font-family:"Courier New",ui-monospace,monospace; letter-spacing:.08em; }
 
-  /* 가로 전용 안내 */
   #rotateOverlay{
     position:fixed; inset:0; z-index:1000; display:none;
     align-items:center; justify-content:center; text-align:center;
@@ -131,9 +133,9 @@
 
   #titleScreen{ position:fixed; inset:0; z-index:240; display:none; align-items:center; justify-content:center; background:#000; color:#fff; text-align:center; }
   #titleText{font-weight:900; letter-spacing:.06em; line-height:1.05; font-size:clamp(24px, 10vmin, 96px); text-transform:uppercase;}
-  /* 플래시 전용 클래스 */
   #titleScreen.flashWhite{ background:#fff !important; color:#000 !important; }
 
+  /* FIRST SLEEP 오버레이 (pointer-events: none; UI 클릭 방해 X) */
   #firstSleep{ position:fixed; inset:0; z-index:235; display:none; align-items:center; justify-content:center; pointer-events:none; }
   #firstSleepText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(28px, 11vmin, 110px); text-transform:uppercase; }
 
@@ -157,7 +159,6 @@
   <button id="audioToggle" class="uiBtn small">AUDIO</button>
   <div id="runTimer" aria-live="polite">08:00</div>
 
-  <!-- 가로 전용 오버레이 -->
   <div id="rotateOverlay" aria-live="polite">
     <div>
       <b>Landscape mode required</b><br/>
@@ -261,7 +262,7 @@
   setAppH(); addEventListener('resize', setAppH, {passive:true});
   if (window.visualViewport){ visualViewport.addEventListener('resize', ()=>setTimeout(setAppH,50)); }
 
-  /* ====== 가로 전용: 세로면 오버레이 표시 ====== */
+  /* ====== 가로 전용 ====== */
   const rotateOverlay = document.getElementById('rotateOverlay');
   function isPortrait(){
     const vv = window.visualViewport;
@@ -321,9 +322,7 @@
       ensureAudio();
       const src = audioCtx.createBufferSource();
       const buf = audioCtx.createBuffer(1, Math.max(1, audioCtx.sampleRate*0.05), audioCtx.sampleRate);
-      src.buffer = buf;
-      src.connect(audioCtx.destination);
-      src.start(0);
+      src.buffer = buf; src.connect(audioCtx.destination); src.start(0);
     }catch(e){}
   }
 
@@ -622,7 +621,7 @@
     },1000);
   }
 
-  /* Transition — 번개 제거, 플래시만 */
+  /* Transition — 플래시만 (UI는 독립적으로 표시 유지) */
   async function startTransition(){
     fadeHide(intro, FADE);
 
@@ -633,31 +632,32 @@
     titleScreen.style.display='flex';
     titleScreen.style.background='#000'; titleText.style.color='#fff';
 
-    // 웅웅 시퀀스 시작
+    // 웅웅 시퀀스
     lowWoongSequence();
 
-    // 3.6~4.0초 사이 플래시 반복 (텍스트 토글 + 섬광)
+    // 플래시 반복 + 텍스트 토글
     const endAt = performance.now() + 3800;
     let flag=false;
     while(performance.now() < endAt){
       flag = !flag;
       titleText.textContent = flag ? 'GOOD NIGHT' : 'THE FIRST SLEEP';
-
-      // 짧은 하얀 섬광
       titleScreen.classList.add('flashWhite');
       setTimeout(()=>titleScreen.classList.remove('flashWhite'), 90);
-
       await sleep(120 + (Math.random()*60|0));
     }
-
     titleScreen.style.display='none';
 
+    // FIRST SLEEP 등장
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
     await LongDrone.start();
-
     startEightTimer();
 
+    /* === 여기서 UI를 먼저 보여준다 (FIRST SLEEP 위에 떠 있음; z-index로 보장) === */
+    controls.classList.add('show');
+    captureBtn.classList.add('show');
+
+    // FIRST SLEEP 천천히 페이드아웃
     await sleep(1100);
     firstSleep.style.transition='opacity 8000ms ease';
     firstSleep.style.opacity='0';
@@ -667,15 +667,17 @@
     firstSleep.style.display='none';
     firstSleep.style.transition='';
 
+    // Mic FX 페이드인
     await sleep(400);
     await startMicFXFadeIn(2.8);
 
-    controls.classList.add('show');
-    captureBtn.classList.add('show');
+    // 캐릭터 시작
     beginCharacter();
   }
 
-  /* Ambient / LongDrone (동일) */
+  /* Ambient / LongDrone / Mic FX / Camera / Character 등
+     (직전 버전과 동일 — 생략 없이 포함) */
+
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, loops=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
@@ -1107,4 +1109,4 @@
 })();
 </script>
 </body>
-</html
+</html>
