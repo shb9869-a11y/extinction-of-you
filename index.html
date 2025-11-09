@@ -164,6 +164,20 @@
 
   #introCount{ position:absolute; bottom:calc(var(--frame) + var(--safe-b) + 8px); left:50%; transform:translateX(-50%); font-size:var(--fs-strong); }
   #titleScreen{ display:none; }
+
+  /* NOTE 팝업 */
+  #notePopup{
+    position:fixed; inset:0; z-index:900; display:none;
+    align-items:center; justify-content:center; background:rgba(0,0,0,.72);
+  }
+  #noteCard{
+    width:min(92vw, 820px); background:#0b0b0b; color:#fff; border:1px solid #333;
+    padding:20px; box-shadow:0 10px 30px rgba(0,0,0,.6);
+    font-family:"Courier New",ui-monospace,monospace; line-height:1.7;
+  }
+  #noteCard h3{ margin:0 0 10px 0; letter-spacing:.06em; font-weight:700; font-size:clamp(16px,3.2vmin,22px); }
+  #noteCard p{ margin:6px 0; font-size:var(--fs-intro); }
+  #noteActions{ margin-top:14px; text-align:right; }
 </style>
 </head>
 <body>
@@ -285,6 +299,20 @@
 
   <div id="firstSleep"><div id="firstSleepText">THE FIRST SLEEP</div></div>
 
+  <!-- NOTE Popup -->
+  <div id="notePopup" class="fade" role="dialog" aria-modal="true" aria-labelledby="noteTitle">
+    <div id="noteCard">
+      <h3 id="noteTitle">NOTE</h3>
+      <p>※ “THE FIRST SLEEP”은 눈으로 타자를 인식해 나가는 챕터입니다.</p>
+      <p>※ 앞으로 당신의 태블릿 위로 타자와 몇가지 흔적들이 텍스트로 제시될 것입니다.</p>
+      <p>※ 당신은 내면 세계의 탐험가로써 그 흔적들을 화면 아래 ‘CAPTURE’와 ‘+’, ‘-’버튼을 눌러 포착하세요.</p>
+      <p>※ 확인하셨다면, 아래 ‘OK’버튼을 눌러주세요</p>
+      <div id="noteActions">
+        <button id="noteOk" class="uiBtn flat" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+
 <script>
 (() => {
   /* Manifest */
@@ -363,6 +391,9 @@
   const runTimer = qs('#runTimer');
   const introPrev = qs('#introPrev');
   const introLive = qs('#introLive');
+
+  const notePopup = qs('#notePopup');
+  const noteOk = qs('#noteOk');
 
   /* ====== State ====== */
   let camPermGranted = false;
@@ -516,7 +547,7 @@
     permBtn.addEventListener(type, immediateGestureStart, {passive:false});
     overlayEl.addEventListener(type, immediateGestureStart, {passive:false});
   });
-  // ★ 전역 첫 제스처 폴백 — 첫 입력 시 게이트 보장
+  // 전역 첫 제스처 폴백
   function firstGestureFallback(ev){
     if(getComputedStyle(overlay).display !== 'none'){
       immediateGestureStart(ev);
@@ -623,7 +654,7 @@
       }
       o.x += o.vx; o.y += o.vy;
       if(o.x<0||o.x>w) o.vx*=-1;
-      if(o.y<0||o.y>h) o.vy*=-1;
+      if(o.y<0||o>h) o.vy*=-1;
 
       const wob = Math.sin(now/500 + o.phase)*0.12 + 1;
       ctx.save();
@@ -694,33 +725,30 @@
     return els.map(el=> (el.textContent||'').trim()).filter(Boolean);
   }
 
-  /* ===== 인트로 플로우 (요청대로 수정) ===== */
+  /* ===== 인트로 플로우 (수정: 반드시 보이도록) ===== */
   async function showIntroFlow(){
-    // INTRODUCTION: 효과 없이 '타이핑'만
-    introBigText.textContent='';
-    introBig.style.transition='opacity 0ms';
-    introBig.style.opacity='0';
+    // INTRODUCTION: '타이핑만' (등장 즉시 보이게)
     introBig.style.display='flex';
+    introBig.style.transition='opacity 0ms';
+    introBig.style.opacity='1';           // ★ 여기서 바로 보이게!
     await nextFrame();
-
+    fitTitleLine(introBigText);
     await typeSentenceTo(introBigText, 'INTRODUCTION', 45, ()=>fitTitleLine(introBigText));
+
     await sleep(1000); // 1초 대기
 
-    // 본문 오버레이를 미리 깔고 투명 상태에서 시작
+    // 본문 오버레이 페이드인 & INTRODUCTION 페이드아웃 동시 진행
     intro.style.display='flex';
     intro.style.opacity='0';
     intro.style.transition='opacity 1200ms ease';
-    // INTRODUCTION은 1.2초 동안 페이드아웃
     introBig.style.transition='opacity 1200ms ease';
-    introBig.style.opacity='0';
-
-    // 본문은 동시에 페이드인 시작
-    requestAnimationFrame(()=>{ intro.style.opacity='1'; });
-
-    // INTRO big 제거 타이밍
+    requestAnimationFrame(()=>{
+      intro.style.opacity='1';
+      introBig.style.opacity='0';
+    });
     setTimeout(()=>{ introBig.style.display='none'; introBig.style.transition=''; }, 1250);
 
-    // 본문 타이핑 시작
+    // 본문 타이핑
     introCount.textContent = '';
     introPrev.textContent = '';
     introPrev.classList.remove('show');
@@ -738,7 +766,7 @@
       prevText = line;
     }
 
-    // 카운트다운 (마지막 안내 후)
+    // 카운트다운
     await sleep(300);
     let left = 10;
     introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
@@ -798,7 +826,27 @@
     firstSleep.style.display='none';
     firstSleep.style.transition='';
 
-    beginCharacter(true);
+    // === NOTE 팝업 띄우기 ===
+    showNotePopup();
+
+    // 캐릭터 등장은 팝업 확인 후 시작(요청 흐름과 충돌 없게 분기)
+  }
+
+  /* NOTE 팝업 로직 */
+  function showNotePopup(){
+    // 배경 키/포인터 입력 억제
+    const trap = (e)=>{ e.stopPropagation(); e.preventDefault(); };
+    const events = ['touchstart','touchmove','pointerdown','click','wheel','keydown'];
+    events.forEach(ev=> notePopup.addEventListener(ev, trap, {passive:false}));
+
+    fadeShow(notePopup, 400, 'flex');
+    setTimeout(()=>{ noteOk && noteOk.focus && noteOk.focus(); }, 50);
+
+    noteOk.onclick = async ()=>{
+      await playWoongClick();
+      fadeHide(notePopup, 300);
+      beginCharacter(true); // 팝업 확인 후 캐릭터/이동선 시작
+    };
   }
 
   /* Ambient */
@@ -850,7 +898,7 @@
     return { start, stop, isRunning:()=>running };
   })();
 
-  /* Mic FX (고개 기울임에 반응) */
+  /* Mic FX */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, comp=null, micBus=null;
   function makeImpulse(ctx, seconds=5.0, decay=7.0){
     const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
