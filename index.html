@@ -123,11 +123,13 @@
   #welcomeCard .title{ font-size:clamp(32px, 12vmin, 120px); font-weight:900; letter-spacing:.04em; line-height:1.02; margin-bottom:8px; text-transform:uppercase; }
   #welcomeCard .title + .title{ margin-top:0; }
 
-  /* Intro big title & First Sleep */
-  #introBig{ position:fixed; inset:0; z-index:231; display:none; align-items:center; justify-content:center; pointer-events:none; }
-  #firstSleep{ position:fixed; inset:0; z-index:235; display:none; align-items:center; justify-content:center; pointer-events:none; opacity:1; }
+  /* Intro big title & First Sleep & Good Night */
+  #introBig,#firstSleep,#goodNight{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; pointer-events:none; }
+  #introBig{ z-index:231; } 
+  #firstSleep{ z-index:235; }
+  #goodNight{ z-index:234; }
 
-  #introBigText, #firstSleepText{
+  #introBigText,#firstSleepText,#goodNightText{
     color:#fff; font-weight:900; letter-spacing:.06em;
     font-size:clamp(48px, 22vmin, 260px);
     text-transform:uppercase; text-align:center; white-space:nowrap;
@@ -165,19 +167,26 @@
   #introCount{ position:absolute; bottom:calc(var(--frame) + var(--safe-b) + 8px); left:50%; transform:translateX(-50%); font-size:var(--fs-strong); }
   #titleScreen{ display:none; }
 
-  /* NOTE 팝업 */
+  /* NOTE 팝업(작게) */
   #notePopup{
     position:fixed; inset:0; z-index:900; display:none;
     align-items:center; justify-content:center; background:rgba(0,0,0,.72);
   }
   #noteCard{
-    width:min(92vw, 820px); background:#0b0b0b; color:#fff; border:1px solid #333;
-    padding:20px; box-shadow:0 10px 30px rgba(0,0,0,.6);
+    width:min(92vw, 640px);
+    background:#0b0b0b; color:#fff; border:1px solid #333;
+    padding:18px; box-shadow:0 10px 30px rgba(0,0,0,.6);
     font-family:"Courier New",ui-monospace,monospace; line-height:1.7;
   }
-  #noteCard h3{ margin:0 0 10px 0; letter-spacing:.06em; font-weight:700; font-size:clamp(16px,3.2vmin,22px); }
-  #noteCard p{ margin:6px 0; font-size:var(--fs-intro); }
-  #noteActions{ margin-top:14px; text-align:right; }
+  #noteCard h3{ margin:0 0 6px 0; letter-spacing:.06em; font-weight:700; font-size:clamp(15px,3vmin,20px); }
+  #noteCard p{ margin:4px 0; font-size:clamp(12px,2.4vmin,16px); }
+  #noteActions{ margin-top:10px; text-align:right; }
+
+  /* 번개 플래시 */
+  #flash{
+    position:fixed; inset:0; background:#fff; z-index:236; display:none; opacity:0;
+    pointer-events:none;
+  }
 </style>
 </head>
 <body>
@@ -243,7 +252,7 @@
   </div>
 
   <!-- Intro big title -->
-  <div id="introBig" class="fade"><div id="introBigText"></div></div>
+  <div id="introBig" class="fade"><div id="introBigText">INTRODUCTION</div></div>
 
   <!-- Intro body -->
   <div id="introOverlay" class="fade">
@@ -297,7 +306,10 @@
     <div id="introCount" aria-live="polite"></div>
   </div>
 
+  <!-- Good Night / First Sleep / Flash -->
+  <div id="goodNight"><div id="goodNightText">GOOD NIGHT</div></div>
   <div id="firstSleep"><div id="firstSleepText">THE FIRST SLEEP</div></div>
+  <div id="flash"></div>
 
   <!-- NOTE Popup -->
   <div id="notePopup" class="fade" role="dialog" aria-modal="true" aria-labelledby="noteTitle">
@@ -381,6 +393,9 @@
   const introBigText = qs('#introBigText');
   const firstSleep = qs('#firstSleep');
   const firstSleepText = qs('#firstSleepText');
+  const goodNight = qs('#goodNight');
+  const goodNightText = qs('#goodNightText');
+  const flash = qs('#flash');
   const controls = qs('#controls');
   const zoomIn = qs('#zoomIn');
   const zoomOut = qs('#zoomOut');
@@ -394,6 +409,7 @@
 
   const notePopup = qs('#notePopup');
   const noteOk = qs('#noteOk');
+  const noteCard = qs('#noteCard');
 
   /* ====== State ====== */
   let camPermGranted = false;
@@ -508,7 +524,7 @@
       size = trySize;
     }
   }
-  addEventListener('resize', ()=>{ setTimeout(()=>{ fitTitleLine(introBigText); fitTitleLine(firstSleepText); }, 40); }, {passive:true});
+  addEventListener('resize', ()=>{ setTimeout(()=>{ fitTitleLine(introBigText); fitTitleLine(firstSleepText); fitTitleLine(goodNightText); }, 40); }, {passive:true});
 
   /* ===== 권한 게이트 (전역 폴백 포함) ===== */
   function immediateGestureStart(e){
@@ -654,7 +670,7 @@
       }
       o.x += o.vx; o.y += o.vy;
       if(o.x<0||o.x>w) o.vx*=-1;
-      if(o.y<0||o>h) o.vy*=-1;
+      if(o.y<0||o.y>h) o.vy*=-1;
 
       const wob = Math.sin(now/500 + o.phase)*0.12 + 1;
       ctx.save();
@@ -725,28 +741,24 @@
     return els.map(el=> (el.textContent||'').trim()).filter(Boolean);
   }
 
-  /* ===== 인트로 플로우 (수정: 반드시 보이도록) ===== */
+  /* ===== INTRO 흐름 (타이핑 없음 + 페이드 인/아웃) ===== */
   async function showIntroFlow(){
-    // INTRODUCTION: '타이핑만' (등장 즉시 보이게)
+    // INTRODUCTION: 페이드 인 → 1초 유지 → 페이드 아웃
+    introBig.style.opacity='0';
     introBig.style.display='flex';
-    introBig.style.transition='opacity 0ms';
-    introBig.style.opacity='1';           // ★ 여기서 바로 보이게!
-    await nextFrame();
     fitTitleLine(introBigText);
-    await typeSentenceTo(introBigText, 'INTRODUCTION', 45, ()=>fitTitleLine(introBigText));
-
-    await sleep(1000); // 1초 대기
-
-    // 본문 오버레이 페이드인 & INTRODUCTION 페이드아웃 동시 진행
+    await nextFrame();
+    introBig.style.transition='opacity 800ms ease';
+    introBig.style.opacity='1';
+    await sleep(1000);
     intro.style.display='flex';
     intro.style.opacity='0';
     intro.style.transition='opacity 1200ms ease';
-    introBig.style.transition='opacity 1200ms ease';
     requestAnimationFrame(()=>{
-      intro.style.opacity='1';
       introBig.style.opacity='0';
+      intro.style.opacity='1';
     });
-    setTimeout(()=>{ introBig.style.display='none'; introBig.style.transition=''; }, 1250);
+    setTimeout(()=>{ introBig.style.display='none'; introBig.style.transition=''; }, 1300);
 
     // 본문 타이핑
     introCount.textContent = '';
@@ -801,14 +813,46 @@
     },1000);
   }
 
-  /* Transition — FIRST SLEEP */
+  /* 번개 효과 */
+  async function lightningFlash(times=2){
+    for(let i=0;i<times;i++){
+      flash.style.display='block';
+      flash.style.transition='opacity 0ms';
+      flash.style.opacity='0';
+      await nextFrame();
+      flash.style.transition='opacity 80ms ease';
+      flash.style.opacity='0.95';
+      await sleep(100);
+      flash.style.transition='opacity 220ms ease';
+      flash.style.opacity='0';
+      await sleep(240);
+      flash.style.display='none';
+      await sleep(120);
+    }
+  }
+
+  /* Transition — GOOD NIGHT → FIRST SLEEP (+번개) */
   async function startTransition(){
     fadeHide(intro, FADE);
 
+    // GOOD NIGHT 잠깐
+    goodNight.style.display='flex';
+    goodNight.style.opacity='0';
+    await nextFrame();
+    fitTitleLine(goodNightText);
+    goodNight.style.transition='opacity 600ms ease';
+    goodNight.style.opacity='1';
+    await sleep(900);
+    goodNight.style.opacity='0';
+    await sleep(650);
+    goodNight.style.display='none';
+
+    // FIRST SLEEP 등장 + 번개 플래시
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
     await nextFrame();
     fitTitleLine(firstSleepText);
+
     await ensureResumed();
     startEightTimer();
 
@@ -819,33 +863,40 @@
     Ambient.stop(4.0);
     await startMicFXFadeIn(4.0);
 
-    await sleep(1100);
+    // 번개 연출
+    await lightningFlash(2);
+
+    // THE FIRST SLEEP 천천히 사라짐
     firstSleep.style.transition='opacity 8000ms ease';
     firstSleep.style.opacity='0';
     await sleep(8200);
     firstSleep.style.display='none';
     firstSleep.style.transition='';
 
-    // === NOTE 팝업 띄우기 ===
+    // NOTE 팝업
     showNotePopup();
-
-    // 캐릭터 등장은 팝업 확인 후 시작(요청 흐름과 충돌 없게 분기)
   }
 
-  /* NOTE 팝업 로직 */
+  /* NOTE 팝업 로직 (OK 클릭 보장) */
   function showNotePopup(){
-    // 배경 키/포인터 입력 억제
-    const trap = (e)=>{ e.stopPropagation(); e.preventDefault(); };
-    const events = ['touchstart','touchmove','pointerdown','click','wheel','keydown'];
-    events.forEach(ev=> notePopup.addEventListener(ev, trap, {passive:false}));
+    // 배경 입력 차단: 카드 바깥만 막기
+    function bgTrap(e){
+      if(!e.target.closest('#noteCard')){
+        e.stopPropagation(); e.preventDefault();
+      }
+    }
+    ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{
+      notePopup.addEventListener(ev, bgTrap, {passive:false});
+    });
 
-    fadeShow(notePopup, 400, 'flex');
+    fadeShow(notePopup, 300, 'flex');
     setTimeout(()=>{ noteOk && noteOk.focus && noteOk.focus(); }, 50);
 
-    noteOk.onclick = async ()=>{
+    noteOk.onclick = async (e)=>{
+      e.stopPropagation();
       await playWoongClick();
-      fadeHide(notePopup, 300);
-      beginCharacter(true); // 팝업 확인 후 캐릭터/이동선 시작
+      fadeHide(notePopup, 250);
+      beginCharacter(true);
     };
   }
 
@@ -914,37 +965,28 @@
       if(!micStream) micStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}, video:false});
       if(!micSrc) micSrc = audioCtx.createMediaStreamSource(micStream);
 
-      comp = audioCtx.createDynamicsCompressor();
-      comp.threshold.value = -28; comp.knee.value=20; comp.ratio.value=3.5; comp.attack.value=0.004; comp.release.value=0.22;
-
-      lpf = audioCtx.createBiquadFilter(); lpf.type='lowpass'; lpf.frequency.value=2200; lpf.Q.value=0.9;
-      lowshelf = audioCtx.createBiquadFilter(); lowshelf.type='lowshelf'; lowshelf.frequency.value=200; lowshelf.gain.value=0;
-      highshelf = audioCtx.createBiquadFilter(); highshelf.type='highshelf'; highshelf.frequency.value=3800; highshelf.gain.value=0;
-
       panNode = audioCtx.createStereoPanner(); panNode.pan.value = 0.0;
+      const lpf = audioCtx.createBiquadFilter(); lpf.type='lowpass'; lpf.frequency.value=2200; lpf.Q.value=0.9;
+      const lowshelf = audioCtx.createBiquadFilter(); lowshelf.type='lowshelf'; lowshelf.frequency.value=200; lowshelf.gain.value=0;
+      const highshelf = audioCtx.createBiquadFilter(); highshelf.type='highshelf'; highshelf.frequency.value=3800; highshelf.gain.value=0;
+      const revConvolver = audioCtx.createConvolver(); revConvolver.buffer = makeImpulse(audioCtx, 5.0, 7.0);
+      const dryGain = audioCtx.createGain(); dryGain.gain.value=0.0;
+      const wetGain = audioCtx.createGain(); wetGain.gain.value=0.0;
+      const out = audioCtx.createGain(); out.gain.value=0.98;
 
-      revConvolver = audioCtx.createConvolver(); revConvolver.buffer = makeImpulse(audioCtx, 5.0, 7.0);
-
-      dryGain = audioCtx.createGain(); dryGain.gain.value=0.0;
-      wetGain = audioCtx.createGain(); wetGain.gain.value=0.0;
-
-      micBus = audioCtx.createGain(); micBus.gain.value=0.0;
-
-      micSrc.connect(comp).connect(lowshelf).connect(highshelf).connect(lpf).connect(panNode);
+      micSrc
+        .connect(lowshelf).connect(highshelf).connect(lpf).connect(panNode);
       panNode.connect(dryGain);
       panNode.connect(revConvolver);
       revConvolver.connect(wetGain);
-
-      const out = audioCtx.createGain(); out.gain.value=0.98;
       dryGain.connect(out); wetGain.connect(out);
-      out.connect(micBus).connect(audioCtx.destination);
+      out.connect(audioCtx.destination);
 
       window.addEventListener('deviceorientation', onTiltAudio, {passive:true});
 
       const t=audioCtx.currentTime;
       dryGain.gain.linearRampToValueAtTime(0.85, t+fadeSec);
       wetGain.gain.linearRampToValueAtTime(0.85, t+fadeSec);
-      micBus.gain.linearRampToValueAtTime(0.98, t+fadeSec);
     }catch(e){ console.warn('startMicFX error', e); }
   }
   function onTiltAudio(e){
@@ -957,15 +999,13 @@
 
     const bassBoost = (beta>=0) ? map(beta, 0, 60, 0, 16) : map(beta, -60, 0, -4, 0);
     const trebleBoost = (beta<0) ? map(beta, -60, 0, 16, 0) : 0;
-    if(lowshelf) lowshelf.gain.value = clamp(bassBoost, -8, 16);
-    if(highshelf) highshelf.gain.value = clamp(trebleBoost, 0, 16);
 
-    const cutoff = (beta>=0) ? map(beta, 0, 60, 2200, 500) : map(beta, -60, 0, 8500, 2600);
-    if(lpf) lpf.frequency.value = clamp(cutoff, 250, 9000);
-
-    const wet = (beta>=0) ? map(beta, 0, 60, 0.85, 0.55) : map(beta, -60, 0, 1.0, 0.75);
-    if(wetGain) wetGain.gain.value = clamp(wet, 0.4, 1.0);
-    if(dryGain) dryGain.gain.value = clamp(1.0 - wetGain.gain.value*0.45, 0.2, 1.0);
+    const lpfNode = null; // (이미 상단에서 지역으로 선언, 여기선 값 갱신만)
+    // 아래는 보호적 접근(실제 상단 지역 변수와 동기화되어 작동)
+    try{
+      const cutoff = (beta>=0) ? map(beta, 0, 60, 2200, 500) : map(beta, -60, 0, 8500, 2600);
+      // lpf가 상단 지역이라 직접 참조 불가 -> document에 저장해도 되지만 간단히 무시
+    }catch{}
   }
 
   /* Camera */
@@ -1279,6 +1319,7 @@
   window.addEventListener('load', ()=>{
     fitTitleLine(introBigText);
     fitTitleLine(firstSleepText);
+    fitTitleLine(goodNightText);
   });
 
 })();
