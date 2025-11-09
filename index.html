@@ -20,7 +20,6 @@
     --fs-strong: clamp(14px, 2.8vmin, 20px);
     --fs-small: clamp(11px, 1.8vmin, 14px);
     --fs-name: clamp(16px,3.2vmin,22px);
-    /* 인트로 해설 +3pt */
     --fs-intro: clamp(14px, 2.6vmin, 17px);
 
     --pad-btn-y: clamp(6px, 1.1vmin, 10px);
@@ -124,20 +123,19 @@
   #welcomeCard .title{ font-size:clamp(32px, 12vmin, 120px); font-weight:900; letter-spacing:.04em; line-height:1.02; margin-bottom:8px; text-transform:uppercase; }
   #welcomeCard .title + .title{ margin-top:0; }
 
-  /* Intro big title & First Sleep — 화면 너비에 '정확히' 맞추는 전용 스타일 */
+  /* Intro big title & First Sleep */
   #introBig{ position:fixed; inset:0; z-index:231; display:none; align-items:center; justify-content:center; pointer-events:none; }
   #firstSleep{ position:fixed; inset:0; z-index:235; display:none; align-items:center; justify-content:center; pointer-events:none; opacity:1; }
 
-  /* 기본은 크게 주고, JS가 프레임 폭에 맞게 세밀 조정 */
   #introBigText, #firstSleepText{
     color:#fff; font-weight:900; letter-spacing:.06em;
-    font-size:clamp(48px, 22vmin, 260px); /* 큰 기본값 */
+    font-size:clamp(48px, 22vmin, 260px);
     text-transform:uppercase; text-align:center; white-space:nowrap;
     text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7);
     padding:0 .02em;
   }
 
-  /* Intro body (두 줄 구조) */
+  /* Intro body */
   #introOverlay{position:fixed; inset:0; z-index:230; display:none; align-items:center; justify-content:center; color:#fff; background:rgba(0,0,0,.35); padding:calc(24px + var(--safe-t)) calc(16px + var(--safe-r)) calc(20px + var(--safe-b)) calc(16px + var(--safe-l)); font-family:"Courier New",ui-monospace,monospace; overflow:hidden;}
   #introBox{ width:min(92vw, 860px); margin:0 auto; visibility:hidden; height:0; overflow:hidden; }
   #introBox p{font-size:var(--fs-intro);}
@@ -448,11 +446,11 @@
   zoomIn.addEventListener('click', async ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); await playWoongClick(); }, {passive:true});
   zoomOut.addEventListener('click', async ()=>{ ZOOM=Math.max(0.35, ZOOM-0.05); updateZoomLabel(); await playWoongClick(); }, {passive:true});
 
-  /* ====== 타이틀 한 줄 자동 맞춤 (프레임 박스 안에 '정확히' 채우기) ====== */
+  /* ====== 타이틀 한 줄 자동 맞춤 ====== */
   function getSafeLineWidth(){
     const fr = document.querySelector('.frameBox').getBoundingClientRect();
-    const w = Math.max(320, fr.width * 0.90);      // 프레임 안쪽 90%
-    return Math.min(w, window.innerWidth * 0.96);  // 양쪽 여유
+    const w = Math.max(320, fr.width * 0.90);
+    return Math.min(w, window.innerWidth * 0.96);
   }
   const titleFitMemo = new WeakMap();
   function fitTitleLine(el){
@@ -461,19 +459,16 @@
     const cs = getComputedStyle(el);
     let base = titleFitMemo.get(el);
     if(!base){
-      base = parseFloat(cs.fontSize) || 48;        // 큰 베이스
+      base = parseFloat(cs.fontSize) || 48;
       titleFitMemo.set(el, base);
     }
     let size = base;
     el.style.fontSize = size+'px';
     el.style.whiteSpace = 'nowrap';
-
-    // 줄어들기
     while(el.scrollWidth > maxW && size > 24){
       size *= 0.94; el.style.fontSize = size+'px';
       if(size < 24) break;
     }
-    // 커지기 (여유 있을 때)
     let guard = 0;
     while(el.scrollWidth < maxW*0.985 && size < base*2.2 && guard++<40){
       const trySize = size * 1.04;
@@ -484,7 +479,7 @@
   }
   addEventListener('resize', ()=>{ setTimeout(()=>{ fitTitleLine(introBigText); fitTitleLine(firstSleepText); }, 40); }, {passive:true});
 
-  /* 권한 게이트 → 닉네임 */
+  /* ===== 권한 게이트 (전역 폴백 포함) ===== */
   function immediateGestureStart(e){
     e && e.preventDefault && e.preventDefault();
     userInteracted = true;
@@ -520,6 +515,15 @@
   ['click','touchstart','pointerdown'].forEach(type=>{
     permBtn.addEventListener(type, immediateGestureStart, {passive:false});
     overlayEl.addEventListener(type, immediateGestureStart, {passive:false});
+  });
+  // ★ 전역 첫 제스처 폴백 — 첫 입력 시 게이트 보장
+  function firstGestureFallback(ev){
+    if(getComputedStyle(overlay).display !== 'none'){
+      immediateGestureStart(ev);
+    }
+  }
+  ['click','touchstart','pointerdown','keydown'].forEach(ev=>{
+    document.addEventListener(ev, firstGestureFallback, {passive:false, once:true});
   });
 
   /* Name → Preset */
@@ -640,7 +644,7 @@
     fadeShow(welcome, FADE);
   }, {passive:true});
 
-  /* ====== 인트로: 1줄 자동 맞춤 ====== */
+  /* ===== 인트로 본문 한 줄 맞춤 ===== */
   function getBodySafeLineWidth(){
     const fr = document.querySelector('.frameBox').getBoundingClientRect();
     const w = Math.max(320, fr.width * 0.84);
@@ -690,15 +694,33 @@
     return els.map(el=> (el.textContent||'').trim()).filter(Boolean);
   }
 
+  /* ===== 인트로 플로우 (요청대로 수정) ===== */
   async function showIntroFlow(){
+    // INTRODUCTION: 효과 없이 '타이핑'만
     introBigText.textContent='';
-    fadeShow(introBig, FADE, 'flex');
+    introBig.style.transition='opacity 0ms';
+    introBig.style.opacity='0';
+    introBig.style.display='flex';
+    await nextFrame();
+
     await typeSentenceTo(introBigText, 'INTRODUCTION', 45, ()=>fitTitleLine(introBigText));
-    await sleep(800);
-    fadeHide(introBig, FADE);
+    await sleep(1000); // 1초 대기
 
-    fadeShow(intro, FADE, 'flex');
+    // 본문 오버레이를 미리 깔고 투명 상태에서 시작
+    intro.style.display='flex';
+    intro.style.opacity='0';
+    intro.style.transition='opacity 1200ms ease';
+    // INTRODUCTION은 1.2초 동안 페이드아웃
+    introBig.style.transition='opacity 1200ms ease';
+    introBig.style.opacity='0';
 
+    // 본문은 동시에 페이드인 시작
+    requestAnimationFrame(()=>{ intro.style.opacity='1'; });
+
+    // INTRO big 제거 타이밍
+    setTimeout(()=>{ introBig.style.display='none'; introBig.style.transition=''; }, 1250);
+
+    // 본문 타이핑 시작
     introCount.textContent = '';
     introPrev.textContent = '';
     introPrev.classList.remove('show');
@@ -716,6 +738,7 @@
       prevText = line;
     }
 
+    // 카운트다운 (마지막 안내 후)
     await sleep(300);
     let left = 10;
     introCount.textContent = `HAVE A NICE SLEEP IN ${left}s`;
@@ -757,7 +780,7 @@
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
     await nextFrame();
-    fitTitleLine(firstSleepText);           // 등장과 동시에 폭 맞춤
+    fitTitleLine(firstSleepText);
     await ensureResumed();
     startEightTimer();
 
@@ -827,7 +850,7 @@
     return { start, stop, isRunning:()=>running };
   })();
 
-  /* Mic FX */
+  /* Mic FX (고개 기울임에 반응) */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, comp=null, micBus=null;
   function makeImpulse(ctx, seconds=5.0, decay=7.0){
     const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
@@ -1206,7 +1229,6 @@
 
   /* ===== 시작 ===== */
   window.addEventListener('load', ()=>{
-    // 초기에도 한 번 보정 (혹시 캐시된 폰트/레이아웃 때문에)
     fitTitleLine(introBigText);
     fitTitleLine(firstSleepText);
   });
