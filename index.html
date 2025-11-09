@@ -1,6 +1,6 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/index.html b/index.html
-index 7932794c46662d5395edc16c8b18d54d14628141..d35b378608e5e715b8d4fabd2c3fbb524de7a2e2 100644
+index 7932794c46662d5395edc16c8b18d54d14628141..06cef77a131723a44de733ff84b1240139b39ed4 100644
 --- a/index.html
 +++ b/index.html
 @@ -1,47 +1,48 @@
@@ -52,7 +52,7 @@ index 7932794c46662d5395edc16c8b18d54d14628141..d35b378608e5e715b8d4fabd2c3fbb52
      right:calc(var(--frame) + var(--safe-r));
      bottom:calc(var(--frame) + var(--safe-b));
      border:2px solid rgba(255,255,255,.22); pointer-events:none; z-index:50;
-@@ -102,64 +103,69 @@
+@@ -102,64 +103,71 @@
    #nameOverlay{position:fixed; inset:0; z-index:260; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.85); color:#fff;}
    #nameCard{ width:min(92vw,600px); text-align:center; font-family:"Courier New",ui-monospace,monospace; }
    #nameCard h2{ margin:0 0 12px 0; letter-spacing:.08em; font-size:var(--fs-name); font-weight:400; }
@@ -93,7 +93,9 @@ index 7932794c46662d5395edc16c8b18d54d14628141..d35b378608e5e715b8d4fabd2c3fbb52
    #introPrev.show{ opacity:1; }
 +  #introPrev,
    #introLive{
-+    white-space:nowrap;
++    white-space:normal;
++    word-break:keep-all;
++    overflow-wrap:anywhere;
 +  }
 +  #introLive{
 +    display:inline-block;
@@ -125,7 +127,7 @@ index 7932794c46662d5395edc16c8b18d54d14628141..d35b378608e5e715b8d4fabd2c3fbb52
  
    <button id="docLauncher" class="uiBtn small">DOCUMENT</button>
    <button id="mapLauncher" class="uiBtn small">MAP</button>
-@@ -202,111 +208,111 @@
+@@ -202,111 +210,111 @@
    </div>
  
    <!-- Welcome -->
@@ -242,7 +244,7 @@ index 7932794c46662d5395edc16c8b18d54d14628141..d35b378608e5e715b8d4fabd2c3fbb52
      const m = window.matchMedia && window.matchMedia("(orientation: portrait)");
      return (m && m.matches) || (h > w);
    }
-@@ -430,51 +436,51 @@
+@@ -430,51 +438,51 @@
          facingMode:{ideal:'environment'},
          width:{min:1280, ideal:1920},
          height:{min:720,  ideal:1080},
@@ -295,7 +297,7 @@ index 7932794c46662d5395edc16c8b18d54d14628141..d35b378608e5e715b8d4fabd2c3fbb52
          }).catch(()=>{});
        }
        const s2 = track.getSettings ? track.getSettings() : {};
-@@ -569,100 +575,107 @@
+@@ -569,100 +577,110 @@
      fadeShow(welcome, FADE);
    }, {passive:true});
  
@@ -329,8 +331,12 @@ index 7932794c46662d5395edc16c8b18d54d14628141..d35b378608e5e715b8d4fabd2c3fbb52
 -      if(left<=0){ clearInterval(iv); startTransition(); }
 -    },1000);
 +    introCount.textContent = '';
++    introPrev.textContent = '';
++    introPrev.classList.remove('show');
++    introLive.textContent = '';
  
-     const lines = captureIntroTexts().map(l=>l.replaceAll('____', displayName));
+-    const lines = captureIntroTexts().map(l=>l.replaceAll('____', displayName));
++    const lines = captureIntroTexts().map(l=>l.split('____').join(displayName));
      let prevText = '';
      for(const line of lines){
        if(prevText){
@@ -412,7 +418,7 @@ index 7932794c46662d5395edc16c8b18d54d14628141..d35b378608e5e715b8d4fabd2c3fbb52
      function makeBus(){
        ctx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
        master = ctx.createGain(); master.gain.value = 0.0001;
-@@ -1005,82 +1018,90 @@
+@@ -1005,82 +1023,90 @@
      if(capturing) return;
      if(!vctx || !pctx) return;
  
