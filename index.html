@@ -47,7 +47,7 @@
     border:2px solid rgba(255,255,255,.22); pointer-events:none; z-index:50;
   }
 
-  /* 버튼의 검정 박스 제거 (투명) */
+  /* 투명 버튼 (검정 박스 제거) */
   .uiBtn{background:transparent;color:#fff;border:none;font-size:var(--fs-strong);
     padding:var(--pad-btn-y) var(--pad-btn-x);font-family:"Courier New",ui-monospace,monospace;white-space:nowrap;cursor:pointer;user-select:none}
   .uiBtn.small{font-size:var(--fs-small);padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6)}
@@ -123,12 +123,9 @@
 
   /* Intro body (두 줄 구조) */
   #introOverlay{position:fixed; inset:0; z-index:230; display:none; align-items:center; justify-content:center; color:#fff; background:rgba(0,0,0,.35); padding:calc(24px + var(--safe-t)) calc(16px + var(--safe-r)) calc(20px + var(--safe-b)) calc(16px + var(--safe-l)); font-family:"Courier New",ui-monospace,monospace; overflow:hidden;}
-  /* 소스 텍스트는 추출 후 숨김 */
   #introBox{ width:min(92vw, 860px); margin:0 auto; visibility:hidden; height:0; overflow:hidden; }
-  #introBox h2{ display:none; }
-  #introBox p,#introBox li{font-size:var(--fs-body);}
+  #introBox p{font-size:var(--fs-body);}
 
-  /* 두 줄 표시용 */
   #introPrev{
     position:absolute; left:calc(var(--frame) + var(--safe-l) + 6px);
     top:calc(var(--frame) + var(--safe-t) + 4px);
@@ -146,9 +143,7 @@
 
   #introCount{ position:absolute; bottom:calc(var(--frame) + var(--safe-b) + 8px); left:50%; transform:translateX(-50%); font-size:var(--fs-strong); }
 
-  #titleScreen{ position:fixed; inset:0; z-index:240; display:none; align-items:center; justify-content:center; background:#000; color:#fff; text-align:center; }
-  #titleText{font-weight:900; letter-spacing:.06em; line-height:1.05; font-size:clamp(24px, 10vmin, 96px); text-transform:uppercase;}
-  #titleScreen.flashWhite{ background:#fff !important; color:#000 !important; }
+  #titleScreen{ display:none; } /* 플래시/텍스트 연출 제거 */
 
   #firstSleep{ position:fixed; inset:0; z-index:235; display:none; align-items:center; justify-content:center; pointer-events:none; opacity:1; }
   #firstSleepText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(28px, 11vmin, 110px); text-transform:uppercase; }
@@ -223,21 +218,49 @@
   <div id="introOverlay" class="fade">
     <!-- 소스 텍스트(보이지 않음) -->
     <div id="introBox">
-      <p>지금 이 화면을 보고 있는 당신,</p>
-      <p>주변의 소리에 천천히 귀를 기울이며 공간을 거닐기 시작합니다.</p>
-      <p>지금부터 당신은 약 30분 간, 짧은 단잠에 들게 됩니다.</p>
-      <ol>
-        <li>당신이 거닐고 있는 이곳의 세계관 설명입니다.</li>
-        <li>우리는 언제나 타자와 함께 존재해왔습니다. 친구, 엄마, 누나, 아버지, 지나가는 저 사람과 같이 말이죠.</li>
-        <li>그러나 어느 순간, ‘너’로 존재했던 그들은 ‘너’가 아닌 ‘그것’으로 전락하기 시작했습니다.</li>
-        <li>이제는 그 어느곳에서도 ‘너’를 찾아볼 수는 없습니다.</li>
-        <li>‘그것’으로 전락한 ‘너’들은 서서히 우리의 내면 속에서 희미해져 가고 있기 때문이죠.</li>
-        <li>마치 꿈 속에서 분명 누군가를 만난 것 같은데, 그게 누구인지 떠오르지 않는 것처럼.</li>
-        <li>네, 그렇습니다. 이곳은 바로, 그 ‘너’가 사라져버린, ‘너’를 제거해버린, 누군가의 내면 세계입니다.</li>
-      </ol>
-      <p>당신의 의식이 서서히 희미해져가는 지금, 두 번의 심호흡을 크게 한 후,</p>
-      <p>이 내면의 미로를 거닐며, 천천히 눈을 감고,</p>
-      <p>이 세상에서 사라져버린 ‘너’의 이야기에 귀를 기울입니다.</p>
+      <p>안녕하세요?</p>
+      <p>작게 대답해주세요.</p>
+      <p>안녕하세요?</p>
+      <p>대답을 해주셔야 프로그램이 진행될 수 있습니다.</p>
+      <p>안녕하세요?</p>
+      <p>감사합니다.</p>
+      <p>지금 이 화면을 보고 있는 당신은 ____의 내면 세계를 탐험하는 탐험가입니다.</p>
+      <p>지금부터 우리는 주변의 소리에 귀를 기울이며</p>
+      <p>30분 간의 짧은 낮잠에 빠져볼 것입니다.</p>
+      <p>자, 천천히 공간을 거닐어보세요.</p>
+      <p>무릎을 들고, 발을 앞으로 뻗어보세요.</p>
+      <p>참 잘했어요.</p>
+      <p>맞아요. 그래 맞아요. 우리는 늘 그랬어요.</p>
+      <p>우리는 언제나 타자와 함께 존재해 왔습니다.</p>
+      <p>가족, 친구, 교수님, 지나가는 그들, 그리고 당신과 처음 만나는 저도 우리는 늘 함께 존재해왔습니다</p>
+      <p>그러나 어느 순간 ‘너’로 불리던 그들은 ‘그것’으로 전락했습니다</p>
+      <p>이유는 아무도 몰라요. 그저 우리가 ‘너’들을 ‘그것’들로 부르기 시작한 것이죠.</p>
+      <p>김춘추의 &lt;꽃&gt;이 떠오르네요.</p>
+      <p>(진지한 톤으로) 내가 그의 이름을 불러주기 전에는 그는 다만 하나의 몸짓에 지나지 않았다.</p>
+      <p>크으으으으으으....</p>
+      <p>네. 각설하고.</p>
+      <p>이제 우리는 어느 곳에서도 ‘너’를 찾아볼 수 없습니다.</p>
+      <p>우리는 이제 ‘너’가 사라진 세상에 살아가고 있으니까요.</p>
+      <p>그런 특정했던 ‘너’는 서서히 희미해지고 퇴색되고 잊혀지고 잃어지고 앓아가고 있습니다</p>
+      <p>마치 꿈 속에서 만난 누군가가</p>
+      <p>...</p>
+      <p>그게 누구였지?</p>
+      <p>...</p>
+      <p>하고 떠오르지 않는 것처럼</p>
+      <p>이곳은 바로 ‘너’가 사라진 공간</p>
+      <p>‘너’가 제거된, 제거해버린</p>
+      <p>____의 내면 세계입니다</p>
+      <p>그리고 당신은 지금 이 순간 ____의 내면 세계로 발을 디딥니다</p>
+      <p>두 번의 심호흡을 하기도 하면서,</p>
+      <p>후 --</p>
+      <p>하,</p>
+      <p>후 ....</p>
+      <p>하 ~</p>
+      <p>이제 눈으로 감고,</p>
+      <p>천천히 수면 아래로 내려갑니다.</p>
+      <p>귀를 기울여 ‘보세요’</p>
+      <p>내면의 미로를 탐험하여 사라진 ‘너’의 소리에</p>
+      <p>말이 길었습니다. 잠시 후에 만나요.</p>
     </div>
 
     <!-- 두 줄 출력 영역 -->
@@ -246,8 +269,6 @@
     <div id="introCount" aria-live="polite"></div>
   </div>
 
-  <!-- Title transition -->
-  <div id="titleScreen"><div id="titleText"></div></div>
   <div id="firstSleep"><div id="firstSleepText">THE FIRST SLEEP</div></div>
 
 <script>
@@ -312,8 +333,6 @@
   const introCount = qs('#introCount');
   const introBig = qs('#introBig');
   const introBigText = qs('#introBigText');
-  const titleScreen = qs('#titleScreen');
-  const titleText = qs('#titleText');
   const firstSleep = qs('#firstSleep');
   const controls = qs('#controls');
   const zoomIn = qs('#zoomIn');
@@ -385,24 +404,6 @@
       o.connect(g).connect(audioCtx.destination);
       o.start(); o.stop(audioCtx.currentTime+0.14);
     }catch(e){}
-  }
-
-  /* Woong sequence (5회 동일 길이) */
-  async function lowWoongSequence(){
-    await ensureResumed();
-    const base = audioCtx.currentTime + 0.02;
-    const reps = 5, gap = 0.6, dur = 0.55, freq = 105, gainVal = 1.25;
-    for(let i=0;i<reps;i++){
-      const t = base + i*gap;
-      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-      o.type='triangle'; o.frequency.value=freq;
-      g.gain.value=0.0001;
-      o.connect(g).connect(audioCtx.destination);
-      o.start(t);
-      g.gain.linearRampToValueAtTime(gainVal, t + 0.08);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      o.stop(t + dur + 0.08);
-    }
   }
 
   /* Zoom */
@@ -570,7 +571,7 @@
 
   /* Intro 타이핑 — 현재 문장 + 직전 문장만 노출 */
   function captureIntroTexts(){
-    const els = Array.from(document.querySelectorAll('#introBox p, #introBox li'));
+    const els = Array.from(document.querySelectorAll('#introBox p'));
     return els.map(el=> (el.textContent||'').trim()).filter(Boolean);
   }
   async function typeSentenceTo(el, sentence, speed=38){
@@ -598,21 +599,19 @@
       if(left<=0){ clearInterval(iv); startTransition(); }
     },1000);
 
-    const lines = captureIntroTexts();
+    const lines = captureIntroTexts().map(l=>l.replaceAll('____', displayName));
     let prevText = '';
     for(const line of lines){
-      // 직전 문장을 좌상단으로
       if(prevText){
         introPrev.textContent = prevText;
         introPrev.classList.add('show');
       }
-      // 현재 문장 타이핑
       await typeSentenceTo(introLive, line, 38);
-      await sleep(1800); // 머무는 시간
-      prevText = line;   // 다음 라운드를 위해 저장
+      await sleep(1800);
+      prevText = line;
     }
   }
-  goIntroBtn.addEventListener('click', ()=>{ ensureResumed().then(()=>{ playWoongClick(); fadeHide(welcome, FADE); showIntroFlow(); }); }, {passive:true});
+  document.getElementById('goIntro').addEventListener('click', ()=>{ ensureResumed().then(()=>{ playWoongClick(); fadeHide(welcome, FADE); showIntroFlow(); }); }, {passive:true});
 
   /* 8-minute timer */
   let eightTimer = null, eightLeft = 8*60;
@@ -629,60 +628,37 @@
     },1000);
   }
 
-  /* Transition — 플래시(번개X) + 오디오 크로스 페이드 */
+  /* Transition — FIRST SLEEP 단순 연출(버징 제거), BGM 페이드아웃 + Mic FX 페이드인 */
   async function startTransition(){
     fadeHide(intro, FADE);
 
-    await ensureResumed();
-    if(userInteracted) unlockAudio();
-
-    titleText.textContent='GOOD NIGHT';
-    titleScreen.style.display='flex';
-    titleScreen.style.background='#000'; titleText.style.color='#fff';
-
-    // 웅웅 시퀀스
-    lowWoongSequence();
-
-    // 플래시 반복 + 텍스트 토글
-    const endAt = performance.now() + 3800;
-    let flag=false;
-    while(performance.now() < endAt){
-      flag = !flag;
-      titleText.textContent = flag ? 'GOOD NIGHT' : 'THE FIRST SLEEP';
-      titleScreen.classList.add('flashWhite');
-      setTimeout(()=>titleScreen.classList.remove('flashWhite'), 90);
-      await sleep(120 + (Math.random()*60|0));
-    }
-    titleScreen.style.display='none';
-
-    // FIRST SLEEP 등장
+    // FIRST SLEEP 표시
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
-    await LongDrone.start();
+    await ensureResumed();
     startEightTimer();
 
-    // UI 먼저 보여주기
-    controls.classList.add('show');
-    captureBtn.classList.add('show');
+    // UI 노출
+    document.getElementById('controls').classList.add('show');
+    document.getElementById('captureBtn').classList.add('show');
 
-    // FIRST SLEEP 느리게 페이드 아웃
-    await sleep(1100);
-    firstSleep.style.transition='opacity 8000ms ease';
-    firstSleep.style.opacity='0';
-
-    // Ambient OUT 4s와 동시에 Mic FX IN 4s
+    // 앰비언스 4초 페이드아웃 + 마이크 4초 페이드인(동시)
     Ambient.stop(4.0);
     await startMicFXFadeIn(4.0);
 
+    // 텍스트 서서히 사라짐
+    await sleep(1100);
+    firstSleep.style.transition='opacity 8000ms ease';
+    firstSleep.style.opacity='0';
     await sleep(8200);
     firstSleep.style.display='none';
     firstSleep.style.transition='';
 
-    // 캐릭터 페이드-인 시작
+    // 캐릭터 등장(페이드 인)
     beginCharacter(true);
   }
 
-  /* Ambient / LongDrone / Mic FX / Camera / Character */
+  /* Ambient / Mic FX / Camera / Character — 이하 동일 (생략 없이 포함) */
 
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, loops=[];
@@ -694,7 +670,7 @@
       fb = ctx.createGain(); fb.gain.value = 0.35; delay.connect(fb).connect(delay);
       hp = ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=150;
       lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=4500;
-      mix = ctx.createGain(); mix.gain.value=0.6; mix.connect(hp).connect(lp).connect(master);
+      mix = ctx.createGain(); mix.gain.value = 0.6; mix.connect(hp).connect(lp).connect(master);
       busGain = ctx.createGain(); busGain.gain.value=0.9; busGain.connect(master);
       master.connect(ctx.destination);
     }
@@ -732,31 +708,7 @@
     return { start, stop, isRunning:()=>running };
   })();
 
-  const LongDrone = (() => {
-    let o, g, lfo, running=false;
-    async function start(){
-      await ensureResumed();
-      if(running) return;
-      o = audioCtx.createOscillator(); g = audioCtx.createGain(); lfo = audioCtx.createOscillator();
-      o.type='sawtooth'; o.frequency.value=70;
-      g.gain.value=0.0001;
-      lfo.type='sine'; lfo.frequency.value=0.7;
-      const lfoG = audioCtx.createGain(); lfoG.gain.value=0.10; lfo.connect(lfoG); lfoG.connect(g.gain);
-      o.connect(g).connect(audioCtx.destination);
-      o.start(); lfo.start();
-      g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.8);
-      running=true;
-    }
-    function stop(fade=4.5){
-      if(!running) return;
-      const t=audioCtx.currentTime;
-      g.gain.linearRampToValueAtTime(0.0001, t+fade);
-      setTimeout(()=>{ try{o.stop();lfo.stop();}catch{} running=false; }, fade*1000+120);
-    }
-    return { start, stop, isRunning:()=>running };
-  })();
-
-  /* Mic FX */
+  /* Mic FX (기울이면 톤/리버브 변화) */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, comp=null, micBus=null;
   function makeImpulse(ctx, seconds=5.0, decay=7.0){
     const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
@@ -933,8 +885,8 @@
   /* Character */
   let charActive = false;
   let charStartTime = 0;
-  let charAlpha = 0;          // 페이드 인
-  const CHAR_FADE = 1800;     // ms
+  let charAlpha = 0;
+  const CHAR_FADE = 1800;
   const CHAR_DURATION = 480000;
   const PATH_POINTS = [];
   const PIXEL_SPRITE = [
@@ -1075,15 +1027,14 @@
 
   /* Capture (픽셀화→소멸) */
   let captureAnimating = false;
-  captureBtn.addEventListener('click', ()=>{
+  document.getElementById('captureBtn').addEventListener('click', ()=>{
     if(captureAnimating) return;
     playWoongClick();
     captureAnimating = true;
 
     capturing = true;
     const cssW = view.clientWidth, cssH = view.clientHeight;
-    freezeLayer.width = cssW;
-    freezeLayer.height = cssH;
+    freezeLayer.width = cssW; freezeLayer.height = cssH;
     const fx = freezeLayer.getContext('2d');
     fx.imageSmoothingEnabled = false;
     fx.drawImage(view, 0, 0, view.width, view.height, 0, 0, cssW, cssH);
