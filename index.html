@@ -30,7 +30,6 @@
     --safe-r: env(safe-area-inset-right, 0px);
   }
 
-  /* 기본 리셋 + iOS 버튼 초기화 */
   *{box-sizing:border-box}
   html,body{margin:0;height:var(--appH);background:#000;overflow:hidden;touch-action:manipulation}
   button,input{font:inherit;color:inherit}
@@ -52,6 +51,7 @@
     border:2px solid rgba(255,255,255,.22); pointer-events:none; z-index:50;
   }
 
+  /* 기본 버튼 룩 */
   .uiBtn{
     background:#000;color:#fff;border:1px solid #444;font-size:var(--fs-strong);
     padding:var(--pad-btn-y) var(--pad-btn-x);
@@ -62,8 +62,14 @@
   .uiBtn[disabled]{opacity:.35;pointer-events:none;filter:grayscale(1)}
   .hide{display:none !important;}
 
-  /* 오버레이/버튼도 iOS 스타일 완전 제거 */
-  .gateLine{-webkit-appearance:none;appearance:none;border:none;border-radius:0;background:transparent;color:#fff;cursor:pointer}
+  /* === 요청: CAPTURE + 확대/축소 버튼은 검정 박스 제거 === */
+  .controls .uiBtn,
+  .btn-capture{
+    background:transparent !important;
+    border:none !important;
+    box-shadow:none !important;
+    text-shadow:0 0 8px rgba(0,0,0,.55);
+  }
 
   .controls{
     position:fixed;
@@ -102,7 +108,7 @@
     background:#000; color:#fff; padding:40px; font-family:"Courier New",ui-monospace,monospace;
   }
 
-  /* Gate (전체 화면 중앙 정렬 보장) */
+  /* Gate */
   #overlay{
     position:fixed; inset:0; z-index:300;
     display:flex; align-items:center; justify-content:center;
@@ -110,6 +116,7 @@
     color:#fff; background:rgba(0,0,0,.85)
   }
   #overlayContent{max-width:min(92vw, 72ch);font-family:"Courier New",ui-monospace,monospace;line-height:1.7;text-align:center}
+  .gateLine{-webkit-appearance:none;appearance:none;border:none;border-radius:0;background:transparent;color:#fff;cursor:pointer}
   .gateHint{opacity:.7;margin-top:6px}
 
   /* Name */
@@ -117,7 +124,6 @@
   #nameCard{ width:min(92vw,600px); text-align:center; font-family:"Courier New",ui-monospace,monospace; }
   #nameCard h2{ margin:0 0 12px 0; letter-spacing:.08em; font-size:var(--fs-name); font-weight:400; }
   #nick{ width:100%; padding:12px 14px; background:#000; border:1px solid #555; color:#fff; font-size:var(--fs-name); outline:none; }
-
   #nameRow{ display:flex; gap:10px; margin-top:12px; justify-content:center; }
   #nameRow .uiBtn{ padding:10px 14px; }
   #nameRow .uiBtn.flat{ font-family:"Courier New",ui-monospace,monospace; font-size:var(--fs-name); font-weight:400; }
@@ -516,7 +522,7 @@
   }
   ['click','touchstart','pointerdown'].forEach(type=>{
     permBtn.addEventListener(type, immediateGestureStart, {passive:false});
-    overlayEl.addEventListener(type, immediateGestureStart, {passive:false}); // 배경 아무데나 OK
+    overlayEl.addEventListener(type, immediateGestureStart, {passive:false});
   });
 
   /* Name → Preset */
@@ -741,7 +747,7 @@
     await LongDrone.start();
     startEightTimer();
 
-    // UI 먼저 노출 (z-index가 FIRST SLEEP보다 위)
+    // UI 먼저 노출
     controls.classList.add('show');
     captureBtn.classList.add('show');
 
@@ -749,8 +755,12 @@
     await sleep(1100);
     firstSleep.style.transition='opacity 8000ms ease';
     firstSleep.style.opacity='0';
+
+    /* === 요청: LongDrone(웅웅) 끝난 뒤 Ambient(배경음)도 꺼지게 === */
     LongDrone.stop(4.5);
-    Ambient.stop(4.5);
+    // LongDrone 감쇄 종료 후 약간의 여유를 두고 Ambient 정지
+    setTimeout(()=>{ Ambient.stop(2.0); }, 4800);
+
     await sleep(8200);
     firstSleep.style.display='none';
     firstSleep.style.transition='';
