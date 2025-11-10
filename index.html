@@ -46,8 +46,10 @@
   .fade.show{opacity:1}
 
   #view{position:fixed;left:0;top:0;width:100%;height:var(--appH);display:block;z-index:0}
-  /* 전면 레이어: 풀 + 캐릭터 + 말풍선 (대화창 위로 올라오게 z-index 234) */
+
+  /* ✅ 전면 레이어: 풀 + 캐릭터 + 말풍선 (대화창 위로 올라오게 z-index 234) */
   #fg{position:fixed;left:0;top:0;width:100%;height:var(--appH);display:block;z-index:234;pointer-events:none}
+
   #freezeLayer{position:fixed;inset:0;z-index:500;display:none}
 
   .frameBox{
@@ -195,7 +197,8 @@
 </head>
 <body>
   <canvas id="view"></canvas>
-  <!-- 전면 레이어: 풀/캐릭터/말풍선 -->
+
+  <!-- ✅ 전면 레이어: 풀/캐릭터/말풍선 (대화창보다 위) -->
   <canvas id="fg"></canvas>
 
   <canvas id="freezeLayer"></canvas>
@@ -298,7 +301,7 @@
   const FADE = 1800;
   const sleep = ms => new Promise(r=>setTimeout(r,ms));
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
-  const map=(v,inMin,inMax,outMin,outMax)=>outMin+(outMax-outMin)*((v-inMin)/(inMax-inMin));
+  const map=(v,inMin,inMax,outMin,outMax)=>outMin+(outMax-outMin)*((v-inMin)/(inMax-inMax===0?1:(inMax-inMin)));
   const qs = s => document.querySelector(s);
   const nextFrame = () => new Promise(resolve=>requestAnimationFrame(()=>resolve()));
 
@@ -378,6 +381,10 @@
   let animStarted = false, capturing = false;
   let ROTATE_FORCE = false;
   let warmupFrames = 0;
+
+  /* ✅ 인트로 전면 레이어 표시/페이드 제어 */
+  let showIntroLayer = false;  // 풀/캐릭터/말풍선 표시 여부
+  let fgAlpha = 1.0;           // 전면 레이어 전체 알파
 
   /* ===== Audio ===== */
   let audioCtx = null;
@@ -759,7 +766,7 @@
 
   function drawAllGrassStatic(ctx){
     for(const g of grassPatches){
-      // 날(잎)들
+      // 잎들
       for(let i=0;i<g.paths.length;i++){
         ctx.fillStyle = g.colors[i];
         ctx.fill(g.paths[i]);
@@ -805,7 +812,7 @@
     ctx.restore();
   }
 
-  // 캐릭터 경로(나선형 → 우측 풀숲) — 경로선 그리기는 제거, 위치만 사용
+  // 캐릭터 경로(나선 → 우측) — 경로선은 없이 위치만 사용
   function spiralPos(t01){
     const pr = getProsceniumRect();
     const baselineY = Math.round(pr.y + pr.h * 0.60 - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--char-offset-vh'))/100)*pr.h);
@@ -822,6 +829,15 @@
     sy = sy*(1-pull) + baselineY*pull;
     return {x:sx, y:sy, baselineY};
   }
+
+  /* ✅ 귀엽고 미세한 존재감(스타일 1) 추가 멘트 */
+  const bubbleSeqBase = ["HELLO", "…", "HI", "…", "HELLO!", "…"];
+  const bubbleCute = [
+    "…헤헤", "기억나?", "여기 있어.", "…쉿", "보고 있어", "꿈이야?", "아냐", "…조금 더 가까이",
+    "같이 갈래?", "손… 잡을래?", "…응", "괜찮아", "거기 있어", "작게 불러", "내 이름"
+  ];
+  let bubbleSeq = bubbleSeqBase.concat(bubbleCute); // 기본 + 추가
+  let bubbleTimer = 0, bubbleIdx = 0;
 
   /* ===== 인트로 표시 ===== */
   async function showIntroFlow(){
@@ -845,8 +861,10 @@
     dialogueWrap.style.transition='opacity 800ms ease';
     requestAnimationFrame(()=> dialogueWrap.style.opacity='1');
 
-    // 정지 풀 배치(8개) — 전면 레이어에 그릴 것이므로 여기서 생성
+    // ✅ 전면 레이어(풀/캐릭터) 준비
     placeGrassPatches(8);
+    showIntroLayer = true;
+    fgAlpha = 1.0;
 
     // 걷기 시작
     introWalking = true;
@@ -991,17 +1009,17 @@
     if(gamma > 2) panVal = +1; else if(gamma < -2) panVal = -1;
     if(panNode) panNode.pan.value = panVal;
 
-    const bassBoost = (beta>=0) ? map(beta, 0, 60, 0, 16) : map(beta, -60, 0, -4, 0);
-    const trebleBoost = (beta<0) ? map(beta, -60, 0, 16, 0) : 0;
+    const bassBoost = (beta>=0) ? ( (beta/60)*16 ) : ( (beta/60)*4 );
+    const trebleBoost = (beta<0) ? ((-beta/60)*16) : 0;
 
     if(lowshelf) lowshelf.gain.value = clamp(bassBoost, -8, 16);
     if(highshelf) highshelf.gain.value = clamp(trebleBoost, 0, 16);
     if(lpf){
-      const cutoff = (beta>=0) ? map(beta, 0, 60, 2200, 500) : map(beta, -60, 0, 8500, 2600);
+      const cutoff = (beta>=0) ? 2200 - (beta/60)*(2200-500) : 8500 + (beta/60)*(8500-2600);
       lpf.frequency.value = clamp(cutoff, 250, 9000);
     }
     if(wetGain && dryGain){
-      const wet = (beta>=0) ? map(beta, 0, 60, 0.85, 0.55) : map(beta, -60, 0, 1.0, 0.75);
+      const wet = (beta>=0) ? (0.85 - (beta/60)*(0.85-0.55)) : (1.0 + (beta/60)*(1.0-0.75));
       wetGain.gain.value = clamp(wet, 0.4, 1.0);
       dryGain.gain.value = clamp(1.0 - wetGain.gain.value*0.45, 0.2, 1.0);
     }
@@ -1114,10 +1132,6 @@
     ctx.globalAlpha=1;
   }
 
-  /* ===== 전면 레이어 렌더 ===== */
-  const bubbleSeq = ["HELLO", "…", "HI", "…", "HELLO!", "…"];
-  let bubbleTimer = 0, bubbleIdx = 0;
-
   function loop(){
     requestAnimationFrame(loop);
     if(capturing) return;
@@ -1142,29 +1156,55 @@
     // ===== 전면(FG): 프로시니엄 내부만 그리기 =====
     const pr = getProsceniumRect();
     fgctx.clearRect(0,0,W,H);
-    fgctx.save();
-    fgctx.beginPath(); fgctx.rect(pr.x, pr.y, pr.w, pr.h); fgctx.clip();
 
-    // 정지 풀
-    drawAllGrassStatic(fgctx);
+    if(showIntroLayer && fgAlpha > 0.001){
+      fgctx.save();
+      fgctx.globalAlpha = fgAlpha;
 
-    // 인트로 캐릭터(지속 이동, 경로선 없음)
-    if(introWalking){
-      const now = performance.now();
-      const tRaw = (now - introStartTime)/INTRO_WALK_DURATION;
-      const t = Math.max(0, Math.min(1, tRaw));
-      const pos = spiralPos(t);
-      const hop = Math.max(0, 10*Math.sin(t* Math.PI*20));
-      drawPixelHuman(fgctx, Math.round(pos.x), Math.round(pos.baselineY), W, hop, 1);
+      fgctx.beginPath(); fgctx.rect(pr.x, pr.y, pr.w, pr.h); fgctx.clip();
 
-      // 말풍선 (0.6초마다 갱신)
-      if(now - bubbleTimer > 600){
-        bubbleIdx = (bubbleIdx+1) % bubbleSeq.length;
-        bubbleTimer = now;
+      // 정지 풀
+      drawAllGrassStatic(fgctx);
+
+      // 인트로 캐릭터(지속 이동, 경로선 없음)
+      if(introWalking){
+        const now = performance.now();
+        const tRaw = (now - introStartTime)/INTRO_WALK_DURATION;
+        const t = Math.max(0, Math.min(1, tRaw));
+        const pos = spiralPos(t);
+        const hop = Math.max(0, 10*Math.sin(t* Math.PI*20));
+        drawPixelHuman(fgctx, Math.round(pos.x), Math.round(pos.baselineY), W, hop, 1);
+
+        // 말풍선 (0.6초마다 갱신)
+        if(now - bubbleTimer > 600){
+          bubbleIdx = (bubbleIdx+1) % bubbleSeq.length;
+          bubbleTimer = now;
+        }
+        drawBubble(fgctx, Math.round(pos.x), Math.round(pos.baselineY)-28, bubbleSeq[bubbleIdx]);
       }
-      drawBubble(fgctx, Math.round(pos.x), Math.round(pos.baselineY)-28, bubbleSeq[bubbleIdx]);
+      fgctx.restore();
     }
-    fgctx.restore();
+  }
+
+  /* ✅ 전면 레이어 페이드 아웃 (FIRST SLEEP과 동기) */
+  function fadeIntroLayerOut(ms=8000){
+    const t0 = performance.now();
+    const startAlpha = fgAlpha;
+    function step(){
+      const t = performance.now();
+      const k = Math.min(1, (t - t0)/ms);
+      fgAlpha = startAlpha * (1 - k);
+      if(k < 1){
+        requestAnimationFrame(step);
+      }else{
+        fgAlpha = 0;
+        showIntroLayer = false; // 그리기 중단
+        // 캔버스 클리어
+        const W=view.width/(devicePixelRatio||1), H=view.height/(devicePixelRatio||1);
+        fgctx && fgctx.clearRect(0,0,W,H);
+      }
+    }
+    step();
   }
 
   /* ===== Capture ===== */
@@ -1245,8 +1285,11 @@
 
     await startMicFXFadeIn(4.0);
 
-    await sleep(900);
+    // ✅ FIRST SLEEP가 뜨는 동안 풀/캐릭터/말풍선도 함께 페이드아웃
     const fadeDur = 8000;
+    fadeIntroLayerOut(fadeDur);
+
+    await sleep(900);
     firstSleep.style.transition=`opacity ${fadeDur}ms ease`;
     firstSleep.style.opacity='0';
     Ambient.stop(fadeDur/1000);
