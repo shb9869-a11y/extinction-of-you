@@ -30,8 +30,8 @@
     --safe-r: env(safe-area-inset-right, 0px);
 
     /* Intro 오프셋 (패널/캐릭터 위치) */
-    --dialogue-offset-vh: 8vh;  /* 패널을 이만큼 위로 */
-    --char-offset-vh: 16vh;     /* 캐릭터는 그보다 더 위 */
+    --dialogue-offset-vh: 8vh;   /* 말풍선 패널 들어올림 */
+    --char-offset-vh: 16vh;      /* 캐릭터 더 위 */
   }
 
   html,body{margin:0;height:var(--appH);background:#000;overflow:hidden;touch-action:manipulation}
@@ -142,11 +142,11 @@
   #welcomeCard .title + .title{ margin-top:0; }
   #goIntro{ margin-top:10px; }
 
-  /* Intro title (짧게) */
+  /* Intro title */
   #introBig{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; pointer-events:none; z-index:231;}
   #introBigText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(48px, 22vmin, 260px); text-transform:uppercase; text-align:center; white-space:nowrap; text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7); padding:0 .02em; }
 
-  /* 인트로 대화 패널: 아래까지 꽉 채우기 (offset만큼 들어 올림) */
+  /* 인트로 대화 패널: 아래까지 채우기 */
   #dialogueWrap{
     position:fixed; left:calc(var(--frame) + var(--safe-l)); right:calc(var(--frame) + var(--safe-r));
     bottom:0; z-index:233;
@@ -159,7 +159,6 @@
     border:1px solid rgba(255,255,255,.25); border-bottom:none;
     padding:14px 16px;
     font-family:"Courier New",ui-monospace,monospace; line-height:1.7;
-    /* 아래까지 채우기 */
     min-height:calc(var(--frame) + var(--safe-b) + var(--dialogue-offset-vh));
     box-shadow:0 -10px 30px rgba(0,0,0,.35) inset;
   }
@@ -244,7 +243,7 @@
     <canvas id="presetCanvas"></canvas>
   </div>
 
-  <!-- Welcome (완전 센터) -->
+  <!-- Welcome (센터 정렬) -->
   <div id="overlayWelcome" class="fade">
     <div id="welcomeCard">
       <div class="credits" style="margin-bottom:12px;">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
@@ -254,7 +253,7 @@
     </div>
   </div>
 
-  <!-- INTRODUCTION (짧게) -->
+  <!-- INTRODUCTION -->
   <div id="introBig" class="fade"><div id="introBigText">INTRODUCTION</div></div>
 
   <!-- 인트로 대화 패널 -->
@@ -284,7 +283,7 @@
 
 <script>
 (() => {
-  /* Manifest */
+  /* Manifest inline */
   (function injectManifest(){
     const manifest = {"name":"SLEEEEEP","short_name":"SLEEEEEP","display":"standalone","start_url":"./","background_color":"#000","theme_color":"#000","icons":[]};
     const url = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:"application/manifest+json"}));
@@ -324,9 +323,7 @@
     const h = vv ? vv.height : innerHeight;
     return h > w;
   }
-  function updateRotateOverlay(){
-    rotateOverlay.style.display = isPortrait() ? 'flex' : 'none';
-  }
+  function updateRotateOverlay(){ rotateOverlay.style.display = isPortrait() ? 'flex' : 'none'; }
   ['load','pageshow','resize','orientationchange','visibilitychange'].forEach(ev=>{
     addEventListener(ev, updateRotateOverlay, {passive:true});
   });
@@ -592,7 +589,7 @@
 
   /* ===== 인트로 텍스트 ===== */
   function captureIntroTexts(){
-    const lines = [
+    return [
       "안녕하세요?","작게 대답해주세요.","안녕하세요?","대답을 해주셔야 프로그램이 진행될 수 있습니다.","안녕하세요?","감사합니다.",
       `지금 이 화면을 보고 있는 당신은 ${displayName}의 내면 세계를 탐험하는 탐험가입니다.`,
       "지금부터 우리는 주변의 소리에 귀를 기울이며 30분 간의 짧은 낮잠에 빠져볼 것입니다.",
@@ -613,18 +610,18 @@
       "이제 눈으로 감고, 천천히 수면 아래로 내려갑니다.","귀를 기울여 ‘보세요’",
       "내면의 미로를 탐험하여 사라진 ‘너’의 소리에","말이 길었습니다. 잠시 후에 만나요."
     ];
-    return lines;
   }
 
-  /* ===== 인트로: 타이핑 + 줄 간 1.5초 대기 ===== */
+  /* ===== 인트로: 타이핑 + 대기 ===== */
   let introWalking = false;
   let introStartTime = 0;
   const INTRO_WALK_DURATION = 60_000;  // 1분
-  const BETWEEN_LINES_WAIT = 1500;     // 각 줄 사이 1.5s
+  const BETWEEN_LINES_WAIT = 1500;     // 줄 간 1.5s
   let dialogueLines = [];
   let dialogueIndex = 0;
 
   function getFrameRect(){ return document.querySelector('.frameBox').getBoundingClientRect(); }
+
   function fitTitleLine(el){
     if(!el) return;
     const fr = getFrameRect();
@@ -659,7 +656,7 @@
     await sleep(700);
     introBig.style.display='none';
 
-    // 대화 패널 + 걷기 시작
+    // 대화 패널
     dialogueLines = captureIntroTexts();
     dialogueIndex = 0;
     dialogueWrap.style.display='flex';
@@ -667,7 +664,11 @@
     dialogueWrap.style.transition='opacity 800ms ease';
     requestAnimationFrame(()=> dialogueWrap.style.opacity='1');
 
-    introWalking = true;                 // 여기서 시작
+    // 풀 8개 배치
+    placeGrassPatches(8);
+
+    // 걷기 시작
+    introWalking = true;
     introStartTime = performance.now();
 
     while(dialogueIndex < dialogueLines.length){
@@ -677,7 +678,7 @@
       dialogueIndex++;
     }
 
-    // 총 1분 채우기(캐릭터는 끝까지 계속 이동)
+    // 총 1분 채우기
     const elapsed = performance.now() - introStartTime;
     if(elapsed < INTRO_WALK_DURATION) await sleep(INTRO_WALK_DURATION - elapsed);
 
@@ -696,7 +697,6 @@
     startTransition();
   }
 
-  // 웰컴 → 인트로 시작
   document.getElementById('goIntro').addEventListener('click', ()=>{ ensureResumed().then(async ()=>{ await playWoongClick(); fadeHide(welcome, FADE); showIntroFlow(); }); }, {passive:true});
 
   /* 8-minute timer */
@@ -763,7 +763,7 @@
     return { start, stop, isRunning:()=>running };
   })();
 
-  /* Mic FX */
+  /* Mic FX (기존 그대로) */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null;
   function makeImpulse(ctx, seconds=5.0, decay=7.0){
     const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
@@ -879,6 +879,8 @@
     view.width=w*dpr; view.height=h*dpr; if(vctx) vctx.setTransform(dpr,0,0,dpr,0,0);
     const scale = (!isPortrait())? 0.86 : 0.9;
     if(proc){ proc.width=Math.floor(w*scale); proc.height=Math.floor(h*scale); }
+    // 풀 재배치(화면 회전/리사이즈 시)
+    if (grassPositions.length) placeGrassPatches(grassPositions.length, true);
   }
   addEventListener('resize', ()=>{ setTimeout(resizeCam,30); warmupFrames=30; }, {passive:true});
   document.addEventListener('visibilitychange', async ()=>{
@@ -925,7 +927,7 @@
     ctx.globalAlpha=1;
   }
 
-  /* ===== 픽셀 캐릭터/풀/말풍선/경로 ===== */
+  /* ===== 픽셀 캐릭터/풀/말풍선 ===== */
   const PIXEL_SPRITE = [
     "..XXXXXX....",".XXXXXXXX...",".XX.XX.XX...",".XXXXXXXX...",
     "..XXXXXX....",".XXXXXXXX...",".XXXXXXXX...",".XX.XX.XX...",
@@ -964,10 +966,9 @@
     ctx.globalAlpha = 1;
   }
 
-  /* 풀숲: 여러 블레이드 + 덩어리(픽셀풍) */
+  /* 풀: 개별 패치 */
   function drawGrassPatch(ctx, x, baselineY, W){
-    const dpr = devicePixelRatio||1;
-    const blades = Math.max(20, Math.floor(W*0.05));
+    const blades = Math.max(18, Math.floor(W*0.04));
     const maxH = Math.max(24, Math.floor(W*0.05));
     ctx.save();
     for(let i=0;i<blades;i++){
@@ -983,7 +984,8 @@
       ctx.fillStyle = `hsl(${110+Math.random()*20}, ${50+Math.random()*30}%, ${35+Math.random()*20}%)`;
       ctx.fill();
     }
-    const cell = Math.max(2*dpr, 3);
+    // 픽셀 느낌의 덩어리
+    const cell = 3;
     ctx.imageSmoothingEnabled = false;
     ctx.fillStyle = '#0b2';
     for(let y=0;y<6;y++){
@@ -996,7 +998,46 @@
     ctx.restore();
   }
 
-  /* 말풍선(캐릭터 위) */
+  // ----- 프로시니엄(테두리 안쪽) 계산 & 클립 -----
+  function getProsceniumRect(){
+    const r = getFrameRect(); // CSS px
+    return { x: r.left, y: r.top, w: r.width, h: r.height };
+  }
+  function clipToProscenium(ctx){
+    const pr = getProsceniumRect();
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(pr.x, pr.y, pr.w, pr.h);
+    ctx.clip();
+  }
+  function unclampClip(ctx){ ctx.restore(); }
+
+  // ----- 풀 8개 배치 (프로시니엄 내부) -----
+  let grassPositions = [];
+  function placeGrassPatches(count=8, keepSeeds=false){
+    const pr = getProsceniumRect();
+    const marginX = pr.w * 0.06;
+    const baseYTop = pr.y + pr.h * 0.45;
+    const baseYBot = pr.y + pr.h * 0.92;
+
+    const seeds = keepSeeds && grassPositions.length ? grassPositions.map(p=>p.seed) : [];
+    grassPositions = [];
+    for(let i=0;i<count;i++){
+      const seed = seeds[i] ?? Math.random();
+      const rx = (i+1)/(count+1); // 균등 분포 + 약간의 무작위
+      const jitter = (seed-0.5)*0.18;
+      const x = pr.x + marginX + (pr.w - marginX*2) * clamp(rx + jitter, 0.05, 0.95);
+      const y = baseYTop + (baseYBot-baseYTop) * (0.2 + (seed*0.8));
+      grassPositions.push({ x, y, seed });
+    }
+  }
+  function drawAllGrass(ctx, W){
+    for(const g of grassPositions){
+      drawGrassPatch(ctx, g.x, g.y, W);
+    }
+  }
+
+  /* 말풍선 */
   function drawBubble(ctx, x, y, text){
     const pad = 6, r = 6;
     ctx.font = '12px "Courier New", monospace';
@@ -1029,14 +1070,14 @@
   }
 
   /* 나선형 계열 경로 */
-  let introTrail = [];
   function spiralPos(t01, W, H){
-    const baselineY = Math.round(H * 0.60 - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--char-offset-vh'))/100)*H);
-    const R = Math.round(W * 0.92);
-    const cx = W*0.46, cy = baselineY - H*0.06;
+    const pr = getProsceniumRect();
+    const baselineY = Math.round(pr.y + pr.h * 0.60 - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--char-offset-vh'))/100)*pr.h);
+    const R = Math.round(pr.x + pr.w * 0.92);
+    const cx = pr.x + pr.w*0.46, cy = baselineY - pr.h*0.06;
     const turns = 2.2;
     const theta = turns * Math.PI * 2 * t01;
-    const r0 = W*0.22, r1 = W*0.02;
+    const r0 = pr.w*0.22, r1 = pr.w*0.02;
     const r = r0 + (r1 - r0) * t01;
     let sx = cx + r * Math.cos(theta);
     let sy = cy + r * Math.sin(theta);
@@ -1046,20 +1087,28 @@
     return {x:sx, y:sy, baselineY};
   }
 
-  /* 점선(도트) 트레일 */
-  function drawDottedTrail(ctx){
+  /* 경로(점선 라인) 관리 */
+  let introTrail = [];
+  function clampPointToProscenium(p){
+    const pr = getProsceniumRect();
+    return {
+      x: clamp(p.x, pr.x+3, pr.x+pr.w-3),
+      y: clamp(p.y, pr.y+3, pr.y+pr.h-3)
+    };
+  }
+  function drawDashedPath(ctx){
     if(introTrail.length<2) return;
     ctx.save();
-    ctx.fillStyle = 'rgba(255,255,255,0.95)';
-    const step = 3;           // 점 간격(샘플링)
-    const radius = 1.6;       // 점 크기
-    for(let i=0;i<introTrail.length;i+=step){
-      const p = introTrail[i];
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, radius, 0, Math.PI*2);
-      ctx.closePath();
-      ctx.fill();
+    ctx.setLineDash([8,8]);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+    ctx.beginPath();
+    ctx.moveTo(introTrail[0].x, introTrail[0].y);
+    for(let i=1;i<introTrail.length;i++){
+      ctx.lineTo(introTrail[i].x, introTrail[i].y);
     }
+    ctx.stroke();
+    ctx.setLineDash([]);
     ctx.restore();
   }
 
@@ -1089,32 +1138,44 @@
     vctx.imageSmoothingEnabled = false;
     vctx.drawImage(proc,0,0,W,H);
 
-    // 인트로 걷기 레이어
+    // ====== 프로시니엄 내부만 그리기 ======
+    clipToProscenium(vctx);
+
+    // 풀 8개
+    drawAllGrass(vctx, W);
+
+    // 인트로 걷기 & 경로
     if(introWalking){
       const now = performance.now();
       const tRaw = (now - introStartTime)/INTRO_WALK_DURATION;
-      const t = Math.max(0, Math.min(1, tRaw)); // 0~1로 클램프하되 멈추진 않음
+      const t = Math.max(0, Math.min(1, tRaw));
       const pos = spiralPos(t, W, H);
 
-      // 도착 지점 풀
-      drawGrassPatch(vctx, Math.round(W*0.92), pos.baselineY, W);
+      // 경로 포인트 기록(프로시니엄 내부로 클램프)
+      const cp = clampPointToProscenium({x:pos.x, y:pos.y});
+      introTrail.push(cp);
+      if(introTrail.length>2200) introTrail.shift();
 
-      // 트레일 기록 & '점선' 그리기
-      introTrail.push({x:pos.x, y:pos.y});
-      if(introTrail.length>1800) introTrail.shift();
-      drawDottedTrail(vctx);
+      // 점선 경로(라인)
+      drawDashedPath(vctx);
 
       // 캐릭터
       const hop = Math.max(0, 10*Math.sin(t* Math.PI*20));
-      drawPixelHuman(vctx, Math.round(pos.x), Math.round(pos.baselineY), W, hop, 1);
+      drawPixelHuman(vctx, Math.round(cp.x), Math.round(pos.baselineY), W, hop, 1);
 
       // 말풍선 (0.6초마다 갱신)
       if(now - bubbleTimer > 600){
         bubbleIdx = (bubbleIdx+1) % bubbleSeq.length;
         bubbleTimer = now;
       }
-      drawBubble(vctx, Math.round(pos.x), Math.round(pos.baselineY)-28, bubbleSeq[bubbleIdx]);
+      drawBubble(vctx, Math.round(cp.x), Math.round(pos.baselineY)-28, bubbleSeq[bubbleIdx]);
+    }else{
+      // 인트로가 끝나기 직전 프레임에도, 마지막 경로 & 풀은 남아있게
+      drawDashedPath(vctx);
     }
+
+    // 클립 해제
+    unclampClip(vctx);
   }
 
   /* ===== Capture ===== */
@@ -1177,7 +1238,7 @@
     requestAnimationFrame(anim);
   });
 
-  /* ===== Transition: FIRST SLEEP → NOTICE (배경음은 사라질 때 페이드아웃) ===== */
+  /* ===== Transition: FIRST SLEEP → NOTICE (배경음 함께 페이드아웃) ===== */
   async function startTransition(){
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
@@ -1197,12 +1258,11 @@
     const fadeDur = 8000;
     firstSleep.style.transition=`opacity ${fadeDur}ms ease`;
     firstSleep.style.opacity='0';
-    Ambient.stop(fadeDur/1000);  // 배경음 함께 페이드아웃
+    Ambient.stop(fadeDur/1000);
     await sleep(fadeDur+200);
     firstSleep.style.display='none';
     firstSleep.style.transition='';
 
-    // FIRST SLEEP 사라진 뒤 NOTICE 팝업
     showNoticePopup();
   }
 
@@ -1224,7 +1284,6 @@
       e.stopPropagation();
       await playWoongClick();
       fadeHide(noticePopup, 250);
-      // 이후 자유 탐험 진행
     };
   }
 
