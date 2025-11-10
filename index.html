@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,interactive-widget=resizes-content">
 <title>SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP</title>
 
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -29,8 +29,8 @@
     --safe-l: env(safe-area-inset-left, 0px);
     --safe-r: env(safe-area-inset-right, 0px);
 
-    --dialogue-offset-vh: 8vh;   /* 대화 패널 들어올림 */
-    --char-offset-vh: 16vh;      /* 캐릭터 위 오프셋 */
+    --dialogue-offset-vh: 8vh;
+    --char-offset-vh: 16vh;
   }
 
   html,body{margin:0;height:var(--appH);background:#000;overflow:hidden;touch-action:manipulation}
@@ -44,10 +44,7 @@
   .fade{opacity:0; transition:opacity 1800ms ease}
   .fade.show{opacity:1}
 
-  /* 배경 카메라 */
   #view{position:fixed;left:0;top:0;width:100%;height:var(--appH);display:block;z-index:0}
-
-  /* 전면 레이어(캐릭터·말풍선) — 대화창보다 위 */
   #fg{position:fixed;left:0;top:0;width:100%;height:var(--appH);display:block;z-index:880;pointer-events:none}
 
   #freezeLayer{position:fixed;inset:0;z-index:500;display:none}
@@ -144,26 +141,25 @@
   #introBig{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; pointer-events:none; z-index:210;}
   #introBigText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(48px, 22vmin, 260px); text-transform:uppercase; text-align:center; white-space:nowrap; text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7); padding:0 .02em; }
 
-  /* 인트로 대화 패널 (+ NEXT 버튼) */
+  /* Intro dialogue (with NEXT) */
   #dialogueWrap{
     position:fixed; left:calc(var(--frame) + var(--safe-l)); right:calc(var(--frame) + var(--safe-r));
     bottom:0; z-index:230;
     transform: translateY(calc(-1 * var(--dialogue-offset-vh)));
-    display:none; pointer-events:auto;   /* 클릭 가능 */
+    display:none; pointer-events:auto;
   }
   #dialogueBox{
-    position:relative;             /* NEXT 버튼 절대 배치 기준 */
+    position:relative;
     width:100%; max-width:1200px; margin:0 auto;
     background:#000; color:#fff;
     border:1px solid rgba(255,255,255,.25); border-bottom:none;
-    padding:14px 16px 44px;        /* 아래 여백 확장 (NEXT 자리) */
+    padding:14px 16px 44px;
     font-family:"Courier New",ui-monospace,monospace; line-height:1.7;
     min-height:calc(var(--frame) + var(--safe-b) + var(--dialogue-offset-vh));
     box-shadow:0 -10px 30px rgba(0,0,0,.35) inset;
   }
   #dialogueHeader{ opacity:.9; font-size:clamp(12px, 2.2vmin, 15px); letter-spacing:.08em; margin-bottom:6px; }
   #dialogueText{ font-size:clamp(14px, 2.6vmin, 19px); min-height:3lh; }
-
   #nextBtn{
     position:absolute; right:10px; bottom:10px;
     border:1px solid rgba(255,255,255,.3);
@@ -183,7 +179,7 @@
     padding:0 .02em;
   }
 
-  /* NOTICE 팝업(최상단) */
+  /* NOTICE */
   #noticePopup{
     position:fixed; inset:0; z-index:900; display:none;
     align-items:center; justify-content:center; background:rgba(0,0,0,.72);
@@ -201,7 +197,6 @@
 </head>
 <body>
   <canvas id="view"></canvas>
-  <!-- 전면 레이어: 캐릭터/말풍선 전용 -->
   <canvas id="fg"></canvas>
 
   <canvas id="freezeLayer"></canvas>
@@ -222,7 +217,8 @@
   <div id="rotateOverlay" aria-live="polite">
     <div>
       <b>Landscape mode required</b><br/>
-      Please rotate your device to landscape to continue.
+      Please rotate your device to landscape to continue.<br/>
+      If the screen doesn’t rotate, unlock orientation in your device settings.
     </div>
   </div>
 
@@ -294,16 +290,58 @@
 
 <script>
 (() => {
-  /* ===== 옵션: 잔디 OFF 유지 ===== */
-  let GRASS_ON = false;
-
-  /* ===== 유틸 ===== */
+  /* ===== Manifest: fullscreen 모드 ===== */
   (function injectManifest(){
-    const manifest = {"name":"SLEEEEEP","short_name":"SLEEEEEP","display":"standalone","start_url":"./","background_color":"#000","theme_color":"#000","icons":[]};
+    const manifest = {
+      "name":"SLEEEEEP",
+      "short_name":"SLEEEEEP",
+      "display":"fullscreen",             // ← standalone → fullscreen
+      "start_url":"./",
+      "background_color":"#000",
+      "theme_color":"#000",
+      "icons":[]
+    };
     const url = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:"application/manifest+json"}));
     const link = document.createElement('link'); link.rel='manifest'; link.href=url; document.head.appendChild(link);
   })();
 
+  /* ===== Fullscreen / Orientation / Wake Lock ===== */
+  async function enterFullscreen(){
+    try{
+      const el = document.documentElement;
+      if (!document.fullscreenElement) {
+        if (el.requestFullscreen) await el.requestFullscreen({ navigationUI: 'hide' });
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      }
+    }catch(e){}
+    try{
+      if (screen.orientation && screen.orientation.lock) {
+        await screen.orientation.lock('landscape').catch(()=>{});
+      }
+    }catch(e){}
+  }
+
+  let wakeLock = null;
+  async function keepAwake(){
+    try{
+      if ('wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', ()=>{ /* released */ });
+      }
+    }catch(e){}
+  }
+  document.addEventListener('visibilitychange', async ()=>{
+    if (document.visibilityState === 'visible' && wakeLock) {
+      try{ wakeLock = await navigator.wakeLock.request('screen'); }catch(e){}
+    }
+  });
+
+  function claimImmersive(){
+    enterFullscreen();
+    keepAwake();
+  }
+
+  /* ===== Common utils ===== */
   const FADE = 1800;
   const sleep = ms => new Promise(r=>setTimeout(r,ms));
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
@@ -328,6 +366,7 @@
   setAppH(); addEventListener('resize', setAppH, {passive:true});
   if (window.visualViewport){ visualViewport.addEventListener('resize', ()=>setTimeout(setAppH,50)); }
 
+  /* ===== Rotate guard ===== */
   const rotateOverlay = document.getElementById('rotateOverlay');
   function isPortrait(){ const vv=window.visualViewport; const w=vv?vv.width:innerWidth, h=vv?vv.height:innerHeight; return h>w; }
   function updateRotateOverlay(){ rotateOverlay.style.display = isPortrait() ? 'flex' : 'none'; }
@@ -335,7 +374,7 @@
     addEventListener(ev, updateRotateOverlay, {passive:true});
   }); updateRotateOverlay();
 
-  /* ===== 요소 ===== */
+  /* ===== Refs ===== */
   const overlay = qs('#overlay');
   const permBtn = qs('#permGateBtn');
   const nameOverlay = qs('#nameOverlay');
@@ -368,15 +407,17 @@
   const noticePopup = qs('#noticePopup');
   const noticeOk = qs('#noticeOk');
 
+  /* ===== Canvas ===== */
   let vctx=null, pctx=null, proc=null, fgctx=null;
 
+  /* ===== State ===== */
   let camPermGranted=false;
   let camStream=null, camVideo=null, ZOOM=1.0;
   let animStarted=false, capturing=false, warmupFrames=0;
 
   let showIntroLayer=false, fgAlpha=1.0;
 
-  /* ===== 오디오 ===== */
+  /* ===== Audio ===== */
   let audioCtx = null;
   function ensureAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
   async function ensureResumed(){ try{ ensureAudio(); if(audioCtx.state==='suspended') await audioCtx.resume(); }catch{} }
@@ -430,9 +471,13 @@
   zoomIn.addEventListener('click', async ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); await playWoongClick(); }, {passive:true});
   zoomOut.addEventListener('click', async ()=>{ ZOOM=Math.max(0.35, ZOOM-0.05); updateZoomLabel(); await playWoongClick(); }, {passive:true});
 
-  /* ===== 권한 게이트 ===== */
+  /* ===== Permission Gate ===== */
   async function immediateGestureStart(e){
     e && e.preventDefault && e.preventDefault();
+
+    // 안드로이드 전체화면 + 깨우기
+    claimImmersive();
+
     ensureAudio(); await ensureResumed(); playWoongClick();
 
     navigator.mediaDevices.getUserMedia({
@@ -455,9 +500,10 @@
     }, {passive:false});
   });
 
-  /* ===== 이름 입력 → 프리셋 → 웰컴 ===== */
+  /* ===== Name → Preset → Welcome ===== */
   let displayName = '____';
   async function acceptName(){
+    claimImmersive();
     const v = (nickInput.value||'').trim();
     if(v.length>0){ displayName = v; }
     await ensureResumed();
@@ -510,13 +556,14 @@
     requestAnimationFrame(saverLoop);
   }
   preset.addEventListener('click', async ()=>{
+    claimImmersive();
     await playWoongClick();
     fadeHide(preset, FADE);
     await startCameraFresh(false);
     fadeShow(welcome, FADE);
   }, {passive:true});
 
-  /* ===== 인트로 텍스트 / NEXT 진행 ===== */
+  /* ===== Intro text & NEXT flow ===== */
   function captureIntroTexts(){
     return [
       "안녕하세요?","작게 대답해주세요.","안녕하세요?","대답을 해주셔야 프로그램이 진행될 수 있습니다.","안녕하세요?","감사합니다.",
@@ -550,7 +597,6 @@
     while(el.scrollWidth>maxW && size>24){ size*=0.94; el.style.fontSize=size+'px'; }
   }
 
-  // 타이핑 컨트롤
   let isTyping=false, skipTyping=false;
   async function typeSentenceCancelable(el, text, speed=34){
     isTyping=true; skipTyping=false; el.textContent='';
@@ -563,7 +609,6 @@
     isTyping=false;
   }
 
-  // 캐릭터/말풍선
   const PIXEL_SPRITE=["..XXXXXX....",".XXXXXXXX...",".XX.XX.XX...",".XXXXXXXX...","..XXXXXX....",".XXXXXXXX...",".XXXXXXXX...",".XX.XX.XX...",".XXXXXXXX...","..XXXXXX....",".XX....XX...",".XX....XX...",".XX....XX...",".XX....XX...","..XX..XX....","..XX..XX...."];
   const COLOR_FILL='#ff8a3c', COLOR_STROKE='#000';
   function drawPixelHuman(ctx, cx, baselineY, W, hop=0, alpha=1){
@@ -596,36 +641,46 @@
     const pull=t01*t01; sx=sx*(1-pull)+R*pull; sy=sy*(1-pull)+baselineY*pull;
     return {x:sx,y:sy,baselineY};
   }
-  const bubbleSeqBase=["HELLO","…","HI","…","HELLO!","…"];
-  const bubbleCute=["…헤헤","기억나?","여기 있어.","…쉿","보고 있어","꿈이야?","아냐","…조금 더 가까이","같이 갈래?","손… 잡을래?","…응","괜찮아","거기 있어","작게 불러","내 이름"];
-  let bubbleSeq=bubbleSeqBase.concat(bubbleCute), bubbleTimer=0, bubbleIdx=0;
+  function drawBubble(ctx, x, y, text){
+    const pad=6, r=6; ctx.font='12px "Courier New", monospace';
+    const m=ctx.measureText(text), w=Math.max(28,m.width+pad*2), h=18+pad*2;
+    const bx=Math.round(x-w/2), by=Math.round(y-h-18);
+    ctx.save();
+    ctx.fillStyle='rgba(0,0,0,0.85)'; ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(bx+r,by); ctx.arcTo(bx+w,by,bx+w,by+h,r);
+    ctx.arcTo(bx+w,by+h,bx,by+h,r); ctx.arcTo(bx,by+h,bx,by,r); ctx.arcTo(bx,by,bx+w,by,r); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-6,by+h-1); ctx.lineTo(x,by+h+6); ctx.lineTo(x+6,by+h-1); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.fillText(text,bx+pad,by+pad+12);
+    ctx.restore();
+  }
 
-  function fitTitleLineAll(){ fitTitleLine(introBigText); fitTitleLine(firstSleepText); }
-  window.addEventListener('load', fitTitleLineAll);
-
-  /* ===== 인트로 플로우 (NEXT 클릭 진행) ===== */
   let introWalking=false, introStartTime=0;
   const INTRO_WALK_DURATION=60_000;
   let lines=[], lineIdx=0;
+  let bubbleSeq=["HELLO","…","HI","…","HELLO!","…","…헤헤","기억나?","여기 있어.","…쉿","보고 있어","꿈이야?","아냐","…조금 더 가까이","같이 갈래?","손… 잡을래?","…응","괜찮아","거기 있어","작게 불러","내 이름"];
+  let bubbleTimer=0, bubbleIdx=0;
+
+  function fitTitleLineSafe(){ fitTitleLine(introBigText); fitTitleLine(firstSleepText); }
+  window.addEventListener('load', fitTitleLineSafe);
 
   async function showIntroFlow(){
-    // INTRODUCTION 타이틀
+    claimImmersive();
+
     introBig.style.display='flex'; introBig.style.opacity='0';
     await nextFrame(); fitTitleLine(introBigText);
     introBig.style.transition='opacity 800ms ease'; introBig.style.opacity='1';
     await sleep(1200); introBig.style.opacity='0'; await sleep(700); introBig.style.display='none';
 
-    // 대화 패널 표시
     lines=captureIntroTexts(); lineIdx=0;
     dialogueWrap.style.display='flex';
     dialogueWrap.style.opacity='0';
     dialogueWrap.style.transition='opacity 800ms ease';
     requestAnimationFrame(()=> dialogueWrap.style.opacity='1');
 
-    // 캐릭터 레이어 켜기
     showIntroLayer=true; fgAlpha=1.0; introWalking=true; introStartTime=performance.now();
 
-    // 첫 줄 출력
     await showCurrentLine();
     enableAdvance();
   }
@@ -636,33 +691,19 @@
     await typeSentenceCancelable(dialogueText, s, 34);
     enableAdvance();
   }
-
   function enableAdvance(){ nextBtn.disabled=false; }
   function disableAdvance(){ nextBtn.disabled=true; }
 
   async function onAdvance(){
+    claimImmersive();
     await ensureResumed(); await playWoongClick();
-    if(isTyping){
-      // 타이핑 중이면 즉시 완성
-      skipTyping=true;
-      return;
-    }
-    // 다음 줄로
+    if(isTyping){ skipTyping=true; return; }
     lineIdx++;
-    if(lineIdx < lines.length){
-      await showCurrentLine();
-    }else{
-      // 인트로 종료 절차
-      await endIntroAndTransition();
-    }
+    if(lineIdx < lines.length){ await showCurrentLine(); }
+    else{ await endIntroAndTransition(); }
   }
 
-  // 대화창 아무 곳 클릭도 advance
-  dialogueWrap.addEventListener('click', (e)=>{
-    // 내부 버튼 클릭은 중복 처리 방지
-    if(e.target.id === 'nextBtn') return;
-    onAdvance();
-  }, {passive:true});
+  dialogueWrap.addEventListener('click', (e)=>{ if(e.target.id==='nextBtn') return; onAdvance(); }, {passive:true});
   nextBtn.addEventListener('click', onAdvance, {passive:true});
 
   async function endIntroAndTransition(){
@@ -673,10 +714,9 @@
     startTransition();
   }
 
-  // 웰컴 → 인트로 시작
-  document.getElementById('goIntro').addEventListener('click', ()=>{ ensureResumed().then(async ()=>{ await playWoongClick(); fadeHide(welcome, FADE); showIntroFlow(); }); }, {passive:true});
+  document.getElementById('goIntro').addEventListener('click', ()=>{ ensureResumed().then(async ()=>{ claimImmersive(); await playWoongClick(); fadeHide(welcome, FADE); showIntroFlow(); }); }, {passive:true});
 
-  /* ===== 8분 타이머 ===== */
+  /* 8-minute Timer */
   let eightTimer=null, eightLeft=8*60;
   function formatMMSS(s){ const m=Math.floor(s/60), ss=(s%60).toString().padStart(2,'0'); return `${m.toString().padStart(2,'0')}:${ss}`; }
   function startEightTimer(){
@@ -685,10 +725,10 @@
     eightTimer=setInterval(()=>{ eightLeft=Math.max(0,eightLeft-1); runTimer.textContent=formatMMSS(eightLeft); if(eightLeft<=0){ clearInterval(eightTimer); } },1000);
   }
 
-  /* ===== Mic FX (First Sleep에서 페이드인) ===== */
+  /* Mic FX */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null;
   function makeImpulse(ctx, seconds=5.0, decay=7.0){
-    const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2,len,rate);
+    const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
     for(let ch=0; ch<2; ch++){ const data=ir.getChannelData(ch); for(let i=0;i<len;i++){ const t=i/len; data[i]=(Math.random()*2-1)*Math.pow(1-t,decay);} }
     return ir;
   }
@@ -721,7 +761,7 @@
     if(wetGain && dryGain){ const wet = beta>=0 ? (0.85-(beta/60)*(0.85-0.55)) : (1.0+(beta/60)*(1.0-0.75)); wetGain.gain.value=clamp(wet,0.4,1.0); dryGain.gain.value=clamp(1.0-wetGain.gain.value*0.45,0.2,1.0); }
   }
 
-  /* ===== 카메라 & 렌더 ===== */
+  /* Camera & Render */
   let metaReady=false;
   async function startCameraFresh(warmupOnly=false){
     try{
@@ -785,12 +825,9 @@
     }
     vctx.imageSmoothingEnabled=false; vctx.drawImage(proc,0,0,W,H);
 
-    // FG
     const pr=getProsceniumRect(); fgctx.clearRect(0,0,W,H);
     if(showIntroLayer && fgAlpha>0.001){
       fgctx.save(); fgctx.globalAlpha=fgAlpha; fgctx.beginPath(); fgctx.rect(pr.x,pr.y,pr.w,pr.h); fgctx.clip();
-
-      // (잔디 없음)
 
       if(introWalking){
         const now=performance.now(); const tRaw=(now-introStartTime)/60_000; const t=Math.max(0,Math.min(1,tRaw));
@@ -803,35 +840,10 @@
     }
   }
 
-  function drawBubble(ctx, x, y, text){
-    const pad=6, r=6; ctx.font='12px "Courier New", monospace';
-    const m=ctx.measureText(text), w=Math.max(28,m.width+pad*2), h=18+pad*2;
-    const bx=Math.round(x-w/2), by=Math.round(y-h-18);
-    ctx.save();
-    ctx.fillStyle='rgba(0,0,0,0.85)'; ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=1;
-    ctx.beginPath();
-    ctx.moveTo(bx+r,by); ctx.arcTo(bx+w,by,bx+w,by+h,r);
-    ctx.arcTo(bx+w,by+h,bx,by+h,r); ctx.arcTo(bx,by+h,bx,by,r); ctx.arcTo(bx,by,bx+w,by,r); ctx.closePath();
-    ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x-6,by+h-1); ctx.lineTo(x,by+h+6); ctx.lineTo(x+6,by+h-1); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle='#fff'; ctx.fillText(text,bx+pad,by+pad+12);
-    ctx.restore();
-  }
-
-  /* ===== 인트로 종료 → FIRST SLEEP ===== */
-  function fadeIntroLayerOut(ms=8000){
-    const t0=performance.now(), startAlpha=fgAlpha;
-    function step(){
-      const k=Math.min(1,(performance.now()-t0)/ms);
-      fgAlpha=startAlpha*(1-k);
-      if(k<1) requestAnimationFrame(step);
-      else{ fgAlpha=0; showIntroLayer=false; const W=view.width/(devicePixelRatio||1), H=view.height/(devicePixelRatio||1); fgctx && fgctx.clearRect(0,0,W,H); }
-    }
-    step();
-  }
-
+  /* Capture */
   let captureAnimating=false;
   captureBtn.addEventListener('click', async ()=>{
+    claimImmersive();
     if(captureAnimating) return;
     await playWoongClick(); captureAnimating=true; capturing=true;
     const cssW=view.clientWidth, cssH=view.clientHeight;
@@ -862,12 +874,25 @@
     requestAnimationFrame(anim);
   });
 
+  /* Transition to FIRST SLEEP */
+  function fadeIntroLayerOut(ms=8000){
+    const t0=performance.now(), startAlpha=fgAlpha;
+    function step(){
+      const k=Math.min(1,(performance.now()-t0)/ms);
+      fgAlpha=startAlpha*(1-k);
+      if(k<1) requestAnimationFrame(step);
+      else{ fgAlpha=0; showIntroLayer=false; const W=view.width/(devicePixelRatio||1), H=view.height/(devicePixelRatio||1); fgctx && fgctx.clearRect(0,0,W,H); }
+    }
+    step();
+  }
+
   async function startTransition(){
     firstSleep.style.display='flex'; firstSleep.style.opacity='1';
     await nextFrame(); fitTitleLine(firstSleepText);
 
     startEightTimer();
     await nextFrame(); controls.classList.add('show'); captureBtn.classList.add('show');
+
     await startMicFXFadeIn(4.0);
 
     const fadeDur=8000;
@@ -883,36 +908,14 @@
     ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{ noticePopup.addEventListener(ev, bgTrap, {passive:false}); });
     fadeShow(noticePopup, 280, 'flex');
     setTimeout(()=>{ noticeOk && noticeOk.focus && noticeOk.focus(); }, 50);
-    noticeOk.onclick = async (e)=>{ e.stopPropagation(); await playWoongClick(); fadeHide(noticePopup, 250); };
+    noticeOk.onclick = async (e)=>{ e.stopPropagation(); claimImmersive(); await playWoongClick(); fadeHide(noticePopup, 250); };
   }
 
-  /* 시작 버튼 바인딩 */
-  document.getElementById('goIntro').addEventListener('click', ()=>{});
-  preset.addEventListener('click', ()=>{});
-
-  // NEXT 버튼과 대화창 클릭 이벤트는 상단에 이미 바인딩되어 있음.
-
-  /* 카메라 리사이즈/표시 복원 */
-  document.addEventListener('visibilitychange', async ()=>{
-    if(document.visibilityState==='visible' && camVideo){
-      try{ if(camVideo.paused){ await camVideo.play(); }
-        if(!camStream || camStream.getVideoTracks().every(t=>t.readyState!=='live')){ await startCameraFresh(); }
-        warmupFrames=30;
-      }catch{}
-    }
-  });
-
-  function getComputedZoom(){ return ZOOM; }
-  window.getComputedZoom = getComputedZoom;
-
-  /* 카메라 커버 */
-  function drawBestCoverOnProc(){}
-
-  /* 초기 */
+  /* Init */
   function fitTitleLineAllSafe(){ fitTitleLine(introBigText); fitTitleLine(firstSleepText); }
   window.addEventListener('load', fitTitleLineAllSafe);
 
-  /* 카메라 루틴 호출 */
+  /* Kick camera warmup (optional) */
   startCameraFresh(true);
 })();
 </script>
