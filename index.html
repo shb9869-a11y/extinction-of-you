@@ -47,7 +47,7 @@
   /* 배경 카메라 */
   #view{position:fixed;left:0;top:0;width:100%;height:var(--appH);display:block;z-index:0}
 
-  /* ✅ 전면 레이어(풀+캐릭터+말풍선) — 대화창보다 ‘무조건’ 위 */
+  /* 전면 레이어(캐릭터·말풍선) — 대화창보다 위 */
   #fg{position:fixed;left:0;top:0;width:100%;height:var(--appH);display:block;z-index:880;pointer-events:none}
 
   #freezeLayer{position:fixed;inset:0;z-index:500;display:none}
@@ -144,7 +144,7 @@
   #introBig{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; pointer-events:none; z-index:210;}
   #introBigText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(48px, 22vmin, 260px); text-transform:uppercase; text-align:center; white-space:nowrap; text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7); padding:0 .02em; }
 
-  /* ⬇️ 대화 패널은 의도적으로 낮게 (풀 레이어보다 아래) */
+  /* 대화 패널(풀보다 아래였지만, 지금은 풀 없음) */
   #dialogueWrap{
     position:fixed; left:calc(var(--frame) + var(--safe-l)); right:calc(var(--frame) + var(--safe-r));
     bottom:0; z-index:230;
@@ -163,7 +163,7 @@
   #dialogueHeader{ opacity:.9; font-size:clamp(12px, 2.2vmin, 15px); letter-spacing:.08em; margin-bottom:6px; }
   #dialogueText{ font-size:clamp(14px, 2.6vmin, 19px); min-height:3lh; }
 
-  /* First Sleep (풀보다 위로 올릴 필요 없으면 850 아래 유지 가능) */
+  /* FIRST SLEEP */
   #firstSleep{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; pointer-events:none; z-index:850; }
   #firstSleepText{
     color:#fff; font-weight:900; letter-spacing:.06em;
@@ -173,7 +173,7 @@
     padding:0 .02em;
   }
 
-  /* NOTICE 팝업(최상단 유지) */
+  /* NOTICE 팝업(최상단) */
   #noticePopup{
     position:fixed; inset:0; z-index:900; display:none;
     align-items:center; justify-content:center; background:rgba(0,0,0,.72);
@@ -191,7 +191,7 @@
 </head>
 <body>
   <canvas id="view"></canvas>
-  <!-- ✅ 풀/캐릭터/말풍선 레이어 -->
+  <!-- 전면 레이어: 캐릭터/말풍선 전용 -->
   <canvas id="fg"></canvas>
 
   <canvas id="freezeLayer"></canvas>
@@ -256,7 +256,7 @@
   <!-- INTRODUCTION -->
   <div id="introBig" class="fade"><div id="introBigText">INTRODUCTION</div></div>
 
-  <!-- 인트로 대화 패널 (아래로 두기) -->
+  <!-- 인트로 대화 패널 -->
   <div id="dialogueWrap">
     <div id="dialogueBox">
       <div id="dialogueHeader">VOICE:</div>
@@ -283,10 +283,10 @@
 
 <script>
 (() => {
-  /* — 기존 로직 동일 —
-     변경 핵심: CSS에서 #fg(z-index:880)로 올림, #dialogueWrap(z-index:230)로 내림.
-     아래 스크립트는 이전 버전과 동일하게 동작합니다. */
+  /* ========== 옵션: 잔디 표시 스위치 (인트로에선 꺼짐) ========== */
+  let GRASS_ON = false; // ← 요청대로 인트로덕션 풀 OFF
 
+  /* ------------ 공통 유틸 ------------ */
   (function injectManifest(){
     const manifest = {"name":"SLEEEEEP","short_name":"SLEEEEEP","display":"standalone","start_url":"./","background_color":"#000","theme_color":"#000","icons":[]};
     const url = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:"application/manifest+json"}));
@@ -330,6 +330,7 @@
   });
   updateRotateOverlay();
 
+  /* ------------ 요소 취득 ------------ */
   const overlay = qs('#overlay');
   const permBtn = qs('#permGateBtn');
   const nameOverlay = qs('#nameOverlay');
@@ -369,12 +370,12 @@
   let camPermGranted = false;
   let camStream = null, camVideo = null, ZOOM = 1.0;
   let animStarted = false, capturing = false;
-  let ROTATE_FORCE = false;
   let warmupFrames = 0;
 
   let showIntroLayer = false;
   let fgAlpha = 1.0;
 
+  /* ------------ 사운드 ------------ */
   let audioCtx = null;
   function ensureAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
   async function ensureResumed(){ try{ ensureAudio(); if(audioCtx.state==='suspended') await audioCtx.resume(); }catch{} }
@@ -434,6 +435,7 @@
   zoomIn.addEventListener('click', async ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); await playWoongClick(); }, {passive:true});
   zoomOut.addEventListener('click', async ()=>{ ZOOM=Math.max(0.35, ZOOM-0.05); updateZoomLabel(); await playWoongClick(); }, {passive:true});
 
+  /* ------------ 권한 게이트 ------------ */
   async function immediateGestureStart(e){
     e && e.preventDefault && e.preventDefault();
     try{
@@ -473,6 +475,7 @@
     }, {passive:false});
   });
 
+  /* ------------ 이름 입력 ------------ */
   let displayName = '____';
   async function acceptName(){
     const v = (nickInput.value||'').trim();
@@ -485,23 +488,7 @@
   nameSubmit.addEventListener('click', acceptName, {passive:true});
   nickInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ acceptName(); }});
 
-  async function enforceLandscapeConstraints(){
-    try{
-      if(!camStream) return;
-      const track = camStream.getVideoTracks()[0];
-      if(!track) return;
-      const s = track.getSettings ? track.getSettings() : {};
-      const inLandscape = !isPortrait();
-      if(inLandscape && s.height && s.width && s.height > s.width){
-        await track.applyConstraints({
-          advanced:[ { aspectRatio: 16/9 }, { width:{min:1280} }, { height:{max:1080} } ]
-        }).catch(()=>{});
-      }
-    }catch(e){ console.warn(e); }
-  }
-  addEventListener('orientationchange', ()=>setTimeout(enforceLandscapeConstraints, 300), {passive:true});
-  addEventListener('resize', ()=>setTimeout(enforceLandscapeConstraints, 300), {passive:true});
-
+  /* ------------ 프리셋 세이버 ------------ */
   let saverObjs = []; let saverMode = 'scatter'; let saverT0 = 0;
   const presetClick = async ()=>{
     await playWoongClick();
@@ -581,6 +568,7 @@
   }
   preset.addEventListener('click', presetClick, {passive:true});
 
+  /* ------------ 인트로 텍스트 ------------ */
   function captureIntroTexts(){
     return [
       "안녕하세요?","작게 대답해주세요.","안녕하세요?","대답을 해주셔야 프로그램이 진행될 수 있습니다.","안녕하세요?","감사합니다.",
@@ -605,13 +593,7 @@
     ];
   }
 
-  let introWalking = false;
-  let introStartTime = 0;
-  const INTRO_WALK_DURATION = 60_000;
-  const BETWEEN_LINES_WAIT = 1500;
-  let dialogueLines = [];
-  let dialogueIndex = 0;
-
+  /* ------------ 타이틀/타이핑 ------------ */
   function getFrameRect(){ return document.querySelector('.frameBox').getBoundingClientRect(); }
 
   function fitTitleLine(el){
@@ -635,6 +617,7 @@
     }
   }
 
+  /* ------------ 캐릭터 렌더 ------------ */
   const PIXEL_SPRITE = [
     "..XXXXXX....",".XXXXXXXX...",".XX.XX.XX...",".XXXXXXXX...",
     "..XXXXXX....",".XXXXXXXX...",".XXXXXXXX...",".XX.XX.XX...",
@@ -673,109 +656,9 @@
     ctx.globalAlpha = 1;
   }
 
-  function mulberry32(a){ return function(){ let t=a+=0x6D2B79F5; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; } }
-
   function getProsceniumRect(){
     const r = getFrameRect();
     return { x: r.left, y: r.top, w: r.width, h: r.height };
-  }
-
-  let grassPatches = [];
-  function placeGrassPatches(count=8, keepSeeds=false){
-    const pr = getProsceniumRect();
-    const marginX = pr.w * 0.06;
-    const baseYTop = pr.y + pr.h * 0.45;
-    const baseYBot = pr.y + pr.h * 0.92;
-
-    const oldSeeds = keepSeeds ? grassPatches.map(p=>p.seed) : [];
-    grassPatches = [];
-    for(let i=0;i<count;i++){
-      const seed = oldSeeds[i] ?? Math.floor(Math.random()*1e9);
-      const rand = mulberry32(seed);
-      const rx = (i+1)/(count+1);
-      const jitter = (rand()-0.5)*0.18;
-      const x = pr.x + marginX + (pr.w - marginX*2) * clamp(rx + jitter, 0.05, 0.95);
-      const y = baseYTop + (baseYBot-baseYTop) * (0.2 + (rand()*0.8));
-      const blades = Math.max(18, Math.floor(pr.w*0.04));
-      const maxH = Math.max(24, Math.floor(pr.w*0.05));
-      const paths = [];
-      const colors = [];
-      for(let b=0;b<blades;b++){
-        const bx = x + ((rand()*2-1) * pr.w*0.01);
-        const h = maxH * (0.5 + rand()*0.8);
-        const sway = (rand()*0.7 + 0.3) * (rand()<.5?-1:1);
-        const p = new Path2D();
-        p.moveTo(bx, y);
-        p.quadraticCurveTo(bx + sway*6, y - h*0.5, bx + sway*2, y - h);
-        p.lineTo(bx + sway*1.4, y - h*0.9);
-        p.quadraticCurveTo(bx + sway*3, y - h*0.45, bx + sway*0.2, y);
-        p.closePath();
-        paths.push(p);
-        const hue = 110 + rand()*20;
-        const sat = 50 + rand()*30;
-        const light= 35 + rand()*20;
-        colors.push(`hsl(${hue}, ${sat}%, ${light}%)`);
-      }
-      const pixels = [];
-      const cell = 3;
-      for(let yy=0; yy<6; yy++){
-        for(let c=0;c<26;c++){
-          if(rand()>0.55){
-            pixels.push({
-              x: Math.round(x-40 + c*cell/1.6),
-              y: Math.round(y - yy*cell),
-              w: cell, h: cell
-            });
-          }
-        }
-      }
-      grassPatches.push({seed,x,y,paths,colors,pixels});
-    }
-  }
-
-  function drawAllGrassStatic(ctx){
-    for(const g of grassPatches){
-      for(let i=0;i<g.paths.length;i++){
-        ctx.fillStyle = g.colors[i];
-        ctx.fill(g.paths[i]);
-      }
-      ctx.imageSmoothingEnabled = false;
-      ctx.fillStyle = '#0b2';
-      for(const px of g.pixels){
-        ctx.fillRect(px.x, px.y, px.w, px.h);
-      }
-    }
-  }
-
-  function drawBubble(ctx, x, y, text){
-    const pad = 6, r = 6;
-    ctx.font = '12px "Courier New", monospace';
-    const m = ctx.measureText(text);
-    const w = Math.max(28, m.width + pad*2);
-    const h = 18 + pad*2;
-    const bx = Math.round(x - w/2), by = Math.round(y - h - 18);
-    ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,0.85)';
-    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(bx+r,by);
-    ctx.arcTo(bx+w,by,bx+w,by+h,r);
-    ctx.arcTo(bx+w,by+h,bx,by+h,r);
-    ctx.arcTo(bx,by+h,bx,by,r);
-    ctx.arcTo(bx,by,bx+w,by,r);
-    ctx.closePath();
-    ctx.fill(); ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x-6, by+h-1);
-    ctx.lineTo(x, by+h+6);
-    ctx.lineTo(x+6, by+h-1);
-    ctx.closePath();
-    ctx.fill(); ctx.stroke();
-
-    ctx.fillStyle = '#fff';
-    ctx.fillText(text, bx+pad, by+pad+12);
-    ctx.restore();
   }
 
   function spiralPos(t01){
@@ -806,6 +689,11 @@
   function fitTitleLineAll(){ fitTitleLine(introBigText); fitTitleLine(firstSleepText); }
   window.addEventListener('load', fitTitleLineAll);
 
+  /* ------------ 인트로 플로우 ------------ */
+  let introWalking = false;
+  let introStartTime = 0;
+  const INTRO_WALK_DURATION = 60_000;
+
   async function showIntroFlow(){
     introBig.style.display='flex';
     introBig.style.opacity='0';
@@ -818,29 +706,29 @@
     await sleep(700);
     introBig.style.display='none';
 
-    dialogueLines = captureIntroTexts();
-    dialogueIndex = 0;
+    const lines = captureIntroTexts();
+    let idx = 0;
     dialogueWrap.style.display='flex';
     dialogueWrap.style.opacity='0';
     dialogueWrap.style.transition='opacity 800ms ease';
     requestAnimationFrame(()=> dialogueWrap.style.opacity='1');
 
-    placeGrassPatches(8);
-    showIntroLayer = true;
-    fgAlpha = 1.0;
+    // ✅ 잔디 생성/표시는 비활성화
+    // if(GRASS_ON){ placeGrassPatches(8); }
+    showIntroLayer = true; fgAlpha = 1.0;
 
     introWalking = true;
     introStartTime = performance.now();
 
-    while(dialogueIndex < dialogueLines.length){
-      const sentence = dialogueLines[dialogueIndex];
+    while(idx < lines.length){
+      const sentence = lines[idx];
       await typeSentenceTo(dialogueText, sentence, 34);
       await sleep(1500);
-      dialogueIndex++;
+      idx++;
     }
 
     const elapsed = performance.now() - introStartTime;
-    if(elapsed < 60_000) await sleep(60_000 - elapsed);
+    if(elapsed < INTRO_WALK_DURATION) await sleep(INTRO_WALK_DURATION - elapsed);
 
     introWalking = false;
 
@@ -856,6 +744,7 @@
 
   document.getElementById('goIntro').addEventListener('click', ()=>{ ensureResumed().then(async ()=>{ await playWoongClick(); fadeHide(welcome, FADE); showIntroFlow(); }); }, {passive:true});
 
+  /* ------------ 러닝 타이머 ------------ */
   let eightTimer = null, eightLeft = 8*60;
   function formatMMSS(s){ const m=Math.floor(s/60), ss=(s%60).toString().padStart(2,'0'); return `${m.toString().padStart(2,'0')}:${ss}`; }
   function startEightTimer(){
@@ -870,6 +759,7 @@
     },1000);
   }
 
+  /* ------------ 앰비언트/마이크 FX ------------ */
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, loops=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
@@ -980,6 +870,7 @@
     }
   }
 
+  /* ------------ 카메라 ------------ */
   let metaReady = false;
   async function startCameraFresh(warmupOnly=false){
     try{
@@ -1031,6 +922,23 @@
     }catch(e){ console.warn('startCameraFresh error:', e); }
   }
 
+  async function enforceLandscapeConstraints(){
+    try{
+      if(!camStream) return;
+      const track = camStream.getVideoTracks()[0];
+      if(!track) return;
+      const s = track.getSettings ? track.getSettings() : {};
+      const inLandscape = !isPortrait();
+      if(inLandscape && s.height && s.width && s.height > s.width){
+        await track.applyConstraints({
+          advanced:[ { aspectRatio: 16/9 }, { width:{min:1280} }, { height:{max:1080} } ]
+        }).catch(()=>{});
+      }
+    }catch(e){ console.warn(e); }
+  }
+  addEventListener('orientationchange', ()=>setTimeout(enforceLandscapeConstraints, 300), {passive:true});
+  addEventListener('resize', ()=>setTimeout(enforceLandscapeConstraints, 300), {passive:true});
+
   function resizeAll(){
     const dpr = window.devicePixelRatio||1;
     const w = window.innerWidth, h = window.innerHeight;
@@ -1038,7 +946,6 @@
     fg.width=w*dpr; fg.height=h*dpr; if(fgctx) fgctx.setTransform(dpr,0,0,dpr,0,0);
     const scale = (!isPortrait())? 0.86 : 0.9;
     if(proc){ proc.width=Math.floor(w*scale); proc.height=Math.floor(h*scale); }
-    if(grassPatches.length){ placeGrassPatches(grassPatches.length, true); }
   }
   addEventListener('resize', ()=>{ setTimeout(resizeAll,30); warmupFrames=30; }, {passive:true});
   document.addEventListener('visibilitychange', async ()=>{
@@ -1084,6 +991,7 @@
     ctx.globalAlpha=1;
   }
 
+  /* ------------ 메인 루프 (인트로: 풀 없음) ------------ */
   function loop(){
     requestAnimationFrame(loop);
     if(capturing) return;
@@ -1113,7 +1021,8 @@
 
       fgctx.beginPath(); fgctx.rect(pr.x, pr.y, pr.w, pr.h); fgctx.clip();
 
-      drawAllGrassStatic(fgctx);
+      // ✅ 풀(잔디) 그림 비활성화
+      // if(GRASS_ON){ drawAllGrassStatic(fgctx); }
 
       if(introWalking){
         const now = performance.now();
@@ -1127,12 +1036,45 @@
           bubbleIdx = (bubbleIdx+1) % bubbleSeq.length;
           bubbleTimer = now;
         }
+        // 말풍선 유지
         drawBubble(fgctx, Math.round(pos.x), Math.round(pos.baselineY)-28, bubbleSeq[bubbleIdx]);
       }
       fgctx.restore();
     }
   }
 
+  function drawBubble(ctx, x, y, text){
+    const pad = 6, r = 6;
+    ctx.font = '12px "Courier New", monospace';
+    const m = ctx.measureText(text);
+    const w = Math.max(28, m.width + pad*2);
+    const h = 18 + pad*2;
+    const bx = Math.round(x - w/2), by = Math.round(y - h - 18);
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.85)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(bx+r,by);
+    ctx.arcTo(bx+w,by,bx+w,by+h,r);
+    ctx.arcTo(bx+w,by+h,bx,by+h,r);
+    ctx.arcTo(bx,by+h,bx,by,r);
+    ctx.arcTo(bx,by,bx+w,by,r);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x-6, by+h-1);
+    ctx.lineTo(x, by+h+6);
+    ctx.lineTo(x+6, by+h-1);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle = '#fff';
+    ctx.fillText(text, bx+pad, by+pad+12);
+    ctx.restore();
+  }
+
+  /* ------------ 인트로 종료/전환 ------------ */
   function fadeIntroLayerOut(ms=8000){
     const t0 = performance.now();
     const startAlpha = fgAlpha;
@@ -1256,11 +1198,12 @@
     };
   }
 
+  /* 더블 바인딩 방지용 빈 핸들러 */
   document.getElementById('goIntro').addEventListener('click', ()=>{});
   preset.addEventListener('click', ()=>{});
 
+  /* 시작 */
   window.addEventListener('load', fitTitleLineAll);
-  preset.addEventListener('click', async ()=>{ await presetClick(); }, {passive:true});
 })();
 </script>
 </body>
