@@ -46,6 +46,8 @@
   .fade.show{opacity:1}
 
   #view{position:fixed;left:0;top:0;width:100%;height:var(--appH);display:block;z-index:0}
+  /* 전면 레이어: 풀 + 캐릭터 + 말풍선 (대화창 위로 올라오게 z-index 234) */
+  #fg{position:fixed;left:0;top:0;width:100%;height:var(--appH);display:block;z-index:234;pointer-events:none}
   #freezeLayer{position:fixed;inset:0;z-index:500;display:none}
 
   .frameBox{
@@ -146,7 +148,7 @@
   #introBig{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; pointer-events:none; z-index:231;}
   #introBigText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(48px, 22vmin, 260px); text-transform:uppercase; text-align:center; white-space:nowrap; text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7); padding:0 .02em; }
 
-  /* 인트로 대화 패널: 아래까지 채우기 */
+  /* 인트로 대화 패널 (z-index 233) — 이 아래로 깔리게 만들기 위해 fg를 234로 설정 */
   #dialogueWrap{
     position:fixed; left:calc(var(--frame) + var(--safe-l)); right:calc(var(--frame) + var(--safe-r));
     bottom:0; z-index:233;
@@ -193,6 +195,9 @@
 </head>
 <body>
   <canvas id="view"></canvas>
+  <!-- 전면 레이어: 풀/캐릭터/말풍선 -->
+  <canvas id="fg"></canvas>
+
   <canvas id="freezeLayer"></canvas>
   <div class="frameBox" aria-hidden="true"></div>
 
@@ -355,6 +360,7 @@
   const zoomVal = qs('#zoomVal');
   const captureBtn = qs('#captureBtn');
   const view = qs('#view');
+  const fg = qs('#fg');
   const freezeLayer = qs('#freezeLayer');
   const runTimer = qs('#runTimer');
 
@@ -362,9 +368,13 @@
   const noticeOk = qs('#noticeOk');
   const noticeCard = qs('#noticeCard');
 
+  /* ====== Canvas ctx ====== */
+  let vctx = null, pctx = null, proc = null;
+  let fgctx = null;
+
   /* ====== State ====== */
   let camPermGranted = false;
-  let camStream = null, camVideo = null, vctx = null, proc = null, pctx = null, ZOOM = 1.0;
+  let camStream = null, camVideo = null, ZOOM = 1.0;
   let animStarted = false, capturing = false;
   let ROTATE_FORCE = false;
   let warmupFrames = 0;
@@ -506,7 +516,7 @@
   addEventListener('orientationchange', ()=>setTimeout(enforceLandscapeConstraints, 300), {passive:true});
   addEventListener('resize', ()=>setTimeout(enforceLandscapeConstraints, 300), {passive:true});
 
-  /* Preset */
+  /* Preset (간단 세이버 유지) */
   let saverObjs = []; let saverMode = 'scatter'; let saverT0 = 0;
   function showPreset(){
     preset.style.display='block'; preset.classList.add('show');
@@ -643,8 +653,179 @@
     }
   }
 
+  /* ===== 풀 & 캐릭터 전면 레이어 구성 ===== */
+  const PIXEL_SPRITE = [
+    "..XXXXXX....",".XXXXXXXX...",".XX.XX.XX...",".XXXXXXXX...",
+    "..XXXXXX....",".XXXXXXXX...",".XXXXXXXX...",".XX.XX.XX...",
+    ".XXXXXXXX...", "..XXXXXX....",".XX....XX...",".XX....XX...",
+    ".XX....XX...", ".XX....XX...", "..XX..XX....","..XX..XX...."
+  ];
+  const COLOR_FILL = '#ff8a3c'; const COLOR_STROKE = '#000';
+
+  function drawPixelHuman(ctx, cx, baselineY, W, hop=0, alpha=1){
+    const cell = Math.max(2, Math.min(4, Math.floor(W * 0.0018)));
+    const cols = PIXEL_SPRITE[0].length, rows = PIXEL_SPRITE.length;
+    const width = cols * cell, height = rows * cell;
+    const x0 = Math.round(cx - width/2), y0 = Math.round(baselineY - height - hop);
+
+    ctx.globalAlpha = alpha;
+
+    ctx.fillStyle = COLOR_STROKE;
+    for(let y=0; y<rows; y++){
+      const row = PIXEL_SPRITE[y];
+      for(let x=0; x<cols; x++){
+        if(row[x]==='X'){
+          ctx.fillRect(x0 + x*cell - 1, y0 + y*cell, cell, cell);
+          ctx.fillRect(x0 + x*cell + 1, y0 + y*cell, cell, cell);
+          ctx.fillRect(x0 + x*cell, y0 + y*cell - 1, cell, cell);
+          ctx.fillRect(x0 + x*cell, y0 + y*cell + 1, cell, cell);
+        }
+      }
+    }
+    ctx.fillStyle = COLOR_FILL;
+    for(let y=0; y<rows; y++){
+      const row = PIXEL_SPRITE[y];
+      for(let x=0; x<cols; x++){
+        if(row[x]==='X'){ ctx.fillRect(x0 + x*cell, y0 + y*cell, cell, cell); }
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // 고정 시드 난수
+  function mulberry32(a){ return function(){ let t=a+=0x6D2B79F5; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; } }
+
+  // 프로시니엄 내부 rect
+  function getProsceniumRect(){
+    const r = getFrameRect(); // CSS px
+    return { x: r.left, y: r.top, w: r.width, h: r.height };
+  }
+
+  // 정지 풀 Path 미리 생성
+  let grassPatches = []; // {seed,x,y,paths:[Path2D,...], color:[...]}
+  function placeGrassPatches(count=8, keepSeeds=false){
+    const pr = getProsceniumRect();
+    const marginX = pr.w * 0.06;
+    const baseYTop = pr.y + pr.h * 0.45;
+    const baseYBot = pr.y + pr.h * 0.92;
+
+    const oldSeeds = keepSeeds ? grassPatches.map(p=>p.seed) : [];
+    grassPatches = [];
+    for(let i=0;i<count;i++){
+      const seed = oldSeeds[i] ?? Math.floor(Math.random()*1e9);
+      const rand = mulberry32(seed);
+      const rx = (i+1)/(count+1);
+      const jitter = (rand()-0.5)*0.18;
+      const x = pr.x + marginX + (pr.w - marginX*2) * clamp(rx + jitter, 0.05, 0.95);
+      const y = baseYTop + (baseYBot-baseYTop) * (0.2 + (rand()*0.8));
+      // 정지 풀 Path 생성
+      const blades = Math.max(18, Math.floor(pr.w*0.04));
+      const maxH = Math.max(24, Math.floor(pr.w*0.05));
+      const paths = [];
+      const colors = [];
+      for(let b=0;b<blades;b++){
+        const bx = x + ((rand()*2-1) * pr.w*0.01);
+        const h = maxH * (0.5 + rand()*0.8);
+        const sway = (rand()*0.7 + 0.3) * (rand()<.5?-1:1);
+        const p = new Path2D();
+        p.moveTo(bx, y);
+        p.quadraticCurveTo(bx + sway*6, y - h*0.5, bx + sway*2, y - h);
+        p.lineTo(bx + sway*1.4, y - h*0.9);
+        p.quadraticCurveTo(bx + sway*3, y - h*0.45, bx + sway*0.2, y);
+        p.closePath();
+        paths.push(p);
+        const hue = 110 + rand()*20;
+        const sat = 50 + rand()*30;
+        const light= 35 + rand()*20;
+        colors.push(`hsl(${hue}, ${sat}%, ${light}%)`);
+      }
+      // 밑둥 픽셀 느낌
+      const pixels = [];
+      const cell = 3;
+      for(let yy=0; yy<6; yy++){
+        for(let c=0;c<26;c++){
+          if(rand()>0.55){
+            pixels.push({
+              x: Math.round(x-40 + c*cell/1.6),
+              y: Math.round(y - yy*cell),
+              w: cell, h: cell
+            });
+          }
+        }
+      }
+      grassPatches.push({seed,x,y,paths,colors,pixels});
+    }
+  }
+
+  function drawAllGrassStatic(ctx){
+    for(const g of grassPatches){
+      // 날(잎)들
+      for(let i=0;i<g.paths.length;i++){
+        ctx.fillStyle = g.colors[i];
+        ctx.fill(g.paths[i]);
+      }
+      // 밑둥 픽셀
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = '#0b2';
+      for(const px of g.pixels){
+        ctx.fillRect(px.x, px.y, px.w, px.h);
+      }
+    }
+  }
+
+  /* 말풍선 */
+  function drawBubble(ctx, x, y, text){
+    const pad = 6, r = 6;
+    ctx.font = '12px "Courier New", monospace';
+    const m = ctx.measureText(text);
+    const w = Math.max(28, m.width + pad*2);
+    const h = 18 + pad*2;
+    const bx = Math.round(x - w/2), by = Math.round(y - h - 18);
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.85)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(bx+r,by);
+    ctx.arcTo(bx+w,by,bx+w,by+h,r);
+    ctx.arcTo(bx+w,by+h,bx,by+h,r);
+    ctx.arcTo(bx,by+h,bx,by,r);
+    ctx.arcTo(bx,by,bx+w,by,r);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x-6, by+h-1);
+    ctx.lineTo(x, by+h+6);
+    ctx.lineTo(x+6, by+h-1);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle = '#fff';
+    ctx.fillText(text, bx+pad, by+pad+12);
+    ctx.restore();
+  }
+
+  // 캐릭터 경로(나선형 → 우측 풀숲) — 경로선 그리기는 제거, 위치만 사용
+  function spiralPos(t01){
+    const pr = getProsceniumRect();
+    const baselineY = Math.round(pr.y + pr.h * 0.60 - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--char-offset-vh'))/100)*pr.h);
+    const R = Math.round(pr.x + pr.w * 0.92);
+    const cx = pr.x + pr.w*0.46, cy = baselineY - pr.h*0.06;
+    const turns = 2.2;
+    const theta = turns * Math.PI * 2 * t01;
+    const r0 = pr.w*0.22, r1 = pr.w*0.02;
+    const r = r0 + (r1 - r0) * t01;
+    let sx = cx + r * Math.cos(theta);
+    let sy = cy + r * Math.sin(theta);
+    const pull = t01*t01;
+    sx = sx*(1-pull) + R*pull;
+    sy = sy*(1-pull) + baselineY*pull;
+    return {x:sx, y:sy, baselineY};
+  }
+
+  /* ===== 인트로 표시 ===== */
   async function showIntroFlow(){
-    // INTRODUCTION 짧게
+    // INTRODUCTION 타이틀
     introBig.style.display='flex';
     introBig.style.opacity='0';
     await nextFrame();
@@ -664,7 +845,7 @@
     dialogueWrap.style.transition='opacity 800ms ease';
     requestAnimationFrame(()=> dialogueWrap.style.opacity='1');
 
-    // 풀 8개 배치
+    // 정지 풀 배치(8개) — 전면 레이어에 그릴 것이므로 여기서 생성
     placeGrassPatches(8);
 
     // 걷기 시작
@@ -678,14 +859,14 @@
       dialogueIndex++;
     }
 
-    // 총 1분 채우기
+    // 총 1분 맞추기
     const elapsed = performance.now() - introStartTime;
     if(elapsed < INTRO_WALK_DURATION) await sleep(INTRO_WALK_DURATION - elapsed);
 
-    // 인트로 종료 직전에만 멈춤
+    // 인트로 종료
     introWalking = false;
 
-    // 패널 종료
+    // 패널 페이드아웃
     dialogueWrap.style.transition='opacity 600ms ease';
     dialogueWrap.style.opacity='0';
     await sleep(650);
@@ -763,7 +944,7 @@
     return { start, stop, isRunning:()=>running };
   })();
 
-  /* Mic FX (기존 그대로) */
+  /* Mic FX */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null;
   function makeImpulse(ctx, seconds=5.0, decay=7.0){
     const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
@@ -860,29 +1041,35 @@
       await enforceLandscapeConstraints();
 
       metaReady = true;
-      resizeCam();
+      resizeAll();
       warmupFrames = 30;
 
       if(!vctx){
         vctx = view.getContext('2d',{alpha:false});
         proc = document.createElement('canvas');
         pctx = proc.getContext('2d',{willReadFrequently:true});
-        resizeCam();
       }
-      if(!animStarted && !warmupOnly){ animStarted = true; loopCam(); }
+      if(!fgctx){
+        fgctx = fg.getContext('2d',{alpha:true});
+      }
+      resizeAll();
+
+      if(!animStarted && !warmupOnly){ animStarted = true; loop(); }
       document.querySelectorAll('.uiBtn').forEach(b=>b.addEventListener('click', ()=>{ ensureResumed().then(playWoongClick); }, {passive:true}));
     }catch(e){ console.warn('startCameraFresh error:', e); }
   }
-  function resizeCam(){
+
+  function resizeAll(){
     const dpr = window.devicePixelRatio||1;
     const w = window.innerWidth, h = window.innerHeight;
     view.width=w*dpr; view.height=h*dpr; if(vctx) vctx.setTransform(dpr,0,0,dpr,0,0);
+    fg.width=w*dpr; fg.height=h*dpr; if(fgctx) fgctx.setTransform(dpr,0,0,dpr,0,0);
     const scale = (!isPortrait())? 0.86 : 0.9;
     if(proc){ proc.width=Math.floor(w*scale); proc.height=Math.floor(h*scale); }
-    // 풀 재배치(화면 회전/리사이즈 시)
-    if (grassPositions.length) placeGrassPatches(grassPositions.length, true);
+    // 풀 재생성(레이아웃 바뀔 때, 같은 씨드 유지)
+    if(grassPatches.length){ placeGrassPatches(grassPatches.length, true); }
   }
-  addEventListener('resize', ()=>{ setTimeout(resizeCam,30); warmupFrames=30; }, {passive:true});
+  addEventListener('resize', ()=>{ setTimeout(resizeAll,30); warmupFrames=30; }, {passive:true});
   document.addEventListener('visibilitychange', async ()=>{
     if(document.visibilityState==='visible' && camVideo){
       try{
@@ -927,255 +1114,57 @@
     ctx.globalAlpha=1;
   }
 
-  /* ===== 픽셀 캐릭터/풀/말풍선 ===== */
-  const PIXEL_SPRITE = [
-    "..XXXXXX....",".XXXXXXXX...",".XX.XX.XX...",".XXXXXXXX...",
-    "..XXXXXX....",".XXXXXXXX...",".XXXXXXXX...",".XX.XX.XX...",
-    ".XXXXXXXX...", "..XXXXXX....",".XX....XX...",".XX....XX...",
-    ".XX....XX...", ".XX....XX...", "..XX..XX....","..XX..XX...."
-  ];
-  const COLOR_FILL = '#ff8a3c'; const COLOR_STROKE = '#000';
-
-  function drawPixelHuman(ctx, cx, baselineY, W, hop=0, alpha=1){
-    const cell = Math.max(2, Math.min(4, Math.floor(W * 0.0018)));
-    const cols = PIXEL_SPRITE[0].length, rows = PIXEL_SPRITE.length;
-    const width = cols * cell, height = rows * cell;
-    const x0 = Math.round(cx - width/2), y0 = Math.round(baselineY - height - hop);
-
-    ctx.globalAlpha = alpha;
-
-    ctx.fillStyle = COLOR_STROKE;
-    for(let y=0; y<rows; y++){
-      const row = PIXEL_SPRITE[y];
-      for(let x=0; x<cols; x++){
-        if(row[x]==='X'){
-          ctx.fillRect(x0 + x*cell - 1, y0 + y*cell, cell, cell);
-          ctx.fillRect(x0 + x*cell + 1, y0 + y*cell, cell, cell);
-          ctx.fillRect(x0 + x*cell, y0 + y*cell - 1, cell, cell);
-          ctx.fillRect(x0 + x*cell, y0 + y*cell + 1, cell, cell);
-        }
-      }
-    }
-    ctx.fillStyle = COLOR_FILL;
-    for(let y=0; y<rows; y++){
-      const row = PIXEL_SPRITE[y];
-      for(let x=0; x<cols; x++){
-        if(row[x]==='X'){ ctx.fillRect(x0 + x*cell, y0 + y*cell, cell, cell); }
-      }
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  /* 풀: 개별 패치 */
-  function drawGrassPatch(ctx, x, baselineY, W){
-    const blades = Math.max(18, Math.floor(W*0.04));
-    const maxH = Math.max(24, Math.floor(W*0.05));
-    ctx.save();
-    for(let i=0;i<blades;i++){
-      const bx = x + (Math.random()*W*0.02 - W*0.01);
-      const h = maxH * (0.5 + Math.random()*0.8);
-      const sway = (Math.random()*0.7 + 0.3) * (Math.random()<.5?-1:1);
-      ctx.beginPath();
-      ctx.moveTo(bx, baselineY);
-      ctx.quadraticCurveTo(bx + sway*6, baselineY - h*0.5, bx + sway*2, baselineY - h);
-      ctx.lineTo(bx + sway*1.4, baselineY - h*0.9);
-      ctx.quadraticCurveTo(bx + sway*3, baselineY - h*0.45, bx + sway*0.2, baselineY);
-      ctx.closePath();
-      ctx.fillStyle = `hsl(${110+Math.random()*20}, ${50+Math.random()*30}%, ${35+Math.random()*20}%)`;
-      ctx.fill();
-    }
-    // 픽셀 느낌의 덩어리
-    const cell = 3;
-    ctx.imageSmoothingEnabled = false;
-    ctx.fillStyle = '#0b2';
-    for(let y=0;y<6;y++){
-      for(let c=0;c<26;c++){
-        if(Math.random()>0.55){
-          ctx.fillRect(Math.round(x-40 + c*cell/1.6), Math.round(baselineY - y*cell), cell, cell);
-        }
-      }
-    }
-    ctx.restore();
-  }
-
-  // ----- 프로시니엄(테두리 안쪽) 계산 & 클립 -----
-  function getProsceniumRect(){
-    const r = getFrameRect(); // CSS px
-    return { x: r.left, y: r.top, w: r.width, h: r.height };
-  }
-  function clipToProscenium(ctx){
-    const pr = getProsceniumRect();
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(pr.x, pr.y, pr.w, pr.h);
-    ctx.clip();
-  }
-  function unclampClip(ctx){ ctx.restore(); }
-
-  // ----- 풀 8개 배치 (프로시니엄 내부) -----
-  let grassPositions = [];
-  function placeGrassPatches(count=8, keepSeeds=false){
-    const pr = getProsceniumRect();
-    const marginX = pr.w * 0.06;
-    const baseYTop = pr.y + pr.h * 0.45;
-    const baseYBot = pr.y + pr.h * 0.92;
-
-    const seeds = keepSeeds && grassPositions.length ? grassPositions.map(p=>p.seed) : [];
-    grassPositions = [];
-    for(let i=0;i<count;i++){
-      const seed = seeds[i] ?? Math.random();
-      const rx = (i+1)/(count+1); // 균등 분포 + 약간의 무작위
-      const jitter = (seed-0.5)*0.18;
-      const x = pr.x + marginX + (pr.w - marginX*2) * clamp(rx + jitter, 0.05, 0.95);
-      const y = baseYTop + (baseYBot-baseYTop) * (0.2 + (seed*0.8));
-      grassPositions.push({ x, y, seed });
-    }
-  }
-  function drawAllGrass(ctx, W){
-    for(const g of grassPositions){
-      drawGrassPatch(ctx, g.x, g.y, W);
-    }
-  }
-
-  /* 말풍선 */
-  function drawBubble(ctx, x, y, text){
-    const pad = 6, r = 6;
-    ctx.font = '12px "Courier New", monospace';
-    const m = ctx.measureText(text);
-    const w = Math.max(28, m.width + pad*2);
-    const h = 18 + pad*2;
-    const bx = Math.round(x - w/2), by = Math.round(y - h - 18);
-    ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,0.85)';
-    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(bx+r,by);
-    ctx.arcTo(bx+w,by,bx+w,by+h,r);
-    ctx.arcTo(bx+w,by+h,bx,by+h,r);
-    ctx.arcTo(bx,by+h,bx,by,r);
-    ctx.arcTo(bx,by,bx+w,by,r);
-    ctx.closePath();
-    ctx.fill(); ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x-6, by+h-1);
-    ctx.lineTo(x, by+h+6);
-    ctx.lineTo(x+6, by+h-1);
-    ctx.closePath();
-    ctx.fill(); ctx.stroke();
-
-    ctx.fillStyle = '#fff';
-    ctx.fillText(text, bx+pad, by+pad+12);
-    ctx.restore();
-  }
-
-  /* 나선형 계열 경로 */
-  function spiralPos(t01, W, H){
-    const pr = getProsceniumRect();
-    const baselineY = Math.round(pr.y + pr.h * 0.60 - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--char-offset-vh'))/100)*pr.h);
-    const R = Math.round(pr.x + pr.w * 0.92);
-    const cx = pr.x + pr.w*0.46, cy = baselineY - pr.h*0.06;
-    const turns = 2.2;
-    const theta = turns * Math.PI * 2 * t01;
-    const r0 = pr.w*0.22, r1 = pr.w*0.02;
-    const r = r0 + (r1 - r0) * t01;
-    let sx = cx + r * Math.cos(theta);
-    let sy = cy + r * Math.sin(theta);
-    const pull = t01*t01;
-    sx = sx*(1-pull) + R*pull;
-    sy = sy*(1-pull) + baselineY*pull;
-    return {x:sx, y:sy, baselineY};
-  }
-
-  /* 경로(점선 라인) 관리 */
-  let introTrail = [];
-  function clampPointToProscenium(p){
-    const pr = getProsceniumRect();
-    return {
-      x: clamp(p.x, pr.x+3, pr.x+pr.w-3),
-      y: clamp(p.y, pr.y+3, pr.y+pr.h-3)
-    };
-  }
-  function drawDashedPath(ctx){
-    if(introTrail.length<2) return;
-    ctx.save();
-    ctx.setLineDash([8,8]);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
-    ctx.beginPath();
-    ctx.moveTo(introTrail[0].x, introTrail[0].y);
-    for(let i=1;i<introTrail.length;i++){
-      ctx.lineTo(introTrail[i].x, introTrail[i].y);
-    }
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.restore();
-  }
-
-  /* ===== 메인 렌더 루프 ===== */
+  /* ===== 전면 레이어 렌더 ===== */
   const bubbleSeq = ["HELLO", "…", "HI", "…", "HELLO!", "…"];
   let bubbleTimer = 0, bubbleIdx = 0;
 
-  function loopCam(){
-    requestAnimationFrame(loopCam);
+  function loop(){
+    requestAnimationFrame(loop);
     if(capturing) return;
-    if(!vctx || !pctx) return;
+    if(!vctx || !pctx || !fgctx) return;
 
     const W=view.width/(window.devicePixelRatio||1), H=view.height/(window.devicePixelRatio||1);
     const PW=proc.width, PH=proc.height;
 
-    if(warmupFrames>0){ resizeCam(); warmupFrames--; }
+    if(warmupFrames>0){ resizeAll(); warmupFrames--; }
 
+    // 배경(카메라) 처리
     pctx.fillStyle='rgba(0,0,0,.14)'; pctx.fillRect(0,0,PW,PH);
-
     if(camVideo && metaReady && camVideo.readyState>=2){
       drawBestCover(pctx, camVideo, W, H, PW, PH);
       const frame=pctx.getImageData(0,0,PW,PH),d=frame.data;
       for(let i=0;i<d.length;i+=4){const g=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0; d[i]=d[i+1]=d[i+2]=g;}
       pctx.putImageData(frame,0,0);
     }
-
     vctx.imageSmoothingEnabled = false;
     vctx.drawImage(proc,0,0,W,H);
 
-    // ====== 프로시니엄 내부만 그리기 ======
-    clipToProscenium(vctx);
+    // ===== 전면(FG): 프로시니엄 내부만 그리기 =====
+    const pr = getProsceniumRect();
+    fgctx.clearRect(0,0,W,H);
+    fgctx.save();
+    fgctx.beginPath(); fgctx.rect(pr.x, pr.y, pr.w, pr.h); fgctx.clip();
 
-    // 풀 8개
-    drawAllGrass(vctx, W);
+    // 정지 풀
+    drawAllGrassStatic(fgctx);
 
-    // 인트로 걷기 & 경로
+    // 인트로 캐릭터(지속 이동, 경로선 없음)
     if(introWalking){
       const now = performance.now();
       const tRaw = (now - introStartTime)/INTRO_WALK_DURATION;
       const t = Math.max(0, Math.min(1, tRaw));
-      const pos = spiralPos(t, W, H);
-
-      // 경로 포인트 기록(프로시니엄 내부로 클램프)
-      const cp = clampPointToProscenium({x:pos.x, y:pos.y});
-      introTrail.push(cp);
-      if(introTrail.length>2200) introTrail.shift();
-
-      // 점선 경로(라인)
-      drawDashedPath(vctx);
-
-      // 캐릭터
+      const pos = spiralPos(t);
       const hop = Math.max(0, 10*Math.sin(t* Math.PI*20));
-      drawPixelHuman(vctx, Math.round(cp.x), Math.round(pos.baselineY), W, hop, 1);
+      drawPixelHuman(fgctx, Math.round(pos.x), Math.round(pos.baselineY), W, hop, 1);
 
       // 말풍선 (0.6초마다 갱신)
       if(now - bubbleTimer > 600){
         bubbleIdx = (bubbleIdx+1) % bubbleSeq.length;
         bubbleTimer = now;
       }
-      drawBubble(vctx, Math.round(cp.x), Math.round(pos.baselineY)-28, bubbleSeq[bubbleIdx]);
-    }else{
-      // 인트로가 끝나기 직전 프레임에도, 마지막 경로 & 풀은 남아있게
-      drawDashedPath(vctx);
+      drawBubble(fgctx, Math.round(pos.x), Math.round(pos.baselineY)-28, bubbleSeq[bubbleIdx]);
     }
-
-    // 클립 해제
-    unclampClip(vctx);
+    fgctx.restore();
   }
 
   /* ===== Capture ===== */
@@ -1198,7 +1187,9 @@
     snapshot.width = cssW; snapshot.height = cssH;
     const snapCtx = snapshot.getContext('2d');
     snapCtx.imageSmoothingEnabled = false;
+    // 배경 + 전면 합성 캡쳐
     snapCtx.drawImage(view, 0, 0, view.width, view.height, 0, 0, cssW, cssH);
+    snapCtx.drawImage(fg, 0, 0, fg.width, fg.height, 0, 0, cssW, cssH);
 
     const off = document.createElement('canvas');
     const oc = off.getContext('2d');
@@ -1288,10 +1279,9 @@
   }
 
   /* ===== 시작 ===== */
-  window.addEventListener('load', ()=>{
-    fitTitleLine(introBigText);
-    fitTitleLine(firstSleepText);
-  });
+  function fitTitleLineSafe(){ fitTitleLine(introBigText); fitTitleLine(firstSleepText); }
+  window.addEventListener('load', fitTitleLineSafe);
+
 })();
 </script>
 </body>
