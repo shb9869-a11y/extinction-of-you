@@ -295,7 +295,7 @@
     const manifest = {
       "name":"SLEEEEEP",
       "short_name":"SLEEEEEP",
-      "display":"fullscreen",             // ← standalone → fullscreen
+      "display":"fullscreen",
       "start_url":"./",
       "background_color":"#000",
       "theme_color":"#000",
@@ -326,20 +326,19 @@
     try{
       if ('wakeLock' in navigator) {
         wakeLock = await navigator.wakeLock.request('screen');
-        wakeLock.addEventListener('release', ()=>{ /* released */ });
+        wakeLock.addEventListener('release', ()=>{});
       }
     }catch(e){}
+  }
+  function claimImmersive(){
+    enterFullscreen();
+    keepAwake();
   }
   document.addEventListener('visibilitychange', async ()=>{
     if (document.visibilityState === 'visible' && wakeLock) {
       try{ wakeLock = await navigator.wakeLock.request('screen'); }catch(e){}
     }
   });
-
-  function claimImmersive(){
-    enterFullscreen();
-    keepAwake();
-  }
 
   /* ===== Common utils ===== */
   const FADE = 1800;
@@ -475,16 +474,33 @@
   async function immediateGestureStart(e){
     e && e.preventDefault && e.preventDefault();
 
-    // 안드로이드 전체화면 + 깨우기
-    claimImmersive();
+    // 1) 제스처 직후 1차 시도 (일부 브라우저는 이때만 허용)
+    claimImmersive(); // FULLSCREEN: try now
+
+    // iOS motion permission(있으면) 후에도 시도
+    try{
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+          .then(()=>{ claimImmersive(); }) // FULLSCREEN: after motion perm
+          .catch(()=>{});
+      }
+    }catch(_){}
 
     ensureAudio(); await ensureResumed(); playWoongClick();
 
+    // 2) 카메라/마이크 권한 요청 -> 승인 "성공 직후" 2차 시도
     navigator.mediaDevices.getUserMedia({
       video:{facingMode:{ideal:'environment'}, width:{min:1280,ideal:1920}, height:{min:720,ideal:1080}, aspectRatio:{ideal:16/9}},
       audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}
     })
-    .then(s=>{ s.getTracks().forEach(t=>t.stop()); camPermGranted=true; })
+    .then(s=>{
+      // 승인 직후 전체화면 재요청 (사용자 활성 상태 창에서 처리됨)
+      claimImmersive(); // FULLSCREEN: after permission granted
+      // tracks 정리
+      s.getTracks().forEach(t=>t.stop());
+      camPermGranted = true;
+    })
     .catch(err=>{ console.warn('permission error:', err); })
     .finally(()=>{
       fadeHide(overlay, FADE);
@@ -563,7 +579,7 @@
     fadeShow(welcome, FADE);
   }, {passive:true});
 
-  /* ===== Intro text & NEXT flow ===== */
+  /* ===== Intro text & NEXT flow (기존 유지) ===== */
   function captureIntroTexts(){
     return [
       "안녕하세요?","작게 대답해주세요.","안녕하세요?","대답을 해주셔야 프로그램이 진행될 수 있습니다.","안녕하세요?","감사합니다.",
@@ -915,7 +931,7 @@
   function fitTitleLineAllSafe(){ fitTitleLine(introBigText); fitTitleLine(firstSleepText); }
   window.addEventListener('load', fitTitleLineAllSafe);
 
-  /* Kick camera warmup (optional) */
+  /* Camera warmup */
   startCameraFresh(true);
 })();
 </script>
