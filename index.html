@@ -11,16 +11,16 @@
 <meta name="theme-color" content="#000000">
 
 <style>
+  /* ===== Lenovo TAB ONE 11.5" FHD 16:9 최적화 ===== */
   :root{
-    /* Lenovo TAB ONE 11.5" FHD 16:9 최적화 */
     --appH: 100svh;
-    --frame: clamp(18px, 4.2vmin, 44px); /* 약간 증가 */
-    --ui-gap: 10px; /* 터치 영역 확대 */
+    --frame: clamp(18px, 4.2vmin, 44px); /* 터치 영역 확대 */
+    --ui-gap: 10px;
 
     --fs-body: clamp(13px, 2.4vmin, 18px);
     --fs-strong: clamp(15px, 3.0vmin, 22px);
     --fs-small: clamp(12px, 2.0vmin, 16px);
-    --fs-name: clamp(18px,3.5vmin,24px);
+    --fs-name: clamp(18px, 3.5vmin, 24px);
 
     --pad-btn-y: clamp(8px, 1.3vmin, 12px);
     --pad-btn-x: clamp(12px, 2.0vmin, 22px);
@@ -30,7 +30,7 @@
     --safe-l: env(safe-area-inset-left, 0px);
     --safe-r: env(safe-area-inset-right, 0px);
 
-    --dialogue-offset-vh: 9vh; /* 약간 증가 */
+    --dialogue-offset-vh: 9vh; /* 대화 패널 높이 조정 */
     --char-offset-vh: 17vh;
   }
 
@@ -333,8 +333,17 @@
   document.addEventListener('contextmenu', e=>e.preventDefault());
   document.addEventListener('selectstart', e=>e.preventDefault());
 
-  function fadeShow(el, dur=FADE, display='flex'){ el.style.display=display; el.style.opacity='0'; el.style.transition=`opacity ${dur}ms ease`; requestAnimationFrame(()=> el.style.opacity='1'); }
-  function fadeHide(el, dur=FADE){ el.style.transition=`opacity ${dur}ms ease`; el.style.opacity='0'; setTimeout(()=>{ el.style.display='none'; }, dur); }
+  function fadeShow(el, dur=FADE, display='flex'){ 
+    el.style.display=display; 
+    el.style.opacity='0'; 
+    el.style.transition=`opacity ${dur}ms ease`; 
+    requestAnimationFrame(()=> el.style.opacity='1'); 
+  }
+  function fadeHide(el, dur=FADE){ 
+    el.style.transition=`opacity ${dur}ms ease`; 
+    el.style.opacity='0'; 
+    setTimeout(()=>{ el.style.display='none'; }, dur); 
+  }
 
   function setAppH(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
   setAppH(); addEventListener('resize', setAppH, {passive:true});
@@ -396,7 +405,7 @@
   function ensureAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)({latencyHint: 'interactive'}); }
   async function ensureResumed(){ try{ ensureAudio(); if(audioCtx.state==='suspended') await audioCtx.resume().catch(()=>{}); }catch{} }
 
-  // ---- Ambient BG Music (idempotent) ----
+  // ---- Ambient BG Music ----
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, killers=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
@@ -449,7 +458,7 @@
     return { start, stop, isRunning };
   })();
 
-  // ---- UI Click sounds (Lenovo TAB ONE) ----
+  // ---- UI Click sounds ----
   async function playWoongClick(){
     try{
       await ensureResumed();
@@ -499,16 +508,19 @@
   zoomIn.addEventListener('click', async ()=>{ ZOOM=Math.min(3.0, ZOOM+0.05); updateZoomLabel(); await playWoongClick(); }, {passive:true});
   zoomOut.addEventListener('click', async ()=>{ ZOOM=Math.max(0.35, ZOOM-0.05); updateZoomLabel(); await playWoongClick(); }, {passive:true});
 
-  /* ===== Permission Gate (Lenovo TAB ONE 최적화) ===== */
+  /* ===== Permission Gate (이벤트 버블링 문제 해결) ===== */
   async function immediateGestureStart(e){
-    // 이벤트가 있으면 preventDefault 호출
+    // 이벤트 중복 방지
     if (e && e.preventDefault) e.preventDefault();
+    if (isProcessingGesture) return;
+    isProcessingGesture = true;
+    setTimeout(() => { isProcessingGesture = false; }, 200);
 
     // 제스처 직후: 전체화면 & 오디오 컨텍스트 확보
     claimImmersive();
     await ensureResumed();
 
-    // iOS motion permission (있으면)
+    // iOS motion permission
     try{
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -516,81 +528,71 @@
       }
     }catch(_){}
 
-    // **Android에서 안정적인 deviceorientation 확보**
+    // Android deviceorientation 활성화
     if (window.DeviceOrientationEvent) {
       window.addEventListener('deviceorientation', () => {}, { once: true });
     }
 
-    // 카메라+마이크 권한 요청 (가장 중요한 부분 - 사용자 제스처 컨텍스트 보존)
+    // 카메라+마이크 권한 요청
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video:{facingMode:{ideal:'environment'}, width:{min:1280,ideal:1920}, height:{min:720,ideal:1080}, aspectRatio:{ideal:16/9}},
+        video:{facingMode:{ideal:'environment'}, width:{min:1280,ideal:1920}, height:{min:720,ideal:1080}, aspectRatio:{exact:16/9}},
         audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}
       });
       
-      // ✅ 허용 즉시: 오디오 컨텍스트 resume & 배경음 시작
       await ensureResumed();
       if(!Ambient.isRunning()) Ambient.start(0.8, 1.0);
-
-      // 전체화면 재시도(일부 브라우저)
       claimImmersive();
-
-      // tracks 정리
       stream.getTracks().forEach(t=>t.stop());
       camPermGranted = true;
       
     } catch(err) {
       console.warn('permission error:', err);
-      // 권한 거부 시에도 계속 진행 (사용자 경험)
       camPermGranted = true;
     }
 
-    // 오버레이 숨기고 이름 화면 표시
+    // 오버레이 전환
+    overlay.style.pointerEvents = 'none'; // 중복 클릭 방지
     fadeHide(overlay, FADE);
-    fadeShow(nameOverlay, FADE);
-    setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 60);
+    setTimeout(() => {
+      nameOverlay.style.display = 'flex';
+      nameOverlay.classList.add('show');
+      if(nickInput) nickInput.focus();
+    }, FADE + 50);
   }
 
-  // 이벤트 리스너 등록 - 중복 방지를 위해 한 번만
-  // 1. 버튼 클릭
-  permBtn.addEventListener('click', immediateGestureStart, {passive:false});
-  
-  // 2. 오버레이 전체 클릭 (버튼 외 영역)
-  overlay.addEventListener('click', immediateGestureStart, {passive:false});
-  
-  // 3. window 이벤트 - display 상태 확인으로 중복 실행 방지
   let isProcessingGesture = false;
-  ['click', 'touchstart', 'pointerdown'].forEach(type=>{
-    window.addEventListener(type, (ev)=>{
-      if(getComputedStyle(overlay).display !== 'none' && !isProcessingGesture){
-        isProcessingGesture = true;
-        immediateGestureStart(ev);
-        setTimeout(() => { isProcessingGesture = false; }, 100);
-      }
-    }, {passive:false});
-  });
+  // 이벤트 리스너 등록 (한 번만)
+  permBtn.addEventListener('click', immediateGestureStart, {passive:false});
+  overlay.addEventListener('click', immediateGestureStart, {passive:false});
 
   /* ===== Name → Preset → Welcome ===== */
   let displayName = '____';
   async function acceptName(){
     claimImmersive();
     await ensureResumed();
-    if(!Ambient.isRunning()) Ambient.start(0.2, 1.0); // 보강: 중복 안전
+    if(!Ambient.isRunning()) Ambient.start(0.2, 1.0);
     const v = (nickInput.value||'').trim();
     if(v.length>0){ displayName = v; }
     await playWoongClick();
+    nameSubmit.disabled = true; // 중복 클릭 방지
+    
     fadeHide(nameOverlay, FADE);
-    showPreset();
+    setTimeout(() => {
+      showPreset();
+    }, FADE + 50);
   }
   nameSubmit.addEventListener('click', acceptName, {passive:true});
   nickInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ acceptName(); }});
 
   let saverObjs=[], saverMode='scatter', saverT0=0;
   function showPreset(){
-    preset.style.display='block'; preset.classList.add('show');
-    fadeShow(preset, FADE);
-    initSaver(); startCameraFresh(true);
+    preset.style.display = 'block';
+    preset.classList.add('show');
+    initSaver();
+    startCameraFresh(true);
   }
+  
   function initSaver(){
     const w=preset.clientWidth, h=preset.clientHeight;
     saverObjs=[]; const letters=['S','L','E','E','P'];
@@ -600,16 +602,19 @@
         vy:(Math.random()*1.2+0.3)*(Math.random()<.5?-1:1),
         phase:Math.random()*Math.PI*2, size:Math.floor(Math.random()*60)+90});
     }
-    saverT0=performance.now(); requestAnimationFrame(saverLoop);
+    saverT0=performance.now(); // **오타 수정**
+    requestAnimationFrame(saverLoop);
   }
+  
   function saverTargetsForWord(){
     const w=preset.clientWidth, h=preset.clientHeight, base=Math.min(w,h)*0.55;
     const cx=w/2, cy=h/2, spacing=base/5, left=cx-(spacing*2);
     return [{x:left,y:cy},{x:left+spacing,y:cy},{x:left+spacing*2,y:cy},{x:left+spacing*3,y:cy},{x:left+spacing*4,y:cy}];
   }
+  
   function saverLoop(){
     if(preset.style.display==='none') return;
-    const now=performance.now(), w=preset.clientWidth, h=preset.clientHeight, dpr=devicePixelRatio||1;
+    const now=performance.now(), w=preset.clientWidth, h=preset.clientHeight, dpr=Math.min(devicePixelRatio||1, 1.5);
     presetCanvas.width=w*dpr; presetCanvas.height=h*dpr;
     const ctx=presetCanvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,w,h); ctx.fillStyle='#000'; ctx.fillRect(0,0,w,h);
@@ -626,14 +631,17 @@
     }
     requestAnimationFrame(saverLoop);
   }
+  
   preset.addEventListener('click', async ()=>{
     claimImmersive();
     await ensureResumed();
-    if(!Ambient.isRunning()) Ambient.start(0.2, 1.0); // 보강
+    if(!Ambient.isRunning()) Ambient.start(0.2, 1.0);
     await playWoongClick();
     fadeHide(preset, FADE);
-    await startCameraFresh(false);
-    fadeShow(welcome, FADE);
+    setTimeout(() => {
+      startCameraFresh(false);
+      fadeShow(welcome, FADE);
+    }, FADE + 50);
   }, {passive:true});
 
   /* ===== Intro text & NEXT flow ===== */
@@ -741,7 +749,7 @@
   async function showIntroFlow(){
     claimImmersive();
     await ensureResumed();
-    if(!Ambient.isRunning()) Ambient.start(0.2, 1.0); // 보강
+    if(!Ambient.isRunning()) Ambient.start(0.2, 1.0);
 
     introBig.style.display='flex'; introBig.style.opacity='0';
     await nextFrame(); fitTitleLine(introBigText);
@@ -799,98 +807,17 @@
     eightTimer=setInterval(()=>{ eightLeft=Math.max(0,eightLeft-1); runTimer.textContent=formatMMSS(eightLeft); if(eightLeft<=0){ clearInterval(eightTimer); } },1000);
   }
 
-  /* Mic FX (피드백 방지 + 패닝 - Lenovo TAB ONE용) */
-  let micStream=null, micSrc=null, panNode=null, micGain=null, noiseGate=null;
-
-  async function startMicFXFadeIn(fadeSec=4.0){
-    try{
-      await ensureResumed();
-      if(!micStream) micStream = await navigator.mediaDevices.getUserMedia({
-        audio:{
-          echoCancellation: false,  // 우리가 직접 제어
-          noiseSuppression: false,
-          autoGainControl: false,
-          channelCount: 1,          // 모노 입력으로 시작
-          sampleRate: 44100,
-          latency: 0.01             // 최소 지연
-        }, 
-        video:false
-      });
-      
-      if(!micSrc) micSrc = audioCtx.createMediaStreamSource(micStream);
-      
-      // **1. 노이즈 게이트 (피드백 방지)**
-      noiseGate = audioCtx.createDynamicsCompressor();
-      noiseGate.threshold.value = -45;  // -45dB 이하는 차단
-      noiseGate.knee.value = 10;
-      noiseGate.ratio.value = 12;       // 12:1 압축
-      noiseGate.attack.value = 0.003;
-      noiseGate.release.value = 0.5;
-      
-      // **2. 매우 낮은 게인 (피드백 방지)**
-      micGain = audioCtx.createGain();
-      micGain.gain.value = 0.0;  // 시작은 0
-      
-      // **3. 고주수 필터 (피드백 방지)**
-      const highCut = audioCtx.createBiquadFilter();
-      highCut.type = 'lowpass';
-      highCut.frequency.value = 3500;  // 3.5kHz 이상 차단
-      
-      // **4. 패닝**
-      panNode = audioCtx.createStereoPanner();
-      
-      // **5. 최종 출력 게인 (매우 낮게 - Lenovo TAB ONE 스피커용)**
-      const outGain = audioCtx.createGain();
-      outGain.gain.value = 0.12;  // **TAB ONE 내장 스피커용 안전 볼륨**
-      
-      // 체인: mic → noiseGate → highCut → micGain → pan → outGain → output
-      micSrc.connect(noiseGate);
-      noiseGate.connect(highCut);
-      highCut.connect(micGain);
-      micGain.connect(panNode);
-      panNode.connect(outGain);
-      outGain.connect(audioCtx.destination);
-      
-      // 오리엔테이션 리스너
-      window.addEventListener('deviceorientation', onTiltAudio, {passive:true});
-      
-      // 부드러운 페이드 인
-      const t = audioCtx.currentTime;
-      micGain.gain.linearRampToValueAtTime(0.32, t+fadeSec);  // **TAB ONE용 안전 최대 게인**
-      
-    }catch(e){ console.warn('startMicFX error', e); }
-  }
-
-  function onTiltAudio(e){
-    if(!audioCtx || !panNode) return;
-    
-    // **좌우 회전(gamma) → LR 패닝**
-    // Lenovo TAB ONE: -90도 ~ +90도 → -1(왼쪽) ~ +1(오른쪽)
-    const gamma = clamp(e.gamma ?? 0, -90, 90);
-    panNode.pan.value = gamma / 90;
-    
-    // **위아래 회전(beta) → 무시 (안정성)**
-    // const beta = clamp(e.beta ?? 0, -90, 90);
-  }
-
-  /* Camera & Render (Lenovo TAB ONE 16:9 최적화) */
+  /* Camera & Render (성능 최적화) */
   let metaReady=false;
   async function startCameraFresh(warmupOnly=false){
     try{
       if(!camPermGranted){
-        // 권한이 없으면 빠른 카메라 테스트
         const testStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}, audio:false});
         testStream.getTracks().forEach(t=>t.stop());
         camPermGranted = true;
       }
       
-      if(!camVideo){ 
-        camVideo=document.createElement('video'); 
-        camVideo.setAttribute('playsinline',''); 
-        camVideo.autoplay=true; 
-        camVideo.playsInline=true; 
-        camVideo.muted=true; 
-      }
+      if(!camVideo){ camVideo=document.createElement('video'); camVideo.setAttribute('playsinline',''); camVideo.autoplay=true; camVideo.playsInline=true; camVideo.muted=true; }
       
       if(!camStream){
         camStream = await navigator.mediaDevices.getUserMedia({
@@ -898,7 +825,7 @@
             facingMode:{ideal:'environment'}, 
             width:{min:1280,ideal:1920}, 
             height:{min:720,ideal:1080}, 
-            aspectRatio:{exact:16/9}  // **TAB ONE 16:9 비율 강제**
+            aspectRatio:{exact:16/9}
           },
           audio:false
         });
@@ -916,11 +843,8 @@
       resizeAll();
       if(!animStarted && !warmupOnly){ animStarted=true; loop(); }
       
-      document.querySelectorAll('.uiBtn').forEach(b=>b.addEventListener('click', ()=>{ ensureResumed().then(playWoongClick); }, {passive:true}));
-      
     }catch(e){ 
       console.warn('startCameraFresh error:', e);
-      // 카메라 시작 실패 시에도 UI는 계속 진행
       metaReady = true;
       if(!vctx){ vctx=view.getContext('2d',{alpha:false, desynchronized:true}); proc=document.createElement('canvas'); pctx=proc.getContext('2d',{willReadFrequently:true}); }
       if(!fgctx){ fgctx=fg.getContext('2d',{alpha:true, desynchronized:true}); }
@@ -930,7 +854,7 @@
   }
   
   function resizeAll(){
-    const dpr=Math.min(window.devicePixelRatio||1, 1.5); // **TAB ONE 성능 최적화: DPR 제한**
+    const dpr=Math.min(window.devicePixelRatio||1, 1.5); // DPR 제한
     const w=window.innerWidth, h=window.innerHeight;
     view.width=w*dpr; view.height=h*dpr; if(vctx) vctx.setTransform(dpr,0,0,dpr,0,0);
     fg.width=w*dpr; fg.height=h*dpr; if(fgctx) fgctx.setTransform(dpr,0,0,dpr,0,0);
@@ -951,7 +875,6 @@
   }
 
   function loop(){
-    // **성능 최적화: requestAnimationFrame은 한 번만**
     requestAnimationFrame(loop);
     if(capturing) return;
     if(!vctx || !pctx || !fgctx) return;
@@ -1032,7 +955,6 @@
   }
 
   async function startTransition(){
-    // 첫 번째 수면 진입 시 엠비언트 음악 4초 페이드아웃
     Ambient.stop(4.0);
     
     firstSleep.style.display='flex'; firstSleep.style.opacity='1';
@@ -1041,7 +963,7 @@
     startEightTimer();
     await nextFrame(); controls.classList.add('show'); captureBtn.classList.add('show');
 
-    await startMicFXFadeIn(4.0); // 4초 페이드 인
+    await startMicFXFadeIn(4.0);
 
     const fadeDur=8000;
     fadeIntroLayerOut(fadeDur);
