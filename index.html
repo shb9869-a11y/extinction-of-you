@@ -37,19 +37,9 @@
   body{
     font-family:Impact,"Anton","Arial Black",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans KR",sans-serif;
     -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
-    -webkit-tap-highlight-color: transparent; /* ✅ 안드로이드 터치 하이라이트 제거 */
   }
-  /* ✅ 전역 선택/복사 하이라이트 제거 */
   *{ -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color: transparent; }
-  ::selection{ background:transparent; color:inherit; }
-  ::-moz-selection{ background:transparent; color:inherit; }
-
-  /* ✅ 입력 요소는 선택/복사 허용 */
-  input, textarea{
-    -webkit-user-select:text; user-select:text;
-    -webkit-touch-callout:default;
-    -webkit-tap-highlight-color: initial;
-  }
+  input, textarea{ -webkit-user-select:text; user-select:text; }
 
   .fade{opacity:0; transition:opacity 1800ms ease}
   .fade.show{opacity:1}
@@ -151,128 +141,7 @@
   #introBig{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; pointer-events:none; z-index:210;}
   #introBigText{ color:#fff; font-weight:900; letter-spacing:.06em; font-size:clamp(48px, 22vmin, 260px); text-transform:uppercase; text-align:center; white-space:nowrap; text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7); padding:0 .02em; }
 
-  /* Intro dialogue (with NEXT) */
-  #dialogueWrap{
-    position:fixed; left:calc(var(--frame) + var(--safe-l)); right:calc(var(--frame) + var(--safe-r));
-    bottom:0; z-index:230;
-    transform: translateY(calc(-1 * var(--dialogue-offset-vh)));
-    display:none; pointer-events:auto;
-  }
-  #dialogueBox{
-    position:relative;
-    width:100%; max-width:1200px; margin:0 auto;
-    background:#000; color:#fff;
-    border:1px solid rgba(255,255,255,.25); border-bottom:none;
-    padding:14px 16px 44px;
-    font-family:"Courier New",ui-monospace,monospace; line-height:1.7;
-    min-height:calc(var(--frame) + var(--safe-b) + var(--dialogue-offset-vh));
-    box-shadow:0 -10px 30px rgba(0,0,0,.35) inset;
-  }
-  #dialogueHeader{ opacity:.9; font-size:clamp(12px, 2.2vmin, 15px); letter-spacing:.08em; margin-bottom:6px; }
-  #dialogueText{ font-size:clamp(14px, 2.6vmin, 19px); min-height:3lh; }
-  #nextBtn{
-    position:absolute; right:10px; bottom:10px;
-    border:1px solid rgba(255,255,255,.3);
-    padding:8px 12px; border-radius:4px;
-    background:#111; color:#fff; font-family:"Courier New",ui-monospace,monospace;
-    font-size:clamp(12px, 2.2vmin, 15px); letter-spacing:.06em;
-  }
-  #nextBtn:active{ transform:translateY(1px); }
-
-  /* FIRST SLEEP */
-  #firstSleep{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; pointer-events:none; z-index:850; }
-  #firstSleepText{
-    color:#fff; font-weight:900; letter-spacing:.06em;
-    font-size:clamp(48px, 22vmin, 260px);
-    text-transform:uppercase; text-align:center; white-space:nowrap;
-    text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7);
-    padding:0 .02em;
-  }
-
-  /* NOTICE */
-  #noticePopup{
-    position:fixed; inset:0; z-index:900; display:none;
-    align-items:center; justify-content:center; background:rgba(0,0,0,.72);
-  }
-  #noticeCard{
-    width:min(92vw, 640px);
-    background:#0b0b0b; color:#fff; border:1px solid #333;
-    padding:18px; box-shadow:0 10px 30px rgba(0,0,0,.6);
-    font-family:"Courier New",ui-monospace,monospace; line-height:1.7;
-  }
-  #noticeCard h3{ margin:0 0 6px 0; letter-spacing:.06em; font-weight:700; font-size:clamp(15px,3vmin,20px); }
-  #noticeCard p{ margin:4px 0; font-size:clamp(12px,2.4vmin,16px); }
-  #noticeActions{ margin-top:10px; text-align:right; }
-</style>
-</head>
-<body>
-  <canvas id="view"></canvas>
-  <canvas id="fg"></canvas>
-
-  <canvas id="freezeLayer"></canvas>
-  <div class="frameBox" aria-hidden="true"></div>
-
-  <div class="controls" id="controls">
-    <button class="uiBtn small" id="zoomOut">–</button>
-    <div class="readout"><span id="zoomVal">1.0×</span></div>
-    <button class="uiBtn small" id="zoomIn">+</button>
-  </div>
-  <button id="captureBtn" class="uiBtn small btn-capture">CAPTURE</button>
-
-  <button id="docLauncher" class="uiBtn small">DOCUMENT</button>
-  <button id="mapLauncher" class="uiBtn small">MAP</button>
-  <button id="audioToggle" class="uiBtn small">AUDIO</button>
-  <div id="runTimer" aria-live="polite">08:00</div>
-
-  <div id="rotateOverlay" aria-live="polite">
-    <div>
-      <b>Landscape mode required</b><br/>
-      Please rotate your device to landscape to continue.<br/>
-      If the screen doesn’t rotate, unlock orientation in your device settings.
-    </div>
-  </div>
-
-  <!-- Gate -->
-  <div id="overlay" class="fade show">
-    <div id="overlayContent">
-      <div class="credits" style="margin-bottom:10px;">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
-      <button id="permGateBtn" class="gateLine" type="button">
-        Tap anywhere to allow Camera, Microphone & Motion sensors
-      </button>
-      <div class="gateHint">After allowing, you'll move to the name screen.</div>
-    </div>
-  </div>
-
-  <!-- Name -->
-  <div id="nameOverlay" class="fade">
-    <div id="nameCard">
-      <h2>TELL ME YOUR NAME</h2>
-      <input id="nick" type="text" maxlength="24" placeholder="Type your nickname" autocomplete="off" />
-      <div id="nameRow">
-        <button id="nameSubmit" class="uiBtn flat" type="button">GO</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Preset -->
-  <div id="preset" class="fade" title="Tap to continue">
-    <canvas id="presetCanvas"></canvas>
-  </div>
-
-  <!-- Welcome -->
-  <div id="overlayWelcome" class="fade">
-    <div id="welcomeCard">
-      <div class="credits" style="margin-bottom:12px;">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
-      <div class="title">SLEEEEEEEEEEEEEEEEEEEEEEEEEP,</div>
-      <div class="title">SLEEEEEEEEEEEEEEEEEEEEEEEEEP</div>
-      <button id="goIntro" class="uiBtn flat" type="button">PRESS HERE TO SLEEP</button>
-    </div>
-  </div>
-
-  <!-- INTRODUCTION -->
-  <div id="introBig" class="fade"><div id="introBigText">INTRODUCTION</div></div>
-
-  <!-- 인트로 대화 패널 -->
+  /* 인트로 대화 패널 */
   <div id="dialogueWrap">
     <div id="dialogueBox">
       <div id="dialogueHeader">VOICE:</div>
@@ -597,7 +466,7 @@
     for(let i=0;i<20;i++){
       saverObjs.push({ch:letters[i%5], x:Math.random()*w, y:Math.random()*h,
         vx:(Math.random()*1.2+0.3)*(Math.random()<.5?-1:1),
-        vy:(Math.random()*1.2+0.3)*((Math.random()<.5)?-1:1),
+        vy:(Math.random()*1.2+0.3)*(Math.random()<.5?-1:1),
         phase:Math.random()*Math.PI*2, size:Math.floor(Math.random()*60)+90});
     }
     saverT0=performance.now(); requestAnimationFrame(saverLoop);
@@ -853,7 +722,7 @@
       }
       await camVideo.play().catch(()=>{});
       if (camVideo.readyState < 1) await new Promise(res=>camVideo.addEventListener('loadedmetadata', res, {once:true}));
-      metaReady=true; resizeAll(); warmupFrames=30;
+      metaReady=true; resizeAll(); warmupFrames=0;
 
       if(!vctx){ vctx=view.getContext('2d',{alpha:false}); proc=document.createElement('canvas'); pctx=proc.getContext('2d',{willReadFrequently:true}); }
       if(!fgctx){ fgctx=fg.getContext('2d',{alpha:true}); }
@@ -962,9 +831,9 @@
   }
 
   async function startTransition(){
-    /* ✅ THE FIRST SLEEP 진입과 동시에 엠비언스 4초 페이드아웃 */
-    if (Ambient.isRunning()) Ambient.stop(4.0);
-
+    // 첫 번째 수면 진입 시 엠비언트 음악 4초 페이드아웃
+    Ambient.stop(4.0);
+    
     firstSleep.style.display='flex'; firstSleep.style.opacity='1';
     await nextFrame(); fitTitleLine(firstSleepText);
 
