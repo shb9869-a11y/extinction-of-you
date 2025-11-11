@@ -576,7 +576,7 @@
         vy:(Math.random()*1.2+0.3)*(Math.random()<.5?-1:1),
         phase:Math.random()*Math.PI*2, size:Math.floor(Math.random()*60)+90});
     }
-    saverT0=performance.now(); requestAnimationFrame(saverLoop);
+    sav erT0=performance.now(); requestAnimationFrame(saverLoop);
   }
   function saverTargetsForWord(){
     const w=preset.clientWidth, h=preset.clientHeight, base=Math.min(w,h)*0.55;
@@ -775,126 +775,49 @@
     eightTimer=setInterval(()=>{ eightLeft=Math.max(0,eightLeft-1); runTimer.textContent=formatMMSS(eightLeft); if(eightLeft<=0){ clearInterval(eightTimer); } },1000);
   }
 
-  /* Mic FX (개선된 버전) */
-  let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, micPreGain=null;
-  function makeImpulse(ctx, seconds=6.0, decay=8.0){ // 더 길고 부드러운 리버브
-    const rate=ctx.sampleRate, len=rate*seconds, ir=ctx.createBuffer(2, len, rate);
-    for(let ch=0; ch<2; ch++){ const data=ir.getChannelData(ch); for(let i=0;i<len;i++){ const t=i/len; data[i]=(Math.random()*2-1)*Math.pow(1-t,decay);} }
-    return ir;
-  }
-  async function startMicFXFadeIn(fadeSec=4.0){ // 4초 페이드 인
+  /* Mic FX (리버브 제거, 패닝만, 깔끔한 사운드) */
+  let micStream=null, micSrc=null, panNode=null, micGain=null;
+  
+  async function startMicFXFadeIn(fadeSec=4.0){
     try{
       await ensureResumed();
       if(!micStream) micStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}, video:false});
       if(!micSrc) micSrc = audioCtx.createMediaStreamSource(micStream);
       
-      // 프리 앰프 (감도 높이기)
-      micPreGain = audioCtx.createGain();
-      micPreGain.gain.value = 1.8; // 감도는 높지만..
+      // **매우 단순한 체인: mic → gain → pan → output**
+      micGain = audioCtx.createGain();
+      micGain.gain.value = 0.0; // 시작은 0
       
-      // 필터 체인
-      lowshelf = audioCtx.createBiquadFilter();
-      highshelf = audioCtx.createBiquadFilter();
-      lpf = audioCtx.createBiquadFilter();
       panNode = audioCtx.createStereoPanner();
       
-      // 로우패스 필터: 더 부드럽게 (Q값 낮춤)
-      lpf.type='lowpass';
-      lpf.frequency.value=2800; // 기본 컷오프
-      lpf.Q.value=0.3; // Q값 낮춰서 날카로움 제거
-      
-      // 로우셸프: 저역 강조용
-      lowshelf.type='lowshelf';
-      lowshelf.frequency.value=350;
-      lowshelf.gain.value=0;
-      
-      // 하이셸프: 고역 강조용 (쨍한 소리)
-      highshelf.type='highshelf';
-      highshelf.frequency.value=3500;
-      highshelf.gain.value=0;
-      
-      // 리버브: 더 길고 부드럽게
-      revConvolver = audioCtx.createConvolver();
-      revConvolver.buffer = makeImpulse(audioCtx, 6.0, 8.0);
-      
-      // 게인 노드
-      dryGain = audioCtx.createGain();
-      wetGain = audioCtx.createGain();
-      dryGain.gain.value = 0.0;
-      wetGain.gain.value = 0.0;
-      
       const out = audioCtx.createGain();
-      out.gain.value = 0.92; // 전체 볼륨 약간 낮춤
+      out.gain.value = 0.95; // 전체 볼륨
       
-      // 오디오 체인 연결
-      micSrc.connect(micPreGain);
-      micPreGain.connect(lowshelf)
-               .connect(highshelf)
-               .connect(lpf)
-               .connect(panNode);
-      
-      panNode.connect(dryGain);
-      panNode.connect(revConvolver);
-      revConvolver.connect(wetGain);
-      
-      dryGain.connect(out);
-      wetGain.connect(out);
-      out.connect(audioCtx.destination);
+      // 체인 연결: mic → gain → pan → out
+      micSrc.connect(micGain).connect(panNode).connect(out).connect(audioCtx.destination);
       
       // 오리엔테이션 리스너
       window.addEventListener('deviceorientation', onTiltAudio, {passive:true});
       
       // 4초 페이드 인
       const t = audioCtx.currentTime;
-      dryGain.gain.linearRampToValueAtTime(0.72, t+fadeSec);
-      wetGain.gain.linearRampToValueAtTime(0.58, t+fadeSec);
+      micGain.gain.linearRampToValueAtTime(1.0, t+fadeSec); // 깨끗한 1.0 게인
+      
     }catch(e){ console.warn('startMicFX error', e); }
   }
   
   function onTiltAudio(e){
     if(!audioCtx || !panNode) return;
     
-    // **좌우 회전 → LR 패닝**
-    const gamma = clamp(e.gamma ?? 0, -90, 90); // -90도 ~ +90도
-    panNode.pan.value = gamma / 90; // -1 ~ +1 매핑
+    // **좌우 회전 → LR 패닝만**
+    // gamma: -90도 ~ +90도 → -1 ~ +1 로 매핑
+    const gamma = clamp(e.gamma ?? 0, -90, 90);
+    panNode.pan.value = gamma / 90;
     
-    // **위아래 회전 → 주파수 변조**
+    // **위아래 회전 → 무시 (소리 변화 없음)**
+    // 블루투스 헤드폰을 위한 안정성 확보
     const beta = clamp(e.beta ?? 0, -90, 90);
-    
-    if(lowshelf) {
-      // 아래로 기울이면: 저역 강조 (울림)
-      // 범위: -12dB ~ +12dB (음수는 감소, 양수는 강조)
-      lowshelf.gain.value = (beta < 0) ? (beta / 90) * 10 : 0;
-    }
-    
-    if(highshelf) {
-      // 위로 기울이면: 고역 강조 (쨍한 소리)
-      highshelf.gain.value = (beta > 0) ? (beta / 90) * 10 : 0;
-    }
-    
-    if(lpf) {
-      // beta에 따라 로우패스 컷오프 주파수 변화
-      // 위로 올리면: 2800Hz ~ 4500Hz (고역 통과)
-      // 아래로 내리면: 2800Hz ~ 900Hz (저역만)
-      let cutoff;
-      if(beta >= 0) {
-        cutoff = 2800 + (beta / 90) * (4500 - 2800);
-      } else {
-        cutoff = 2800 + (beta / 90) * (2800 - 900);
-      }
-      lpf.frequency.value = clamp(cutoff, 900, 4500);
-      // Q값도 약간 변화 (낮을수록 부드러움)
-      lpf.Q.value = 0.2 + (Math.abs(beta) / 90) * 0.3;
-    }
-    
-    if(wetGain && dryGain) {
-      // 기울기에 따라 리버브 믹스 비율 변화
-      const tilt = Math.abs(beta) / 90;
-      const wetBase = 0.42; // 기본 wet
-      const wetAmount = wetBase + tilt * 0.25; // 기울면서 변화
-      wetGain.gain.value = clamp(wetAmount, 0.35, 0.67);
-      dryGain.gain.value = clamp(1.0 - wetGain.gain.value * 0.5, 0.5, 0.85);
-    }
+    // beta 값은 아무 영향 없음
   }
 
   /* Camera & Render */
@@ -1033,7 +956,7 @@
     startEightTimer();
     await nextFrame(); controls.classList.add('show'); captureBtn.classList.add('show');
 
-    await startMicFXFadeIn(4.0); // 4초 페이드 인
+    await startMicFXFadeIn(4.0); // 4초 페이드 인 (깔끔한 마이크)
 
     const fadeDur=8000;
     fadeIntroLayerOut(fadeDur);
