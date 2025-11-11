@@ -290,7 +290,7 @@
 
 <script>
 (() => {
-  /* ===== Manifest: fullscreen 모드 ===== */
+  /* ===== Manifest: fullscreen ===== */
   (function injectManifest(){
     const manifest = {
       "name":"SLEEEEEP",
@@ -320,7 +320,6 @@
       }
     }catch(e){}
   }
-
   let wakeLock = null;
   async function keepAwake(){
     try{
@@ -330,10 +329,7 @@
       }
     }catch(e){}
   }
-  function claimImmersive(){
-    enterFullscreen();
-    keepAwake();
-  }
+  function claimImmersive(){ enterFullscreen(); keepAwake(); }
   document.addEventListener('visibilitychange', async ()=>{
     if (document.visibilityState === 'visible' && wakeLock) {
       try{ wakeLock = await navigator.wakeLock.request('screen'); }catch(e){}
@@ -350,16 +346,8 @@
   document.addEventListener('contextmenu', e=>e.preventDefault());
   document.addEventListener('selectstart', e=>e.preventDefault());
 
-  function fadeShow(el, dur=FADE, display='flex'){
-    el.style.display=display; el.style.opacity='0';
-    el.style.transition=`opacity ${dur}ms ease`;
-    requestAnimationFrame(()=> el.style.opacity='1');
-  }
-  function fadeHide(el, dur=FADE){
-    el.style.transition=`opacity ${dur}ms ease`;
-    el.style.opacity='0';
-    setTimeout(()=>{ el.style.display='none'; }, dur);
-  }
+  function fadeShow(el, dur=FADE, display='flex'){ el.style.display=display; el.style.opacity='0'; el.style.transition=`opacity ${dur}ms ease`; requestAnimationFrame(()=> el.style.opacity='1'); }
+  function fadeHide(el, dur=FADE){ el.style.transition=`opacity ${dur}ms ease`; el.style.opacity='0'; setTimeout(()=>{ el.style.display='none'; }, dur); }
 
   function setAppH(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
   setAppH(); addEventListener('resize', setAppH, {passive:true});
@@ -421,6 +409,60 @@
   function ensureAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
   async function ensureResumed(){ try{ ensureAudio(); if(audioCtx.state==='suspended') await audioCtx.resume(); }catch{} }
 
+  // ---- Ambient BG Music (idempotent) ----
+  const Ambient = (() => {
+    let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, killers=[];
+    function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
+    function setup(){
+      ctx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+      master = ctx.createGain(); master.gain.value=0.0001;
+      delay = ctx.createDelay(2.5); delay.delayTime.value=0.35;
+      fb = ctx.createGain(); fb.gain.value=0.35; delay.connect(fb).connect(delay);
+      hp = ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=150;
+      lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=4500;
+      mix = ctx.createGain(); mix.gain.value = 0.6; mix.connect(hp).connect(lp).connect(master);
+      busGain = ctx.createGain(); busGain.gain.value=0.9; busGain.connect(master);
+      master.connect(ctx.destination);
+    }
+    function connectDW(node){ node.connect(busGain); node.connect(delay); delay.connect(mix); }
+    function airy(){
+      const b=audioCtx.createBuffer(1, audioCtx.sampleRate*2, audioCtx.sampleRate);
+      const d=b.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.15;
+      const s=audioCtx.createBufferSource(); s.buffer=b; s.loop=true;
+      const g=audioCtx.createGain(); g.gain.value=0.02;
+      const f=audioCtx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=800; f.Q.value=0.7;
+      s.connect(f).connect(g); connectDW(g); s.start();
+      killers.push(()=>{ try{s.stop();}catch{} });
+    }
+    function pad(root){
+      const out = audioCtx.createGain(); out.gain.value=0.35;
+      const filt=audioCtx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=600; filt.Q.value=0.6;
+      const lfo=audioCtx.createOscillator(); const lfoG=audioCtx.createGain();
+      lfo.type='sine'; lfo.frequency.value=0.05; lfoG.gain.value=220; lfo.connect(lfoG).connect(filt.frequency); lfo.start();
+      [0,7,12].forEach((i,k)=>{ const o=audioCtx.createOscillator(); o.type='sawtooth'; o.frequency.value=midi(root+i); o.detune.value=(k-1)*6; const g=audioCtx.createGain(); g.gain.value=0.08; o.connect(g).connect(filt); o.start(); killers.push(()=>g.disconnect()); });
+      filt.connect(out); connectDW(out); killers.push(()=>{ try{ out.disconnect(); }catch{} });
+    }
+    async function start(fadeIn=0.8, target=1.0){
+      await ensureResumed();
+      if(running) return;
+      setup(); running=true; airy();
+      const seq=[57,52,48,43]; let i=0; (function tick(){ if(!running) return; pad(seq[i%seq.length]); i++; setTimeout(tick,8000); })();
+      const t=(audioCtx||ctx).currentTime;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setValueAtTime(master.gain.value, t);
+      master.gain.exponentialRampToValueAtTime(target, t+fadeIn);
+    }
+    function stop(fade=2.0){
+      if(!running||!master) return;
+      const t=(audioCtx||ctx).currentTime;
+      master.gain.linearRampToValueAtTime(0.0001, t+fade);
+      setTimeout(()=>{ killers.forEach(fn=>{try{fn();}catch{}}); killers=[]; running=false; }, fade*1000+120);
+    }
+    function isRunning(){ return running; }
+    return { start, stop, isRunning };
+  })();
+
+  // ---- UI Click sounds ----
   async function playWoongClick(){
     try{
       await ensureResumed();
@@ -474,29 +516,31 @@
   async function immediateGestureStart(e){
     e && e.preventDefault && e.preventDefault();
 
-    // 1) 제스처 직후 1차 시도 (일부 브라우저는 이때만 허용)
-    claimImmersive(); // FULLSCREEN: try now
+    // 제스처 직후: 전체화면 & 오디오 컨텍스트 확보
+    claimImmersive();
+    await ensureResumed();
 
-    // iOS motion permission(있으면) 후에도 시도
+    // iOS motion permission (있으면)
     try{
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission()
-          .then(()=>{ claimImmersive(); }) // FULLSCREEN: after motion perm
-          .catch(()=>{});
+        DeviceOrientationEvent.requestPermission().then(()=>{ claimImmersive(); }).catch(()=>{});
       }
     }catch(_){}
 
-    ensureAudio(); await ensureResumed(); playWoongClick();
-
-    // 2) 카메라/마이크 권한 요청 -> 승인 "성공 직후" 2차 시도
+    // 카메라+마이크 권한 요청
     navigator.mediaDevices.getUserMedia({
       video:{facingMode:{ideal:'environment'}, width:{min:1280,ideal:1920}, height:{min:720,ideal:1080}, aspectRatio:{ideal:16/9}},
       audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}
     })
-    .then(s=>{
-      // 승인 직후 전체화면 재요청 (사용자 활성 상태 창에서 처리됨)
-      claimImmersive(); // FULLSCREEN: after permission granted
+    .then(async (s)=>{
+      // ✅ 허용 즉시: 오디오 컨텍스트 resume & 배경음 시작
+      await ensureResumed();
+      if(!Ambient.isRunning()) Ambient.start(0.8, 1.0);
+
+      // 전체화면 재시도(일부 브라우저)
+      claimImmersive();
+
       // tracks 정리
       s.getTracks().forEach(t=>t.stop());
       camPermGranted = true;
@@ -520,9 +564,10 @@
   let displayName = '____';
   async function acceptName(){
     claimImmersive();
+    await ensureResumed();
+    if(!Ambient.isRunning()) Ambient.start(0.2, 1.0); // 보강: 중복 안전
     const v = (nickInput.value||'').trim();
     if(v.length>0){ displayName = v; }
-    await ensureResumed();
     await playWoongClick();
     fadeHide(nameOverlay, FADE);
     showPreset();
@@ -573,13 +618,15 @@
   }
   preset.addEventListener('click', async ()=>{
     claimImmersive();
+    await ensureResumed();
+    if(!Ambient.isRunning()) Ambient.start(0.2, 1.0); // 보강
     await playWoongClick();
     fadeHide(preset, FADE);
     await startCameraFresh(false);
     fadeShow(welcome, FADE);
   }, {passive:true});
 
-  /* ===== Intro text & NEXT flow (기존 유지) ===== */
+  /* ===== Intro text & NEXT flow ===== */
   function captureIntroTexts(){
     return [
       "안녕하세요?","작게 대답해주세요.","안녕하세요?","대답을 해주셔야 프로그램이 진행될 수 있습니다.","안녕하세요?","감사합니다.",
@@ -683,6 +730,8 @@
 
   async function showIntroFlow(){
     claimImmersive();
+    await ensureResumed();
+    if(!Ambient.isRunning()) Ambient.start(0.2, 1.0); // 보강
 
     introBig.style.display='flex'; introBig.style.opacity='0';
     await nextFrame(); fitTitleLine(introBigText);
@@ -718,7 +767,6 @@
     if(lineIdx < lines.length){ await showCurrentLine(); }
     else{ await endIntroAndTransition(); }
   }
-
   dialogueWrap.addEventListener('click', (e)=>{ if(e.target.id==='nextBtn') return; onAdvance(); }, {passive:true});
   nextBtn.addEventListener('click', onAdvance, {passive:true});
 
@@ -730,7 +778,7 @@
     startTransition();
   }
 
-  document.getElementById('goIntro').addEventListener('click', ()=>{ ensureResumed().then(async ()=>{ claimImmersive(); await playWoongClick(); fadeHide(welcome, FADE); showIntroFlow(); }); }, {passive:true});
+  document.getElementById('goIntro').addEventListener('click', ()=>{ ensureResumed().then(async ()=>{ claimImmersive(); if(!Ambient.isRunning()) Ambient.start(0.2,1.0); await playWoongClick(); fadeHide(welcome, FADE); showIntroFlow(); }); }, {passive:true});
 
   /* 8-minute Timer */
   let eightTimer=null, eightLeft=8*60;
@@ -861,6 +909,7 @@
   captureBtn.addEventListener('click', async ()=>{
     claimImmersive();
     if(captureAnimating) return;
+    await ensureResumed();
     await playWoongClick(); captureAnimating=true; capturing=true;
     const cssW=view.clientWidth, cssH=view.clientHeight;
     freezeLayer.width=cssW; freezeLayer.height=cssH;
@@ -916,6 +965,7 @@
     await sleep(900);
     firstSleep.style.transition=`opacity ${fadeDur}ms ease`; firstSleep.style.opacity='0';
     await sleep(fadeDur+200); firstSleep.style.display='none'; firstSleep.style.transition='';
+
     showNoticePopup();
   }
 
@@ -924,10 +974,9 @@
     ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{ noticePopup.addEventListener(ev, bgTrap, {passive:false}); });
     fadeShow(noticePopup, 280, 'flex');
     setTimeout(()=>{ noticeOk && noticeOk.focus && noticeOk.focus(); }, 50);
-    noticeOk.onclick = async (e)=>{ e.stopPropagation(); claimImmersive(); await playWoongClick(); fadeHide(noticePopup, 250); };
+    noticeOk.onclick = async (e)=>{ e.stopPropagation(); claimImmersive(); await ensureResumed(); await playWoongClick(); fadeHide(noticePopup, 250); };
   }
 
-  /* Init */
   function fitTitleLineAllSafe(){ fitTitleLine(introBigText); fitTitleLine(firstSleepText); }
   window.addEventListener('load', fitTitleLineAllSafe);
 
