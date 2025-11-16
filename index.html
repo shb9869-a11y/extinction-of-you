@@ -36,7 +36,7 @@
     --dialogue-offset-vh: 8vh;
     --char-offset-vh: 16vh;
 
-    --accent: #ffd840; /* 건물 노란 불빛 색 */
+    --accent: #ffd840;
   }
 
   html,body{
@@ -105,7 +105,7 @@
     top:calc(var(--frame) + var(--safe-t));
     right:calc(var(--frame) + var(--safe-r));
     bottom:calc(var(--frame) + var(--safe-b));
-    border:2px solid rgba(255,216,64,.75); /* 노란색 프로시니엄 틀 */
+    border:2px solid rgba(255,216,64,.75);
     pointer-events:none;
     z-index:50;
   }
@@ -273,7 +273,7 @@
     letter-spacing:.12em;
     font-size:var(--fs-name);
     font-weight:400;
-    text-shadow:0 0 6px rgba(0,0,0,.9);
+    text-shadow:0 0 12px rgba(0,0,0,.9);
     color:var(--accent);
   }
   #nick{
@@ -346,7 +346,7 @@
     margin:0;
     text-transform:uppercase;
     color:var(--accent);
-    white-space:nowrap;          /* 줄바꿈 방지 */
+    white-space:nowrap;
   }
   #goIntro{
     margin-top:0;
@@ -376,7 +376,7 @@
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
   }
 
-  /* INTRO 텍스트 박스 (우측 하단) */
+  /* INTRO 텍스트 박스 */
   #introDialogue{
     position:fixed;
     right:calc(var(--frame) + var(--safe-r) + 12px);
@@ -402,7 +402,7 @@
     margin-left:auto;
   }
 
-  /* THE FIRST SLEEP title */
+  /* THE FIRST SLEEP title 단독 오버레이 */
   #firstSleep{
     position:fixed;
     inset:0;
@@ -425,7 +425,7 @@
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
   }
 
-  /* NOTICE Popup (FIRST SLEEP용) */
+  /* NOTICE Popup (FIRST SLEEP) */
   #noticePopup{
     position:fixed;
     inset:0;
@@ -461,7 +461,7 @@
     text-align:right;
   }
 
-  /* FIRST SLEEP: 중앙 텍스트 (박스 포함) */
+  /* FIRST SLEEP: 중앙 문장 오버레이 */
   #chapterOverlay{
     position:fixed;
     inset:0;
@@ -469,7 +469,7 @@
     display:none;
     align-items:center;
     justify-content:center;
-    background:transparent; /* 화면 어두워지지 않게 */
+    background:transparent;
     color:var(--accent);
     padding:24px;
     pointer-events:none;
@@ -497,8 +497,8 @@
     border-radius:4px;
   }
 
-  /* BETWEEN FIRST & SECOND SLEEP */
-  #sleepTransition{
+  /* INTRO → FIRST SLEEP 사이 SLEEEEEEEEP / THE FIRST SLEEP */
+  #firstTransition{
     position:fixed;
     inset:0;
     display:none;
@@ -519,12 +519,32 @@
     text-shadow:0 0 8px rgba(0,0,0,.85);
     margin:4px 0;
   }
+  #firstTransWord{
+    margin-bottom:10px;
+  }
+  #firstTransTitle{
+    margin-top:10px;
+  }
+
+  /* FIRST SLEEP → SECOND SLEEP 사이 */
+  #sleepTransition{
+    position:fixed;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    color:var(--accent);
+    z-index:940;
+    pointer-events:none;
+  }
   #sleepSecondTitle{
     margin-top:14px;
     font-size:clamp(18px,5vmin,48px);
   }
 
-  /* SECOND NOTICE (지도 전용) */
+  /* SECOND NOTICE */
   #noticePopup2{
     position:fixed;
     inset:0;
@@ -665,10 +685,10 @@
   <div id="overlayWelcome" class="fade">
     <div id="welcomeCard">
       <div class="credits">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
-      <div class="title">SLEEEEEEEE P</div>
-      <div class="title">SLEEEEEEEE P</div>
-      <div class="title">SLEEEEEEEE P</div>
-      <div class="title">SLEEEEEEEE P</div>
+      <div class="title">SLEEEEEEEEP</div>
+      <div class="title">SLEEEEEEEEP</div>
+      <div class="title">SLEEEEEEEEP</div>
+      <div class="title">SLEEEEEEEEP</div>
       <button id="goIntro" class="uiBtn flat" type="button">PRESS HERE TO SLEEP</button>
     </div>
   </div>
@@ -682,7 +702,7 @@
     <button id="introNext" class="uiBtn small" type="button">NEXT</button>
   </div>
 
-  <!-- THE FIRST SLEEP title -->
+  <!-- THE FIRST SLEEP title (단독용: 지금은 사용 X, 필요시 쓸 수 있음) -->
   <div id="firstSleep"><div id="firstSleepText">THE FIRST SLEEP</div></div>
 
   <!-- NOTICE Popup (FIRST SLEEP) -->
@@ -704,6 +724,12 @@
     <div id="chapterCenter">
       <div id="chapterBox"></div>
     </div>
+  </div>
+
+  <!-- INTRO → FIRST SLEEP: SLEEEEEEEEP + THE FIRST SLEEP -->
+  <div id="firstTransition" class="fade">
+    <div id="firstTransWord" class="sleepLine"></div>
+    <div id="firstTransTitle" class="sleepLine"></div>
   </div>
 
   <!-- BETWEEN FIRST & SECOND SLEEP -->
@@ -735,9 +761,7 @@
   <div id="mapPop" class="map-popup">
     <div class="map-popup-inner">
       <button id="mapPopClose" class="uiBtn small map-pop-close" type="button">CLOSE</button>
-      <div id="mapPopBody">
-        <!-- 클릭한 구역 설명이 여기 들어감 -->
-      </div>
+      <div id="mapPopBody"></div>
     </div>
   </div>
 
@@ -792,12 +816,12 @@
     }
   });
 
-  /* ===== Common utils ===== */
+  /* ===== Utils ===== */
   const FADE = 1800;
   const sleep = ms => new Promise(r=>setTimeout(r,ms));
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
-  const qs = s => document.querySelector(s);
   const nextFrame = () => new Promise(resolve=>requestAnimationFrame(()=>resolve()));
+  const qs = s => document.querySelector(s);
 
   document.addEventListener('contextmenu', e=>e.preventDefault());
   document.addEventListener('selectstart', e=>e.preventDefault());
@@ -822,7 +846,7 @@
   }
 
   /* ===== Rotate guard ===== */
-  const rotateOverlay = document.getElementById('rotateOverlay');
+  const rotateOverlay = qs('#rotateOverlay');
   function isPortrait(){
     const vv=window.visualViewport;
     const w=vv?vv.width:innerWidth, h=vv?vv.height:innerHeight;
@@ -873,6 +897,10 @@
   const chapterOverlay = qs('#chapterOverlay');
   const chapterBox = qs('#chapterBox');
 
+  const firstTransition = qs('#firstTransition');
+  const firstTransWord = qs('#firstTransWord');
+  const firstTransTitle = qs('#firstTransTitle');
+
   const sleepTransition = qs('#sleepTransition');
   const sleepLine1 = qs('#sleepLine1');
   const sleepLine2 = qs('#sleepLine2');
@@ -895,10 +923,10 @@
   let camStream=null, camVideo=null, ZOOM=1.0;
   let animStarted=false, capturing=false, warmupFrames=0;
 
-  let showIntroLayer=false; // 인트로에서만 ON
+  let showIntroLayer=false;
   let fgAlpha=1.0;
-  let showCamera=false;   // ✅ 초기/웰컴에서도 카메라 OFF
-  let camFadeAlpha=0;    // 카메라 페이드용 (0=그대로, 1=완전 검정)
+  let showCamera=false;     // 초기 / 웰컴 / 인트로에서는 OFF
+  let camFadeAlpha=0;
 
   /* ===== Audio ===== */
   let audioCtx = null;
@@ -912,7 +940,7 @@
     }catch{}
   }
 
-  // ---- Ambient BG Music ----
+  /* Ambient */
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, killers=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
@@ -994,7 +1022,7 @@
     return { start, stop, isRunning };
   })();
 
-  // ---- UI Click sounds ----
+  /* UI Click & Ticks */
   async function playWoongClick(){
     try{
       await ensureResumed();
@@ -1073,7 +1101,7 @@
     await playWoongClick();
   }, {passive:true});
   zoomOut.addEventListener('click', async ()=>{
-    ZOOM=1.0; // 1.0 고정
+    ZOOM=1.0;
     updateZoomLabel();
     await playWoongClick();
   }, {passive:true});
@@ -1106,9 +1134,7 @@
     .then(async (s)=>{
       await ensureResumed();
       if(!Ambient.isRunning()) Ambient.start(0.8, 1.0);
-
       claimImmersive();
-
       s.getTracks().forEach(t=>t.stop());
       camPermGranted = true;
     })
@@ -1157,12 +1183,12 @@
     preset.classList.add('show');
     fadeShow(preset, FADE);
     initSaver();
-    startCameraFresh(true); // 워밍업만, 화면엔 여전히 showCamera=false
+    startCameraFresh(true); // 워밍업만
   }
   function initSaver(){
     const w=preset.clientWidth, h=preset.clientHeight;
     saverObjs=[];
-    const letters=['S','L','E','E','E','E','E','E','E','E','P']; // 대충 SLEEEEEEEEEEP 느낌
+    const letters=['S','L','E','E','E','E','E','E','E','E','P'];
     for(let i=0;i<20;i++){
       saverObjs.push({
         ch:letters[i%letters.length],
@@ -1226,7 +1252,7 @@
       ctx.translate(o.x,o.y);
       ctx.scale(wob,1/wob);
       ctx.font=`900 ${o.size}px "Press Start 2P", system-ui, sans-serif`;
-      ctx.fillStyle='#ffd840';   // 프리셋 글자색: 노란 불빛
+      ctx.fillStyle='#ffd840';
       ctx.fillText(o.ch,0,0);
       ctx.restore();
     }
@@ -1239,12 +1265,12 @@
     if(!Ambient.isRunning()) Ambient.start(0.2, 1.0);
     await playWoongClick();
     fadeHide(preset, FADE);
-    await startCameraFresh(false); // 여전히 showCamera=false 이라 화면엔 안 보임
+    await startCameraFresh(false);
     fadeShow(welcome, FADE);
     fitWelcomeTitles();
   }, {passive:true});
 
-  /* ===== INTRO / FIRST SLEEP 텍스트 ===== */
+  /* ===== Intro / First Sleep 텍스트 ===== */
 
   const INTRO_LINES = [
     '안녕하세요?',
@@ -1335,6 +1361,7 @@
   function getFrameRect(){
     return document.querySelector('.frameBox').getBoundingClientRect();
   }
+
   function fitTitleLine(el){
     if(!el) return;
     const fr=getFrameRect();
@@ -1369,7 +1396,7 @@
   }
   window.addEventListener('resize', ()=>fitWelcomeTitles(), {passive:true});
 
-  /* 픽셀 인물 & 프로시니엄 */
+  /* 픽셀 인물 */
 
   const PIXEL_SPRITE=[
     "..XXXXXX....",
@@ -1485,12 +1512,12 @@
     ctx.restore();
   }
 
-  /* 닉네임 시티 → 프로시니엄 좌측 상단에 매달린 건물 */
-
+  /* ===== 닉네임 시티 & 인트로 건물 ===== */
   let nameCityCtx = null;
   let nameBuildings = [];
   let nameCityRunning = false;
   let lastFlicker = 0;
+
   let hangingBuildings = [];
 
   function initHangingBuildings(){
@@ -1498,26 +1525,26 @@
     const pr = getProsceniumRect();
     hangingBuildings = [];
 
-    const sorted = [...nameBuildings].sort((a,b)=> (a.bottom - a.top) - (b.bottom - a.top));
+    const sorted = [...nameBuildings].sort((a,b)=> a.x - b.x);
     const count = Math.min(18, sorted.length);
-    const maxAreaWidth = pr.w * 0.9;
-    const startX = pr.x + pr.w * 0.02;
+    const maxAreaWidth = pr.w * 0.92;
+    const startX = pr.x + pr.w * 0.04;
     const step = maxAreaWidth / count;
 
     for(let i=0;i<count;i++){
-      const src = sorted[i];
-      const baseWidth = Math.min(src.width*0.8, step*0.85);
+      const src = sorted[Math.floor(i * (sorted.length/count))];
       const fullH = (src.bottom - src.top) || (window.innerHeight*0.18);
-      const h = fullH * (0.55 + Math.random()*0.25);
-      const x = startX + i*step + (step-baseWidth)/2;
-      const top = pr.y; // ✅ 프로시니엄 상단에서부터 잘 보이도록
+      const h = fullH * (0.6 + Math.random()*0.2);
+      const w = src.width;
+      const x = startX + i*step + (step-w)*0.5;
+      const top = pr.y;
 
       hangingBuildings.push({
         x,
         top,
-        width: baseWidth,
-        height: h,
-        color: src.color
+        width:w,
+        height:h,
+        color:src.color
       });
     }
   }
@@ -1525,7 +1552,7 @@
   function drawHangingBuildings(ctx){
     if (!hangingBuildings || !hangingBuildings.length) return;
     ctx.save();
-    ctx.globalAlpha = 0.95;
+    ctx.globalAlpha = 0.96;
 
     hangingBuildings.forEach(b => {
       const x = b.x;
@@ -1541,7 +1568,7 @@
 
       const winH = h * 0.14;
       const winW = w * 0.18;
-      const rowY = top + winH * 0.6;
+      const rowY = top + h - winH*1.6;
       const count = Math.max(1, Math.floor(w / (winW * 1.8)));
 
       for (let i = 0; i < count; i++) {
@@ -1554,18 +1581,31 @@
     ctx.restore();
   }
 
-  /* INTRO 캐릭터 워킹 + 말풍선 */
+  /* INTRO 캐릭터 5명 */
 
-  let introWalking=false, introStartTime=0;
+  let introWalking=false;
+  let introStartTime=0;
   const INTRO_WALK_DURATION=60_000;
-  let bubbleSeq=[
+  const bubbleSeq=[
     "HELLO","…","HI","…","HELLO!","…",
     "…헤헤","기억나?","여기 있어.","…쉿","보고 있어",
     "꿈이야?","아냐","…조금 더 가까이","같이 갈래?",
     "손… 잡을래?","…응","괜찮아","거기 있어",
     "작게 불러","내 이름"
   ];
-  let bubbleTimer=0, bubbleIdx=0;
+  let introWalkers=[];
+
+  function initIntroWalkers(){
+    const now = performance.now();
+    introWalkers = [];
+    for(let i=0;i<5;i++){
+      introWalkers.push({
+        tOffset: (i*0.16)%(1),
+        bubbleIndex: i % bubbleSeq.length,
+        bubbleTimer: now + i*450
+      });
+    }
+  }
 
   /* 4분 타이머 */
   let mainTimer=null, mainLeft=4*60, timerFinished=false;
@@ -1742,7 +1782,7 @@
     }
   }
 
-  /* Camera & Render (흑백 출력) */
+  /* Camera & Render (흑백) */
   let metaReady=false;
   async function startCameraFresh(warmupOnly=false){
     try{
@@ -1858,9 +1898,11 @@
 
     vctx.clearRect(0,0,W,H);
     vctx.imageSmoothingEnabled=true;
+
+    // 카메라: 항상 흑백
     if (showCamera && camVideo && camVideo.readyState>=2){
       vctx.save();
-      vctx.filter='grayscale(1)';       // ✅ 카메라 흑백 유지
+      vctx.filter='grayscale(1)';
       drawBestCover(vctx, camVideo, W, H, W, H);
       vctx.restore();
       vctx.filter='none';
@@ -1878,28 +1920,30 @@
       fgctx.rect(pr.x,pr.y,pr.w,pr.h);
       fgctx.clip();
 
-      // 인트로에서만 빼곡한 매달린 건물
+      // 인트로 건물
       drawHangingBuildings(fgctx);
 
-      // 픽셀 인물 + 말풍선
-      if(introWalking){
+      // 캐릭터 5명
+      if(introWalking && introWalkers.length){
         const now=performance.now();
-        const tRaw=(now-introStartTime)/INTRO_WALK_DURATION;
-        const t=Math.max(0,Math.min(1,tRaw));
-        const pos=spiralPos(t);
-        const hop=Math.max(0,10*Math.sin(t*Math.PI*20));
-        drawPixelHuman(fgctx, Math.round(pos.x), Math.round(pos.baselineY), W, hop, 1);
-        if(now-bubbleTimer>600){
-          bubbleIdx=(bubbleIdx+1)%bubbleSeq.length;
-          bubbleTimer=now;
-        }
-        drawBubble(fgctx, Math.round(pos.x), Math.round(pos.baselineY)-28, bubbleSeq[bubbleIdx]);
+        const tGlobal=(now-introStartTime)/INTRO_WALK_DURATION;
+        introWalkers.forEach(w=>{
+          const t = ((tGlobal + w.tOffset)%1+1)%1;
+          const pos = spiralPos(t);
+          const hop = Math.max(0,10*Math.sin(t*Math.PI*20));
+          drawPixelHuman(fgctx, Math.round(pos.x), Math.round(pos.baselineY), W, hop, 1);
+
+          if(now-w.bubbleTimer>700+Math.random()*500){
+            w.bubbleIndex=(w.bubbleIndex+1)%bubbleSeq.length;
+            w.bubbleTimer=now;
+          }
+          drawBubble(fgctx, Math.round(pos.x), Math.round(pos.baselineY)-28, bubbleSeq[w.bubbleIndex]);
+        });
       }
 
       fgctx.restore();
     }
 
-    // 카메라 페이드 인/아웃 오버레이
     if (camFadeAlpha > 0){
       vctx.save();
       vctx.fillStyle = `rgba(0,0,0,${camFadeAlpha})`;
@@ -2020,7 +2064,7 @@
     for(let i=0;i<text.length;i++){
       introTextEl.textContent += text[i];
       typeTick();
-      await sleep(24); // 인트로/다른 것들은 이전 속도로
+      await sleep(24);
     }
   }
 
@@ -2032,15 +2076,15 @@
       fadeHide(introDialogue, 300);
       await sleep(350);
       await playTduung();
-      startTransition();
+      startIntroToFirstSleepSequence();   // 새로운 흐름
     }else{
       typeIntroLine(introIndex);
     }
   }, {passive:true});
 
-  /* Intro → FIRST SLEEP transition */
+  /* INTRO → FIRST SLEEP 전환 */
 
-  function fadeIntroLayerOut(ms=8000){
+  function fadeIntroLayerOut(ms=4000){
     const t0=performance.now();
     const startAlpha=fgAlpha;
     function step(){
@@ -2051,43 +2095,58 @@
       }else{
         fgAlpha=0;
         showIntroLayer=false;
-        const W=view.width/(devicePixelRatio||1);
-        const H=view.height/(devicePixelRatio||1);
-        fgctx && fgctx.clearRect(0,0,W,H);
+        introWalking=false;
+        if(fgctx){
+          const W=view.width/(devicePixelRatio||1);
+          const H=view.height/(devicePixelRatio||1);
+          fgctx.clearRect(0,0,W,H);
+        }
       }
     }
     step();
   }
 
-  async function startTransition(){
-    Ambient.stop(4.0);
+  async function runFirstSleepTitleSequence(){
+    firstTransWord.textContent='';
+    firstTransTitle.textContent='';
 
+    firstTransition.style.display='flex';
+    firstTransition.style.opacity='0';
+    firstTransition.style.transition='opacity 800ms ease';
+    await nextFrame();
+    firstTransition.style.opacity='1';
+
+    const word = 'SLEEEEEEEEP';
+    for(let i=0;i<word.length;i++){
+      firstTransWord.textContent += word[i];
+      typeTick();
+      await sleep(40);
+    }
+
+    await sleep(600);
+    firstTransTitle.textContent = 'THE FIRST SLEEP';
+
+    await sleep(2000);
+
+    firstTransition.style.transition='opacity 1200ms ease';
+    firstTransition.style.opacity='0';
+    await sleep(1300);
+    firstTransition.style.display='none';
+    firstTransition.style.transition='';
+  }
+
+  async function startIntroToFirstSleepSequence(){
+    Ambient.stop(4.0);
     claimImmersive();
     await ensureResumed();
 
-    showCamera = false;
-    camFadeAlpha = 0;
+    introWalking=true;
+    fadeIntroLayerOut(4000);
 
-    firstSleep.style.display='flex';
-    firstSleep.style.opacity='1';
-    await nextFrame();
-    fitTitleLine(firstSleepText);
+    await sleep(800);
+    await runFirstSleepTitleSequence();
 
-    startMainTimer();
-    await nextFrame();
-    controls.classList.add('show');
-    captureBtn.classList.add('show');
-
-    const fadeDur=8000;
-    fadeIntroLayerOut(fadeDur);
-    await sleep(900);
-    firstSleep.style.transition=`opacity ${fadeDur}ms ease`;
-    firstSleep.style.opacity='0';
-    await sleep(fadeDur+200);
-    firstSleep.style.display='none';
-    firstSleep.style.transition='';
-
-    showNoticePopup();
+    showNoticePopup();   // FIRST SLEEP 안내창
   }
 
   function showNoticePopup(){
@@ -2112,14 +2171,18 @@
       fadeHide(noticePopup, 250);
       await sleep(260);
 
-      fadeInCamera(2500);      // 첫 번째 수면 시작과 함께 카메라 ON
-      startMicFXFadeIn(2.5);   // 마이크 FX 페이드 인
+      fadeInCamera(2500);      // FIRST SLEEP 진입 시 카메라 흑백 ON
+      startMicFXFadeIn(2.5);
 
+      controls.classList.add('show');
+      captureBtn.classList.add('show');
+
+      startMainTimer();
       startFirstSleepStory();
     };
   }
 
-  /* FIRST SLEEP: 한 줄씩 타이핑 + 유지 */
+  /* FIRST SLEEP 스토리 */
 
   async function typeFirstSleepLine(text){
     chapterBox.textContent='';
@@ -2130,7 +2193,7 @@
     for(let i=0;i<text.length;i++){
       span.textContent += text[i];
       typeTick();
-      await sleep(26);  // 1장 텍스트 속도
+      await sleep(26);
     }
   }
 
@@ -2142,7 +2205,7 @@
 
     for(const line of FIRST_SLEEP_LINES){
       await typeFirstSleepLine(line);
-      await sleep(4000);  // ✅ 4초 유지
+      await sleep(4000);
     }
 
     fadeHide(chapterOverlay, 800);
@@ -2191,23 +2254,18 @@
     claimImmersive();
     await ensureResumed();
 
-    // 첫 번째 수면 종료: 컨트롤 숨기기
     controls.classList.remove('show');
     captureBtn.classList.remove('show');
     runTimer.style.display='none';
 
-    // 아직 남아있을 수 있는 챕터 문장 오버레이는 서서히 숨김
     fadeHide(chapterOverlay, 800);
 
-    // 카메라 & 마이크 사운드 페이드 아웃
     fadeOutCamera(2500);
     stopMicFXFadeOut(2.5);
 
-    // SLEEEEEEP / THE SECOND SLEEP 시퀀스
-    await sleep(400); // 살짝 숨 고르는 시간
+    await sleep(400);
     await runSecondSleepTitleSequence();
 
-    // SECOND NOTICE
     showSecondNoticePopup();
   }
 
@@ -2233,22 +2291,21 @@
       await playWoongClick();
       fadeHide(noticePopup2, 260);
       await sleep(280);
-      await playBellChime();   // ✅ 종소리
-      showMapOverlay();        // ✅ 지도 띄우기
+      await playBellChime();
+      showMapOverlay();
     };
   }
 
-  /* INTRO Flow: 웰컴 이후 인트로 */
+  /* INTRO Flow */
 
   async function showIntroFlow(){
     claimImmersive();
     await ensureResumed();
     if(!Ambient.isRunning()) Ambient.start(0.2, 1.0);
 
-    showCamera = false; // 인트로덕션 동안 카메라 OFF
+    showCamera = false;
     camFadeAlpha = 0;
 
-    // INTRODUCTION 타이틀
     introBig.style.display='flex';
     introBig.style.opacity='0';
     await nextFrame();
@@ -2260,13 +2317,12 @@
     await sleep(700);
     introBig.style.display='none';
 
-    // 캐릭터 워킹 + 프로시니엄 빽빽한 건물
     introWalking=true;
     introStartTime=performance.now();
     showIntroLayer=true;
     fgAlpha=1.0;
+    initIntroWalkers();
 
-    // 인트로 텍스트 박스
     introIndex = 0;
     fadeShow(introDialogue, 300, 'block');
     typeIntroLine(introIndex);
@@ -2282,7 +2338,7 @@
     });
   }, {passive:true});
 
-  /* Name screen city */
+  /* Name City */
 
   function initNameCity(keepRunning=false){
     if(!nameCityCanvas) return;
@@ -2365,7 +2421,7 @@
       }
     }
 
-    initHangingBuildings(); // 인트로 때 쓸 건물
+    initHangingBuildings();
 
     if(!keepRunning && nameCityRunning){
       drawNameCity(performance.now());
@@ -2461,7 +2517,6 @@
     const cx = w*0.5;
     const cy = h*0.5;
 
-    // 평행사변형 지도 윤곽
     const mw = w*0.72;
     const mh = h*0.62;
     const skew = mw*0.18;
@@ -2475,7 +2530,6 @@
     ctx.closePath();
     ctx.stroke();
 
-    // 중앙 빨간 육각형
     const r = Math.min(mw,mh)*0.16;
     ctx.fillStyle='#c03232';
     ctx.beginPath();
@@ -2488,7 +2542,6 @@
     ctx.closePath();
     ctx.fill();
 
-    // 1~8번 노란 사각형
     mapMarkers=[];
     const rectW = r*0.9;
     const rectH = r*0.5;
@@ -2551,7 +2604,8 @@
     }
   });
 
-  /* 초기 카메라 워밍업 */
+  /* 초기 */
+
   function setAppH2(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
   setAppH2();
   addEventListener('resize', setAppH2, {passive:true});
@@ -2560,6 +2614,10 @@
   }
 
   startCameraFresh(true);
+  if(!animStarted){
+    animStarted=true;
+    loop();
+  }
 })();
 </script>
 </body>
