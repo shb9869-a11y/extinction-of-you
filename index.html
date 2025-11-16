@@ -35,6 +35,9 @@
 
     --dialogue-offset-vh: 8vh;
     --char-offset-vh: 16vh;
+
+    /* 건물 노란 불빛 색 */
+    --accent-yellow: #ffd840;
   }
 
   html,body{
@@ -111,7 +114,7 @@
 
   .uiBtn{
     background:transparent;
-    color:#fff;
+    color:var(--accent-yellow);
     border:none;
     font-size:var(--fs-strong);
     padding:var(--pad-btn-y) var(--pad-btn-x);
@@ -155,7 +158,7 @@
     opacity:.9;
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
     font-size:var(--fs-small);
-    color:#ddd;
+    color:var(--accent-yellow);
   }
 
   .btn-capture{
@@ -177,7 +180,7 @@
     z-index:460;
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
     font-size:var(--fs-strong);
-    color:#fff;
+    color:var(--accent-yellow);
     opacity:.95;
     pointer-events:none;
     user-select:none;
@@ -189,6 +192,7 @@
     letter-spacing:.08em;
     font-size:clamp(9px,1.4vmin,11px);
     margin:0;
+    color:var(--accent-yellow);
   }
 
   #rotateOverlay{
@@ -200,7 +204,7 @@
     justify-content:center;
     text-align:center;
     background:#000;
-    color:#fff;
+    color:var(--accent-yellow);
     padding:40px;
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
     pointer-events:auto;
@@ -215,7 +219,7 @@
     align-items:center;
     justify-content:center;
     padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));
-    color:#fff;
+    color:var(--accent-yellow);
     background:rgba(0,0,0,.85);
   }
   #overlayContent{
@@ -230,7 +234,7 @@
     font-size:var(--fs-small);
     border:none;
     background:transparent;
-    color:#fff;
+    color:var(--accent-yellow);
     cursor:pointer;
     padding:6px 10px;
     width:100%;
@@ -240,6 +244,7 @@
     opacity:.7;
     margin-top:6px;
     font-size:clamp(9px,1.6vmin,11px);
+    color:var(--accent-yellow);
   }
 
   /* Name */
@@ -251,7 +256,7 @@
     align-items:center;
     justify-content:center;
     background:rgba(0,0,0,.9);
-    color:#fff;
+    color:var(--accent-yellow);
     overflow:hidden;
   }
   #nameCity{
@@ -265,6 +270,7 @@
     width:min(92vw,600px);
     text-align:center;
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    color:var(--accent-yellow);
   }
   #nameCard h2{
     margin:0 0 12px 0;
@@ -272,13 +278,14 @@
     font-size:var(--fs-name);
     font-weight:400;
     text-shadow:0 0 6px rgba(0,0,0,.9);
+    color:var(--accent-yellow);
   }
   #nick{
     width:100%;
     padding:14px 14px;
     background:rgba(0,0,0,.88);
     border:1px solid #777;
-    color:#fff;
+    color:var(--accent-yellow);
     font-size:var(--fs-name);
     outline:none;
     box-shadow:0 0 12px rgba(0,0,0,.8);
@@ -315,7 +322,7 @@
     z-index:220;
     display:none;
     place-items:center;
-    color:#fff;
+    color:var(--accent-yellow);
     background:transparent;
     padding:0;
   }
@@ -340,6 +347,7 @@
     margin:0;
     text-transform:uppercase;
     text-shadow:0 0 8px rgba(0,0,0,0.8);
+    color:var(--accent-yellow);
   }
   #goIntro{
     margin-top:0;
@@ -357,7 +365,7 @@
     z-index:210;
   }
   #introBigText{
-    color:#fff;
+    color:var(--accent-yellow);
     font-weight:400;
     letter-spacing:.16em;
     font-size:clamp(32px, 12vmin, 160px);
@@ -369,7 +377,7 @@
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
   }
 
-  /* INTRODUCTION 문단 오버레이 (우측 하단) */
+  /* INTRODUCTION paragraphs (우측 하단 + NEXT) */
   #introOverlay{
     position:fixed;
     inset:0;
@@ -396,7 +404,7 @@
     font-family:"Courier New",ui-monospace,monospace;
     font-size:clamp(11px, 2.0vmin, 16px);
     line-height:1.9;
-    color:#ffffff;
+    color:var(--accent-yellow);
     white-space:pre-line;
   }
   #introNextRow{
@@ -423,13 +431,13 @@
     letter-spacing:.16em;
     font-size:clamp(28px,10vmin,90px);
     text-transform:uppercase;
-    color:#fff;
+    color:var(--accent-yellow);
     text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7);
     margin:0 0 8px 0;
     white-space:nowrap;
   }
   #firstSleepText{
-    color:#fff;
+    color:var(--accent-yellow);
     font-weight:400;
     letter-spacing:.16em;
     font-size:clamp(24px, 7vmin, 72px);
@@ -456,7 +464,7 @@
     text-align:center;
   }
   #secondSleepText{
-    color:#fff;
+    color:var(--accent-yellow);
     font-weight:400;
     letter-spacing:.16em;
     font-size:clamp(24px, 7vmin, 72px);
@@ -482,7 +490,7 @@
   #noticeCard{
     width:min(92vw, 640px);
     background:#0b0b0b;
-    color:#fff;
+    color:var(--accent-yellow);
     border:1px solid #333;
     padding:18px;
     box-shadow:0 10px 30px rgba(0,0,0,.6);
@@ -494,10 +502,12 @@
     letter-spacing:.06em;
     font-weight:700;
     font-size:clamp(15px,3vmin,20px);
+    color:var(--accent-yellow);
   }
   #noticeCard p{
     margin:4px 0;
     font-size:clamp(12px,2.4vmin,16px);
+    color:var(--accent-yellow);
   }
   #noticeActions{
     margin-top:10px;
@@ -517,7 +527,7 @@
   #notice2Card{
     width:min(92vw, 640px);
     background:#0b0b0b;
-    color:#fff;
+    color:var(--accent-yellow);
     border:1px solid #333;
     padding:18px;
     box-shadow:0 10px 30px rgba(0,0,0,.6);
@@ -529,10 +539,12 @@
     letter-spacing:.06em;
     font-weight:700;
     font-size:clamp(15px,3vmin,20px);
+    color:var(--accent-yellow);
   }
   #notice2Card p{
     margin:4px 0;
     font-size:clamp(12px,2.4vmin,16px);
+    color:var(--accent-yellow);
   }
   #notice2Actions{
     margin-top:10px;
@@ -548,7 +560,7 @@
     align-items:center;
     justify-content:center;
     background:transparent;
-    color:#fff;
+    color:var(--accent-yellow);
     padding:24px;
     pointer-events:none;
   }
@@ -565,6 +577,7 @@
     font-family:"Courier New",ui-monospace,monospace;
     line-height:1.8;
     font-size:clamp(11px,2.0vmin,15px);
+    color:var(--accent-yellow);
   }
   #chapterBox .charBox{
     display:inline-block;
@@ -573,6 +586,7 @@
     margin:1px;
     background:#000;
     border-radius:2px;
+    color:var(--accent-yellow);
   }
 </style>
 </head>
@@ -728,6 +742,8 @@
     link.href=url;
     document.head.appendChild(link);
   })();
+
+  const ACCENT = '#ffd840'; // 건물 노란 불빛 색
 
   /* ===== Fullscreen / Orientation / Wake Lock ===== */
   async function enterFullscreen(){
@@ -1169,7 +1185,7 @@
       ctx.translate(o.x,o.y);
       ctx.scale(wob,1/wob);
       ctx.font=`900 ${o.size}px "Press Start 2P", system-ui, sans-serif`;
-      ctx.fillStyle='#fff';
+      ctx.fillStyle=ACCENT;
       ctx.fillText(o.ch,0,0);
       ctx.restore();
     }
@@ -1386,7 +1402,7 @@ ${displayName}의 내면 세계
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle='#fff';
+    ctx.fillStyle=ACCENT;
     ctx.fillText(text,bx+pad,by+pad+12);
     ctx.restore();
   }
@@ -1402,25 +1418,47 @@ ${displayName}의 내면 세계
   ];
   let bubbleTimer=0, bubbleIdx=0;
 
-  /* 인트로: 블록 단위 + NEXT */
+  /* 인트로: 블록 단위 + NEXT + 한 줄씩 타이핑 */
   let introScreens = [];
   let introIdx = 0;
   let introActive = false;
+  let introIsTyping = false;
+
+  async function typeIntroBlock(block){
+    introIsTyping = true;
+    introOverlayText.innerHTML = '';
+    const lines = block.split('\n');
+    for(let li=0; li<lines.length; li++){
+      const line = lines[li];
+      const span = document.createElement('span');
+      introOverlayText.appendChild(span);
+      for(let i=0;i<line.length;i++){
+        span.textContent += line[i];
+        typeTick();
+        await sleep(40);
+      }
+      if(li < lines.length-1){
+        introOverlayText.appendChild(document.createElement('br'));
+        await sleep(250);
+      }
+    }
+    introIsTyping = false;
+  }
 
   function showIntroScreen(){
     if(!introActive) return;
+    if(introIsTyping) return;
     if(introIdx >= introScreens.length){
       introActive = false;
       fadeHide(introOverlay, 600);
-      setTimeout(async ()=>{
+      (async ()=>{
         await playTduung();
         startTransition();
-      }, 650);
+      })();
       return;
     }
     const block = introScreens[introIdx++];
-    introOverlayText.textContent = block;
-    typeTick();
+    typeIntroBlock(block);
   }
 
   function startIntroSentences(){
@@ -1470,7 +1508,7 @@ ${displayName}의 내면 세계
       fadeHide(welcome, FADE);
       showIntroFlow();
     });
-  }, {passive:true});
+  });
 
   /* 4-minute Timer */
   let eightTimer=null, eightLeft=4*60;
@@ -1496,13 +1534,12 @@ ${displayName}의 내면 세계
   }
 
   async function onTimerEnded(){
-    // 4분 끝나면: SLEEEEP x2 + THE SECOND SLEEP → 2장 NOTICE
     claimImmersive();
     await ensureResumed();
     await showSecondSleepIntro();
   }
 
-  /* Mic FX (같이 유지) */
+  /* Mic FX */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, micPreGain=null;
   function makeImpulse(ctx, seconds=6.0, decay=8.0){
     const rate=ctx.sampleRate;
@@ -1882,7 +1919,7 @@ ${displayName}의 내면 세계
     for(let i=0;i<word.length;i++){
       firstSleepTop.textContent += word[i];
       typeTick();
-      await sleep(110);  // 조금 느리게
+      await sleep(110);
     }
 
     // 약간 쉬고 "THE FIRST SLEEP" 페이드 인
@@ -1975,7 +2012,6 @@ ${displayName}의 내면 세계
     const pattern = "... . ... .. ... ..   .. .   ..... .   .  . ";
     chapterBox.innerHTML='';
 
-    // 모스 느낌: 점은 짧게, 공백은 길이 다른 쉼
     for(let i=0;i<pattern.length;i++){
       const ch = pattern[i];
       if(ch === '.'){
@@ -1984,11 +2020,10 @@ ${displayName}의 내면 세계
         span.textContent='·';
         chapterBox.appendChild(span);
         typeTick();
-        await sleep(120); // dot
+        await sleep(120);
       }else if(ch === ' '){
-        await sleep(80);  // 짧은 쉼
+        await sleep(80);
       }
-      // 약간씩 줄바꿈 넣어서 패턴 분절
       if(i>0 && i%18===0){
         chapterBox.appendChild(document.createElement('br'));
         await sleep(220);
@@ -2013,9 +2048,9 @@ ${displayName}의 내면 세계
         chapterBox.appendChild(document.createElement('br'));
         continue;
       }
-      await typeBoxedTextLine(chapterBox, trimmed, 45); // 더 느리게
+      await typeBoxedTextLine(chapterBox, trimmed, 45);
       chapterBox.appendChild(document.createElement('br'));
-      await sleep(2000); // 각 줄마다 2초 멈춤
+      await sleep(2000);
     }
 
     await sleep(2000);
@@ -2025,7 +2060,6 @@ ${displayName}의 내면 세계
   /* SECOND SLEEP 타이틀 + 2장 NOTICE */
 
   async function showSecondSleepIntro(){
-    // 혹시 남아있을 수도 있는 1장 텍스트 오버레이 정리
     fadeHide(chapterOverlay, 800);
 
     secondSleep.style.display='flex';
@@ -2038,7 +2072,6 @@ ${displayName}의 내면 세계
 
     const word='SLEEEEEEEEEEP';
 
-    // 첫 줄
     for(let i=0;i<word.length;i++){
       secondSleepLine1.textContent += word[i];
       typeTick();
@@ -2046,7 +2079,6 @@ ${displayName}의 내면 세계
     }
     await sleep(300);
 
-    // 둘째 줄
     for(let i=0;i<word.length;i++){
       secondSleepLine2.textContent += word[i];
       typeTick();
@@ -2087,7 +2119,7 @@ ${displayName}의 내면 세계
       await ensureResumed();
       await playWoongClick();
       fadeHide(notice2Popup, 250);
-      // 이후 THE SECOND SLEEP 챕터 로직은 여기서 이어가면 됨
+      // 여기서 THE SECOND SLEEP 체험 로직으로 넘어가면 됨
     };
   }
 
@@ -2213,7 +2245,7 @@ ${displayName}의 내면 세계
 
         const v = clamp(wv.value, 0, 1);
         const off = { r:20, g:20, b:30 };
-        const on  = { r:255, g:216, b:64 };
+        const on  = { r:255, g:216, b:64 }; // 노란 불빛
         const r = off.r + (on.r - off.r) * v;
         const g = off.g + (on.g - off.g) * v;
         const bcol = off.b + (on.b - off.b) * v;
