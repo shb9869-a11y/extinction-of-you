@@ -39,7 +39,9 @@
 
   html,body{
     margin:0;
-    height:var(--appH);
+    padding:0;
+    width:100%;
+    height:100%;
     background:#000;
     overflow:hidden;
     touch-action:manipulation;
@@ -57,6 +59,7 @@
     user-select:none;
     -webkit-touch-callout:none;
     -webkit-tap-highlight-color: transparent;
+    box-sizing:border-box;
   }
   input, textarea{
     -webkit-user-select:text;
@@ -67,16 +70,30 @@
   .fade.show{opacity:1}
 
   #view{
-    position:fixed;left:0;top:0;width:100%;height:var(--appH);
-    display:block;z-index:0;
+    position:fixed;
+    left:0;
+    top:0;
+    width:100vw;
+    height:100vh;
+    display:block;
+    z-index:0;
   }
   #fg{
-    position:fixed;left:0;top:0;width:100%;height:var(--appH);
-    display:block;z-index:880;pointer-events:none;
+    position:fixed;
+    left:0;
+    top:0;
+    width:100vw;
+    height:100vh;
+    display:block;
+    z-index:880;
+    pointer-events:none;
   }
 
   #freezeLayer{
-    position:fixed;inset:0;z-index:500;display:none;
+    position:fixed;
+    inset:0;
+    z-index:500;
+    display:none;
   }
 
   .frameBox{
@@ -198,7 +215,6 @@
     padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));
     color:#fff;
     background:rgba(0,0,0,.85);
-    pointer-events:auto;
   }
   #overlayContent{
     max-width:min(92vw, 72ch);
@@ -236,7 +252,6 @@
     color:#fff;
     overflow:hidden;
   }
-  /* 닉네임 화면 달동네 배경 캔버스 - 풀스크린 */
   #nameCity{
     position:absolute;
     inset:0;
@@ -291,7 +306,7 @@
     left:0;top:0;width:100%;height:100%;
   }
 
-  /* Welcome (SLEEEEEP 4줄, E 6개) */
+  /* Welcome */
   #overlayWelcome{
     position:fixed;
     inset:0;
@@ -328,7 +343,7 @@
     font-size:var(--fs-small);
   }
 
-  /* Intro title */
+  /* INTRO big title */
   #introBig{
     position:fixed;
     inset:0;
@@ -351,67 +366,33 @@
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
   }
 
-  /* 인트로 대화 패널 */
-  #dialogueWrap{
+  /* INTRODUCTION 문단 오버레이 (1장 스타일) */
+  #introOverlay{
     position:fixed;
-    left:calc(var(--frame) + var(--safe-l));
-    right:calc(var(--frame) + var(--safe-r));
-    bottom:0;
+    inset:0;
     z-index:230;
-    transform: translateY(calc(-1 * var(--dialogue-offset-vh)));
     display:none;
-    pointer-events:auto;
+    align-items:center;
+    justify-content:center;
+    background:transparent; /* 어두워지지 않게 */
+    pointer-events:none;
   }
-  /* 검정 박스 제거: 텍스트만 */
-  #dialogueBox{
-    position:relative;
-    width:100%;
-    max-width:1200px;
-    margin:0 auto;
-    background:transparent;
-    color:#fff;
-    border:none;
-    padding:0 4px 12px;
+  #introOverlayCenter{
+    max-width:min(900px, 92vw);
+    max-height:80vh;
+    text-align:center;
+    padding:0 16px;
+  }
+  #introOverlayText{
     font-family:"Courier New",ui-monospace,monospace;
-    line-height:1.7;
-    min-height:auto;
-    box-shadow:none;
-    text-shadow:0 0 6px rgba(0,0,0,.8);
-  }
-  /* VOICE + NEXT 한 줄 플렉스 정렬 (윗선 맞춤) */
-  #dialogueTop{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    gap:8px;
-    margin-bottom:4px;
-  }
-  #dialogueHeader{
-    opacity:.9;
-    font-size:clamp(12px, 2.2vmin, 15px);
-    letter-spacing:.12em;
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-  }
-  #dialogueText{
-    font-size:clamp(14px, 2.6vmin, 19px);
-    min-height:3lh;
-  }
-  #nextBtn{
-    border:1px solid rgba(255,255,255,.6);
-    padding:6px 10px;
-    border-radius:0;
-    background:rgba(0,0,0,.8);
-    color:#fff;
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    font-size:clamp(10px, 2vmin, 14px);
-    letter-spacing:.12em;
-    margin:0;
-  }
-  #nextBtn:active{
-    transform:translateY(1px);
+    font-size:clamp(12px, 2.4vmin, 18px);
+    line-height:1.9;
+    color:#ffffff;
+    text-shadow:0 0 8px rgba(0,0,0,0.9);
+    white-space:pre-line;
   }
 
-  /* FIRST SLEEP */
+  /* FIRST SLEEP 타이틀 */
   #firstSleep{
     position:fixed;
     inset:0;
@@ -469,7 +450,7 @@
     text-align:right;
   }
 
-  /* 첫 번째 수면: 카프카 문단 + 모스부호 오버레이 */
+  /* FIRST SLEEP: 카프카 문단 + 모스 부호 */
   #chapterOverlay{
     position:fixed;
     inset:0;
@@ -532,7 +513,7 @@
     </div>
   </div>
 
-  <!-- Gate -->
+  <!-- Permission Gate -->
   <div id="overlay" class="fade show">
     <div id="overlayContent">
       <div class="credits">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
@@ -545,7 +526,6 @@
 
   <!-- Name -->
   <div id="nameOverlay" class="fade">
-    <!-- 달동네 배경 캔버스 -->
     <canvas id="nameCity"></canvas>
     <div id="nameCard">
       <h2>TELL ME YOUR NAME</h2>
@@ -565,7 +545,6 @@
   <div id="overlayWelcome" class="fade">
     <div id="welcomeCard">
       <div class="credits">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
-      <!-- SLEEEEEP 4줄 (E 6개) -->
       <div class="title">SLEEEEEP</div>
       <div class="title">SLEEEEEP</div>
       <div class="title">SLEEEEEP</div>
@@ -574,24 +553,20 @@
     </div>
   </div>
 
-  <!-- INTRODUCTION -->
+  <!-- INTRODUCTION title -->
   <div id="introBig" class="fade"><div id="introBigText">INTRODUCTION</div></div>
 
-  <!-- 인트로 대화 패널 -->
-  <div id="dialogueWrap">
-    <div id="dialogueBox">
-      <div id="dialogueTop">
-        <div id="dialogueHeader">VOICE:</div>
-        <button id="nextBtn" class="uiBtn">NEXT ▸</button>
-      </div>
-      <div id="dialogueText" aria-live="polite"></div>
+  <!-- INTRODUCTION paragraphs overlay (1장 스타일) -->
+  <div id="introOverlay" class="fade">
+    <div id="introOverlayCenter">
+      <div id="introOverlayText"></div>
     </div>
   </div>
 
-  <!-- THE FIRST SLEEP -->
+  <!-- THE FIRST SLEEP title -->
   <div id="firstSleep"><div id="firstSleepText">THE FIRST SLEEP</div></div>
 
-  <!-- NOTICE Popup (FIRST SLEEP 안내) -->
+  <!-- NOTICE Popup -->
   <div id="noticePopup" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle">
     <div id="noticeCard">
       <h3 id="noticeTitle">NOTICE</h3>
@@ -614,7 +589,7 @@
 
 <script>
 (() => {
-  /* ===== Manifest: fullscreen ===== */
+  /* ===== Manifest fullscreen ===== */
   (function injectManifest(){
     const manifest = {
       "name":"SLEEEEEP",
@@ -721,9 +696,8 @@
   const introBig = qs('#introBig');
   const introBigText = qs('#introBigText');
 
-  const dialogueWrap = qs('#dialogueWrap');
-  const dialogueText = qs('#dialogueText');
-  const nextBtn = qs('#nextBtn');
+  const introOverlay = qs('#introOverlay');
+  const introOverlayText = qs('#introOverlayText');
 
   const firstSleep = qs('#firstSleep');
   const firstSleepText = qs('#firstSleepText');
@@ -745,14 +719,14 @@
   const chapterBox = qs('#chapterBox');
 
   /* ===== Canvas ===== */
-  let vctx=null, pctx=null, proc=null, fgctx=null;
+  let vctx=null, fgctx=null;
 
   /* ===== State ===== */
   let camPermGranted=false;
   let camStream=null, camVideo=null, ZOOM=1.0;
   let animStarted=false, capturing=false, warmupFrames=0;
 
-  let showIntroLayer=false, fgAlpha=1.0;
+  let showIntroLayer=true, fgAlpha=1.0;
 
   /* ===== Audio ===== */
   let audioCtx = null;
@@ -909,7 +883,8 @@
     await playWoongClick();
   }, {passive:true});
   zoomOut.addEventListener('click', async ()=>{
-    ZOOM=Math.max(1.0, ZOOM-0.05);  // 1.0 아래로 안내려가게
+    ZOOM=Math.max(1.0, ZOOM-0.0); // 1.0 아래로 안 내려가게, 사실상 고정
+    ZOOM=1.0;
     updateZoomLabel();
     await playWoongClick();
   }, {passive:true});
@@ -921,7 +896,6 @@
     claimImmersive();
     await ensureResumed();
 
-    // iOS motion permission
     try{
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -931,7 +905,6 @@
       }
     }catch(_){}
 
-    // 카메라+마이크 권한 요청
     navigator.mediaDevices.getUserMedia({
       video:{
         facingMode:{ideal:'environment'},
@@ -1082,71 +1055,80 @@
     fadeShow(welcome, FADE);
   }, {passive:true});
 
-  /* ===== Intro text & NEXT flow ===== */
-  function captureIntroTexts(){
+  /* ===== INTRO big title & paragraphs (1장 스타일) ===== */
+
+  function getIntroParagraphs(){
     return [
-      "안녕하세요?",
-      "작게 대답해주세요.",
-      "안녕하세요?",
-      "대답을 해주셔야 프로그램이 진행될 수 있습니다.",
-      "안녕하세요?",
-      "감사합니다.",
-      "아실지 모르겠지만, 저는 이 공간의 안내자, ",
-      "당신의 내면 세계에 존재하는 무의식입니다.",
-      `지금부터 우리는 ${displayName}의 내면 세계를 탐험하는 탐험가가 될 것입니다.`,
-      "주변의 소리에 귀를 기울이며,",
-      "30분 간의 짧은 낮잠을 통해서 말이죠.",
-      "자, 그럼 천천히 공간을 거닐어보세요. ",
-      "무릎을 들고, 발을 앞으로 뻗어보세요.",
-      "하셨나요?",
-      "참 잘했어요.",
-      "맞아요. 그래 맞아요. 우리는 늘 그랬어요.",
-      "우리는 언제나 타자와 함께 존재해 왔습니다.",
-      "가족, 친구, 교수님, 지나가는 그들, ",
-      "그리고 당신과 처음 만나는 저도 우리는 늘 함께 존재해왔습니다",
-      "그러나 어느 순간 ‘너’로 불리던 그들은 ‘그것’으로 전락하기 시작했습니다.",
-      "이유는 아무도 몰라요. ",
-      "그저 우리가 ‘너’들을 ‘그것’들로 부르기 시작한 것일까요?",
-      "이유는 아무도 모르죠.",
-      "아...",
-      "갑자기 김춘추의 <꽃>이 떠오르네요.",
-      "(진지한 톤으로) 내가 그의 이름을 불러주기 전에는 그는 다만 하나의 몸짓에 지나지 않았다.",
-      "크으으으으으으....",
-      "네. 각설하고.",
-      "말씀드린 것처럼, 이제 우리는 어느 곳에서도 ‘너’를 찾아볼 수 없습니다.",
-      "우리는 이제 ‘너’가 사라진 세상에 살아가고 있으니까요.",
-      "그런 특정했던 ‘너’는 서서히 희미해지고 퇴색되고 잊혀지고 잃어지고 앓아가고 있습니다",
-      "마치 꿈 속에서 만난 누군가가",
-      "...",
-      "그게 누구였지?",
-      "...",
-      "하고 떠오르지 않는 것처럼",
-      "‘너’가 사라진 공간",
-      "‘너’가 제거된 공간",
-      "‘너’를 제거해버린 공간",
-      `${displayName}의 내면 세계`,
-      `이제 곧 ${displayName}의 내면 세계로 발을 디딥니다`,
-      "두 번의 심호흡을 하기도 하면서,",
-      "후 --",
-      "하,",
-      "후 ....",
-      "하 ~ ",
-      "이제 눈으로 감고,",
-      "천천히 수면 아래로 내려갑니다.",
-      "귀를 기울여 ‘보세요’",
-      "내면의 미로를 탐험하여 사라진 ‘너’의 소리에",
-      "말이 길었습니다. ",
-      "잠시 후에 만나요.",
-      "수면으로",
-      "내려갑니다",
-      "..."
+`안녕하세요?
+작게 대답해주세요.
+안녕하세요?
+대답을 해주셔야 프로그램이 진행될 수 있습니다.
+안녕하세요?
+감사합니다.`,
+
+`아실지 모르겠지만, 저는 이 공간의 안내자, 
+당신의 내면 세계에 존재하는 무의식입니다.
+지금부터 우리는 ${displayName}의 내면 세계를 탐험하는 탐험가가 될 것입니다.
+주변의 소리에 귀를 기울이며,
+30분 간의 짧은 낮잠을 통해서 말이죠.`,
+
+`자, 그럼 천천히 공간을 거닐어보세요. 
+무릎을 들고, 발을 앞으로 뻗어보세요.
+하셨나요?
+참 잘했어요.`,
+
+`맞아요. 그래 맞아요. 우리는 늘 그랬어요.
+우리는 언제나 타자와 함께 존재해 왔습니다.
+가족, 친구, 교수님, 지나가는 그들, 
+그리고 당신과 처음 만나는 저도 우리는 늘 함께 존재해왔습니다.`,
+
+`그러나 어느 순간 ‘너’로 불리던 그들은 ‘그것’으로 전락하기 시작했습니다.
+이유는 아무도 몰라요. 
+그저 우리가 ‘너’들을 ‘그것’들로 부르기 시작한 것일까요?
+이유는 아무도 모르죠.`,
+
+`아...
+갑자기 김춘추의 <꽃>이 떠오르네요.
+(진지한 톤으로) 내가 그의 이름을 불러주기 전에는 그는 다만 하나의 몸짓에 지나지 않았다.
+크으으으으으으....
+네. 각설하고.`,
+
+`말씀드린 것처럼, 이제 우리는 어느 곳에서도 ‘너’를 찾아볼 수 없습니다.
+우리는 이제 ‘너’가 사라진 세상에 살아가고 있으니까요.
+그런 특정했던 ‘너’는 서서히 희미해지고 퇴색되고 잊혀지고 잃어지고 앓아가고 있습니다
+마치 꿈 속에서 만난 누군가가
+...
+그게 누구였지?
+...
+하고 떠오르지 않는 것처럼`,
+
+`‘너’가 사라진 공간
+‘너’가 제거된 공간
+‘너’를 제거해버린 공간
+${displayName}의 내면 세계
+이제 곧 ${displayName}의 내면 세계로 발을 디딥니다`,
+
+`두 번의 심호흡을 하기도 하면서,
+후 --
+하,
+후 ....
+하 ~ `,
+
+`이제 눈으로 감고,
+천천히 수면 아래로 내려갑니다.
+귀를 기울여 ‘보세요’
+내면의 미로를 탐험하여 사라진 ‘너’의 소리에
+말이 길었습니다. 
+잠시 후에 만나요.
+수면으로
+내려갑니다
+...`
     ];
   }
 
   function getFrameRect(){
     return document.querySelector('.frameBox').getBoundingClientRect();
   }
-
   function fitTitleLine(el){
     if(!el) return;
     const fr=getFrameRect();
@@ -1159,24 +1141,11 @@
       el.style.fontSize=size+'px';
     }
   }
-
-  let isTyping=false, skipTyping=false;
-  async function typeSentenceCancelable(el, text, speed=34){
-    isTyping=true;
-    skipTyping=false;
-    el.textContent='';
-    for(let i=0;i<text.length;i++){
-      if(skipTyping){
-        el.textContent=text;
-        isTyping=false;
-        return;
-      }
-      el.textContent += text[i];
-      if(/\S/.test(text[i])) typeTick();
-      await sleep(speed);
-    }
-    isTyping=false;
+  function fitTitleLineSafe(){
+    fitTitleLine(introBigText);
+    fitTitleLine(firstSleepText);
   }
+  window.addEventListener('load', fitTitleLineSafe);
 
   const PIXEL_SPRITE=[
     "..XXXXXX....",
@@ -1294,7 +1263,6 @@
 
   let introWalking=false, introStartTime=0;
   const INTRO_WALK_DURATION=60_000;
-  let lines=[], lineIdx=0;
   let bubbleSeq=[
     "HELLO","…","HI","…","HELLO!","…",
     "…헤헤","기억나?","여기 있어.","…쉿","보고 있어",
@@ -1303,12 +1271,6 @@
     "작게 불러","내 이름"
   ];
   let bubbleTimer=0, bubbleIdx=0;
-
-  function fitTitleLineSafe(){
-    fitTitleLine(introBigText);
-    fitTitleLine(firstSleepText);
-  }
-  window.addEventListener('load', fitTitleLineSafe);
 
   async function showIntroFlow(){
     claimImmersive();
@@ -1326,60 +1288,25 @@
     await sleep(700);
     introBig.style.display='none';
 
-    lines=captureIntroTexts();
-    lineIdx=0;
-    dialogueWrap.style.display='flex';
-    dialogueWrap.style.opacity='0';
-    dialogueWrap.style.transition='opacity 800ms ease';
-    requestAnimationFrame(()=> dialogueWrap.style.opacity='1');
-
-    showIntroLayer=true;
-    fgAlpha=1.0;
+    // 캐릭터 워킹 시작
     introWalking=true;
     introStartTime=performance.now();
+    showIntroLayer=true;
+    fgAlpha=1.0;
 
-    await showCurrentLine();
-    enableAdvance();
-  }
-
-  async function showCurrentLine(){
-    const s=lines[lineIdx] ?? "";
-    disableAdvance();
-    await typeSentenceCancelable(dialogueText, s, 34);
-    enableAdvance();
-  }
-  function enableAdvance(){ nextBtn.disabled=false; }
-  function disableAdvance(){ nextBtn.disabled=true; }
-
-  async function onAdvance(){
-    claimImmersive();
-    await ensureResumed();
-    await playWoongClick();
-    if(isTyping){
-      skipTyping=true;
-      return;
+    // 1장 스타일 인트로 문단
+    const paras = getIntroParagraphs();
+    fadeShow(introOverlay, 400, 'flex');
+    for(const p of paras){
+      introOverlayText.textContent='';
+      await sleep(100);
+      introOverlayText.textContent = p;
+      typeTick();
+      await sleep(2000); // 문단마다 2초 정지
     }
-    lineIdx++;
-    if(lineIdx < lines.length){
-      await showCurrentLine();
-    }else{
-      await endIntroAndTransition();
-    }
-  }
-
-  dialogueWrap.addEventListener('click', (e)=>{
-    if(e.target.id==='nextBtn') return;
-    onAdvance();
-  }, {passive:true});
-  nextBtn.addEventListener('click', onAdvance, {passive:true});
-
-  async function endIntroAndTransition(){
-    introWalking=false;
-    dialogueWrap.style.transition='opacity 600ms ease';
-    dialogueWrap.style.opacity='0';
+    fadeHide(introOverlay, 600);
     await sleep(650);
-    dialogueWrap.style.display='none';
-    await sleep(300);
+
     await playTduung();
     startTransition();
   }
@@ -1415,7 +1342,7 @@
     },1000);
   }
 
-  /* Mic FX */
+  /* Mic FX (그대로) */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, micPreGain=null;
   function makeImpulse(ctx, seconds=6.0, decay=8.0){
     const rate=ctx.sampleRate;
@@ -1535,7 +1462,7 @@
     }
   }
 
-  /* Camera & Render */
+  /* Camera & Render (픽셀화 제거) */
   let metaReady=false;
   async function startCameraFresh(warmupOnly=false){
     try{
@@ -1575,8 +1502,6 @@
 
       if(!vctx){
         vctx=view.getContext('2d',{alpha:false});
-        proc=document.createElement('canvas');
-        pctx=proc.getContext('2d',{willReadFrequently:true});
       }
       if(!fgctx){
         fgctx=fg.getContext('2d',{alpha:true});
@@ -1606,13 +1531,7 @@
     fg.width=w*dpr;
     fg.height=h*dpr;
     if(fgctx) fgctx.setTransform(dpr,0,0,dpr,0,0);
-    // 픽셀 느낌 더 크게: 처리용 캔버스를 더 작게 만든 뒤 확대
-    const scale = (!isPortrait())? 0.25 : 0.33;
-    if(proc){
-      proc.width=Math.floor(w*scale);
-      proc.height=Math.floor(h*scale);
-    }
-    if(nameCityRunning) initNameCity(true); // 이름 배경 리사이즈
+    if(nameCityRunning) initNameCity(true);
   }
   addEventListener('resize', ()=>{
     setTimeout(resizeAll,30);
@@ -1635,12 +1554,12 @@
     if(best.rot){
       ctx.translate(PW/2,PH/2);
       ctx.rotate(Math.PI/2);
-      ctx.globalAlpha=.7;
+      ctx.globalAlpha=1.0;
       ctx.drawImage(video,-best.dh/2,-best.dw/2,best.dh,best.dw);
     }else{
       const dx=(PW-best.dw)/2;
       const dy=(PH-best.dh)/2;
-      ctx.globalAlpha=.7;
+      ctx.globalAlpha=1.0;
       ctx.drawImage(video,dx,dy,best.dw,best.dh);
     }
     ctx.restore();
@@ -1650,35 +1569,21 @@
   function loop(){
     requestAnimationFrame(loop);
     if(capturing) return;
-    if(!vctx || !pctx || !fgctx) return;
+    if(!vctx || !fgctx) return;
 
     const W=view.width/(devicePixelRatio||1);
     const H=view.height/(devicePixelRatio||1);
-    const PW=proc.width;
-    const PH=proc.height;
     if(warmupFrames>0){
       resizeAll();
       warmupFrames--;
     }
 
-    pctx.fillStyle='rgba(0,0,0,.14)';
-    pctx.fillRect(0,0,PW,PH);
+    // 카메라를 바로 전체 화면에 그리기 (픽셀화 없음)
+    vctx.clearRect(0,0,W,H);
+    vctx.imageSmoothingEnabled=true;
     if(camVideo && camVideo.readyState>=2){
-      drawBestCover(pctx, camVideo, W, H, PW, PH);
-      const frame=pctx.getImageData(0,0,PW,PH);
-      const d=frame.data;
-      // 픽셀 느낌: 그레이스케일 + 단계 양자화
-      const levels=6;
-      const step=255/(levels-1);
-      for(let i=0;i<d.length;i+=4){
-        const g=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0;
-        const q = Math.round(g/step)*step;
-        d[i]=d[i+1]=d[i+2]=q;
-      }
-      pctx.putImageData(frame,0,0);
+      drawBestCover(vctx, camVideo, W, H, W, H);
     }
-    vctx.imageSmoothingEnabled=false;
-    vctx.drawImage(proc,0,0,W,H);
 
     const pr=getProsceniumRect();
     fgctx.clearRect(0,0,W,H);
@@ -1771,7 +1676,7 @@
     requestAnimationFrame(anim);
   });
 
-  /* Transition to FIRST SLEEP */
+  /* Intro → FIRST SLEEP transition */
   function fadeIntroLayerOut(ms=8000){
     const t0=performance.now();
     const startAlpha=fgAlpha;
@@ -1839,18 +1744,11 @@
       await playWoongClick();
       fadeHide(noticePopup, 250);
       await sleep(260);
-      startFirstSleepStory();  // 첫 번째 수면: 카프카 문단 + 모스부호
+      startFirstSleepStory();
     };
   }
 
-  function fitTitleLineAllSafe(){
-    fitTitleLine(introBigText);
-    fitTitleLine(firstSleepText);
-  }
-  window.addEventListener('load', fitTitleLineAllSafe);
-
-  /* ===== FIRST SLEEP: 카프카 문단 + 모스 부호 ===== */
-
+  /* FIRST SLEEP: 카프카 문단 + 모스 부호 */
   const firstSleepStory = `당신은 공간을 거닐고 있다.
 마침내 당신은 도시의 어둠, 그리고 스산한 안개 속으로 천천히 발을 내딛었다.
 지금은 새벽 4시. 당신은 축축하고 푹신한 수면 위로 걷는 느낌을 느낀다.
@@ -1919,7 +1817,6 @@
       }
     }
 
-    // 모스부호가 화면을 꽉 채운 후 잠시 유지
     await sleep(1500);
     fadeHide(chapterOverlay, 1200);
   }
@@ -1930,15 +1827,12 @@
     chapterBox.innerHTML='';
     fadeShow(chapterOverlay, 400, 'flex');
     await sleep(420);
-    // 카프카 문단 글자별 입력 + 검정 박스
     await typeBoxedText(chapterBox, firstSleepStory, 26);
-    // 4초 정도 읽을 시간
     await sleep(4000);
-    // 모스부호 화면 꽉 채우기
     await startMorseSequence();
   }
 
-  /* ===== 이름 입력 화면: 달동네 빌딩 (더 위로 올라오게 조정) ===== */
+  /* ===== Name screen city ===== */
   let nameCityCtx = null;
   let nameBuildings = [];
   let nameCityRunning = false;
@@ -1955,8 +1849,6 @@
     nameCityCtx.setTransform(dpr,0,0,dpr,0,0);
 
     nameBuildings = [];
-
-    // 전체 화면 기준, 건물이 더 위로 올라오도록 ground를 살짝 위로
     const baseGround = h * 0.82;
 
     const layers = [
@@ -1976,7 +1868,7 @@
         let bh = (Math.random()* (h * 0.3) + (h * 0.25)) * layer.heightMul;
         let bTop = groundY - bh;
 
-        const minTop = h * 0.10;  // 더 위까지 올라오도록
+        const minTop = h * 0.10;
         const maxBottom = h * 0.92;
 
         if(groundY > maxBottom) groundY = maxBottom;
@@ -2038,7 +1930,6 @@
     const h = window.innerHeight;
 
     nameCityCtx.clearRect(0,0,w,h);
-
     nameCityCtx.fillStyle = '#000';
     nameCityCtx.fillRect(0,0,w,h);
 
