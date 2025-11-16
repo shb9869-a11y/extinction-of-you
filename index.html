@@ -372,8 +372,10 @@
     text-align:center;
     white-space:nowrap;
     text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7);
-    padding:0 .02em;
+    padding:8px 22px;
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    background:#000;
+    border:1px solid rgba(255,216,64,0.9);
   }
 
   /* INTRO 텍스트 박스 */
@@ -383,8 +385,8 @@
     bottom:calc(var(--frame) + var(--safe-b) + 12px);
     max-width:min(420px, 60vw);
     padding:12px 14px 10px;
-    border:1px solid rgba(255,216,64,0.7);
-    background:rgba(0,0,0,0.55);
+    border:1px solid rgba(255,216,64,0.9);
+    background:#000; /* 완전 검정 박스 */
     font-family:"Courier New",ui-monospace,monospace;
     font-size:clamp(11px,2.1vmin,15px);
     line-height:1.7;
@@ -402,7 +404,7 @@
     margin-left:auto;
   }
 
-  /* THE FIRST SLEEP title 단독 오버레이 */
+  /* THE FIRST SLEEP title (단독용) */
   #firstSleep{
     position:fixed;
     inset:0;
@@ -421,8 +423,10 @@
     text-align:center;
     white-space:nowrap;
     text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7);
-    padding:0 .02em;
+    padding:8px 22px;
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    background:#000;
+    border:1px solid rgba(255,216,64,0.9);
   }
 
   /* NOTICE Popup (FIRST SLEEP) */
@@ -491,13 +495,13 @@
     text-align:center;
     color:var(--accent);
     padding:16px 20px;
-    background:rgba(0,0,0,0.65);
-    border:1px solid rgba(255,216,64,0.75);
+    background:#000; /* 검정 박스 */
+    border:1px solid rgba(255,216,64,0.85);
     box-shadow:0 0 24px rgba(0,0,0,0.9);
     border-radius:4px;
   }
 
-  /* INTRO → FIRST SLEEP 사이 SLEEEEEEEEP / THE FIRST SLEEP */
+  /* INTRO → FIRST SLEEP: SLEEEEEEEEP + THE FIRST SLEEP */
   #firstTransition{
     position:fixed;
     inset:0;
@@ -517,7 +521,11 @@
     text-transform:uppercase;
     white-space:nowrap;
     text-shadow:0 0 8px rgba(0,0,0,.85);
-    margin:4px 0;
+    margin:6px 0;
+    padding:8px 16px;
+    background:#000; /* 텍스트도 검정 박스 속에 */
+    border:1px solid rgba(255,216,64,0.9);
+    display:inline-block;
   }
   #firstTransWord{
     margin-bottom:10px;
@@ -526,7 +534,7 @@
     margin-top:10px;
   }
 
-  /* FIRST SLEEP → SECOND SLEEP 사이 */
+  /* BETWEEN FIRST & SECOND SLEEP */
   #sleepTransition{
     position:fixed;
     inset:0;
@@ -925,7 +933,7 @@
 
   let showIntroLayer=false;
   let fgAlpha=1.0;
-  let showCamera=false;     // 초기 / 웰컴 / 인트로에서는 OFF
+  let showCamera=false;     
   let camFadeAlpha=0;
 
   /* ===== Audio ===== */
@@ -1488,7 +1496,7 @@
     const bx=Math.round(x-w/2);
     const by=Math.round(y-h-18);
     ctx.save();
-    ctx.fillStyle='rgba(0,0,0,0.85)';
+    ctx.fillStyle='rgba(0,0,0,0.9)';
     ctx.strokeStyle='rgba(255,255,255,0.35)';
     ctx.lineWidth=1;
     ctx.beginPath();
@@ -1526,17 +1534,17 @@
     hangingBuildings = [];
 
     const sorted = [...nameBuildings].sort((a,b)=> a.x - b.x);
-    const count = Math.min(18, sorted.length);
-    const maxAreaWidth = pr.w * 0.92;
-    const startX = pr.x + pr.w * 0.04;
+    const count = Math.min(24, sorted.length); /* 더 빽빽하게 */
+    const maxAreaWidth = pr.w * 0.96;
+    const startX = pr.x + pr.w * 0.02;
     const step = maxAreaWidth / count;
 
     for(let i=0;i<count;i++){
       const src = sorted[Math.floor(i * (sorted.length/count))];
       const fullH = (src.bottom - src.top) || (window.innerHeight*0.18);
-      const h = fullH * (0.6 + Math.random()*0.2);
-      const w = src.width;
-      const x = startX + i*step + (step-w)*0.5;
+      const h = fullH * (0.65 + Math.random()*0.2);
+      const w = src.width * (0.9 + Math.random()*0.2);
+      const x = startX + i*step + (step-w)*0.3;
       const top = pr.y;
 
       hangingBuildings.push({
@@ -1782,7 +1790,7 @@
     }
   }
 
-  /* Camera & Render (흑백) */
+  /* Camera & Render (흑백 유지) */
   let metaReady=false;
   async function startCameraFresh(warmupOnly=false){
     try{
@@ -1899,7 +1907,7 @@
     vctx.clearRect(0,0,W,H);
     vctx.imageSmoothingEnabled=true;
 
-    // 카메라: 항상 흑백
+    // 카메라: 항상 흑백 유지
     if (showCamera && camVideo && camVideo.readyState>=2){
       vctx.save();
       vctx.filter='grayscale(1)';
@@ -1920,7 +1928,7 @@
       fgctx.rect(pr.x,pr.y,pr.w,pr.h);
       fgctx.clip();
 
-      // 인트로 건물
+      // 인트로 건물 (더 촘촘)
       drawHangingBuildings(fgctx);
 
       // 캐릭터 5명
@@ -2076,7 +2084,7 @@
       fadeHide(introDialogue, 300);
       await sleep(350);
       await playTduung();
-      startIntroToFirstSleepSequence();   // 새로운 흐름
+      startIntroToFirstSleepSequence();   // INTRO → FIRST SLEEP
     }else{
       typeIntroLine(introIndex);
     }
@@ -2084,7 +2092,7 @@
 
   /* INTRO → FIRST SLEEP 전환 */
 
-  function fadeIntroLayerOut(ms=4000){
+  function fadeIntroLayerOut(ms=4500){
     const t0=performance.now();
     const startAlpha=fgAlpha;
     function step(){
@@ -2112,7 +2120,7 @@
 
     firstTransition.style.display='flex';
     firstTransition.style.opacity='0';
-    firstTransition.style.transition='opacity 800ms ease';
+    firstTransition.style.transition='opacity 1600ms ease'; /* 더 느린 페이드 인 */
     await nextFrame();
     firstTransition.style.opacity='1';
 
@@ -2120,17 +2128,17 @@
     for(let i=0;i<word.length;i++){
       firstTransWord.textContent += word[i];
       typeTick();
-      await sleep(40);
+      await sleep(45);
     }
 
-    await sleep(600);
+    await sleep(900);
     firstTransTitle.textContent = 'THE FIRST SLEEP';
 
-    await sleep(2000);
+    await sleep(2600);
 
-    firstTransition.style.transition='opacity 1200ms ease';
+    firstTransition.style.transition='opacity 2000ms ease'; /* 더 느린 페이드 아웃 */
     firstTransition.style.opacity='0';
-    await sleep(1300);
+    await sleep(2100);
     firstTransition.style.display='none';
     firstTransition.style.transition='';
   }
@@ -2141,9 +2149,9 @@
     await ensureResumed();
 
     introWalking=true;
-    fadeIntroLayerOut(4000);
+    fadeIntroLayerOut(4500);
 
-    await sleep(800);
+    await sleep(1000);
     await runFirstSleepTitleSequence();
 
     showNoticePopup();   // FIRST SLEEP 안내창
@@ -2171,7 +2179,7 @@
       fadeHide(noticePopup, 250);
       await sleep(260);
 
-      fadeInCamera(2500);      // FIRST SLEEP 진입 시 카메라 흑백 ON
+      fadeInCamera(2500);      // THE FIRST SLEEP 카메라 흑백 ON
       startMicFXFadeIn(2.5);
 
       controls.classList.add('show');
@@ -2219,7 +2227,7 @@
     sleepSecondTitle.textContent = '';
     sleepTransition.style.display='flex';
     sleepTransition.style.opacity='0';
-    sleepTransition.style.transition='opacity 800ms ease';
+    sleepTransition.style.transition='opacity 1600ms ease';
     await nextFrame();
     sleepTransition.style.opacity='1';
 
@@ -2229,23 +2237,23 @@
     for(let i=0;i<line1.length;i++){
       sleepLine1.textContent += line1[i];
       typeTick();
-      await sleep(40);
+      await sleep(45);
     }
-    await sleep(300);
+    await sleep(350);
     for(let i=0;i<line2.length;i++){
       sleepLine2.textContent += line2[i];
       typeTick();
-      await sleep(40);
+      await sleep(45);
     }
 
-    await sleep(600);
+    await sleep(900);
     sleepSecondTitle.textContent = 'THE SECOND SLEEP';
 
-    await sleep(2000);
+    await sleep(2600);
 
-    sleepTransition.style.transition='opacity 1200ms ease';
+    sleepTransition.style.transition='opacity 2000ms ease';
     sleepTransition.style.opacity='0';
-    await sleep(1300);
+    await sleep(2100);
     sleepTransition.style.display='none';
     sleepTransition.style.transition='';
   }
@@ -2310,11 +2318,11 @@
     introBig.style.opacity='0';
     await nextFrame();
     fitTitleLine(introBigText);
-    introBig.style.transition='opacity 800ms ease';
+    introBig.style.transition='opacity 1600ms ease'; /* 더 느리게 */
     introBig.style.opacity='1';
-    await sleep(1200);
+    await sleep(2200);
     introBig.style.opacity='0';
-    await sleep(700);
+    await sleep(1600);
     introBig.style.display='none';
 
     introWalking=true;
@@ -2366,7 +2374,7 @@
       const maxX = w + totalW * 0.1;
 
       while(x < maxX){
-        const bw = Math.random()* (w * 0.04) + (w * 0.018);
+        const bw = Math.random()* (w * 0.035) + (w * 0.015); /* 더 좁은 폭 → 빽빽하게 */
         let bh = (Math.random()* (h * 0.3) + (h * 0.25)) * layer.heightMul;
         let bTop = groundY - bh;
 
@@ -2417,7 +2425,8 @@
           windows
         });
 
-        x += bw * (0.2 + Math.random()*0.3);
+        /* 간격 줄여서 촘촘하게 */
+        x += bw * (0.08 + Math.random()*0.18);
       }
     }
 
