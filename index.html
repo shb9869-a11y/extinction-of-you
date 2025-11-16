@@ -339,10 +339,10 @@
   }
   #welcomeCard .title{
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    font-size:clamp(40px, 12vmin, 96px);
+    font-size:clamp(28px, 8vmin, 72px);
     font-weight:400;
-    letter-spacing:.16em;
-    line-height:1.1;
+    letter-spacing:.12em;
+    line-height:1.15;
     margin:0;
     text-transform:uppercase;
     color:var(--accent);
@@ -401,7 +401,7 @@
     margin-left:auto;
   }
 
-  /* FIRST SLEEP 타이틀 */
+  /* THE FIRST SLEEP title */
   #firstSleep{
     position:fixed;
     inset:0;
@@ -460,7 +460,7 @@
     text-align:right;
   }
 
-  /* FIRST SLEEP: 중앙 텍스트 */
+  /* FIRST SLEEP: 중앙 텍스트 (박스 포함) */
   #chapterOverlay{
     position:fixed;
     inset:0;
@@ -483,11 +483,17 @@
     overflow:hidden;
   }
   #chapterBox{
+    display:inline-block;
     font-family:"Courier New",ui-monospace,monospace;
     line-height:1.8;
     font-size:clamp(11px,2.0vmin,15px);
     text-align:center;
     color:var(--accent);
+    padding:16px 20px;
+    background:rgba(0,0,0,0.65);
+    border:1px solid rgba(255,216,64,0.75);
+    box-shadow:0 0 24px rgba(0,0,0,0.9);
+    border-radius:4px;
   }
 </style>
 </head>
@@ -731,8 +737,10 @@
   let camStream=null, camVideo=null, ZOOM=1.0;
   let animStarted=false, capturing=false, warmupFrames=0;
 
-  let showIntroLayer=true, fgAlpha=1.0;
+  let showIntroLayer=false; // 웰컴/이전에는 안보이고, 인트로에서만 ON
+  let fgAlpha=1.0;
   let showCamera=true;   // 웰컴까지 카메라 ON, 인트로 동안 OFF, FIRST SLEEP에서 다시 ON
+  let camFadeAlpha=0;    // 카메라 페이드용 (0=그대로, 1=완전 검정)
 
   /* ===== Audio ===== */
   let audioCtx = null;
@@ -1029,8 +1037,7 @@
     const targets=saverMode==='assemble'?saverTargetsForWord():null;
     for(const o of saverObjs){
       if(saverMode==='assemble'){
-        const idx=0;
-        const g=targets[idx];
+        const g=targets[0];
         o.vx += (g.x-o.x)*0.0006;
         o.vy += (g.y-o.y)*0.0006;
       }
@@ -1043,7 +1050,7 @@
       ctx.translate(o.x,o.y);
       ctx.scale(wob,1/wob);
       ctx.font=`900 ${o.size}px "Press Start 2P", system-ui, sans-serif`;
-      ctx.fillStyle='#fff';
+      ctx.fillStyle='#ffd840';   // 프리셋 글자색: 노란 불빛
       ctx.fillText(o.ch,0,0);
       ctx.restore();
     }
@@ -1298,26 +1305,28 @@
     const pr = getProsceniumRect();
     hangingBuildings = [];
 
-    const subset = nameBuildings.slice(0, 8);
-    const maxAreaWidth = pr.w * 0.45;
+    const sorted = [...nameBuildings].sort((a,b)=> (a.bottom - a.top) - (b.bottom - b.top));
+    const count = Math.min(14, sorted.length);
+    const maxAreaWidth = pr.w * 0.9;
+    const startX = pr.x + pr.w * 0.02;
+    const step = maxAreaWidth / count;
 
-    subset.forEach((b, i) => {
-      const ratio = (i + 0.5) / subset.length;
-      const baseWidth = Math.min(b.width, maxAreaWidth / subset.length * 1.4);
-      const heightFull = (b.bottom - b.top) || (window.innerHeight * 0.18);
-      const height = heightFull * 0.5;
-
-      const x = pr.x + ratio * maxAreaWidth - baseWidth / 2;
-      const top = pr.y;
+    for(let i=0;i<count;i++){
+      const src = sorted[i];
+      const baseWidth = Math.min(src.width*0.7, step*0.8);
+      const fullH = (src.bottom - src.top) || (window.innerHeight*0.18);
+      const h = fullH * (0.45 + Math.random()*0.25);
+      const x = startX + i*step + (step-baseWidth)/2;
+      const top = pr.y - h*0.05;
 
       hangingBuildings.push({
         x,
         top,
         width: baseWidth,
-        height,
-        color: b.color
+        height: h,
+        color: src.color
       });
-    });
+    }
   }
 
   function drawHangingBuildings(ctx){
@@ -1386,7 +1395,7 @@
     },1000);
   }
 
-  /* Mic FX (그대로) */
+  /* Mic FX */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, micPreGain=null;
   function makeImpulse(ctx, seconds=6.0, decay=8.0){
     const rate=ctx.sampleRate;
@@ -1402,7 +1411,7 @@
     return ir;
   }
 
-  async function startMicFXFadeIn(fadeSec=4.0){
+  async function startMicFXFadeIn(fadeSec=2.5){
     try{
       await ensureResumed();
       if(!micStream){
@@ -1623,7 +1632,7 @@
     vctx.imageSmoothingEnabled=true;
     if (showCamera && camVideo && camVideo.readyState>=2){
       vctx.save();
-      vctx.filter='grayscale(1)';       // 카메라 흑백
+      vctx.filter='grayscale(1)';       // 카메라 흑백 유지
       drawBestCover(vctx, camVideo, W, H, W, H);
       vctx.restore();
       vctx.filter='none';
@@ -1641,7 +1650,7 @@
       fgctx.rect(pr.x,pr.y,pr.w,pr.h);
       fgctx.clip();
 
-      // 매달린 건물
+      // 인트로에서만 빼곡한 매달린 건물
       drawHangingBuildings(fgctx);
 
       // 픽셀 인물 + 말풍선
@@ -1661,6 +1670,30 @@
 
       fgctx.restore();
     }
+
+    // 카메라 페이드 인용 오버레이
+    if (camFadeAlpha > 0){
+      vctx.save();
+      vctx.fillStyle = `rgba(0,0,0,${camFadeAlpha})`;
+      vctx.fillRect(0,0,W,H);
+      vctx.restore();
+    }
+  }
+
+  function fadeInCamera(ms=2500){
+    showCamera = true;
+    camFadeAlpha = 1;
+    const t0 = performance.now();
+    function step(){
+      const k = Math.min(1, (performance.now()-t0)/ms);
+      camFadeAlpha = 1-k;
+      if(k<1){
+        requestAnimationFrame(step);
+      }else{
+        camFadeAlpha = 0;
+      }
+    }
+    step();
   }
 
   /* Capture */
@@ -1742,7 +1775,7 @@
     for(let i=0;i<text.length;i++){
       introTextEl.textContent += text[i];
       typeTick();
-      await sleep(24); // 인트로는 예전처럼 조금 빠르게
+      await sleep(24); // 인트로/다른 것들은 이전 속도로
     }
   }
 
@@ -1787,7 +1820,9 @@
     claimImmersive();
     await ensureResumed();
 
-    showCamera = true;  // FIRST SLEEP 들어가면서 카메라 다시 ON
+    // 인트로 끝나고 아직 카메라/마이크는 OFF
+    showCamera = false;
+    camFadeAlpha = 0;
 
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
@@ -1799,8 +1834,7 @@
     controls.classList.add('show');
     captureBtn.classList.add('show');
 
-    await startMicFXFadeIn(4.0);
-
+    // 인트로 레이어 페이드 아웃
     const fadeDur=8000;
     fadeIntroLayerOut(fadeDur);
     await sleep(900);
@@ -1834,6 +1868,11 @@
       await playWoongClick();
       fadeHide(noticePopup, 250);
       await sleep(260);
+
+      // 노티스 창 사라지면서 카메라/마이크 2.5초 페이드 인
+      fadeInCamera(2500);
+      startMicFXFadeIn(2.5);
+
       startFirstSleepStory();
     };
   }
@@ -1849,7 +1888,7 @@
     for(let i=0;i<text.length;i++){
       span.textContent += text[i];
       typeTick();
-      await sleep(26);  // 1장의 텍스트 속도는 그대로 유지
+      await sleep(26);  // 1장의 텍스트 속도는 그대로 (좋다고 하신 속도)
     }
   }
 
@@ -1875,6 +1914,7 @@
     if(!Ambient.isRunning()) Ambient.start(0.2, 1.0);
 
     showCamera = false; // 인트로덕션 동안 카메라 잠시 OFF
+    camFadeAlpha = 0;
 
     // INTRODUCTION 타이틀
     introBig.style.display='flex';
@@ -1888,7 +1928,7 @@
     await sleep(700);
     introBig.style.display='none';
 
-    // 캐릭터 워킹 시작
+    // 캐릭터 워킹 + 프로시니엄 빼곡 건물 시작
     introWalking=true;
     introStartTime=performance.now();
     showIntroLayer=true;
@@ -1993,7 +2033,7 @@
       }
     }
 
-    initHangingBuildings();
+    initHangingBuildings(); // 인트로 때 쓸 빽빽한 건물
 
     if(!keepRunning && nameCityRunning){
       drawNameCity(performance.now());
@@ -2068,6 +2108,13 @@
   }
 
   /* 초기 카메라 워밍업 */
+  function setAppH(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
+  setAppH();
+  addEventListener('resize', setAppH, {passive:true});
+  if (window.visualViewport){
+    visualViewport.addEventListener('resize', ()=>setTimeout(setAppH,50));
+  }
+
   startCameraFresh(true);
 })();
 </script>
