@@ -971,6 +971,26 @@
   /* 현재 챕터 상태 */
   let stage = 'gate';
 
+  /* --------- GAME INPUT SOUND (공용 입력 사운드) --------- */
+  function playGameInputSound(){
+    try{
+      ensureAudio();
+      const ctx = audioCtx;
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(880, now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.35, now+0.018);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now+0.11);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now+0.12);
+    }catch(e){}
+  }
+  /* ----------------------------------------------------- */
+
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, killers=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
@@ -1144,18 +1164,9 @@
     secondBellRunning = false;
   }
 
+  /* 타이핑 사운드: 게임 입력 사운드로 통일 */
   function typeTick(){
-    try{
-      ensureAudio();
-      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-      o.type='square'; o.frequency.value=900;
-      g.gain.value=0.0001;
-      g.gain.exponentialRampToValueAtTime(0.18, audioCtx.currentTime+0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.10);
-      o.connect(g).connect(audioCtx.destination);
-      o.start();
-      o.stop(audioCtx.currentTime+0.12);
-    }catch(e){}
+    playGameInputSound();
   }
 
   function updateZoomLabel(){
@@ -2239,6 +2250,7 @@
     step();
   }
 
+  /* FIRST SLEEP 타이틀 시퀀스 – THE FIRST SLEEP 페이드 인 */
   async function runFirstSleepTitleSequence(){
     firstTransWord.textContent='';
     firstTransTitle.textContent='';
@@ -2249,7 +2261,7 @@
     await nextFrame();
     firstTransition.style.opacity='1';
 
-    const word = 'SLEEEEEEEEP';
+    const word = 'SLEEEEEEEEP';   // e 개수 통일
     for(let i=0;i<word.length;i++){
       firstTransWord.textContent += word[i];
       typeTick();
@@ -2257,7 +2269,13 @@
     }
 
     await sleep(900);
+
+    // THE FIRST SLEEP 텍스트 + 페이드 인
+    firstTransTitle.style.opacity = '0';
+    firstTransTitle.style.transition = 'opacity 1200ms ease';
     firstTransTitle.textContent = 'THE FIRST SLEEP';
+    await nextFrame();
+    firstTransTitle.style.opacity = '1';
 
     await sleep(2600);
 
@@ -2266,6 +2284,8 @@
     await sleep(2100);
     firstTransition.style.display='none';
     firstTransition.style.transition='';
+    firstTransTitle.style.transition='';
+    firstTransTitle.style.opacity='1';
   }
 
   async function startIntroToFirstSleepSequence(){
@@ -2347,6 +2367,7 @@
     fadeHide(chapterOverlay, 800);
   }
 
+  /* SECOND SLEEP 타이틀 시퀀스 – SLEEP e 개수 통일 + THE SECOND SLEEP 페이드 인 */
   async function runSecondSleepTitleSequence(){
     sleepLine1.textContent = '';
     sleepLine2.textContent = '';
@@ -2357,8 +2378,8 @@
     await nextFrame();
     sleepTransition.style.opacity='1';
 
-    const line1 = 'SLEEEEEEP';
-    const line2 = 'SLEEEEEEEEP';
+    const line1 = 'SLEEEEEEEEP';   // 통일
+    const line2 = 'SLEEEEEEEEP';   // 통일
 
     for(let i=0;i<line1.length;i++){
       sleepLine1.textContent += line1[i];
@@ -2373,7 +2394,13 @@
     }
 
     await sleep(900);
+
+    // THE SECOND SLEEP 텍스트 + 페이드 인
+    sleepSecondTitle.style.opacity = '0';
+    sleepSecondTitle.style.transition = 'opacity 1200ms ease';
     sleepSecondTitle.textContent = 'THE SECOND SLEEP';
+    await nextFrame();
+    sleepSecondTitle.style.opacity = '1';
 
     await sleep(2600);
 
@@ -2382,6 +2409,8 @@
     await sleep(2100);
     sleepTransition.style.display='none';
     sleepTransition.style.transition='';
+    sleepSecondTitle.style.transition='';
+    sleepSecondTitle.style.opacity='1';
   }
 
   async function onFirstSleepTimerEnd(){
