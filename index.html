@@ -105,7 +105,7 @@
     top:calc(var(--frame) + var(--safe-t));
     right:calc(var(--frame) + var(--safe-r));
     bottom:calc(var(--frame) + var(--safe-b));
-    border:2px solid rgba(255,216,64,.45); /* 노란색 프레임으로 변경 */
+    border:2px solid rgba(255,216,64,.75); /* 노란색 프로시니엄 틀 */
     pointer-events:none;
     z-index:50;
   }
@@ -346,7 +346,7 @@
     margin:0;
     text-transform:uppercase;
     color:var(--accent);
-    white-space:nowrap; /* SLEEEEEEEP 한 줄 유지 */
+    white-space:nowrap;          /* 줄바꿈 방지 */
   }
   #goIntro{
     margin-top:0;
@@ -425,7 +425,7 @@
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
   }
 
-  /* NOTICE Popup */
+  /* NOTICE Popup (FIRST SLEEP용) */
   #noticePopup{
     position:fixed;
     inset:0;
@@ -495,6 +495,114 @@
     border:1px solid rgba(255,216,64,0.75);
     box-shadow:0 0 24px rgba(0,0,0,0.9);
     border-radius:4px;
+  }
+
+  /* BETWEEN FIRST & SECOND SLEEP */
+  #sleepTransition{
+    position:fixed;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    color:var(--accent);
+    z-index:940;
+    pointer-events:none;
+  }
+  .sleepLine{
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    letter-spacing:.14em;
+    font-size:clamp(24px, 7vmin, 72px);
+    text-transform:uppercase;
+    white-space:nowrap;
+    text-shadow:0 0 8px rgba(0,0,0,.85);
+    margin:4px 0;
+  }
+  #sleepSecondTitle{
+    margin-top:14px;
+    font-size:clamp(18px,5vmin,48px);
+  }
+
+  /* SECOND NOTICE (지도 전용) */
+  #noticePopup2{
+    position:fixed;
+    inset:0;
+    z-index:960;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,.8);
+  }
+  #noticeCard2{
+    width:min(92vw, 640px);
+    background:#0b0b0b;
+    color:var(--accent);
+    border:1px solid #444;
+    padding:18px;
+    box-shadow:0 10px 30px rgba(0,0,0,.8);
+    font-family:"Courier New",ui-monospace,monospace;
+    line-height:1.7;
+  }
+  #noticeCard2 h3{
+    margin:0 0 6px 0;
+    letter-spacing:.06em;
+    font-weight:700;
+    font-size:clamp(15px,3vmin,20px);
+    color:var(--accent);
+  }
+  #noticeCard2 p{
+    margin:4px 0;
+    font-size:clamp(12px,2.4vmin,16px);
+  }
+  #noticeActions2{
+    margin-top:10px;
+    text-align:right;
+  }
+
+  /* MAP OVERLAY */
+  #mapOverlay{
+    position:fixed;
+    inset:0;
+    z-index:950;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    overflow:hidden;
+  }
+  #mapCanvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+  }
+
+  .map-popup{
+    position:fixed;
+    inset:0;
+    z-index:970;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+  }
+  .map-popup-inner{
+    pointer-events:auto;
+    width:min(92vw, 520px);
+    background:#050505;
+    border:1px solid #333;
+    box-shadow:0 10px 30px rgba(0,0,0,.85);
+    padding:18px 18px 14px;
+    color:var(--accent);
+    font-family:"Courier New",ui-monospace,monospace;
+    position:relative;
+    line-height:1.7;
+  }
+  .map-pop-close{
+    position:absolute;
+    top:8px;
+    right:10px;
   }
 </style>
 </head>
@@ -568,7 +676,7 @@
   <!-- INTRODUCTION title -->
   <div id="introBig" class="fade"><div id="introBigText">INTRODUCTION</div></div>
 
-  <!-- INTRODUCTION sentences (우측 하단) -->
+  <!-- INTRODUCTION sentences -->
   <div id="introDialogue">
     <div id="introText"></div>
     <button id="introNext" class="uiBtn small" type="button">NEXT</button>
@@ -577,7 +685,7 @@
   <!-- THE FIRST SLEEP title -->
   <div id="firstSleep"><div id="firstSleepText">THE FIRST SLEEP</div></div>
 
-  <!-- NOTICE Popup -->
+  <!-- NOTICE Popup (FIRST SLEEP) -->
   <div id="noticePopup" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle">
     <div id="noticeCard">
       <h3 id="noticeTitle">NOTICE</h3>
@@ -595,6 +703,41 @@
   <div id="chapterOverlay" class="fade">
     <div id="chapterCenter">
       <div id="chapterBox"></div>
+    </div>
+  </div>
+
+  <!-- BETWEEN FIRST & SECOND SLEEP -->
+  <div id="sleepTransition" class="fade">
+    <div id="sleepLine1" class="sleepLine"></div>
+    <div id="sleepLine2" class="sleepLine"></div>
+    <div id="sleepSecondTitle" class="sleepLine"></div>
+  </div>
+
+  <!-- SECOND NOTICE (지도 전) -->
+  <div id="noticePopup2" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle2">
+    <div id="noticeCard2">
+      <h3 id="noticeTitle2">NOTICE</h3>
+      <p>※ 이제 두 번째 수면으로 진입하기 전, 내면의 지도 위에서 여덟 개의 지점을 탐험하게 됩니다.</p>
+      <p>※ 지도 중앙의 육각형을 중심으로 1번부터 8번까지의 사각형을 클릭하여 각 구역의 목소리를 불러오세요.</p>
+      <p>※ 준비가 되었다면 아래 ‘OK’를 눌러 지도로 이동합니다.</p>
+      <div id="noticeActions2">
+        <button id="noticeOk2" class="uiBtn flat" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAP OVERLAY -->
+  <div id="mapOverlay">
+    <canvas id="mapCanvas"></canvas>
+  </div>
+
+  <!-- MAP POPUP -->
+  <div id="mapPop" class="map-popup">
+    <div class="map-popup-inner">
+      <button id="mapPopClose" class="uiBtn small map-pop-close" type="button">CLOSE</button>
+      <div id="mapPopBody">
+        <!-- 클릭한 구역 설명이 여기 들어감 -->
+      </div>
     </div>
   </div>
 
@@ -730,6 +873,20 @@
   const chapterOverlay = qs('#chapterOverlay');
   const chapterBox = qs('#chapterBox');
 
+  const sleepTransition = qs('#sleepTransition');
+  const sleepLine1 = qs('#sleepLine1');
+  const sleepLine2 = qs('#sleepLine2');
+  const sleepSecondTitle = qs('#sleepSecondTitle');
+
+  const noticePopup2 = qs('#noticePopup2');
+  const noticeOk2 = qs('#noticeOk2');
+
+  const mapOverlay = qs('#mapOverlay');
+  const mapCanvas = qs('#mapCanvas');
+  const mapPop = qs('#mapPop');
+  const mapPopBody = qs('#mapPopBody');
+  const mapPopClose = qs('#mapPopClose');
+
   /* ===== Canvas ===== */
   let vctx=null, fgctx=null;
 
@@ -740,7 +897,7 @@
 
   let showIntroLayer=false; // 인트로에서만 ON
   let fgAlpha=1.0;
-  let showCamera=false;   // 초기/웰컴/인트로 모두 OFF, FIRST SLEEP에서만 ON
+  let showCamera=false;   // ✅ 초기/웰컴에서도 카메라 OFF
   let camFadeAlpha=0;    // 카메라 페이드용 (0=그대로, 1=완전 검정)
 
   /* ===== Audio ===== */
@@ -874,6 +1031,24 @@
       o1.stop(now+0.62); o2.stop(now+0.62);
     }catch(e){}
   }
+  async function playBellChime(){
+    try{
+      await ensureResumed();
+      const now = audioCtx.currentTime;
+      const osc1 = audioCtx.createOscillator();
+      const osc2 = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc1.type='sine'; osc2.type='sine';
+      osc1.frequency.setValueAtTime(1200, now);
+      osc2.frequency.setValueAtTime(1800, now);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(0.9, now+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+1.4);
+      osc1.connect(g); osc2.connect(g); g.connect(audioCtx.destination);
+      osc1.start(now); osc2.start(now);
+      osc1.stop(now+1.5); osc2.stop(now+1.5);
+    }catch(e){}
+  }
   function typeTick(){
     try{
       ensureAudio();
@@ -982,7 +1157,7 @@
     preset.classList.add('show');
     fadeShow(preset, FADE);
     initSaver();
-    startCameraFresh(true); // 웜업만, showCamera=false라 화면에는 안 보임
+    startCameraFresh(true); // 워밍업만, 화면엔 여전히 showCamera=false
   }
   function initSaver(){
     const w=preset.clientWidth, h=preset.clientHeight;
@@ -1064,8 +1239,9 @@
     if(!Ambient.isRunning()) Ambient.start(0.2, 1.0);
     await playWoongClick();
     fadeHide(preset, FADE);
-    await startCameraFresh(false); // 여전히 showCamera=false라 웰컴에서도 카메라는 안 보임
+    await startCameraFresh(false); // 여전히 showCamera=false 이라 화면엔 안 보임
     fadeShow(welcome, FADE);
+    fitWelcomeTitles();
   }, {passive:true});
 
   /* ===== INTRO / FIRST SLEEP 텍스트 ===== */
@@ -1177,6 +1353,22 @@
   }
   window.addEventListener('load', fitTitleLineSafe);
 
+  function fitWelcomeTitles(){
+    const titles = document.querySelectorAll('#welcomeCard .title');
+    const card = document.getElementById('welcomeCard');
+    if(!titles.length || !card) return;
+    const maxW = card.clientWidth * 0.95;
+    titles.forEach(el=>{
+      el.style.whiteSpace='nowrap';
+      let size = parseFloat(getComputedStyle(el).fontSize) || 40;
+      while(el.scrollWidth>maxW && size>14){
+        size *= 0.94;
+        el.style.fontSize = size+'px';
+      }
+    });
+  }
+  window.addEventListener('resize', ()=>fitWelcomeTitles(), {passive:true});
+
   /* 픽셀 인물 & 프로시니엄 */
 
   const PIXEL_SPRITE=[
@@ -1244,7 +1436,7 @@
     const baselineY=Math.round(
       pr.y+pr.h*0.60-(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--char-offset-vh'))/100)*pr.h
     );
-    const R=Math.round(pr.x+pr.w*0.92);
+    const R=pr.x+pr.w*0.92;
     const cx=pr.x+pr.w*0.46;
     const cy=baselineY-pr.h*0.06;
     const turns=2.2;
@@ -1293,7 +1485,7 @@
     ctx.restore();
   }
 
-  /* 닉네임 시티 → 프로시니엄 상단에 매달린 건물 */
+  /* 닉네임 시티 → 프로시니엄 좌측 상단에 매달린 건물 */
 
   let nameCityCtx = null;
   let nameBuildings = [];
@@ -1306,25 +1498,19 @@
     const pr = getProsceniumRect();
     hangingBuildings = [];
 
-    // 위쪽을 꽉 채우는 느낌으로 재배치
-    const sorted = [...nameBuildings].sort((a,b)=> (a.bottom - a.top) - (b.bottom - b.top));
-    const count = Math.min(16, sorted.length);
-    const areaLeft = pr.x + pr.w * 0.03;
-    const areaRight = pr.x + pr.w * 0.97;
-    const areaWidth = areaRight - areaLeft;
-    const areaTop = pr.y;
-    const areaBottom = pr.y + pr.h * 0.45; // 프로시니엄 위 40~45% 영역
-
-    const step = areaWidth / count;
+    const sorted = [...nameBuildings].sort((a,b)=> (a.bottom - a.top) - (b.bottom - a.top));
+    const count = Math.min(18, sorted.length);
+    const maxAreaWidth = pr.w * 0.9;
+    const startX = pr.x + pr.w * 0.02;
+    const step = maxAreaWidth / count;
 
     for(let i=0;i<count;i++){
       const src = sorted[i];
-      const baseWidth = Math.min(src.width * 0.8, step * 0.9);
-      const x = areaLeft + i * step + (step - baseWidth) / 2;
-
-      const top = areaTop;
-      const bottom = areaBottom - Math.random() * (pr.h * 0.06);
-      const h = Math.max(pr.h * 0.20, bottom - top);
+      const baseWidth = Math.min(src.width*0.8, step*0.85);
+      const fullH = (src.bottom - src.top) || (window.innerHeight*0.18);
+      const h = fullH * (0.55 + Math.random()*0.25);
+      const x = startX + i*step + (step-baseWidth)/2;
+      const top = pr.y; // ✅ 프로시니엄 상단에서부터 잘 보이도록
 
       hangingBuildings.push({
         x,
@@ -1339,7 +1525,7 @@
   function drawHangingBuildings(ctx){
     if (!hangingBuildings || !hangingBuildings.length) return;
     ctx.save();
-    ctx.globalAlpha = 0.9;
+    ctx.globalAlpha = 0.95;
 
     hangingBuildings.forEach(b => {
       const x = b.x;
@@ -1347,18 +1533,15 @@
       const w = b.width;
       const h = b.height;
 
-      // 본체
       ctx.fillStyle = b.color;
       ctx.fillRect(x, top, w, h);
 
-      // 천장에 붙은 느낌
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
       ctx.fillRect(x, top - 3, w, 3);
 
-      // 아래쪽 창 한 줄
       const winH = h * 0.14;
       const winW = w * 0.18;
-      const rowY = top + h - winH * 1.4;
+      const rowY = top + winH * 0.6;
       const count = Math.max(1, Math.floor(w / (winW * 1.8)));
 
       for (let i = 0; i < count; i++) {
@@ -1385,7 +1568,7 @@
   let bubbleTimer=0, bubbleIdx=0;
 
   /* 4분 타이머 */
-  let mainTimer=null, mainLeft=4*60;
+  let mainTimer=null, mainLeft=4*60, timerFinished=false;
   function formatMMSS(s){
     const m=Math.floor(s/60);
     const ss=(s%60).toString().padStart(2,'0');
@@ -1393,6 +1576,7 @@
   }
   function startMainTimer(){
     mainLeft=4*60;
+    timerFinished=false;
     runTimer.textContent=formatMMSS(mainLeft);
     runTimer.style.display='block';
     if(mainTimer) clearInterval(mainTimer);
@@ -1401,6 +1585,11 @@
       runTimer.textContent=formatMMSS(mainLeft);
       if(mainLeft<=0){
         clearInterval(mainTimer);
+        mainTimer=null;
+        if(!timerFinished){
+          timerFinished=true;
+          onFirstSleepTimerEnd();
+        }
       }
     },1000);
   }
@@ -1487,6 +1676,34 @@
     }catch(e){
       console.warn('startMicFX error', e);
     }
+  }
+
+  function stopMicFXFadeOut(sec=2.5){
+    try{
+      if(!audioCtx) return;
+      const t = audioCtx.currentTime;
+      if(dryGain) dryGain.gain.linearRampToValueAtTime(0.0001, t+sec);
+      if(wetGain) wetGain.gain.linearRampToValueAtTime(0.0001, t+sec);
+      if(micPreGain) micPreGain.gain.linearRampToValueAtTime(0.0001, t+sec);
+      setTimeout(()=>{
+        try{
+          if(micStream){
+            micStream.getTracks().forEach(tr=>tr.stop());
+          }
+        }catch(e){}
+        micStream=null;
+        micSrc=null;
+        panNode=null;
+        lpf=null;
+        lowshelf=null;
+        highshelf=null;
+        revConvolver=null;
+        dryGain=null;
+        wetGain=null;
+        micPreGain=null;
+        window.removeEventListener('deviceorientation', onTiltAudio);
+      }, sec*1000+200);
+    }catch(e){}
   }
 
   function onTiltAudio(e){
@@ -1595,6 +1812,7 @@
     fg.height=h*dpr;
     if(fgctx) fgctx.setTransform(dpr,0,0,dpr,0,0);
     if(nameCityRunning) initNameCity(true);
+    if(mapOverlay.style.display!=='none') drawMap();
   }
   addEventListener('resize', ()=>{
     setTimeout(resizeAll,30);
@@ -1642,7 +1860,7 @@
     vctx.imageSmoothingEnabled=true;
     if (showCamera && camVideo && camVideo.readyState>=2){
       vctx.save();
-      vctx.filter='grayscale(1)';       // 카메라 흑백 유지
+      vctx.filter='grayscale(1)';       // ✅ 카메라 흑백 유지
       drawBestCover(vctx, camVideo, W, H, W, H);
       vctx.restore();
       vctx.filter='none';
@@ -1660,7 +1878,7 @@
       fgctx.rect(pr.x,pr.y,pr.w,pr.h);
       fgctx.clip();
 
-      // 인트로에서만 빽빽한 매달린 건물
+      // 인트로에서만 빼곡한 매달린 건물
       drawHangingBuildings(fgctx);
 
       // 픽셀 인물 + 말풍선
@@ -1681,7 +1899,7 @@
       fgctx.restore();
     }
 
-    // 카메라 페이드 인용 오버레이
+    // 카메라 페이드 인/아웃 오버레이
     if (camFadeAlpha > 0){
       vctx.save();
       vctx.fillStyle = `rgba(0,0,0,${camFadeAlpha})`;
@@ -1691,7 +1909,7 @@
   }
 
   function fadeInCamera(ms=2500){
-    showCamera = true;      // THE FIRST SLEEP에서만 카메라 ON
+    showCamera = true;
     camFadeAlpha = 1;
     const t0 = performance.now();
     function step(){
@@ -1701,6 +1919,23 @@
         requestAnimationFrame(step);
       }else{
         camFadeAlpha = 0;
+      }
+    }
+    step();
+  }
+
+  function fadeOutCamera(ms=2500){
+    showCamera = true;
+    camFadeAlpha = 0;
+    const t0 = performance.now();
+    function step(){
+      const k = Math.min(1, (performance.now()-t0)/ms);
+      camFadeAlpha = k;
+      if(k<1){
+        requestAnimationFrame(step);
+      }else{
+        camFadeAlpha = 1;
+        showCamera = false;
       }
     }
     step();
@@ -1830,7 +2065,6 @@
     claimImmersive();
     await ensureResumed();
 
-    // 인트로 끝나고 아직 카메라/마이크는 OFF
     showCamera = false;
     camFadeAlpha = 0;
 
@@ -1844,7 +2078,6 @@
     controls.classList.add('show');
     captureBtn.classList.add('show');
 
-    // 인트로 레이어(건물 + 자막 + 캐릭터)와 함께 FIRST SLEEP 타이틀이 서서히 아웃
     const fadeDur=8000;
     fadeIntroLayerOut(fadeDur);
     await sleep(900);
@@ -1854,7 +2087,7 @@
     firstSleep.style.display='none';
     firstSleep.style.transition='';
 
-    showNoticePopup(); // 둘 다 사라진 뒤 NOTICE 팝업 유지
+    showNoticePopup();
   }
 
   function showNoticePopup(){
@@ -1879,15 +2112,14 @@
       fadeHide(noticePopup, 250);
       await sleep(260);
 
-      // 노티스 창 사라지면서 카메라/마이크 2.5초 페이드 인
-      fadeInCamera(2500);
-      startMicFXFadeIn(2.5);
+      fadeInCamera(2500);      // 첫 번째 수면 시작과 함께 카메라 ON
+      startMicFXFadeIn(2.5);   // 마이크 FX 페이드 인
 
       startFirstSleepStory();
     };
   }
 
-  /* FIRST SLEEP: 한 줄씩 타이핑 + 4초 유지 */
+  /* FIRST SLEEP: 한 줄씩 타이핑 + 유지 */
 
   async function typeFirstSleepLine(text){
     chapterBox.textContent='';
@@ -1898,7 +2130,7 @@
     for(let i=0;i<text.length;i++){
       span.textContent += text[i];
       typeTick();
-      await sleep(26);  // 1장의 텍스트 속도는 그대로
+      await sleep(26);  // 1장 텍스트 속도
     }
   }
 
@@ -1910,13 +2142,103 @@
 
     for(const line of FIRST_SLEEP_LINES){
       await typeFirstSleepLine(line);
-      await sleep(4000);  // 1장 텍스트 유지 시간 4초
+      await sleep(4000);  // ✅ 4초 유지
     }
 
     fadeHide(chapterOverlay, 800);
   }
 
-  /* INTRO Flow: 웰컴 이후, 카메라 OFF + 인트로 텍스트 */
+  /* FIRST SLEEP 타이머 끝 → SECOND SLEEP 시퀀스 */
+
+  async function runSecondSleepTitleSequence(){
+    sleepLine1.textContent = '';
+    sleepLine2.textContent = '';
+    sleepSecondTitle.textContent = '';
+    sleepTransition.style.display='flex';
+    sleepTransition.style.opacity='0';
+    sleepTransition.style.transition='opacity 800ms ease';
+    await nextFrame();
+    sleepTransition.style.opacity='1';
+
+    const line1 = 'SLEEEEEEP';
+    const line2 = 'SLEEEEEEEEP';
+
+    for(let i=0;i<line1.length;i++){
+      sleepLine1.textContent += line1[i];
+      typeTick();
+      await sleep(40);
+    }
+    await sleep(300);
+    for(let i=0;i<line2.length;i++){
+      sleepLine2.textContent += line2[i];
+      typeTick();
+      await sleep(40);
+    }
+
+    await sleep(600);
+    sleepSecondTitle.textContent = 'THE SECOND SLEEP';
+
+    await sleep(2000);
+
+    sleepTransition.style.transition='opacity 1200ms ease';
+    sleepTransition.style.opacity='0';
+    await sleep(1300);
+    sleepTransition.style.display='none';
+    sleepTransition.style.transition='';
+  }
+
+  async function onFirstSleepTimerEnd(){
+    claimImmersive();
+    await ensureResumed();
+
+    // 첫 번째 수면 종료: 컨트롤 숨기기
+    controls.classList.remove('show');
+    captureBtn.classList.remove('show');
+    runTimer.style.display='none';
+
+    // 아직 남아있을 수 있는 챕터 문장 오버레이는 서서히 숨김
+    fadeHide(chapterOverlay, 800);
+
+    // 카메라 & 마이크 사운드 페이드 아웃
+    fadeOutCamera(2500);
+    stopMicFXFadeOut(2.5);
+
+    // SLEEEEEEP / THE SECOND SLEEP 시퀀스
+    await sleep(400); // 살짝 숨 고르는 시간
+    await runSecondSleepTitleSequence();
+
+    // SECOND NOTICE
+    showSecondNoticePopup();
+  }
+
+  function showSecondNoticePopup(){
+    function bgTrap2(e){
+      if(!e.target.closest('#noticeCard2')){
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }
+    ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{
+      noticePopup2.addEventListener(ev, bgTrap2, {passive:false});
+    });
+    fadeShow(noticePopup2, 280, 'flex');
+    setTimeout(()=>{
+      noticeOk2 && noticeOk2.focus && noticeOk2.focus();
+    }, 50);
+
+    noticeOk2.onclick = async (e)=>{
+      e.stopPropagation();
+      claimImmersive();
+      await ensureResumed();
+      await playWoongClick();
+      fadeHide(noticePopup2, 260);
+      await sleep(280);
+      await playBellChime();   // ✅ 종소리
+      showMapOverlay();        // ✅ 지도 띄우기
+    };
+  }
+
+  /* INTRO Flow: 웰컴 이후 인트로 */
 
   async function showIntroFlow(){
     claimImmersive();
@@ -1938,13 +2260,13 @@
     await sleep(700);
     introBig.style.display='none';
 
-    // 캐릭터 워킹 + 프로시니엄 상단 빼곡 건물 시작
+    // 캐릭터 워킹 + 프로시니엄 빽빽한 건물
     introWalking=true;
     introStartTime=performance.now();
     showIntroLayer=true;
     fgAlpha=1.0;
 
-    // 인트로 텍스트 박스 (한 문장씩 + NEXT)
+    // 인트로 텍스트 박스
     introIndex = 0;
     fadeShow(introDialogue, 300, 'block');
     typeIntroLine(introIndex);
@@ -2043,7 +2365,7 @@
       }
     }
 
-    initHangingBuildings(); // 인트로 때 쓸 빽빽한 건물
+    initHangingBuildings(); // 인트로 때 쓸 건물
 
     if(!keepRunning && nameCityRunning){
       drawNameCity(performance.now());
@@ -2117,6 +2439,118 @@
     nameCityRunning = false;
   }
 
+  /* MAP DRAW & INTERACTION */
+
+  let mapMarkers = [];
+
+  function drawMap(){
+    if(!mapOverlay || mapOverlay.style.display==='none') return;
+    const rect = mapOverlay.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+    const dpr = window.devicePixelRatio || 1;
+    mapCanvas.width = w*dpr;
+    mapCanvas.height = h*dpr;
+    const ctx = mapCanvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle='#000';
+    ctx.fillRect(0,0,w,h);
+
+    const cx = w*0.5;
+    const cy = h*0.5;
+
+    // 평행사변형 지도 윤곽
+    const mw = w*0.72;
+    const mh = h*0.62;
+    const skew = mw*0.18;
+    ctx.strokeStyle='rgba(255,216,64,0.85)';
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(cx-mw/2+skew, cy-mh/2);
+    ctx.lineTo(cx+mw/2+skew, cy-mh/2);
+    ctx.lineTo(cx+mw/2-skew, cy+mh/2);
+    ctx.lineTo(cx-mw/2-skew, cy+mh/2);
+    ctx.closePath();
+    ctx.stroke();
+
+    // 중앙 빨간 육각형
+    const r = Math.min(mw,mh)*0.16;
+    ctx.fillStyle='#c03232';
+    ctx.beginPath();
+    for(let i=0;i<6;i++){
+      const ang = Math.PI/2 + i*Math.PI/3;
+      const x = cx + r*Math.cos(ang);
+      const y = cy + r*Math.sin(ang);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // 1~8번 노란 사각형
+    mapMarkers=[];
+    const rectW = r*0.9;
+    const rectH = r*0.5;
+    const offsets = [
+      {id:1, dx:0,       dy:-r*1.7},
+      {id:2, dx:r*1.45,  dy:-r*1.05},
+      {id:3, dx:r*1.9,   dy:0},
+      {id:4, dx:r*1.45,  dy:r*1.05},
+      {id:5, dx:0,       dy:r*1.7},
+      {id:6, dx:-r*1.45, dy:r*1.05},
+      {id:7, dx:-r*1.9,  dy:0},
+      {id:8, dx:-r*1.45, dy:-r*1.05}
+    ];
+
+    ctx.font='14px "Press Start 2P","Courier New",monospace';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+
+    offsets.forEach(o=>{
+      const cxRect = cx + o.dx;
+      const cyRect = cy + o.dy;
+      const x = cxRect - rectW/2;
+      const y = cyRect - rectH/2;
+
+      mapMarkers.push({id:o.id, x, y, w:rectW, h:rectH});
+
+      ctx.fillStyle='rgba(0,0,0,0.85)';
+      ctx.fillRect(x,y,rectW,rectH);
+      ctx.strokeStyle='rgba(255,216,64,0.9)';
+      ctx.strokeRect(x,y,rectW,rectH);
+      ctx.fillStyle='rgba(255,216,64,0.96)';
+      ctx.fillText(String(o.id), x+rectW/2, y+rectH/2+1);
+    });
+  }
+
+  function showMapOverlay(){
+    mapOverlay.style.display='flex';
+    drawMap();
+  }
+
+  function openMarkerPopup(id){
+    mapPopBody.textContent = `ZONE ${id}`;
+    mapPop.style.display='flex';
+  }
+
+  mapPopClose.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    mapPop.style.display='none';
+  }, {passive:true});
+
+  mapCanvas.addEventListener('pointerdown', (e)=>{
+    const rect = mapCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    for(const m of mapMarkers){
+      if(x>=m.x && x<=m.x+m.w && y>=m.y && y<=m.y+m.h){
+        openMarkerPopup(m.id);
+        break;
+      }
+    }
+  });
+
   /* 초기 카메라 워밍업 */
   function setAppH2(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
   setAppH2();
@@ -2125,8 +2559,7 @@
     visualViewport.addEventListener('resize', ()=>setTimeout(setAppH2,50));
   }
 
-  startCameraFresh(true); // 앱 시작 시에도 카메라 워밍업만, 화면에는 여전히 검정
-  loop();                 // 렌더 루프 시작
+  startCameraFresh(true);
 })();
 </script>
 </body>
