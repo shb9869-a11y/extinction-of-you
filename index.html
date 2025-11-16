@@ -105,7 +105,7 @@
     top:calc(var(--frame) + var(--safe-t));
     right:calc(var(--frame) + var(--safe-r));
     bottom:calc(var(--frame) + var(--safe-b));
-    border:2px solid rgba(255,255,255,.22);
+    border:2px solid rgba(255,216,64,.45); /* 노란색 프레임으로 변경 */
     pointer-events:none;
     z-index:50;
   }
@@ -346,6 +346,7 @@
     margin:0;
     text-transform:uppercase;
     color:var(--accent);
+    white-space:nowrap; /* SLEEEEEEEP 한 줄 유지 */
   }
   #goIntro{
     margin-top:0;
@@ -737,9 +738,9 @@
   let camStream=null, camVideo=null, ZOOM=1.0;
   let animStarted=false, capturing=false, warmupFrames=0;
 
-  let showIntroLayer=false; // 웰컴/이전에는 안보이고, 인트로에서만 ON
+  let showIntroLayer=false; // 인트로에서만 ON
   let fgAlpha=1.0;
-  let showCamera=true;   // 웰컴까지 카메라 ON, 인트로 동안 OFF, FIRST SLEEP에서 다시 ON
+  let showCamera=false;   // 초기/웰컴/인트로 모두 OFF, FIRST SLEEP에서만 ON
   let camFadeAlpha=0;    // 카메라 페이드용 (0=그대로, 1=완전 검정)
 
   /* ===== Audio ===== */
@@ -981,7 +982,7 @@
     preset.classList.add('show');
     fadeShow(preset, FADE);
     initSaver();
-    startCameraFresh(true);
+    startCameraFresh(true); // 웜업만, showCamera=false라 화면에는 안 보임
   }
   function initSaver(){
     const w=preset.clientWidth, h=preset.clientHeight;
@@ -1063,7 +1064,7 @@
     if(!Ambient.isRunning()) Ambient.start(0.2, 1.0);
     await playWoongClick();
     fadeHide(preset, FADE);
-    await startCameraFresh(false);
+    await startCameraFresh(false); // 여전히 showCamera=false라 웰컴에서도 카메라는 안 보임
     fadeShow(welcome, FADE);
   }, {passive:true});
 
@@ -1292,7 +1293,7 @@
     ctx.restore();
   }
 
-  /* 닉네임 시티 → 프로시니엄 좌측 상단에 매달린 건물 */
+  /* 닉네임 시티 → 프로시니엄 상단에 매달린 건물 */
 
   let nameCityCtx = null;
   let nameBuildings = [];
@@ -1305,19 +1306,25 @@
     const pr = getProsceniumRect();
     hangingBuildings = [];
 
+    // 위쪽을 꽉 채우는 느낌으로 재배치
     const sorted = [...nameBuildings].sort((a,b)=> (a.bottom - a.top) - (b.bottom - b.top));
-    const count = Math.min(14, sorted.length);
-    const maxAreaWidth = pr.w * 0.9;
-    const startX = pr.x + pr.w * 0.02;
-    const step = maxAreaWidth / count;
+    const count = Math.min(16, sorted.length);
+    const areaLeft = pr.x + pr.w * 0.03;
+    const areaRight = pr.x + pr.w * 0.97;
+    const areaWidth = areaRight - areaLeft;
+    const areaTop = pr.y;
+    const areaBottom = pr.y + pr.h * 0.45; // 프로시니엄 위 40~45% 영역
+
+    const step = areaWidth / count;
 
     for(let i=0;i<count;i++){
       const src = sorted[i];
-      const baseWidth = Math.min(src.width*0.7, step*0.8);
-      const fullH = (src.bottom - src.top) || (window.innerHeight*0.18);
-      const h = fullH * (0.45 + Math.random()*0.25);
-      const x = startX + i*step + (step-baseWidth)/2;
-      const top = pr.y - h*0.05;
+      const baseWidth = Math.min(src.width * 0.8, step * 0.9);
+      const x = areaLeft + i * step + (step - baseWidth) / 2;
+
+      const top = areaTop;
+      const bottom = areaBottom - Math.random() * (pr.h * 0.06);
+      const h = Math.max(pr.h * 0.20, bottom - top);
 
       hangingBuildings.push({
         x,
@@ -1340,12 +1347,15 @@
       const w = b.width;
       const h = b.height;
 
+      // 본체
       ctx.fillStyle = b.color;
       ctx.fillRect(x, top, w, h);
 
+      // 천장에 붙은 느낌
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
       ctx.fillRect(x, top - 3, w, 3);
 
+      // 아래쪽 창 한 줄
       const winH = h * 0.14;
       const winW = w * 0.18;
       const rowY = top + h - winH * 1.4;
@@ -1650,7 +1660,7 @@
       fgctx.rect(pr.x,pr.y,pr.w,pr.h);
       fgctx.clip();
 
-      // 인트로에서만 빼곡한 매달린 건물
+      // 인트로에서만 빽빽한 매달린 건물
       drawHangingBuildings(fgctx);
 
       // 픽셀 인물 + 말풍선
@@ -1681,7 +1691,7 @@
   }
 
   function fadeInCamera(ms=2500){
-    showCamera = true;
+    showCamera = true;      // THE FIRST SLEEP에서만 카메라 ON
     camFadeAlpha = 1;
     const t0 = performance.now();
     function step(){
@@ -1834,7 +1844,7 @@
     controls.classList.add('show');
     captureBtn.classList.add('show');
 
-    // 인트로 레이어 페이드 아웃
+    // 인트로 레이어(건물 + 자막 + 캐릭터)와 함께 FIRST SLEEP 타이틀이 서서히 아웃
     const fadeDur=8000;
     fadeIntroLayerOut(fadeDur);
     await sleep(900);
@@ -1844,7 +1854,7 @@
     firstSleep.style.display='none';
     firstSleep.style.transition='';
 
-    showNoticePopup();
+    showNoticePopup(); // 둘 다 사라진 뒤 NOTICE 팝업 유지
   }
 
   function showNoticePopup(){
@@ -1877,7 +1887,7 @@
     };
   }
 
-  /* FIRST SLEEP: 한 줄씩 타이핑 + 2초 유지 */
+  /* FIRST SLEEP: 한 줄씩 타이핑 + 4초 유지 */
 
   async function typeFirstSleepLine(text){
     chapterBox.textContent='';
@@ -1888,7 +1898,7 @@
     for(let i=0;i<text.length;i++){
       span.textContent += text[i];
       typeTick();
-      await sleep(26);  // 1장의 텍스트 속도는 그대로 (좋다고 하신 속도)
+      await sleep(26);  // 1장의 텍스트 속도는 그대로
     }
   }
 
@@ -1900,7 +1910,7 @@
 
     for(const line of FIRST_SLEEP_LINES){
       await typeFirstSleepLine(line);
-      await sleep(2000);  // 2초 머무름
+      await sleep(4000);  // 1장 텍스트 유지 시간 4초
     }
 
     fadeHide(chapterOverlay, 800);
@@ -1913,7 +1923,7 @@
     await ensureResumed();
     if(!Ambient.isRunning()) Ambient.start(0.2, 1.0);
 
-    showCamera = false; // 인트로덕션 동안 카메라 잠시 OFF
+    showCamera = false; // 인트로덕션 동안 카메라 OFF
     camFadeAlpha = 0;
 
     // INTRODUCTION 타이틀
@@ -1928,7 +1938,7 @@
     await sleep(700);
     introBig.style.display='none';
 
-    // 캐릭터 워킹 + 프로시니엄 빼곡 건물 시작
+    // 캐릭터 워킹 + 프로시니엄 상단 빼곡 건물 시작
     introWalking=true;
     introStartTime=performance.now();
     showIntroLayer=true;
@@ -2108,14 +2118,15 @@
   }
 
   /* 초기 카메라 워밍업 */
-  function setAppH(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
-  setAppH();
-  addEventListener('resize', setAppH, {passive:true});
+  function setAppH2(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
+  setAppH2();
+  addEventListener('resize', setAppH2, {passive:true});
   if (window.visualViewport){
-    visualViewport.addEventListener('resize', ()=>setTimeout(setAppH,50));
+    visualViewport.addEventListener('resize', ()=>setTimeout(setAppH2,50));
   }
 
-  startCameraFresh(true);
+  startCameraFresh(true); // 앱 시작 시에도 카메라 워밍업만, 화면에는 여전히 검정
+  loop();                 // 렌더 루프 시작
 })();
 </script>
 </body>
