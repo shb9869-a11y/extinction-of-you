@@ -1721,6 +1721,37 @@
     },1000);
   }
 
+  /* sleep-city.html로 이동하는 공통 함수 */
+  function goToSleepCity(){
+    try{
+      stopSecondBell();
+      if(secondTimer){
+        clearInterval(secondTimer);
+        secondTimer = null;
+      }
+      if(mainTimer){
+        clearInterval(mainTimer);
+        mainTimer = null;
+      }
+      if(Ambient && Ambient.isRunning && Ambient.isRunning()){
+        Ambient.stop(2.5);
+      }
+      stopMicFXFadeOut(1.5);
+      if(camStream){
+        camStream.getTracks().forEach(tr=>tr.stop());
+        camStream = null;
+      }
+      if(micStream){
+        micStream.getTracks().forEach(tr=>tr.stop());
+        micStream = null;
+      }
+    }catch(e){}
+    runTimer.style.display = 'none';
+    document.body.style.transition = 'opacity 1000ms ease';
+    document.body.style.opacity = '0';
+    setTimeout(()=>{ window.location.href = 'sleep-city.html'; }, 1000);
+  }
+
   /* 2장: 8분 타이머 */
   let secondTimer = null;
   let secondLeft  = 0;
@@ -1737,6 +1768,8 @@
         clearInterval(secondTimer);
         secondTimer=null;
         stopSecondBell();
+        runTimer.style.display='none';
+        goToSleepCity();     // 2장 타이머 끝나면 sleep-city.html로 이동
       }
     },1000);
   }
@@ -2733,8 +2766,9 @@
         secondTimer=null;
       }
       runTimer.style.display='none';
+      goToSleepCity();      // 2장 진행 중 SKIP → sleep-city.html
     }else{
-      // 그 외 상태에서는 바로 2장으로
+      // 그 외 상태에서는 2장 시퀀스로 강제 진입
       if(mainTimer){
         clearInterval(mainTimer);
         mainTimer=null;
