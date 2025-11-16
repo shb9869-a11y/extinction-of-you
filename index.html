@@ -80,6 +80,8 @@
     height:100vh;
     display:block;
     z-index:0;
+    /* 카메라를 포함한 뒤 배경은 항상 흑백 */
+    filter:grayscale(1);
   }
   #fg{
     position:fixed;
@@ -373,7 +375,6 @@
     white-space:nowrap;
     text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7);
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    /* 박스, 테두리 제거 */
     background:transparent;
     border:none;
     padding:0;
@@ -387,7 +388,7 @@
     max-width:min(420px, 60vw);
     padding:12px 14px 10px;
     border:1px solid rgba(255,216,64,0.9);
-    background:#000; /* 완전 검정 박스 */
+    background:#000;
     font-family:"Courier New",ui-monospace,monospace;
     font-size:clamp(11px,2.1vmin,15px);
     line-height:1.7;
@@ -496,12 +497,12 @@
     text-align:center;
     color:var(--accent);
     padding:0;
-    background:transparent;   /* 큰 박스 제거 */
+    background:transparent;
     border:none;
     box-shadow:none;
   }
 
-  /* 1장: 글자 한 글자씩 박스 */
+  /* 1장 텍스트 글자 박스 – 노란 테두리 제거 */
   .charBox{
     display:inline-block;
     background:#000;
@@ -509,7 +510,7 @@
     padding:3px 2px;
     margin:1px 0;
     border-radius:0;
-    border:1px solid rgba(255,216,64,0.6);
+    border:none; /* ← 노란 테두리 삭제 */
     box-sizing:border-box;
   }
 
@@ -535,8 +536,9 @@
     text-shadow:0 0 8px rgba(0,0,0,.85);
     margin:6px 0;
     padding:8px 16px;
-    background:#000; /* 여기 박스는 유지 */
-    border:1px solid rgba(255,216,64,0.9);
+    /* 이전의 노란 사각형 틀 제거 */
+    background:transparent;
+    border:none;
     display:inline-block;
   }
   #firstTransWord{
@@ -1521,67 +1523,101 @@
   let nameCityRunning = false;
   let lastFlicker = 0;
 
-  let hangingBuildings = [];
+  /* 인트로덕션용 건물 배열 (닉네임 도시 스타일 복붙) */
+  let introBuildings = [];
 
-  function initHangingBuildings(){
-    if (!nameBuildings || !nameBuildings.length) return;
+  function generateIntroBuildings(){
     const pr = getProsceniumRect();
-    hangingBuildings = [];
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    introBuildings = [];
 
-    const sorted = [...nameBuildings].sort((a,b)=> a.x - b.x);
-    const count = Math.min(40, sorted.length);  /* 더 수루룩, 더 많이 */
-    const maxAreaWidth = pr.w * 0.96;
-    const startX = pr.x + pr.w * 0.02;
-    const step = maxAreaWidth / count;
+    const areaLeft  = pr.x + pr.w * 0.02;
+    const areaRight = pr.x + pr.w * 0.60;
+    const top = pr.y;
+    const maxWidth = areaRight - areaLeft;
+    let x = areaLeft;
 
-    for(let i=0;i<count;i++){
-      const srcIndex = Math.floor(i * (sorted.length/count));
-      const src = sorted[srcIndex];
-      const fullH = (src.bottom - src.top) || (window.innerHeight*0.18);
-      const h = fullH * (0.6 + Math.random()*0.2);
-      const w = src.width * (0.6 + Math.random()*0.15);  /* 더 얇게 */
-      const x = startX + i*step + (step-w)*0.2;
-      const top = pr.y;
+    while(x < areaRight){
+      const bw = Math.max(24, Math.random()* (maxWidth*0.08) + (maxWidth*0.03));
+      const bh = Math.random() * (pr.h*0.30) + (pr.h*0.22);
 
-      hangingBuildings.push({
+      const col = `hsl(${220 + Math.random()*10}, ${18+Math.random()*8}%, ${20+Math.random()*10}%)`;
+
+      const winW = bw * 0.16;
+      const winH = winW * 1.1;
+      const hGap = winW * 0.4;
+      const vGap = winH * 0.5;
+      const cols = Math.max(1, Math.floor((bw - winW*0.4) / (winW + hGap)));
+      const rows = Math.max(2, Math.floor((bh - winH*1.5) / (winH + vGap)));
+
+      const windows = [];
+      for(let iy=0; iy<rows; iy++){
+        for(let ix=0; ix<cols; ix++){
+          const wx = (bw - (cols*winW + (cols-1)*hGap))/2 + ix*(winW+hGap);
+          const wy =  bh - winH*1.2 - iy*(winH+vGap);
+          const onInit = Math.random() < 0.25;
+          windows.push({
+            dx: wx,
+            dy: wy,
+            w: winW,
+            h: winH,
+            value: onInit ? 1.0 : 0.0,
+            target: onInit ? 1.0 : 0.0
+          });
+        }
+      }
+
+      introBuildings.push({
         x,
         top,
-        width:w,
-        height:h,
-        color:src.color
+        width: bw,
+        height: bh,
+        color: col,
+        windows
       });
+
+      x += bw * (0.4 + Math.random()*0.4);
     }
   }
 
-  function drawHangingBuildings(ctx){
-    if (!hangingBuildings || !hangingBuildings.length) return;
+  function drawIntroBuildings(ctx){
+    if(!introBuildings.length) return;
     ctx.save();
-    ctx.globalAlpha = 0.96;
-
-    hangingBuildings.forEach(b => {
+    ctx.globalAlpha = 0.98;
+    introBuildings.forEach(b=>{
       const x = b.x;
       const top = b.top;
       const w = b.width;
       const h = b.height;
 
       ctx.fillStyle = b.color;
-      ctx.fillRect(x, top, w, h);
+      ctx.fillRect(x, top, w, h);           /* 위에서 아래로 매달린 느낌 */
 
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.fillRect(x, top - 3, w, 3);
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(x, top-3, w, 3);         /* 건물 윗 라인 */
 
-      const winH = h * 0.14;
-      const winW = w * 0.18;
-      const rowY = top + h - winH*1.6;
-      const count = Math.max(1, Math.floor(w / (winW * 1.8)));
+      const winW = b.windows[0]?.w || (w*0.16);
+      const winH = b.windows[0]?.h || (winW*1.1);
+      ctx.font = '10px "Courier New", monospace';
 
-      for (let i = 0; i < count; i++) {
-        const wx = x + winW * 0.5 + i * winW * 1.6;
-        ctx.fillStyle = 'rgba(255,216,64,0.95)';
-        ctx.fillRect(wx, rowY, winW, winH);
-      }
+      b.windows.forEach(wv=>{
+        const wx = x + wv.dx;
+        const wy = top + (h - wv.dy);       /* 닉네임 도시 구조를 뒤집어서 아래로 */
+
+        const speed = 0.04;
+        wv.value += (wv.target - wv.value)*speed;
+        const v = Math.max(0, Math.min(1, wv.value));
+
+        const off = { r:20, g:20, b:30 };
+        const on  = { r:255, g:216, b:64 };
+        const r = off.r + (on.r - off.r) * v;
+        const g = off.g + (on.g - off.g) * v;
+        const bcol = off.b + (on.b - off.b) * v;
+        ctx.fillStyle = `rgba(${r|0},${g|0},${bcol|0},0.95)`;
+        ctx.fillRect(wx, wy, wv.w, wv.h);
+      });
     });
-
     ctx.restore();
   }
 
@@ -1851,6 +1887,7 @@
     fg.height=h*dpr;
     if(fgctx) fgctx.setTransform(dpr,0,0,dpr,0,0);
     if(nameCityRunning) initNameCity(true);
+    if(showIntroLayer) generateIntroBuildings();
     if(mapOverlay.style.display!=='none') drawMap();
   }
   addEventListener('resize', ()=>{
@@ -1898,7 +1935,7 @@
     vctx.clearRect(0,0,W,H);
     vctx.imageSmoothingEnabled=true;
 
-    /* 카메라: 항상 흑백 유지 */
+    /* 카메라: 항상 흑백 (CSS + JS 이중 안전장치) */
     if (showCamera && camVideo && camVideo.readyState>=2){
       vctx.save();
       vctx.filter='grayscale(1)';
@@ -1919,7 +1956,8 @@
       fgctx.rect(pr.x,pr.y,pr.w,pr.h);
       fgctx.clip();
 
-      drawHangingBuildings(fgctx);
+      /* 인트로덕션 건물: 닉네임 도시 스타일 복붙 */
+      drawIntroBuildings(fgctx);
 
       if(introWalking && introWalkers.length){
         const now=performance.now();
@@ -2307,6 +2345,9 @@
     await sleep(1600);
     introBig.style.display='none';
 
+    /* 인트로 건물 생성 (닉네임 도시 스타일) */
+    generateIntroBuildings();
+
     introWalking=true;
     introStartTime=performance.now();
     showIntroLayer=true;
@@ -2407,12 +2448,6 @@
 
         x += bw * (0.08 + Math.random()*0.18);
       }
-    }
-
-    initHangingBuildings();
-
-    if(!keepRunning && nameCityRunning){
-      drawNameCity(performance.now());
     }
   }
 
@@ -2563,7 +2598,7 @@
   }
 
   function showMapOverlay(){
-    fadeShow(mapOverlay, 600, 'flex');   /* 지도 페이드 인 */
+    fadeShow(mapOverlay, 600, 'flex');
     setTimeout(drawMap, 80);
   }
 
