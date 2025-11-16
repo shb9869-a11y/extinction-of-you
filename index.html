@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,interactive-widget=resizes-content">
 <title>SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP</title>
 
-<!-- 픽셀 게임 폰트 복구 -->
+<!-- 픽셀 게임 폰트 -->
 <link rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
 
@@ -235,7 +235,7 @@
     color:#fff;
     overflow:hidden;
   }
-  /* 이름 화면 달동네 배경 캔버스 */
+  /* 이름 화면 달동네 배경 캔버스 - 풀스크린 */
   #nameCity{
     position:absolute;
     inset:0;
@@ -290,7 +290,7 @@
     left:0;top:0;width:100%;height:100%;
   }
 
-  /* Welcome (원래 느낌 복구) */
+  /* Welcome (SLEEP 4줄, 5글자) */
   #overlayWelcome{
     position:fixed;
     inset:0;
@@ -311,19 +311,19 @@
     margin:0 auto;
     text-align:center;
     padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;
-    gap:12px;
+    gap:8px;
   }
   #welcomeCard .title{
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    font-size:clamp(24px, 8vmin, 64px);
+    font-size:clamp(32px, 10vmin, 80px); /* 더 크게 */
     font-weight:400;
-    letter-spacing:.12em;
-    line-height:1.2;
+    letter-spacing:.16em;               /* 픽셀 느낌 살리기 */
+    line-height:1.1;
     margin:0;
     text-transform:uppercase;
   }
   #goIntro{
-    margin-top:18px;
+    margin-top:20px;
     font-size:var(--fs-small);
   }
 
@@ -377,11 +377,11 @@
     box-shadow:none;
     text-shadow:0 0 6px rgba(0,0,0,.8);
   }
-  /* VOICE + NEXT 한 줄 플렉스 정렬 */
+  /* VOICE + NEXT 한 줄 플렉스 정렬 (윗선 맞춤) */
   #dialogueTop{
     display:flex;
     justify-content:space-between;
-    align-items:flex-start; /* 윗선 맞추기 */
+    align-items:flex-start;
     gap:8px;
     margin-bottom:4px;
   }
@@ -529,8 +529,11 @@
   <div id="overlayWelcome" class="fade">
     <div id="welcomeCard">
       <div class="credits">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
-      <div class="title">SLEEEEEEEEEEEEEEEEEEEEEEEEEP,</div>
-      <div class="title">SLEEEEEEEEEEEEEEEEEEEEEEEEEP</div>
+      <!-- SLEEP 4줄, 5글자 -->
+      <div class="title">SLEEP</div>
+      <div class="title">SLEEP</div>
+      <div class="title">SLEEP</div>
+      <div class="title">SLEEP</div>
       <button id="goIntro" class="uiBtn flat" type="button">PRESS HERE TO SLEEP</button>
     </div>
   </div>
@@ -717,7 +720,7 @@
     }catch{}
   }
 
-  // ---- Ambient BG Music (idempotent) ----
+  // ---- Ambient BG Music ----
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, killers=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
@@ -1535,7 +1538,8 @@
     fg.width=w*dpr;
     fg.height=h*dpr;
     if(fgctx) fgctx.setTransform(dpr,0,0,dpr,0,0);
-    const scale = (!isPortrait())? 0.86 : 0.9;
+    // 픽셀 느낌을 위해 처리용 캔버스를 더 작게 -> 크게 뻥튀기
+    const scale = (!isPortrait())? 0.45 : 0.55;
     if(proc){
       proc.width=Math.floor(w*scale);
       proc.height=Math.floor(h*scale);
@@ -1595,9 +1599,13 @@
       drawBestCover(pctx, camVideo, W, H, PW, PH);
       const frame=pctx.getImageData(0,0,PW,PH);
       const d=frame.data;
+      // 픽셀 느낌 강화: 그레이스케일 + 계단 양자화
+      const levels=6; // 밝기 단계를 줄여서 계단 생기게
+      const step=255/(levels-1);
       for(let i=0;i<d.length;i+=4){
         const g=(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0;
-        d[i]=d[i+1]=d[i+2]=g;
+        const q = Math.round(g/step)*step; // 양자화
+        d[i]=d[i+1]=d[i+2]=q;
       }
       pctx.putImageData(frame,0,0);
     }
@@ -1771,7 +1779,7 @@
   }
   window.addEventListener('load', fitTitleLineAllSafe);
 
-  /* ===== 이름 입력 화면: 달동네 빌딩 (겹겹이 + 페이드 크로스) ===== */
+  /* ===== 이름 입력 화면: 달동네 빌딩 (풀스크린, 안 짤리게) ===== */
   let nameCityCtx = null;
   let nameBuildings = [];
   let nameCityRunning = false;
@@ -1787,34 +1795,41 @@
     nameCityCtx = nameCityCanvas.getContext('2d');
     nameCityCtx.setTransform(dpr,0,0,dpr,0,0);
 
-    const fr = getFrameRect();
-    const baseGround = fr.bottom - fr.height * 0.04;
-
     nameBuildings = [];
 
-    // 레이어 3단 (뒤 / 중 / 앞)
+    // 화면 전체 기준으로 제작 (프레임에 안 잘리게)
+    const baseGround = h * 0.88;
+
     const layers = [
-      { depth:0, offsetY: fr.height * 0.12, heightMul:0.55, shade:-8 },
-      { depth:1, offsetY: fr.height * 0.06, heightMul:0.75, shade:0 },
-      { depth:2, offsetY: 0,             heightMul:0.95, shade:+5 }
+      { depth:0, offsetY: h * 0.16, heightMul:0.45, shade:-8 },
+      { depth:1, offsetY: h * 0.08, heightMul:0.65, shade:0 },
+      { depth:2, offsetY: 0,       heightMul:0.85, shade:+5 }
     ];
 
     for(const layer of layers){
-      const groundY = baseGround - layer.offsetY;
-      const totalW = fr.width;
-      let x = fr.left - totalW * 0.1;  // 좌측 약간 넘치게
-      const maxX = fr.right + totalW * 0.1;
+      let groundY = baseGround - layer.offsetY;
+      const totalW = w;
+      let x = -totalW * 0.1;
+      const maxX = w + totalW * 0.1;
 
       while(x < maxX){
-        const bw = Math.random()* (fr.width * 0.04) + (fr.width * 0.018); // 얇쌍
-        const bh = (Math.random()* (fr.height * 0.3) + (fr.height * 0.25)) * layer.heightMul;
-        const bTop = groundY - bh;
+        const bw = Math.random()* (w * 0.04) + (w * 0.018);
+        let bh = (Math.random()* (h * 0.3) + (h * 0.25)) * layer.heightMul;
+        let bTop = groundY - bh;
 
-        // 건물 색 (레이어별 톤)
+        const minTop = h * 0.18;
+        const maxBottom = h * 0.92;
+
+        if(groundY > maxBottom) groundY = maxBottom;
+        bTop = groundY - bh;
+        if(bTop < minTop){
+          bTop = minTop;
+          bh = groundY - bTop;
+        }
+
         const baseLight = 18 + layer.shade;
         const col = `hsl(${220 + Math.random()*10}, ${18+Math.random()*8}%, ${baseLight+Math.random()*8}%)`;
 
-        // 창문 그리드
         const winW = bw * 0.16;
         const winH = winW * 1.1;
         const hGap = winW * 0.4;
@@ -1833,8 +1848,8 @@
               y: wy,
               w: winW,
               h: winH,
-              value: onInit ? 1.0 : 0.0,    // 현재 밝기(0~1)
-              target: onInit ? 1.0 : 0.0    // 목표 밝기(0~1)
+              value: onInit ? 1.0 : 0.0,
+              target: onInit ? 1.0 : 0.0
             });
           }
         }
@@ -1849,12 +1864,10 @@
           windows
         });
 
-        // 건물 간격 (겹겹이지만 빈틈 거의 없게)
         x += bw * (0.2 + Math.random()*0.3);
       }
     }
 
-    // draw 한번
     if(!keepRunning && nameCityRunning){
       drawNameCity(performance.now());
     }
@@ -1864,43 +1877,29 @@
     if(!nameCityCtx) return;
     const w = window.innerWidth;
     const h = window.innerHeight;
-    const fr = getFrameRect();
 
     nameCityCtx.clearRect(0,0,w,h);
 
-    // 전체 배경
     nameCityCtx.fillStyle = '#000';
     nameCityCtx.fillRect(0,0,w,h);
 
-    // 프레임 안만 클리핑
-    nameCityCtx.save();
-    nameCityCtx.beginPath();
-    nameCityCtx.rect(fr.left, fr.top, fr.width, fr.height);
-    nameCityCtx.clip();
-
-    // 하늘
-    const grad = nameCityCtx.createLinearGradient(0, fr.top, 0, fr.bottom);
+    const grad = nameCityCtx.createLinearGradient(0, 0, 0, h);
     grad.addColorStop(0, '#050509');
     grad.addColorStop(1, '#050505');
     nameCityCtx.fillStyle = grad;
-    nameCityCtx.fillRect(fr.left, fr.top, fr.width, fr.height);
+    nameCityCtx.fillRect(0,0,w,h);
 
-    // 깊이 순으로 정렬해서 겹겹이
     const sorted = [...nameBuildings].sort((a,b)=>a.bottom - b.bottom);
 
     for(const b of sorted){
-      // 건물 몸체
       nameCityCtx.fillStyle = b.color;
       nameCityCtx.fillRect(b.x, b.top, b.width, b.bottom - b.top);
 
-      // 지붕 실루엣
       nameCityCtx.fillStyle = 'rgba(0,0,0,0.6)';
       nameCityCtx.fillRect(b.x, b.top - 3, b.width, 3);
 
-      // 창문: value(0~1)에 따라 부드럽게 크로스
       for(const wv of b.windows){
-        // 목표 밝기 쪽으로 천천히 이동
-        const speed = 0.02; // 느리게 페이드
+        const speed = 0.02;
         wv.value += (wv.target - wv.value) * speed;
 
         const v = clamp(wv.value, 0, 1);
@@ -1914,9 +1913,6 @@
       }
     }
 
-    nameCityCtx.restore();
-
-    // 천천히 불빛 목표 토글 (크로스)
     if(timestamp - lastFlicker > 2800){
       lastFlicker = timestamp;
       for(const b of nameBuildings){
