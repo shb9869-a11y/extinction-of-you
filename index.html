@@ -36,8 +36,7 @@
     --dialogue-offset-vh: 8vh;
     --char-offset-vh: 16vh;
 
-    /* 건물 노란 불빛 색 */
-    --accent-yellow: #ffd840;
+    --accent: #ffd840; /* 건물 노란 불빛 색 */
   }
 
   html,body{
@@ -55,6 +54,7 @@
     -webkit-user-select:none;
     user-select:none;
     -webkit-touch-callout:none;
+    color:var(--accent);
   }
 
   *{
@@ -72,7 +72,6 @@
   .fade{opacity:0; transition:opacity 1800ms ease}
   .fade.show{opacity:1}
 
-  /* 카메라: 흑백 유지 */
   #view{
     position:fixed;
     left:0;
@@ -81,7 +80,6 @@
     height:100vh;
     display:block;
     z-index:0;
-    filter:grayscale(1); /* 흑백 */
   }
   #fg{
     position:fixed;
@@ -114,7 +112,7 @@
 
   .uiBtn{
     background:transparent;
-    color:var(--accent-yellow);
+    color:var(--accent);
     border:none;
     font-size:var(--fs-strong);
     padding:var(--pad-btn-y) var(--pad-btn-x);
@@ -149,12 +147,8 @@
     align-items:center;
     opacity:0;
     transition:opacity 1800ms ease;
-    pointer-events:none; /* 기본은 클릭 불가 */
   }
-  .controls.show{
-    opacity:1;
-    pointer-events:auto; /* FIRST SLEEP 이후에만 활성화 */
-  }
+  .controls.show{opacity:1}
 
   .readout{
     min-width:48px;
@@ -162,7 +156,7 @@
     opacity:.9;
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
     font-size:var(--fs-small);
-    color:var(--accent-yellow);
+    color:var(--accent);
   }
 
   .btn-capture{
@@ -172,12 +166,8 @@
     z-index:450;
     opacity:0;
     transition:opacity 1800ms ease;
-    pointer-events:none;
   }
-  .btn-capture.show{
-    opacity:1;
-    pointer-events:auto;
-  }
+  .btn-capture.show{opacity:1}
 
   #mapLauncher, #docLauncher, #audioToggle { display:none; }
 
@@ -188,7 +178,7 @@
     z-index:460;
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
     font-size:var(--fs-strong);
-    color:var(--accent-yellow);
+    color:var(--accent);
     opacity:.95;
     pointer-events:none;
     user-select:none;
@@ -200,7 +190,7 @@
     letter-spacing:.08em;
     font-size:clamp(9px,1.4vmin,11px);
     margin:0;
-    color:var(--accent-yellow);
+    color:var(--accent);
   }
 
   #rotateOverlay{
@@ -212,13 +202,13 @@
     justify-content:center;
     text-align:center;
     background:#000;
-    color:var(--accent-yellow);
+    color:var(--accent);
     padding:40px;
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
     pointer-events:auto;
   }
 
-  /* Permission Gate */
+  /* Gate */
   #overlay{
     position:fixed;
     inset:0;
@@ -227,7 +217,7 @@
     align-items:center;
     justify-content:center;
     padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));
-    color:var(--accent-yellow);
+    color:var(--accent);
     background:rgba(0,0,0,.85);
   }
   #overlayContent{
@@ -242,7 +232,7 @@
     font-size:var(--fs-small);
     border:none;
     background:transparent;
-    color:var(--accent-yellow);
+    color:var(--accent);
     cursor:pointer;
     padding:6px 10px;
     width:100%;
@@ -252,7 +242,6 @@
     opacity:.7;
     margin-top:6px;
     font-size:clamp(9px,1.6vmin,11px);
-    color:var(--accent-yellow);
   }
 
   /* Name */
@@ -264,7 +253,7 @@
     align-items:center;
     justify-content:center;
     background:rgba(0,0,0,.9);
-    color:var(--accent-yellow);
+    color:var(--accent);
     overflow:hidden;
   }
   #nameCity{
@@ -278,7 +267,6 @@
     width:min(92vw,600px);
     text-align:center;
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    color:var(--accent-yellow);
   }
   #nameCard h2{
     margin:0 0 12px 0;
@@ -286,18 +274,21 @@
     font-size:var(--fs-name);
     font-weight:400;
     text-shadow:0 0 6px rgba(0,0,0,.9);
-    color:var(--accent-yellow);
+    color:var(--accent);
   }
   #nick{
     width:100%;
     padding:14px 14px;
     background:rgba(0,0,0,.88);
     border:1px solid #777;
-    color:var(--accent-yellow);
+    color:var(--accent);
     font-size:var(--fs-name);
     outline:none;
     box-shadow:0 0 12px rgba(0,0,0,.8);
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+  }
+  #nick::placeholder{
+    color:rgba(255,216,64,0.25);
   }
   #nameRow{
     display:flex;
@@ -330,8 +321,8 @@
     z-index:220;
     display:none;
     place-items:center;
-    color:var(--accent-yellow);
-    background:transparent;
+    color:var(--accent);
+    background:rgba(0,0,0,.55);
     padding:0;
   }
   #welcomeCard{
@@ -354,8 +345,7 @@
     line-height:1.1;
     margin:0;
     text-transform:uppercase;
-    text-shadow:0 0 8px rgba(0,0,0,0.8);
-    color:var(--accent-yellow);
+    color:var(--accent);
   }
   #goIntro{
     margin-top:0;
@@ -373,7 +363,7 @@
     z-index:210;
   }
   #introBigText{
-    color:var(--accent-yellow);
+    color:var(--accent);
     font-weight:400;
     letter-spacing:.16em;
     font-size:clamp(32px, 12vmin, 160px);
@@ -385,42 +375,33 @@
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
   }
 
-  /* INTRODUCTION paragraphs (우측 하단 + NEXT) */
-  #introOverlay{
+  /* INTRO 텍스트 박스 (우측 하단) */
+  #introDialogue{
     position:fixed;
-    inset:0;
-    z-index:230;
-    display:none;
-    align-items:flex-end;   /* 하단 */
-    justify-content:flex-end; /* 오른쪽 */
-    background:transparent;
-    pointer-events:auto;
-  }
-  #introOverlayCenter{
+    right:calc(var(--frame) + var(--safe-r) + 12px);
+    bottom:calc(var(--frame) + var(--safe-b) + 12px);
     max-width:min(420px, 60vw);
-    max-height:60vh;
-    text-align:left;
-    padding:16px 18px;
-    margin-right:calc(var(--frame) + var(--safe-r));
-    margin-bottom:calc(var(--frame) + var(--safe-b));
-    background:rgba(0,0,0,0.78);
-    border:1px solid rgba(255,255,255,0.35);
-    box-shadow:0 8px 22px rgba(0,0,0,0.7);
-    border-radius:6px;
-  }
-  #introOverlayText{
+    padding:12px 14px 10px;
+    border:1px solid rgba(255,216,64,0.7);
+    background:rgba(0,0,0,0.55);
     font-family:"Courier New",ui-monospace,monospace;
-    font-size:clamp(11px, 2.0vmin, 16px);
-    line-height:1.9;
-    color:var(--accent-yellow);
+    font-size:clamp(11px,2.1vmin,15px);
+    line-height:1.7;
+    color:var(--accent);
+    display:none;
+    z-index:900;
+  }
+  #introText{
+    margin-bottom:8px;
+    text-align:left;
     white-space:pre-line;
   }
-  #introNextRow{
-    margin-top:10px;
-    text-align:right;
+  #introNext{
+    display:inline-block;
+    margin-left:auto;
   }
 
-  /* FIRST SLEEP title block (SLEEEEEE… + THE FIRST SLEEP) */
+  /* FIRST SLEEP 타이틀 */
   #firstSleep{
     position:fixed;
     inset:0;
@@ -430,62 +411,20 @@
     pointer-events:none;
     z-index:850;
   }
-  #firstSleepInner{
-    text-align:center;
-  }
-  .sleepWordLine{
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    font-weight:400;
-    letter-spacing:.16em;
-    font-size:clamp(28px,10vmin,90px);
-    text-transform:uppercase;
-    color:var(--accent-yellow);
-    text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7);
-    margin:0 0 8px 0;
-    white-space:nowrap; /* 화면을 살짝 벗어나도록 */
-  }
   #firstSleepText{
-    color:var(--accent-yellow);
+    color:var(--accent);
     font-weight:400;
     letter-spacing:.16em;
-    font-size:clamp(24px, 7vmin, 72px);
+    font-size:clamp(32px, 12vmin, 160px);
     text-transform:uppercase;
     text-align:center;
     white-space:nowrap;
     text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7);
     padding:0 .02em;
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    opacity:0;
   }
 
-  /* SECOND SLEEP title block */
-  #secondSleep{
-    position:fixed;
-    inset:0;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    pointer-events:none;
-    z-index:960;
-  }
-  #secondSleepInner{
-    text-align:center;
-  }
-  #secondSleepText{
-    color:var(--accent-yellow);
-    font-weight:400;
-    letter-spacing:.16em;
-    font-size:clamp(24px, 7vmin, 72px);
-    text-transform:uppercase;
-    text-align:center;
-    white-space:nowrap;
-    text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7);
-    padding:0 .02em;
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    opacity:0;
-  }
-
-  /* 1장 NOTICE Popup */
+  /* NOTICE Popup */
   #noticePopup{
     position:fixed;
     inset:0;
@@ -493,12 +432,12 @@
     display:none;
     align-items:center;
     justify-content:center;
-    background:transparent;
+    background:rgba(0,0,0,.72);
   }
   #noticeCard{
     width:min(92vw, 640px);
     background:#0b0b0b;
-    color:var(--accent-yellow);
+    color:var(--accent);
     border:1px solid #333;
     padding:18px;
     box-shadow:0 10px 30px rgba(0,0,0,.6);
@@ -510,56 +449,18 @@
     letter-spacing:.06em;
     font-weight:700;
     font-size:clamp(15px,3vmin,20px);
-    color:var(--accent-yellow);
+    color:var(--accent);
   }
   #noticeCard p{
     margin:4px 0;
     font-size:clamp(12px,2.4vmin,16px);
-    color:var(--accent-yellow);
   }
   #noticeActions{
     margin-top:10px;
     text-align:right;
   }
 
-  /* 2장 NOTICE Popup (NOTE) */
-  #notice2Popup{
-    position:fixed;
-    inset:0;
-    z-index:970;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    background:transparent;
-  }
-  #notice2Card{
-    width:min(92vw, 640px);
-    background:#0b0b0b;
-    color:var(--accent-yellow);
-    border:1px solid #333;
-    padding:18px;
-    box-shadow:0 10px 30px rgba(0,0,0,.6);
-    font-family:"Courier New",ui-monospace,monospace;
-    line-height:1.7;
-  }
-  #notice2Card h3{
-    margin:0 0 6px 0;
-    letter-spacing:.06em;
-    font-weight:700;
-    font-size:clamp(15px,3vmin,20px);
-    color:var(--accent-yellow);
-  }
-  #notice2Card p{
-    margin:4px 0;
-    font-size:clamp(12px,2.4vmin,16px);
-    color:var(--accent-yellow);
-  }
-  #notice2Actions{
-    margin-top:10px;
-    text-align:right;
-  }
-
-  /* FIRST SLEEP: 1장 텍스트 (화면 중앙) */
+  /* FIRST SLEEP: 중앙 텍스트 */
   #chapterOverlay{
     position:fixed;
     inset:0;
@@ -567,8 +468,8 @@
     display:none;
     align-items:center;
     justify-content:center;
-    background:transparent;
-    color:var(--accent-yellow);
+    background:transparent; /* 화면 어두워지지 않게 */
+    color:var(--accent);
     padding:24px;
     pointer-events:none;
   }
@@ -585,17 +486,8 @@
     font-family:"Courier New",ui-monospace,monospace;
     line-height:1.8;
     font-size:clamp(11px,2.0vmin,15px);
-    color:var(--accent-yellow);
-    text-align:center; /* 문장 자체도 중앙 정렬 */
-  }
-  #chapterBox .charBox{
-    display:inline-block;
-    min-width:0.6em;
-    padding:2px 3px;
-    margin:1px;
-    background:#000;
-    border-radius:2px;
-    color:var(--accent-yellow);
+    text-align:center;
+    color:var(--accent);
   }
 </style>
 </head>
@@ -642,7 +534,6 @@
     <canvas id="nameCity"></canvas>
     <div id="nameCard">
       <h2>TELL ME YOUR NAME</h2>
-      <!-- Type your name 텍스트 제거: placeholder 비움 -->
       <input id="nick" type="text" maxlength="24" placeholder="" autocomplete="off" />
       <div id="nameRow">
         <button id="nameSubmit" class="uiBtn flat" type="button">GO</button>
@@ -659,10 +550,10 @@
   <div id="overlayWelcome" class="fade">
     <div id="welcomeCard">
       <div class="credits">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
-      <div class="title">SLEEEEEP</div>
-      <div class="title">SLEEEEEP</div>
-      <div class="title">SLEEEEEP</div>
-      <div class="title">SLEEEEEP</div>
+      <div class="title">SLEEEEEEEE P</div>
+      <div class="title">SLEEEEEEEE P</div>
+      <div class="title">SLEEEEEEEE P</div>
+      <div class="title">SLEEEEEEEE P</div>
       <button id="goIntro" class="uiBtn flat" type="button">PRESS HERE TO SLEEP</button>
     </div>
   </div>
@@ -670,34 +561,16 @@
   <!-- INTRODUCTION title -->
   <div id="introBig" class="fade"><div id="introBigText">INTRODUCTION</div></div>
 
-  <!-- INTRODUCTION sentences (우측 하단 + NEXT) -->
-  <div id="introOverlay" class="fade">
-    <div id="introOverlayCenter">
-      <div id="introOverlayText"></div>
-      <div id="introNextRow">
-        <button id="introNext" class="uiBtn small" type="button">NEXT</button>
-      </div>
-    </div>
+  <!-- INTRODUCTION sentences (우측 하단) -->
+  <div id="introDialogue">
+    <div id="introText"></div>
+    <button id="introNext" class="uiBtn small" type="button">NEXT</button>
   </div>
 
-  <!-- THE FIRST SLEEP block -->
-  <div id="firstSleep">
-    <div id="firstSleepInner">
-      <div id="firstSleepTop" class="sleepWordLine"></div>
-      <div id="firstSleepText">THE FIRST SLEEP</div>
-    </div>
-  </div>
+  <!-- THE FIRST SLEEP title -->
+  <div id="firstSleep"><div id="firstSleepText">THE FIRST SLEEP</div></div>
 
-  <!-- THE SECOND SLEEP block -->
-  <div id="secondSleep">
-    <div id="secondSleepInner">
-      <div id="secondSleepLine1" class="sleepWordLine"></div>
-      <div id="secondSleepLine2" class="sleepWordLine"></div>
-      <div id="secondSleepText">THE SECOND SLEEP</div>
-    </div>
-  </div>
-
-  <!-- 1장 NOTICE Popup -->
+  <!-- NOTICE Popup -->
   <div id="noticePopup" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle">
     <div id="noticeCard">
       <h3 id="noticeTitle">NOTICE</h3>
@@ -711,22 +584,7 @@
     </div>
   </div>
 
-  <!-- 2장 NOTICE Popup (NOTE) -->
-  <div id="notice2Popup" class="fade" role="dialog" aria-modal="true" aria-labelledby="notice2Title">
-    <div id="notice2Card">
-      <h3 id="notice2Title">NOTE</h3>
-      <p>※ “THE SECOND SLEEP”은 귀로 타자를 인식해 나가는 챕터입니다.</p>
-      <p>※ 공간 곳곳에 1번~8번까지의 피켓이 설치되어 있습니다.</p>
-      <p>※ 그곳의 주변으로 이동해 그 공간에 남아있는 누군가의 목소리를 들어보세요.</p>
-      <p>※ 이상하게 마음이 끌리는 소리가 있다면, 그곳의 옆에 있는 의자에 앉아 잠깐의 시간동안 귀를 기울여보세요.</p>
-      <p>※ 확인하셨다면, 아래 ‘OK’버튼을 눌러주세요</p>
-      <div id="notice2Actions">
-        <button id="notice2Ok" class="uiBtn flat" type="button">OK</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- FIRST SLEEP: 1장 텍스트 -->
+  <!-- FIRST SLEEP: 중앙 문장 -->
   <div id="chapterOverlay" class="fade">
     <div id="chapterCenter">
       <div id="chapterBox"></div>
@@ -752,9 +610,6 @@
     link.href=url;
     document.head.appendChild(link);
   })();
-
-  const ACCENT = '#ffd840'; // 건물 노란 불빛 색
-  const SLEEP_WORD = 'SLEEEEEEEEP'; // E 8개
 
   /* ===== Fullscreen / Orientation / Wake Lock ===== */
   async function enterFullscreen(){
@@ -845,18 +700,12 @@
   const introBig = qs('#introBig');
   const introBigText = qs('#introBigText');
 
-  const introOverlay = qs('#introOverlay');
-  const introOverlayText = qs('#introOverlayText');
-  const introNext = qs('#introNext');
+  const introDialogue = qs('#introDialogue');
+  const introTextEl = qs('#introText');
+  const introNextBtn = qs('#introNext');
 
   const firstSleep = qs('#firstSleep');
-  const firstSleepTop = qs('#firstSleepTop');
   const firstSleepText = qs('#firstSleepText');
-
-  const secondSleep = qs('#secondSleep');
-  const secondSleepLine1 = qs('#secondSleepLine1');
-  const secondSleepLine2 = qs('#secondSleepLine2');
-  const secondSleepText = qs('#secondSleepText');
 
   const controls = qs('#controls');
   const zoomIn = qs('#zoomIn');
@@ -871,9 +720,6 @@
   const noticePopup = qs('#noticePopup');
   const noticeOk = qs('#noticeOk');
 
-  const notice2Popup = qs('#notice2Popup');
-  const notice2Ok = qs('#notice2Ok');
-
   const chapterOverlay = qs('#chapterOverlay');
   const chapterBox = qs('#chapterBox');
 
@@ -886,6 +732,7 @@
   let animStarted=false, capturing=false, warmupFrames=0;
 
   let showIntroLayer=true, fgAlpha=1.0;
+  let showCamera=true;   // 웰컴까지 카메라 ON, 인트로 동안 OFF, FIRST SLEEP에서 다시 ON
 
   /* ===== Audio ===== */
   let audioCtx = null;
@@ -899,7 +746,7 @@
     }catch{}
   }
 
-  // ---- Ambient BG ----
+  // ---- Ambient BG Music ----
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, killers=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
@@ -981,7 +828,7 @@
     return { start, stop, isRunning };
   })();
 
-  // ---- UI sounds ----
+  // ---- UI Click sounds ----
   async function playWoongClick(){
     try{
       await ensureResumed();
@@ -1042,7 +889,7 @@
     await playWoongClick();
   }, {passive:true});
   zoomOut.addEventListener('click', async ()=>{
-    ZOOM=1.0;
+    ZOOM=1.0; // 1.0 고정
     updateZoomLabel();
     await playWoongClick();
   }, {passive:true});
@@ -1103,7 +950,7 @@
   });
 
   /* ===== Name → Preset → Welcome ===== */
-  let displayName = '____';
+  let displayName = '_____';
   async function acceptName(){
     claimImmersive();
     await ensureResumed();
@@ -1131,10 +978,10 @@
   function initSaver(){
     const w=preset.clientWidth, h=preset.clientHeight;
     saverObjs=[];
-    const letters=['S','L','E','E','P'];
+    const letters=['S','L','E','E','E','E','E','E','E','E','P']; // 대충 SLEEEEEEEEEEP 느낌
     for(let i=0;i<20;i++){
       saverObjs.push({
-        ch:letters[i%5],
+        ch:letters[i%letters.length],
         x:Math.random()*w,
         y:Math.random()*h,
         vx:(Math.random()*1.2+0.3)*(Math.random()<.5?-1:1),
@@ -1182,7 +1029,7 @@
     const targets=saverMode==='assemble'?saverTargetsForWord():null;
     for(const o of saverObjs){
       if(saverMode==='assemble'){
-        const idx=['S','L','E','E','P'].indexOf(o.ch);
+        const idx=0;
         const g=targets[idx];
         o.vx += (g.x-o.x)*0.0006;
         o.vy += (g.y-o.y)*0.0006;
@@ -1196,7 +1043,7 @@
       ctx.translate(o.x,o.y);
       ctx.scale(wob,1/wob);
       ctx.font=`900 ${o.size}px "Press Start 2P", system-ui, sans-serif`;
-      ctx.fillStyle=ACCENT;
+      ctx.fillStyle='#fff';
       ctx.fillText(o.ch,0,0);
       ctx.restore();
     }
@@ -1213,66 +1060,93 @@
     fadeShow(welcome, FADE);
   }, {passive:true});
 
-  /* ===== INTRO big title & INTRO sentences + NEXT ===== */
+  /* ===== INTRO / FIRST SLEEP 텍스트 ===== */
 
-  function getIntroSentences(){
-    return [
-      "안녕하세요?",
-      "작게 대답해주세요.",
-      "안녕하세요?",
-      "대답을 해주셔야 프로그램이 진행될 수 있습니다.",
-      "안녕하세요?",
-      "감사합니다.",
-      "아실지 모르겠지만, 저는 이 공간의 안내자,",
-      "당신의 내면 세계에 존재하는 무의식입니다.",
-      `지금부터 우리는 ${displayName}의 내면 세계를 탐험하는 탐험가가 될 것입니다.`,
-      "주변의 소리에 귀를 기울이며,",
-      "30분 간의 짧은 낮잠을 통해서 말이죠.",
-      "자, 그럼 천천히 공간을 거닐어보세요.",
-      "무릎을 들고, 발을 앞으로 뻗어보세요.",
-      "하셨나요?",
-      "참 잘했어요.",
-      "맞아요. 그래 맞아요. 우리는 늘 그랬어요.",
-      "우리는 언제나 타자와 함께 존재해 왔습니다.",
-      "가족, 친구, 교수님, 지나가는 그들,",
-      "그리고 당신과 처음 만나는 저도 우리는 늘 함께 존재해왔습니다",
-      "그러나 어느 순간 '너'로 불리던 그들은 '그것'으로 전락하기 시작했습니다.",
-      "이유는 아무도 몰라요.",
-      "그저 우리가 '너'들을 '그것'들로 부르기 시작한 것일까요?",
-      "이유는 아무도 모르죠.",
-      "아...",
-      "갑자기 김춘추의 <꽃>이 떠오르네요.",
-      "(진지한 톤으로) 내가 그의 이름을 불러주기 전에는 그는 다만 하나의 몸짓에 지나지 않았다.",
-      "크으으으으으으....",
-      "네. 각설하고.",
-      "말씀드린 것처럼, 이제 우리는 어느 곳에서도 '너'를 찾아볼 수 없습니다.",
-      "우리는 이제 '너'가 사라진 세상에 살아가고 있으니까요.",
-      "그런 특정했던 '너'는 서서히 희미해지고 퇴색되고 잊혀지고 잃어지고 앓아가고 있습니다",
-      "마치 꿈 속에서 만난 누군가가",
-      "...",
-      "그게 누구였지?",
-      "...",
-      "하고 떠오르지 않는 것처럼",
-      " '너'가 사라진 공간",
-      " '너'가 제거된 공간",
-      " '너'를 제거해버린 공간",
-      `${displayName}의 내면 세계`,
-      `이제 곧 ${displayName}의 내면 세계로 발을 디딥니다`,
-      "두 번의 심호흡을 하기도 하면서,",
-      "후 --",
-      "하- ,",
-      "후 ....",
-      "하 ~",
-      "이제 눈으로 감고,",
-      "천천히 수면 아래로 내려갑니다.",
-      "귀를 기울여 '보세요'",
-      "내면의 미로를 탐험하여 사라진 '너'의 소리에",
-      "말이 길었습니다.",
-      "잠시 후에 만나요.",
-      "수면으로",
-      "내려갑니다."
-    ];
-  }
+  const INTRO_LINES = [
+    '안녕하세요?',
+    '작게 대답해주세요.',
+    '안녕하세요?',
+    '대답을 해주셔야 프로그램이 진행될 수 있습니다.',
+    '안녕하세요?',
+    '감사합니다.',
+    '아실지 모르겠지만, 저는 이 공간의 안내자,',
+    '당신의 내면 세계에 존재하는 무의식입니다.',
+    '지금부터 우리는 _____의 내면 세계를 탐험하는 탐험가가 될 것입니다.',
+    '주변의 소리에 귀를 기울이며,',
+    '30분 간의 짧은 낮잠을 통해서 말이죠.',
+    '자, 그럼 천천히 공간을 거닐어보세요.',
+    '무릎을 들고, 발을 앞으로 뻗어보세요.',
+    '하셨나요?',
+    '참 잘했어요.',
+    '맞아요. 그래 맞아요. 우리는 늘 그랬어요.',
+    '우리는 언제나 타자와 함께 존재해 왔습니다.',
+    '가족, 친구, 교수님, 지나가는 그들,',
+    '그리고 당신과 처음 만나는 저도 우리는 늘 함께 존재해왔습니다',
+    "그러나 어느 순간 '너'로 불리던 그들은 '그것'으로 전락하기 시작했습니다.",
+    '이유는 아무도 몰라요.',
+    "그저 우리가 '너'들을 '그것'들로 부르기 시작한 것일까요?",
+    '이유는 아무도 모르죠.',
+    '아...',
+    '갑자기 김춘추의 <꽃>이 떠오르네요.',
+    '(진지한 톤으로) 내가 그의 이름을 불러주기 전에는 그는 다만 하나의 몸짓에 지나지 않았다.',
+    '크으으으으으으....',
+    '네. 각설하고.',
+    "말씀드린 것처럼, 이제 우리는 어느 곳에서도 '너'를 찾아볼 수 없습니다.",
+    "우리는 이제 '너'가 사라진 세상에 살아가고 있으니까요.",
+    "그런 특정했던 '너'는 서서히 희미해지고 퇴색되고 잊혀지고 잃어지고 앓아가고 있습니다",
+    '마치 꿈 속에서 만난 누군가가',
+    '...',
+    '그게 누구였지?',
+    '...',
+    '하고 떠오르지 않는 것처럼',
+    " '너'가 사라진 공간",
+    " '너'가 제거된 공간",
+    " '너'를 제거해버린 공간",
+    '_____의 내면 세계',
+    '이제 곧 _____의 내면 세계로 발을 디딥니다',
+    '두 번의 심호흡을 하기도 하면서,',
+    '후 --',
+    '하- ,',
+    '후 ....',
+    '하 ~',
+    '이제 눈으로 감고,',
+    '천천히 수면 아래로 내려갑니다.',
+    "귀를 기울여 '보세요'",
+    "내면의 미로를 탐험하여 사라진 '너'의 소리에",
+    '말이 길었습니다.',
+    '잠시 후에 만나요.',
+    '수면으로',
+    '내려갑니다.'
+  ];
+
+  const FIRST_SLEEP_LINES = [
+    '당신은 공간을 거닐고 있다.',
+    '마침내 당신은 도시의 어둠, 그리고 스산한 안개 속으로 천천히 발을 내딛었다.',
+    '지금은 새벽 4시. 당신은 축축하고 푹신한 수면 위로 걷는 느낌을 느낀다.',
+    '뒤꿈치부터 발바닥을 거쳐 발가락까지 차례로 내리눌러보기도 하며, 당신이 서 있는 곳이 당신을 타고 올라오게 천천히 내버려둔다.',
+    '당신은 어디선가 잔잔한 종 소리를 듣는다.',
+    '당신은 잠시 후, 또 다시 어디선가 들려오는 아이들의 웃음 소리를 듣는다.',
+    '당신은 지금 내면의 바다를 듣고 있다.',
+    '갑자기 프란츠 카프카의 <학술원에 보내는 보고서>라는 소설이 떠올랐다.',
+    '소설은 아프리카 해안 어느 숲 속에서 무한한 자유를 누리며 원숭이답게 살아가는 빨간 피터라는 원숭이의 이야기를 다루고 있다.',
+    '그러던 어느날 피터의 앞으로 백인들은 그를 잡아가 우리에 가둔다.',
+    '난생 처음 우리에 가둔 피터는 처음으로 고민에 빠진다.',
+    '탈출을 할 것인가? 혹은 그대로 있을 것인가?',
+    '그러던 중 피터가 마지막으로 한 선택은 인간들처럼 되기 위한 선택을 내린다.',
+    '침을 뱉고, 술을 마시고, 악수를 하고, 담배를 태우며 서서히 인간 세계의 일원이 되어가는 것이다.',
+    '사람들을 흉내 내는 일은 전혀 어렵지 않았습니다.',
+    '침 뱉기는 며칠만에 거뜬히 배웠죠. 파이프 담배도 곧 영감처럼 피웠어요.',
+    '가장 어려웠던 것은 술병이었습니다.',
+    '냄새가 지독했거든요.',
+    '저는 그동안 배운 대로 코르크 마개를 빼고 술병을 입에 갖다 댔죠.',
+    '그러곤 전혀 망설임 없이 표정 하나 변하지 않고 술을 들이켰어요.',
+    '진짜 술꾼처럼 눈동자도 데굴데굴 굴리고, 꿀꺽꿀꺽 소리도 내면서 그야말로 남김없이 술병을 비워버린 겁니다.',
+    '참을 수 없는 충동에 정신이 멍해져서 "헬로!"하고 짤막하게 외쳤습니다.',
+    '인간의 소리를 내뱉은 거였죠.',
+    '이 한마디의 외침으로 저는 인간세계에 뛰어들었고, 거기엔 반향이 뒤따랐습니다.',
+    '"들어 봐, 저놈이 말을 해!"',
+    '그 반향은 땀방울이 뚝뚝 떨어지는 제 온몸에 쏟아지는 입맞춤 같았답니다.'
+  ];
 
   function getFrameRect(){
     return document.querySelector('.frameBox').getBoundingClientRect();
@@ -1291,8 +1165,11 @@
   }
   function fitTitleLineSafe(){
     fitTitleLine(introBigText);
+    fitTitleLine(firstSleepText);
   }
   window.addEventListener('load', fitTitleLineSafe);
+
+  /* 픽셀 인물 & 프로시니엄 */
 
   const PIXEL_SPRITE=[
     "..XXXXXX....",
@@ -1403,10 +1280,79 @@
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle=ACCENT;
+    ctx.fillStyle='#fff';
     ctx.fillText(text,bx+pad,by+pad+12);
     ctx.restore();
   }
+
+  /* 닉네임 시티 → 프로시니엄 좌측 상단에 매달린 건물 */
+
+  let nameCityCtx = null;
+  let nameBuildings = [];
+  let nameCityRunning = false;
+  let lastFlicker = 0;
+  let hangingBuildings = [];
+
+  function initHangingBuildings(){
+    if (!nameBuildings || !nameBuildings.length) return;
+    const pr = getProsceniumRect();
+    hangingBuildings = [];
+
+    const subset = nameBuildings.slice(0, 8);
+    const maxAreaWidth = pr.w * 0.45;
+
+    subset.forEach((b, i) => {
+      const ratio = (i + 0.5) / subset.length;
+      const baseWidth = Math.min(b.width, maxAreaWidth / subset.length * 1.4);
+      const heightFull = (b.bottom - b.top) || (window.innerHeight * 0.18);
+      const height = heightFull * 0.5;
+
+      const x = pr.x + ratio * maxAreaWidth - baseWidth / 2;
+      const top = pr.y;
+
+      hangingBuildings.push({
+        x,
+        top,
+        width: baseWidth,
+        height,
+        color: b.color
+      });
+    });
+  }
+
+  function drawHangingBuildings(ctx){
+    if (!hangingBuildings || !hangingBuildings.length) return;
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+
+    hangingBuildings.forEach(b => {
+      const x = b.x;
+      const top = b.top;
+      const w = b.width;
+      const h = b.height;
+
+      ctx.fillStyle = b.color;
+      ctx.fillRect(x, top, w, h);
+
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(x, top - 3, w, 3);
+
+      const winH = h * 0.14;
+      const winW = w * 0.18;
+      const rowY = top + h - winH * 1.4;
+      const count = Math.max(1, Math.floor(w / (winW * 1.8)));
+
+      for (let i = 0; i < count; i++) {
+        const wx = x + winW * 0.5 + i * winW * 1.6;
+        ctx.fillStyle = 'rgba(255,216,64,0.95)';
+        ctx.fillRect(wx, rowY, winW, winH);
+      }
+    });
+
+    ctx.restore();
+  }
+
+  /* INTRO 캐릭터 워킹 + 말풍선 */
 
   let introWalking=false, introStartTime=0;
   const INTRO_WALK_DURATION=60_000;
@@ -1419,120 +1365,28 @@
   ];
   let bubbleTimer=0, bubbleIdx=0;
 
-  /* 인트로: 문장 단위 + NEXT + 한 줄씩 타이핑 */
-  let introSentences = [];
-  let introIdx = 0;
-  let introActive = false;
-  let introIsTyping = false;
-
-  async function typeIntroSentence(text){
-    introIsTyping = true;
-    introOverlayText.innerHTML = '';
-    const span = document.createElement('span');
-    introOverlayText.appendChild(span);
-    for(let i=0;i<text.length;i++){
-      span.textContent += text[i];
-      typeTick();
-      await sleep(40);
-    }
-    introIsTyping = false;
-  }
-
-  function showIntroSentence(){
-    if(!introActive) return;
-    if(introIsTyping) return;
-    if(introIdx >= introSentences.length){
-      introActive = false;
-      fadeHide(introOverlay, 600);
-      (async ()=>{
-        await playTduung();
-        startTransition();
-      })();
-      return;
-    }
-    const line = introSentences[introIdx++];
-    typeIntroSentence(line);
-  }
-
-  function startIntroSentences(){
-    introSentences = getIntroSentences();
-    introIdx = 0;
-    introActive = true;
-    fadeShow(introOverlay, 400, 'flex');
-    showIntroSentence();
-  }
-
-  async function showIntroFlow(){
-    claimImmersive();
-    await ensureResumed();
-    if(!Ambient.isRunning()) Ambient.start(0.2, 1.0);
-
-    introBig.style.display='flex';
-    introBig.style.opacity='0';
-    await nextFrame();
-    fitTitleLine(introBigText);
-    introBig.style.transition='opacity 800ms ease';
-    introBig.style.opacity='1';
-    await sleep(1200);
-    introBig.style.opacity='0';
-    await sleep(700);
-    introBig.style.display='none';
-
-    introWalking=true;
-    introStartTime=performance.now();
-    showIntroLayer=true;
-    fgAlpha=1.0;
-
-    startIntroSentences();
-  }
-
-  introNext.addEventListener('click', ()=>{
-    ensureResumed().then(async ()=>{
-      await playWoongClick();
-      showIntroSentence();
-    });
-  }, {passive:true});
-
-  document.getElementById('goIntro').addEventListener('click', ()=>{
-    ensureResumed().then(async ()=>{
-      claimImmersive();
-      if(!Ambient.isRunning()) Ambient.start(0.2,1.0);
-      await playWoongClick();
-      fadeHide(welcome, FADE);
-      showIntroFlow();
-    });
-  });
-
-  /* 4-minute Timer */
-  let eightTimer=null, eightLeft=4*60;
+  /* 4분 타이머 */
+  let mainTimer=null, mainLeft=4*60;
   function formatMMSS(s){
     const m=Math.floor(s/60);
     const ss=(s%60).toString().padStart(2,'0');
     return `${m.toString().padStart(2,'0')}:${ss}`;
   }
-  function startEightTimer(){
-    eightLeft=4*60;
-    runTimer.textContent=formatMMSS(eightLeft);
+  function startMainTimer(){
+    mainLeft=4*60;
+    runTimer.textContent=formatMMSS(mainLeft);
     runTimer.style.display='block';
-    if(eightTimer) clearInterval(eightTimer);
-    eightTimer=setInterval(()=>{
-      eightLeft=Math.max(0,eightLeft-1);
-      runTimer.textContent=formatMMSS(eightLeft);
-      if(eightLeft<=0){
-        clearInterval(eightTimer);
-        eightTimer=null;
-        onTimerEnded();
+    if(mainTimer) clearInterval(mainTimer);
+    mainTimer=setInterval(()=>{
+      mainLeft=Math.max(0,mainLeft-1);
+      runTimer.textContent=formatMMSS(mainLeft);
+      if(mainLeft<=0){
+        clearInterval(mainTimer);
       }
     },1000);
   }
 
-  async function onTimerEnded(){
-    claimImmersive();
-    await ensureResumed();
-    await showSecondSleepIntro();
-  }
-
-  /* Mic FX */
+  /* Mic FX (그대로) */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, micPreGain=null;
   function makeImpulse(ctx, seconds=6.0, decay=8.0){
     const rate=ctx.sampleRate;
@@ -1652,7 +1506,7 @@
     }
   }
 
-  /* Camera & Render */
+  /* Camera & Render (흑백 출력) */
   let metaReady=false;
   async function startCameraFresh(warmupOnly=false){
     try{
@@ -1744,16 +1598,13 @@
     if(best.rot){
       ctx.translate(PW/2,PH/2);
       ctx.rotate(Math.PI/2);
-      ctx.globalAlpha=1.0;
       ctx.drawImage(video,-best.dh/2,-best.dw/2,best.dh,best.dw);
     }else{
       const dx=(PW-best.dw)/2;
       const dy=(PH-best.dh)/2;
-      ctx.globalAlpha=1.0;
       ctx.drawImage(video,dx,dy,best.dw,best.dh);
     }
     ctx.restore();
-    ctx.globalAlpha=1;
   }
 
   function loop(){
@@ -1770,8 +1621,15 @@
 
     vctx.clearRect(0,0,W,H);
     vctx.imageSmoothingEnabled=true;
-    if(camVideo && camVideo.readyState>=2){
+    if (showCamera && camVideo && camVideo.readyState>=2){
+      vctx.save();
+      vctx.filter='grayscale(1)';       // 카메라 흑백
       drawBestCover(vctx, camVideo, W, H, W, H);
+      vctx.restore();
+      vctx.filter='none';
+    } else {
+      vctx.fillStyle='#000000';
+      vctx.fillRect(0,0,W,H);
     }
 
     const pr=getProsceniumRect();
@@ -1783,6 +1641,10 @@
       fgctx.rect(pr.x,pr.y,pr.w,pr.h);
       fgctx.clip();
 
+      // 매달린 건물
+      drawHangingBuildings(fgctx);
+
+      // 픽셀 인물 + 말풍선
       if(introWalking){
         const now=performance.now();
         const tRaw=(now-introStartTime)/INTRO_WALK_DURATION;
@@ -1796,6 +1658,7 @@
         }
         drawBubble(fgctx, Math.round(pos.x), Math.round(pos.baselineY)-28, bubbleSeq[bubbleIdx]);
       }
+
       fgctx.restore();
     }
   }
@@ -1865,7 +1728,40 @@
     requestAnimationFrame(anim);
   });
 
+  /* INTRO 한 문장씩 + NEXT */
+
+  let introIndex=0;
+  function resolveIntroLine(i){
+    let line = INTRO_LINES[i] || '';
+    return line.replace(/_____/g, displayName);
+  }
+
+  async function typeIntroLine(idx){
+    introTextEl.textContent='';
+    const text = resolveIntroLine(idx);
+    for(let i=0;i<text.length;i++){
+      introTextEl.textContent += text[i];
+      typeTick();
+      await sleep(24); // 인트로는 예전처럼 조금 빠르게
+    }
+  }
+
+  introNextBtn.addEventListener('click', async ()=>{
+    await ensureResumed();
+    await playWoongClick();
+    introIndex++;
+    if(introIndex >= INTRO_LINES.length){
+      fadeHide(introDialogue, 300);
+      await sleep(350);
+      await playTduung();
+      startTransition();
+    }else{
+      typeIntroLine(introIndex);
+    }
+  }, {passive:true});
+
   /* Intro → FIRST SLEEP transition */
+
   function fadeIntroLayerOut(ms=8000){
     const t0=performance.now();
     const startAlpha=fgAlpha;
@@ -1891,43 +1787,29 @@
     claimImmersive();
     await ensureResumed();
 
-    // THE FIRST SLEEP / SLEEEEEEEEP 블록 표시
+    showCamera = true;  // FIRST SLEEP 들어가면서 카메라 다시 ON
+
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
-    firstSleep.style.transition='opacity 800ms ease';
-    firstSleepTop.textContent='';
-    firstSleepText.style.opacity='0';
-    firstSleepText.style.transition='opacity 900ms ease';
+    await nextFrame();
+    fitTitleLine(firstSleepText);
 
-    // 타이머, 컨트롤, 마이크, 인트로 레이어 페이드 아웃 동시에 시작
-    startEightTimer();
+    startMainTimer();
     await nextFrame();
     controls.classList.add('show');
     captureBtn.classList.add('show');
-    startMicFXFadeIn(4.0);
-    fadeIntroLayerOut(8000);
 
-    // "SLEEEEEEEEP" (E 8개) 타이핑
-    for(let i=0;i<SLEEP_WORD.length;i++){
-      firstSleepTop.textContent += SLEEP_WORD[i];
-      typeTick();
-      await sleep(110);
-    }
+    await startMicFXFadeIn(4.0);
 
-    // 약간 쉬고 "THE FIRST SLEEP" 페이드 인
-    await sleep(200);
-    firstSleepText.style.opacity='1';
-
-    // 3초 유지
-    await sleep(3000);
-
-    // 전체 페이드 아웃
+    const fadeDur=8000;
+    fadeIntroLayerOut(fadeDur);
+    await sleep(900);
+    firstSleep.style.transition=`opacity ${fadeDur}ms ease`;
     firstSleep.style.opacity='0';
-    await sleep(1200);
+    await sleep(fadeDur+200);
     firstSleep.style.display='none';
-    firstSleepText.style.transition='';
+    firstSleep.style.transition='';
 
-    // 1장 NOTICE 등장
     showNoticePopup();
   }
 
@@ -1956,163 +1838,79 @@
     };
   }
 
-  /* FIRST SLEEP: 문장 리스트 (한 줄씩 → 2초 → 다음 줄) */
-  const firstSleepLines = [
-    "당신은 공간을 거닐고 있다.",
-    "마침내 당신은 도시의 어둠, 그리고 스산한 안개 속으로 천천히 발을 내딛었다.",
-    "지금은 새벽 4시. 당신은 축축하고 푹신한 수면 위로 걷는 느낌을 느낀다.",
-    "뒤꿈치부터 발바닥을 거쳐 발가락까지 차례로 내리눌러보기도 하며, 당신이 서 있는 곳이 당신을 타고 올라오게 천천히 내버려둔다.",
-    "당신은 어디선가 잔잔한 종 소리를 듣는다.",
-    "당신은 잠시 후, 또 다시 어디선가 들려오는 아이들의 웃음 소리를 듣는다.",
-    "당신은 지금 내면의 바다를 듣고 있다.",
-    "갑자기 프란츠 카프카의 <학술원에 보내는 보고서>라는 소설이 떠올랐다.",
-    "소설은 아프리카 해안 어느 숲 속에서 무한한 자유를 누리며 원숭이답게 살아가는 빨간 피터라는 원숭이의 이야기를 다루고 있다.",
-    "그러던 어느날 피터의 앞으로 백인들은 그를 잡아가 우리에 가둔다.",
-    "난생 처음 우리에 가둔 피터는 처음으로 고민에 빠진다.",
-    "탈출을 할 것인가? 혹은 그대로 있을 것인가?",
-    "그러던 중 피터가 마지막으로 한 선택은 인간들처럼 되기 위한 선택을 내린다.",
-    "침을 뱉고, 술을 마시고, 악수를 하고, 담배를 태우며 서서히 인간 세계의 일원이 되어가는 것이다.",
-    "사람들을 흉내 내는 일은 전혀 어렵지 않았습니다.",
-    "침 뱉기는 며칠만에 거뜬히 배웠죠. 파이프 담배도 곧 영감처럼 피웠어요.",
-    "가장 어려웠던 것은 술병이었습니다.",
-    "냄새가 지독했거든요.",
-    "저는 그동안 배운 대로 코르크 마개를 빼고 술병을 입에 갖다 댔죠.",
-    "그러곤 전혀 망설임 없이 표정 하나 변하지 않고 술을 들이켰어요.",
-    "진짜 술꾼처럼 눈동자도 데굴데굴 굴리고, 꿀꺽꿀꺽 소리도 내면서 그야말로 남김없이 술병을 비워버린 겁니다.",
-    "참을 수 없는 충동에 정신이 멍해져서 \"헬로!\"하고 짤막하게 외쳤습니다.",
-    "인간의 소리를 내뱉은 거였죠.",
-    "이 한마디의 외침으로 저는 인간세계에 뛰어들었고, 거기엔 반향이 뒤따랐습니다.",
-    " \"들어 봐, 저놈이 말을 해!\"",
-    "그 반향은 땀방울이 뚝뚝 떨어지는 제 온몸에 쏟아지는 입맞춤 같았답니다."
-  ];
+  /* FIRST SLEEP: 한 줄씩 타이핑 + 2초 유지 */
 
-  async function typeBoxedTextLine(el, text, charDelay){
-    for(let i=0;i<text.length;i++){
-      const ch = text[i];
-      const span = document.createElement('span');
-      span.className = 'charBox';
-      span.textContent = (ch === ' ' ? '\u00A0' : ch);
-      el.appendChild(span);
-      typeTick();
-      await sleep(charDelay);
-    }
-  }
-
-  async function startMorseSequence(){
-    const pattern = "... . ... .. ... ..   .. .   ..... .   .  . ";
+  async function typeFirstSleepLine(text){
+    chapterBox.textContent='';
+    const span = document.createElement('span');
+    span.style.whiteSpace='pre-wrap';
     chapterBox.innerHTML='';
-
-    for(let i=0;i<pattern.length;i++){
-      const ch = pattern[i];
-      if(ch === '.'){
-        const span = document.createElement('span');
-        span.className='charBox';
-        span.textContent='·';
-        chapterBox.appendChild(span);
-        typeTick();
-        await sleep(120);
-      }else if(ch === ' '){
-        await sleep(80);
-      }
-      if(i>0 && i%18===0){
-        chapterBox.appendChild(document.createElement('br'));
-        await sleep(220);
-      }
+    chapterBox.appendChild(span);
+    for(let i=0;i<text.length;i++){
+      span.textContent += text[i];
+      typeTick();
+      await sleep(26);  // 1장의 텍스트 속도는 그대로 유지
     }
-
-    await sleep(1500);
-    fadeHide(chapterOverlay, 1200);
   }
 
   async function startFirstSleepStory(){
     claimImmersive();
     await ensureResumed();
-    chapterBox.innerHTML='';
     fadeShow(chapterOverlay, 400, 'flex');
     await sleep(420);
 
-    for(const line of firstSleepLines){
-      const trimmed = line;
-      chapterBox.innerHTML='';            // 이전 문장 지우기
-      await typeBoxedTextLine(chapterBox, trimmed, 45); // 한 줄 타이핑
-      await sleep(2000);                  // 2초 유지
+    for(const line of FIRST_SLEEP_LINES){
+      await typeFirstSleepLine(line);
+      await sleep(2000);  // 2초 머무름
     }
 
-    await sleep(2000);
-    await startMorseSequence();
-  }
-
-  /* SECOND SLEEP 타이틀 + 2장 NOTICE */
-
-  async function showSecondSleepIntro(){
     fadeHide(chapterOverlay, 800);
+  }
 
-    secondSleep.style.display='flex';
-    secondSleep.style.opacity='1';
-    secondSleep.style.transition='opacity 800ms ease';
-    secondSleepLine1.textContent='';
-    secondSleepLine2.textContent='';
-    secondSleepText.style.opacity='0';
-    secondSleepText.style.transition='opacity 900ms ease';
+  /* INTRO Flow: 웰컴 이후, 카메라 OFF + 인트로 텍스트 */
 
-    // SLEEEEEEEEP 1줄
-    for(let i=0;i<SLEEP_WORD.length;i++){
-      secondSleepLine1.textContent += SLEEP_WORD[i];
-      typeTick();
-      await sleep(110);
-    }
-    await sleep(300);
+  async function showIntroFlow(){
+    claimImmersive();
+    await ensureResumed();
+    if(!Ambient.isRunning()) Ambient.start(0.2, 1.0);
 
-    // SLEEEEEEEEP 2줄
-    for(let i=0;i<SLEEP_WORD.length;i++){
-      secondSleepLine2.textContent += SLEEP_WORD[i];
-      typeTick();
-      await sleep(110);
-    }
+    showCamera = false; // 인트로덕션 동안 카메라 잠시 OFF
 
-    await sleep(250);
-    secondSleepText.style.opacity='1';
-
-    await sleep(3000);
-
-    secondSleep.style.opacity='0';
+    // INTRODUCTION 타이틀
+    introBig.style.display='flex';
+    introBig.style.opacity='0';
+    await nextFrame();
+    fitTitleLine(introBigText);
+    introBig.style.transition='opacity 800ms ease';
+    introBig.style.opacity='1';
     await sleep(1200);
-    secondSleep.style.display='none';
-    secondSleepText.style.transition='';
+    introBig.style.opacity='0';
+    await sleep(700);
+    introBig.style.display='none';
 
-    showSecondNotice();
+    // 캐릭터 워킹 시작
+    introWalking=true;
+    introStartTime=performance.now();
+    showIntroLayer=true;
+    fgAlpha=1.0;
+
+    // 인트로 텍스트 박스 (한 문장씩 + NEXT)
+    introIndex = 0;
+    fadeShow(introDialogue, 300, 'block');
+    typeIntroLine(introIndex);
   }
 
-  function showSecondNotice(){
-    function bgTrap(e){
-      if(!e.target.closest('#notice2Card')){
-        e.stopPropagation();
-        e.preventDefault();
-      }
-    }
-    ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{
-      notice2Popup.addEventListener(ev, bgTrap, {passive:false});
-    });
-    fadeShow(notice2Popup, 280, 'flex');
-    setTimeout(()=>{
-      notice2Ok && notice2Ok.focus && notice2Ok.focus();
-    }, 50);
-
-    notice2Ok.onclick = async (e)=>{
-      e.stopPropagation();
+  document.getElementById('goIntro').addEventListener('click', ()=>{
+    ensureResumed().then(async ()=>{
       claimImmersive();
-      await ensureResumed();
+      if(!Ambient.isRunning()) Ambient.start(0.2,1.0);
       await playWoongClick();
-      fadeHide(notice2Popup, 250);
-      // 여기서 THE SECOND SLEEP 체험 로직으로 넘어가면 됨
-    };
-  }
+      fadeHide(welcome, FADE);
+      showIntroFlow();
+    });
+  }, {passive:true});
 
-  /* ===== Name screen city ===== */
-  let nameCityCtx = null;
-  let nameBuildings = [];
-  let nameCityRunning = false;
-  let lastFlicker = 0;
+  /* Name screen city */
 
   function initNameCity(keepRunning=false){
     if(!nameCityCanvas) return;
@@ -2161,13 +1959,13 @@
         const winH = winW * 1.1;
         const hGap = winW * 0.4;
         const vGap = winH * 0.5;
-        const colsN = Math.max(1, Math.floor((bw - winW*0.4) / (winW + hGap)));
-        const rowsN = Math.max(2, Math.floor((bh - winH*1.5) / (winH + vGap)));
+        const cols = Math.max(1, Math.floor((bw - winW*0.4) / (winW + hGap)));
+        const rows = Math.max(2, Math.floor((bh - winH*1.5) / (winH + vGap)));
 
         const windows = [];
-        for(let iy=0; iy<rowsN; iy++){
-          for(let ix=0; ix<colsN; ix++){
-            const wx = x + (bw - (colsN*winW + (colsN-1)*hGap))/2 + ix*(winW+hGap);
+        for(let iy=0; iy<rows; iy++){
+          for(let ix=0; ix<cols; ix++){
+            const wx = x + (bw - (cols*winW + (cols-1)*hGap))/2 + ix*(winW+hGap);
             const wy = groundY - winH*1.2 - iy*(winH+vGap);
             const onInit = Math.random() < 0.2;
             windows.push({
@@ -2194,6 +1992,8 @@
         x += bw * (0.2 + Math.random()*0.3);
       }
     }
+
+    initHangingBuildings();
 
     if(!keepRunning && nameCityRunning){
       drawNameCity(performance.now());
@@ -2230,7 +2030,7 @@
 
         const v = clamp(wv.value, 0, 1);
         const off = { r:20, g:20, b:30 };
-        const on  = { r:255, g:216, b:64 }; // 노란 불빛
+        const on  = { r:255, g:216, b:64 };
         const r = off.r + (on.r - off.r) * v;
         const g = off.g + (on.g - off.g) * v;
         const bcol = off.b + (on.b - off.b) * v;
@@ -2267,7 +2067,7 @@
     nameCityRunning = false;
   }
 
-  /* Camera warmup */
+  /* 초기 카메라 워밍업 */
   startCameraFresh(true);
 })();
 </script>
