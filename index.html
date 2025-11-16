@@ -206,7 +206,7 @@
     pointer-events:auto;
   }
 
-  /* Permission Gate (처음만 전체 어둡게 괜찮음) */
+  /* Permission Gate */
   #overlay{
     position:fixed;
     inset:0;
@@ -308,7 +308,7 @@
     left:0;top:0;width:100%;height:100%;
   }
 
-  /* Welcome (텍스트 떠도 카메라는 안 어둡게 → transparent) */
+  /* Welcome */
   #overlayWelcome{
     position:fixed;
     inset:0;
@@ -316,7 +316,7 @@
     display:none;
     place-items:center;
     color:#fff;
-    background:transparent; /* 변경: 전체 어두워지는 배경 제거 */
+    background:transparent;
     padding:0;
   }
   #welcomeCard{
@@ -369,37 +369,42 @@
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
   }
 
-  /* INTRODUCTION 문단 오버레이 (한 블록씩 + NEXT, 배경 투명) */
+  /* INTRODUCTION 문단 오버레이 (우측 하단) */
   #introOverlay{
     position:fixed;
     inset:0;
     z-index:230;
     display:none;
-    align-items:center;
-    justify-content:center;
-    background:transparent; /* 텍스트 떠도 화면 어두워지지 않게 */
+    align-items:flex-end;   /* 하단 */
+    justify-content:flex-end; /* 오른쪽 */
+    background:transparent;
     pointer-events:auto;
   }
   #introOverlayCenter{
-    max-width:min(900px, 92vw);
-    max-height:80vh;
-    text-align:center;
-    padding:0 16px;
+    max-width:min(420px, 60vw);
+    max-height:60vh;
+    text-align:left;
+    padding:16px 18px;
+    margin-right:calc(var(--frame) + var(--safe-r));
+    margin-bottom:calc(var(--frame) + var(--safe-b));
+    background:rgba(0,0,0,0.78);
+    border:1px solid rgba(255,255,255,0.35);
+    box-shadow:0 8px 22px rgba(0,0,0,0.7);
+    border-radius:6px;
   }
   #introOverlayText{
     font-family:"Courier New",ui-monospace,monospace;
-    font-size:clamp(12px, 2.4vmin, 18px);
+    font-size:clamp(11px, 2.0vmin, 16px);
     line-height:1.9;
     color:#ffffff;
-    text-shadow:0 0 8px rgba(0,0,0,0.9);
     white-space:pre-line;
   }
   #introNextRow{
-    margin-top:16px;
+    margin-top:10px;
     text-align:right;
   }
 
-  /* FIRST SLEEP title */
+  /* FIRST SLEEP title block (SLEEEEP + THE FIRST SLEEP) */
   #firstSleep{
     position:fixed;
     inset:0;
@@ -409,20 +414,62 @@
     pointer-events:none;
     z-index:850;
   }
+  #firstSleepInner{
+    text-align:center;
+  }
+  .sleepWordLine{
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    font-weight:400;
+    letter-spacing:.16em;
+    font-size:clamp(28px,10vmin,90px);
+    text-transform:uppercase;
+    color:#fff;
+    text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7);
+    margin:0 0 8px 0;
+    white-space:nowrap;
+  }
   #firstSleepText{
     color:#fff;
     font-weight:400;
     letter-spacing:.16em;
-    font-size:clamp(32px, 12vmin, 160px);
+    font-size:clamp(24px, 7vmin, 72px);
     text-transform:uppercase;
     text-align:center;
     white-space:nowrap;
     text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7);
     padding:0 .02em;
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    opacity:0;
   }
 
-  /* NOTICE Popup (전체 배경 투명, 카드만 어둡게) */
+  /* SECOND SLEEP title block */
+  #secondSleep{
+    position:fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+    z-index:960;
+  }
+  #secondSleepInner{
+    text-align:center;
+  }
+  #secondSleepText{
+    color:#fff;
+    font-weight:400;
+    letter-spacing:.16em;
+    font-size:clamp(24px, 7vmin, 72px);
+    text-transform:uppercase;
+    text-align:center;
+    white-space:nowrap;
+    text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7);
+    padding:0 .02em;
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    opacity:0;
+  }
+
+  /* 1장 NOTICE Popup */
   #noticePopup{
     position:fixed;
     inset:0;
@@ -430,7 +477,7 @@
     display:none;
     align-items:center;
     justify-content:center;
-    background:transparent; /* 변경: 화면 전체 검은막 제거 */
+    background:transparent;
   }
   #noticeCard{
     width:min(92vw, 640px);
@@ -457,6 +504,41 @@
     text-align:right;
   }
 
+  /* 2장 NOTICE Popup (NOTE) */
+  #notice2Popup{
+    position:fixed;
+    inset:0;
+    z-index:970;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:transparent;
+  }
+  #notice2Card{
+    width:min(92vw, 640px);
+    background:#0b0b0b;
+    color:#fff;
+    border:1px solid #333;
+    padding:18px;
+    box-shadow:0 10px 30px rgba(0,0,0,.6);
+    font-family:"Courier New",ui-monospace,monospace;
+    line-height:1.7;
+  }
+  #notice2Card h3{
+    margin:0 0 6px 0;
+    letter-spacing:.06em;
+    font-weight:700;
+    font-size:clamp(15px,3vmin,20px);
+  }
+  #notice2Card p{
+    margin:4px 0;
+    font-size:clamp(12px,2.4vmin,16px);
+  }
+  #notice2Actions{
+    margin-top:10px;
+    text-align:right;
+  }
+
   /* FIRST SLEEP: 카프카 문단 + 모스부호 (배경 투명) */
   #chapterOverlay{
     position:fixed;
@@ -465,7 +547,7 @@
     display:none;
     align-items:center;
     justify-content:center;
-    background:transparent; /* 이미 투명: 텍스트 떠도 카메라 밝게 */
+    background:transparent;
     color:#fff;
     padding:24px;
     pointer-events:none;
@@ -511,7 +593,7 @@
   <button id="docLauncher" class="uiBtn small">DOCUMENT</button>
   <button id="mapLauncher" class="uiBtn small">MAP</button>
   <button id="audioToggle" class="uiBtn small">AUDIO</button>
-  <div id="runTimer" aria-live="polite">08:00</div>
+  <div id="runTimer" aria-live="polite">04:00</div>
 
   <div id="rotateOverlay" aria-live="polite">
     <div>
@@ -564,7 +646,7 @@
   <!-- INTRODUCTION title -->
   <div id="introBig" class="fade"><div id="introBigText">INTRODUCTION</div></div>
 
-  <!-- INTRODUCTION paragraphs overlay (블록+NEXT) -->
+  <!-- INTRODUCTION paragraphs (우측 하단 + NEXT) -->
   <div id="introOverlay" class="fade">
     <div id="introOverlayCenter">
       <div id="introOverlayText"></div>
@@ -574,10 +656,24 @@
     </div>
   </div>
 
-  <!-- THE FIRST SLEEP title -->
-  <div id="firstSleep"><div id="firstSleepText">THE FIRST SLEEP</div></div>
+  <!-- THE FIRST SLEEP block -->
+  <div id="firstSleep">
+    <div id="firstSleepInner">
+      <div id="firstSleepTop" class="sleepWordLine"></div>
+      <div id="firstSleepText">THE FIRST SLEEP</div>
+    </div>
+  </div>
 
-  <!-- NOTICE Popup -->
+  <!-- THE SECOND SLEEP block -->
+  <div id="secondSleep">
+    <div id="secondSleepInner">
+      <div id="secondSleepLine1" class="sleepWordLine"></div>
+      <div id="secondSleepLine2" class="sleepWordLine"></div>
+      <div id="secondSleepText">THE SECOND SLEEP</div>
+    </div>
+  </div>
+
+  <!-- 1장 NOTICE Popup -->
   <div id="noticePopup" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle">
     <div id="noticeCard">
       <h3 id="noticeTitle">NOTICE</h3>
@@ -587,6 +683,21 @@
       <p>※ 확인하셨다면, 아래 ‘OK’버튼을 눌러주세요</p>
       <div id="noticeActions">
         <button id="noticeOk" class="uiBtn flat" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2장 NOTICE Popup (NOTE) -->
+  <div id="notice2Popup" class="fade" role="dialog" aria-modal="true" aria-labelledby="notice2Title">
+    <div id="notice2Card">
+      <h3 id="notice2Title">NOTE</h3>
+      <p>※ “THE SECOND SLEEP”은 귀로 타자를 인식해 나가는 챕터입니다.</p>
+      <p>※ 공간 곳곳에 1번~8번까지의 피켓이 설치되어 있습니다.</p>
+      <p>※ 그곳의 주변으로 이동해 그 공간에 남아있는 누군가의 목소리를 들어보세요.</p>
+      <p>※ 이상하게 마음이 끌리는 소리가 있다면, 그곳의 옆에 있는 의자에 앉아 잠깐의 시간동안 귀를 기울여보세요.</p>
+      <p>※ 확인하셨다면, 아래 ‘OK’버튼을 눌러주세요</p>
+      <div id="notice2Actions">
+        <button id="notice2Ok" class="uiBtn flat" type="button">OK</button>
       </div>
     </div>
   </div>
@@ -712,7 +823,13 @@
   const introNext = qs('#introNext');
 
   const firstSleep = qs('#firstSleep');
+  const firstSleepTop = qs('#firstSleepTop');
   const firstSleepText = qs('#firstSleepText');
+
+  const secondSleep = qs('#secondSleep');
+  const secondSleepLine1 = qs('#secondSleepLine1');
+  const secondSleepLine2 = qs('#secondSleepLine2');
+  const secondSleepText = qs('#secondSleepText');
 
   const controls = qs('#controls');
   const zoomIn = qs('#zoomIn');
@@ -726,6 +843,9 @@
 
   const noticePopup = qs('#noticePopup');
   const noticeOk = qs('#noticeOk');
+
+  const notice2Popup = qs('#notice2Popup');
+  const notice2Ok = qs('#notice2Ok');
 
   const chapterOverlay = qs('#chapterOverlay');
   const chapterBox = qs('#chapterBox');
@@ -895,7 +1015,7 @@
     await playWoongClick();
   }, {passive:true});
   zoomOut.addEventListener('click', async ()=>{
-    ZOOM=1.0;   // ZOOM 고정
+    ZOOM=1.0;
     updateZoomLabel();
     await playWoongClick();
   }, {passive:true});
@@ -1154,7 +1274,6 @@ ${displayName}의 내면 세계
   }
   function fitTitleLineSafe(){
     fitTitleLine(introBigText);
-    fitTitleLine(firstSleepText);
   }
   window.addEventListener('load', fitTitleLineSafe);
 
@@ -1301,7 +1420,7 @@ ${displayName}의 내면 세계
     }
     const block = introScreens[introIdx++];
     introOverlayText.textContent = block;
-    typeTick(); // 화면에 문장 뜰 때 효과음
+    typeTick();
   }
 
   function startIntroSentences(){
@@ -1328,13 +1447,11 @@ ${displayName}의 내면 세계
     await sleep(700);
     introBig.style.display='none';
 
-    // 캐릭터 워킹 시작
     introWalking=true;
     introStartTime=performance.now();
     showIntroLayer=true;
     fgAlpha=1.0;
 
-    // 인트로 블록 + NEXT 시작
     startIntroSentences();
   }
 
@@ -1355,15 +1472,15 @@ ${displayName}의 내면 세계
     });
   }, {passive:true});
 
-  /* 8-minute Timer */
-  let eightTimer=null, eightLeft=8*60;
+  /* 4-minute Timer */
+  let eightTimer=null, eightLeft=4*60;
   function formatMMSS(s){
     const m=Math.floor(s/60);
     const ss=(s%60).toString().padStart(2,'0');
     return `${m.toString().padStart(2,'0')}:${ss}`;
   }
   function startEightTimer(){
-    eightLeft=8*60;
+    eightLeft=4*60;
     runTimer.textContent=formatMMSS(eightLeft);
     runTimer.style.display='block';
     if(eightTimer) clearInterval(eightTimer);
@@ -1372,11 +1489,20 @@ ${displayName}의 내면 세계
       runTimer.textContent=formatMMSS(eightLeft);
       if(eightLeft<=0){
         clearInterval(eightTimer);
+        eightTimer=null;
+        onTimerEnded();
       }
     },1000);
   }
 
-  /* Mic FX (그대로) */
+  async function onTimerEnded(){
+    // 4분 끝나면: SLEEEEP x2 + THE SECOND SLEEP → 2장 NOTICE
+    claimImmersive();
+    await ensureResumed();
+    await showSecondSleepIntro();
+  }
+
+  /* Mic FX (같이 유지) */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, micPreGain=null;
   function makeImpulse(ctx, seconds=6.0, decay=8.0){
     const rate=ctx.sampleRate;
@@ -1612,7 +1738,6 @@ ${displayName}의 내면 세계
       warmupFrames--;
     }
 
-    // 카메라 화면: 그대로 밝게 + 흑백 (CSS 필터)
     vctx.clearRect(0,0,W,H);
     vctx.imageSmoothingEnabled=true;
     if(camVideo && camVideo.readyState>=2){
@@ -1733,27 +1858,47 @@ ${displayName}의 내면 세계
   async function startTransition(){
     Ambient.stop(4.0);
 
+    claimImmersive();
+    await ensureResumed();
+
+    // THE FIRST SLEEP / SLEEEEP 블록 표시
     firstSleep.style.display='flex';
     firstSleep.style.opacity='1';
-    await nextFrame();
-    fitTitleLine(firstSleepText);
+    firstSleep.style.transition='opacity 800ms ease';
+    firstSleepTop.textContent='';
+    firstSleepText.style.opacity='0';
+    firstSleepText.style.transition='opacity 900ms ease';
 
+    // 타이머, 컨트롤, 마이크, 인트로 레이어 페이드 아웃 동시에 시작
     startEightTimer();
     await nextFrame();
     controls.classList.add('show');
     captureBtn.classList.add('show');
+    startMicFXFadeIn(4.0);
+    fadeIntroLayerOut(8000);
 
-    await startMicFXFadeIn(4.0);
+    // "SLEEEEEEEEEEP" 타이핑
+    const word = 'SLEEEEEEEEEEP';
+    for(let i=0;i<word.length;i++){
+      firstSleepTop.textContent += word[i];
+      typeTick();
+      await sleep(110);  // 조금 느리게
+    }
 
-    const fadeDur=8000;
-    fadeIntroLayerOut(fadeDur);
-    await sleep(900);
-    firstSleep.style.transition=`opacity ${fadeDur}ms ease`;
+    // 약간 쉬고 "THE FIRST SLEEP" 페이드 인
+    await sleep(200);
+    firstSleepText.style.opacity='1';
+
+    // 3초 유지
+    await sleep(3000);
+
+    // 전체 페이드 아웃
     firstSleep.style.opacity='0';
-    await sleep(fadeDur+200);
+    await sleep(1200);
     firstSleep.style.display='none';
-    firstSleep.style.transition='';
+    firstSleepText.style.transition='';
 
+    // 1장 NOTICE 등장
     showNoticePopup();
   }
 
@@ -1821,32 +1966,32 @@ ${displayName}의 내면 세계
       span.className = 'charBox';
       span.textContent = (ch === ' ' ? '\u00A0' : ch);
       el.appendChild(span);
-      typeTick();  // SLEEEEP 시스템 타이핑 효과음
+      typeTick();
       await sleep(charDelay);
     }
   }
 
   async function startMorseSequence(){
-    const pattern = "... . ... .. ... .. .. .   ..... .   .  . ";
-    const vv = window.visualViewport;
-    const maxHeight = (vv ? vv.height : window.innerHeight) * 0.9;
-
+    const pattern = "... . ... .. ... ..   .. .   ..... .   .  . ";
     chapterBox.innerHTML='';
-    let filled = false;
 
-    while(!filled){
-      for(let i=0;i<pattern.length;i++){
-        const ch = pattern[i];
+    // 모스 느낌: 점은 짧게, 공백은 길이 다른 쉼
+    for(let i=0;i<pattern.length;i++){
+      const ch = pattern[i];
+      if(ch === '.'){
         const span = document.createElement('span');
-        span.className = 'charBox';
-        span.textContent = (ch === ' ' ? '\u00A0' : ch);
+        span.className='charBox';
+        span.textContent='·';
         chapterBox.appendChild(span);
         typeTick();
-        await sleep(18);
+        await sleep(120); // dot
+      }else if(ch === ' '){
+        await sleep(80);  // 짧은 쉼
       }
-      chapterBox.appendChild(document.createElement('br'));
-      if(chapterBox.scrollHeight >= maxHeight){
-        filled = true;
+      // 약간씩 줄바꿈 넣어서 패턴 분절
+      if(i>0 && i%18===0){
+        chapterBox.appendChild(document.createElement('br'));
+        await sleep(220);
       }
     }
 
@@ -1861,7 +2006,6 @@ ${displayName}의 내면 세계
     fadeShow(chapterOverlay, 400, 'flex');
     await sleep(420);
 
-    // 1st sleep: 한 줄씩 타이핑 + 2초 유지
     const lines = firstSleepStory.split('\n');
     for(const line of lines){
       const trimmed = line.trim();
@@ -1869,13 +2013,82 @@ ${displayName}의 내면 세계
         chapterBox.appendChild(document.createElement('br'));
         continue;
       }
-      await typeBoxedTextLine(chapterBox, trimmed, 26);
+      await typeBoxedTextLine(chapterBox, trimmed, 45); // 더 느리게
       chapterBox.appendChild(document.createElement('br'));
       await sleep(2000); // 각 줄마다 2초 멈춤
     }
 
     await sleep(2000);
     await startMorseSequence();
+  }
+
+  /* SECOND SLEEP 타이틀 + 2장 NOTICE */
+
+  async function showSecondSleepIntro(){
+    // 혹시 남아있을 수도 있는 1장 텍스트 오버레이 정리
+    fadeHide(chapterOverlay, 800);
+
+    secondSleep.style.display='flex';
+    secondSleep.style.opacity='1';
+    secondSleep.style.transition='opacity 800ms ease';
+    secondSleepLine1.textContent='';
+    secondSleepLine2.textContent='';
+    secondSleepText.style.opacity='0';
+    secondSleepText.style.transition='opacity 900ms ease';
+
+    const word='SLEEEEEEEEEEP';
+
+    // 첫 줄
+    for(let i=0;i<word.length;i++){
+      secondSleepLine1.textContent += word[i];
+      typeTick();
+      await sleep(110);
+    }
+    await sleep(300);
+
+    // 둘째 줄
+    for(let i=0;i<word.length;i++){
+      secondSleepLine2.textContent += word[i];
+      typeTick();
+      await sleep(110);
+    }
+
+    await sleep(250);
+    secondSleepText.style.opacity='1';
+
+    await sleep(3000);
+
+    secondSleep.style.opacity='0';
+    await sleep(1200);
+    secondSleep.style.display='none';
+    secondSleepText.style.transition='';
+
+    showSecondNotice();
+  }
+
+  function showSecondNotice(){
+    function bgTrap(e){
+      if(!e.target.closest('#notice2Card')){
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }
+    ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{
+      notice2Popup.addEventListener(ev, bgTrap, {passive:false});
+    });
+    fadeShow(notice2Popup, 280, 'flex');
+    setTimeout(()=>{
+      notice2Ok && notice2Ok.focus && notice2Ok.focus();
+    }, 50);
+
+    notice2Ok.onclick = async (e)=>{
+      e.stopPropagation();
+      claimImmersive();
+      await ensureResumed();
+      await playWoongClick();
+      fadeHide(notice2Popup, 250);
+      // 이후 THE SECOND SLEEP 챕터 로직은 여기서 이어가면 됨
+    };
   }
 
   /* ===== Name screen city ===== */
@@ -1931,13 +2144,13 @@ ${displayName}의 내면 세계
         const winH = winW * 1.1;
         const hGap = winW * 0.4;
         const vGap = winH * 0.5;
-        const cols = Math.max(1, Math.floor((bw - winW*0.4) / (winW + hGap)));
-        const rows = Math.max(2, Math.floor((bh - winH*1.5) / (winH + vGap)));
+        const colsN = Math.max(1, Math.floor((bw - winW*0.4) / (winW + hGap)));
+        const rowsN = Math.max(2, Math.floor((bh - winH*1.5) / (winH + vGap)));
 
         const windows = [];
-        for(let iy=0; iy<rows; iy++){
-          for(let ix=0; ix<cols; ix++){
-            const wx = x + (bw - (cols*winW + (cols-1)*hGap))/2 + ix*(winW+hGap);
+        for(let iy=0; iy<rowsN; iy++){
+          for(let ix=0; ix<colsN; ix++){
+            const wx = x + (bw - (colsN*winW + (colsN-1)*hGap))/2 + ix*(winW+hGap);
             const wy = groundY - winH*1.2 - iy*(winH+vGap);
             const onInit = Math.random() < 0.2;
             windows.push({
