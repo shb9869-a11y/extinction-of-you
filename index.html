@@ -69,6 +69,7 @@
   .fade{opacity:0; transition:opacity 1800ms ease}
   .fade.show{opacity:1}
 
+  /* 카메라: 흑백 유지 */
   #view{
     position:fixed;
     left:0;
@@ -77,7 +78,7 @@
     height:100vh;
     display:block;
     z-index:0;
-    filter:grayscale(1); /* 카메라 흑백 모드 */
+    filter:grayscale(1); /* 흑백 */
   }
   #fg{
     position:fixed;
@@ -205,7 +206,7 @@
     pointer-events:auto;
   }
 
-  /* Gate */
+  /* Permission Gate (처음만 전체 어둡게 괜찮음) */
   #overlay{
     position:fixed;
     inset:0;
@@ -307,7 +308,7 @@
     left:0;top:0;width:100%;height:100%;
   }
 
-  /* Welcome */
+  /* Welcome (텍스트 떠도 카메라는 안 어둡게 → transparent) */
   #overlayWelcome{
     position:fixed;
     inset:0;
@@ -315,7 +316,7 @@
     display:none;
     place-items:center;
     color:#fff;
-    background:rgba(0,0,0,.55);
+    background:transparent; /* 변경: 전체 어두워지는 배경 제거 */
     padding:0;
   }
   #welcomeCard{
@@ -338,6 +339,7 @@
     line-height:1.1;
     margin:0;
     text-transform:uppercase;
+    text-shadow:0 0 8px rgba(0,0,0,0.8);
   }
   #goIntro{
     margin-top:0;
@@ -367,7 +369,7 @@
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
   }
 
-  /* INTRODUCTION 문단 오버레이 (1장 스타일, NEXT 버튼) */
+  /* INTRODUCTION 문단 오버레이 (한 블록씩 + NEXT, 배경 투명) */
   #introOverlay{
     position:fixed;
     inset:0;
@@ -375,7 +377,7 @@
     display:none;
     align-items:center;
     justify-content:center;
-    background:transparent; /* 어두워지지 않게 */
+    background:transparent; /* 텍스트 떠도 화면 어두워지지 않게 */
     pointer-events:auto;
   }
   #introOverlayCenter{
@@ -397,7 +399,7 @@
     text-align:right;
   }
 
-  /* FIRST SLEEP 타이틀 */
+  /* FIRST SLEEP title */
   #firstSleep{
     position:fixed;
     inset:0;
@@ -420,7 +422,7 @@
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
   }
 
-  /* NOTICE Popup */
+  /* NOTICE Popup (전체 배경 투명, 카드만 어둡게) */
   #noticePopup{
     position:fixed;
     inset:0;
@@ -428,7 +430,7 @@
     display:none;
     align-items:center;
     justify-content:center;
-    background:rgba(0,0,0,.72);
+    background:transparent; /* 변경: 화면 전체 검은막 제거 */
   }
   #noticeCard{
     width:min(92vw, 640px);
@@ -455,7 +457,7 @@
     text-align:right;
   }
 
-  /* FIRST SLEEP: 카프카 문단 + 모스 부호 (배경 어둡게 X) */
+  /* FIRST SLEEP: 카프카 문단 + 모스부호 (배경 투명) */
   #chapterOverlay{
     position:fixed;
     inset:0;
@@ -463,7 +465,7 @@
     display:none;
     align-items:center;
     justify-content:center;
-    background:transparent; /* 어두워지지 않게 */
+    background:transparent; /* 이미 투명: 텍스트 떠도 카메라 밝게 */
     color:#fff;
     padding:24px;
     pointer-events:none;
@@ -562,7 +564,7 @@
   <!-- INTRODUCTION title -->
   <div id="introBig" class="fade"><div id="introBigText">INTRODUCTION</div></div>
 
-  <!-- INTRODUCTION paragraphs overlay (1장 스타일 + NEXT) -->
+  <!-- INTRODUCTION paragraphs overlay (블록+NEXT) -->
   <div id="introOverlay" class="fade">
     <div id="introOverlayCenter">
       <div id="introOverlayText"></div>
@@ -893,8 +895,7 @@
     await playWoongClick();
   }, {passive:true});
   zoomOut.addEventListener('click', async ()=>{
-    ZOOM=Math.max(1.0, ZOOM-0.0); // 1.0 아래로 안 내려가게, 사실상 고정
-    ZOOM=1.0;
+    ZOOM=1.0;   // ZOOM 고정
     updateZoomLabel();
     await playWoongClick();
   }, {passive:true});
@@ -1065,9 +1066,9 @@
     fadeShow(welcome, FADE);
   }, {passive:true});
 
-  /* ===== INTRO big title & paragraphs (1장 스타일, NEXT로 넘기기) ===== */
+  /* ===== INTRO big title & INTRO 블록 + NEXT ===== */
 
-  function getIntroParagraphs(){
+  function getIntroScreens(){
     return [
 `안녕하세요?
 작게 대답해주세요.
@@ -1282,24 +1283,14 @@ ${displayName}의 내면 세계
   ];
   let bubbleTimer=0, bubbleIdx=0;
 
-  /* 인트로 문장 NEXT로 넘기기 */
-  let introLines = [];
-  let introIndex = 0;
+  /* 인트로: 블록 단위 + NEXT */
+  let introScreens = [];
+  let introIdx = 0;
   let introActive = false;
 
-  function buildIntroLines(){
-    const paras = getIntroParagraphs();
-    const lines = [];
-    for(const p of paras){
-      const segs = p.split('\n').map(s=>s.trim()).filter(Boolean);
-      lines.push(...segs);
-    }
-    return lines;
-  }
-
-  function showNextIntroLine(){
+  function showIntroScreen(){
     if(!introActive) return;
-    if(introIndex >= introLines.length){
+    if(introIdx >= introScreens.length){
       introActive = false;
       fadeHide(introOverlay, 600);
       setTimeout(async ()=>{
@@ -1308,17 +1299,17 @@ ${displayName}의 내면 세계
       }, 650);
       return;
     }
-    const line = introLines[introIndex++];
-    introOverlayText.textContent = line;
-    typeTick();
+    const block = introScreens[introIdx++];
+    introOverlayText.textContent = block;
+    typeTick(); // 화면에 문장 뜰 때 효과음
   }
 
   function startIntroSentences(){
-    introLines = buildIntroLines();
-    introIndex = 0;
+    introScreens = getIntroScreens();
+    introIdx = 0;
     introActive = true;
     fadeShow(introOverlay, 400, 'flex');
-    showNextIntroLine();
+    showIntroScreen();
   }
 
   async function showIntroFlow(){
@@ -1337,20 +1328,20 @@ ${displayName}의 내면 세계
     await sleep(700);
     introBig.style.display='none';
 
-    // 캐릭터 워킹 시작 (뒤에서 계속 움직이는 상태 유지)
+    // 캐릭터 워킹 시작
     introWalking=true;
     introStartTime=performance.now();
     showIntroLayer=true;
     fgAlpha=1.0;
 
-    // 인트로 문장 NEXT로 넘기기 시작
+    // 인트로 블록 + NEXT 시작
     startIntroSentences();
   }
 
   introNext.addEventListener('click', ()=>{
     ensureResumed().then(async ()=>{
       await playWoongClick();
-      showNextIntroLine();
+      showIntroScreen();
     });
   }, {passive:true});
 
@@ -1505,7 +1496,7 @@ ${displayName}의 내면 세계
     }
   }
 
-  /* Camera & Render (픽셀화 제거, 흑백은 CSS 필터) */
+  /* Camera & Render */
   let metaReady=false;
   async function startCameraFresh(warmupOnly=false){
     try{
@@ -1621,7 +1612,7 @@ ${displayName}의 내면 세계
       warmupFrames--;
     }
 
-    // 카메라를 바로 전체 화면에 그리기 (픽셀화 없음, 흑백은 CSS)
+    // 카메라 화면: 그대로 밝게 + 흑백 (CSS 필터)
     vctx.clearRect(0,0,W,H);
     vctx.imageSmoothingEnabled=true;
     if(camVideo && camVideo.readyState>=2){
@@ -1791,7 +1782,7 @@ ${displayName}의 내면 세계
     };
   }
 
-  /* FIRST SLEEP: 카프카 문단 + 모스 부호 */
+  /* FIRST SLEEP: 텍스트 (한 줄씩 타이핑 + 2초 유지) */
   const firstSleepStory = `당신은 공간을 거닐고 있다.
 마침내 당신은 도시의 어둠, 그리고 스산한 안개 속으로 천천히 발을 내딛었다.
 지금은 새벽 4시. 당신은 축축하고 푹신한 수면 위로 걷는 느낌을 느낀다.
@@ -1819,7 +1810,7 @@ ${displayName}의 내면 세계
 “들어 봐, 저놈이 말을 해!”
 그 반향은 땀방울이 뚝뚝 떨어지는 제 온몸에 쏟아지는 입맞춤 같았답니다.`;
 
-  async function typeBoxedText(el, text, charDelay){
+  async function typeBoxedTextLine(el, text, charDelay){
     for(let i=0;i<text.length;i++){
       const ch = text[i];
       if(ch === '\n'){
@@ -1830,7 +1821,7 @@ ${displayName}의 내면 세계
       span.className = 'charBox';
       span.textContent = (ch === ' ' ? '\u00A0' : ch);
       el.appendChild(span);
-      typeTick();
+      typeTick();  // SLEEEEP 시스템 타이핑 효과음
       await sleep(charDelay);
     }
   }
@@ -1870,7 +1861,7 @@ ${displayName}의 내면 세계
     fadeShow(chapterOverlay, 400, 'flex');
     await sleep(420);
 
-    // 1st sleep: 한 문장(한 줄)씩 타이핑, 2초 유지
+    // 1st sleep: 한 줄씩 타이핑 + 2초 유지
     const lines = firstSleepStory.split('\n');
     for(const line of lines){
       const trimmed = line.trim();
@@ -1878,9 +1869,9 @@ ${displayName}의 내면 세계
         chapterBox.appendChild(document.createElement('br'));
         continue;
       }
-      await typeBoxedText(chapterBox, trimmed, 26);
+      await typeBoxedTextLine(chapterBox, trimmed, 26);
       chapterBox.appendChild(document.createElement('br'));
-      await sleep(2000); // 각 줄(문장)마다 2초 유지
+      await sleep(2000); // 각 줄마다 2초 멈춤
     }
 
     await sleep(2000);
