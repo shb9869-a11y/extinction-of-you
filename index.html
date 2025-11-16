@@ -312,11 +312,11 @@
     margin:0 auto;
     text-align:center;
     padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;
-    gap:18px; /* 위/중간/아래 간격 동일 */
+    gap:18px;
   }
   #welcomeCard .title{
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    font-size:clamp(40px, 12vmin, 96px); /* 폰트 더 크게 */
+    font-size:clamp(40px, 12vmin, 96px);
     font-weight:400;
     letter-spacing:.16em;
     line-height:1.1;
@@ -324,7 +324,7 @@
     text-transform:uppercase;
   }
   #goIntro{
-    margin-top:0;           /* 위/아래 간격 동일하게 */
+    margin-top:0;
     font-size:var(--fs-small);
   }
 
@@ -468,6 +468,41 @@
     margin-top:10px;
     text-align:right;
   }
+
+  /* 첫 번째 수면: 카프카 문단 + 모스부호 오버레이 */
+  #chapterOverlay{
+    position:fixed;
+    inset:0;
+    z-index:930;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,0.9);
+    color:#fff;
+    padding:24px;
+  }
+  #chapterCenter{
+    max-width:min(900px, 92vw);
+    max-height:80vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    overflow:hidden;
+  }
+  #chapterBox{
+    font-family:"Courier New",ui-monospace,monospace;
+    line-height:1.8;
+    font-size:clamp(11px,2.0vmin,15px);
+  }
+  #chapterBox .charBox{
+    display:inline-block;
+    min-width:0.6em;
+    padding:2px 3px;
+    margin:1px;
+    background:#000;
+    border-radius:2px;
+  }
 </style>
 </head>
 <body>
@@ -556,7 +591,7 @@
   <!-- THE FIRST SLEEP -->
   <div id="firstSleep"><div id="firstSleepText">THE FIRST SLEEP</div></div>
 
-  <!-- NOTICE Popup -->
+  <!-- NOTICE Popup (FIRST SLEEP 안내) -->
   <div id="noticePopup" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle">
     <div id="noticeCard">
       <h3 id="noticeTitle">NOTICE</h3>
@@ -567,6 +602,13 @@
       <div id="noticeActions">
         <button id="noticeOk" class="uiBtn flat" type="button">OK</button>
       </div>
+    </div>
+  </div>
+
+  <!-- FIRST SLEEP: 카프카 문단 + 모스부호 -->
+  <div id="chapterOverlay" class="fade">
+    <div id="chapterCenter">
+      <div id="chapterBox"></div>
     </div>
   </div>
 
@@ -698,6 +740,9 @@
 
   const noticePopup = qs('#noticePopup');
   const noticeOk = qs('#noticeOk');
+
+  const chapterOverlay = qs('#chapterOverlay');
+  const chapterBox = qs('#chapterBox');
 
   /* ===== Canvas ===== */
   let vctx=null, pctx=null, proc=null, fgctx=null;
@@ -1046,33 +1091,55 @@
       "대답을 해주셔야 프로그램이 진행될 수 있습니다.",
       "안녕하세요?",
       "감사합니다.",
-      `지금 이 화면을 보고 있는 당신은 ${displayName}의 내면 세계를 탐험하는 탐험가입니다.`,
-      "지금부터 우리는 주변의 소리에 귀를 기울이며 30분 간의 짧은 낮잠에 빠져볼 것입니다.",
-      "자, 천천히 공간을 거닐어보세요.",
+      "아실지 모르겠지만, 저는 이 공간의 안내자, ",
+      "당신의 내면 세계에 존재하는 무의식입니다.",
+      `지금부터 우리는 ${displayName}의 내면 세계를 탐험하는 탐험가가 될 것입니다.`,
+      "주변의 소리에 귀를 기울이며,",
+      "30분 간의 짧은 낮잠을 통해서 말이죠.",
+      "자, 그럼 천천히 공간을 거닐어보세요. ",
       "무릎을 들고, 발을 앞으로 뻗어보세요.",
+      "하셨나요?",
       "참 잘했어요.",
       "맞아요. 그래 맞아요. 우리는 늘 그랬어요.",
       "우리는 언제나 타자와 함께 존재해 왔습니다.",
-      "가족, 친구, 교수님, 지나가는 그들, 그리고 당신과 처음 만나는 저도 우리는 늘 함께 존재해왔습니다.",
-      "그러나 어느 순간 ‘너’로 불리던 그들은 ‘그것’으로 전락해버리기 시작했습니다.",
-      "이유는 아무도 몰라요. 그저 우리가 ‘너’들을 ‘그것’들로 부르기 시작한 것이죠.",
-      "김춘추의 <꽃>이 떠오르네요.",
+      "가족, 친구, 교수님, 지나가는 그들, ",
+      "그리고 당신과 처음 만나는 저도 우리는 늘 함께 존재해왔습니다",
+      "그러나 어느 순간 ‘너’로 불리던 그들은 ‘그것’으로 전락하기 시작했습니다.",
+      "이유는 아무도 몰라요. ",
+      "그저 우리가 ‘너’들을 ‘그것’들로 부르기 시작한 것일까요?",
+      "이유는 아무도 모르죠.",
+      "아...",
+      "갑자기 김춘추의 <꽃>이 떠오르네요.",
       "(진지한 톤으로) 내가 그의 이름을 불러주기 전에는 그는 다만 하나의 몸짓에 지나지 않았다.",
       "크으으으으으으....",
       "네. 각설하고.",
-      "이제 우리는 어느 곳에서도 ‘너’를 찾아볼 수 없습니다.",
+      "말씀드린 것처럼, 이제 우리는 어느 곳에서도 ‘너’를 찾아볼 수 없습니다.",
       "우리는 이제 ‘너’가 사라진 세상에 살아가고 있으니까요.",
-      "그런 특정했던 ‘너’는 서서히 희미해지고 퇴색되고 잊혀지고 잃어지고 앓아가고 있습니다.",
-      "마치 꿈 속에서 만난 누군가가 ... 그게 누구였지? ... 하고 떠오르지 않는 것처럼.",
-      "이곳은 바로 ‘너’가 사라진 공간",
-      "‘너’가 제거된, 제거해버린",
-      `${displayName}의 내면 세계입니다`,
-      `그리고 당신은 지금 이 순간 ${displayName}의 내면 세계로 발을 디딥니다.`,
-      "두 번의 심호흡을 하기도 하면서, 후 -- 하, 후 .... 하 ~",
-      "이제 눈으로 감고, 천천히 수면 아래로 내려갑니다.",
+      "그런 특정했던 ‘너’는 서서히 희미해지고 퇴색되고 잊혀지고 잃어지고 앓아가고 있습니다",
+      "마치 꿈 속에서 만난 누군가가",
+      "...",
+      "그게 누구였지?",
+      "...",
+      "하고 떠오르지 않는 것처럼",
+      "‘너’가 사라진 공간",
+      "‘너’가 제거된 공간",
+      "‘너’를 제거해버린 공간",
+      `${displayName}의 내면 세계`,
+      `이제 곧 ${displayName}의 내면 세계로 발을 디딥니다`,
+      "두 번의 심호흡을 하기도 하면서,",
+      "후 --",
+      "하,",
+      "후 ....",
+      "하 ~ ",
+      "이제 눈으로 감고,",
+      "천천히 수면 아래로 내려갑니다.",
       "귀를 기울여 ‘보세요’",
       "내면의 미로를 탐험하여 사라진 ‘너’의 소리에",
-      "말이 길었습니다. 저는 이만 떠나보겠습니다. 안전히 수면 속으로 들어가세요."
+      "말이 길었습니다. ",
+      "잠시 후에 만나요.",
+      "수면으로",
+      "내려갑니다",
+      "..."
     ];
   }
 
@@ -1771,6 +1838,8 @@
       await ensureResumed();
       await playWoongClick();
       fadeHide(noticePopup, 250);
+      await sleep(260);
+      startFirstSleepStory();  // 첫 번째 수면: 카프카 문단 + 모스부호
     };
   }
 
@@ -1779,6 +1848,95 @@
     fitTitleLine(firstSleepText);
   }
   window.addEventListener('load', fitTitleLineAllSafe);
+
+  /* ===== FIRST SLEEP: 카프카 문단 + 모스 부호 ===== */
+
+  const firstSleepStory = `당신은 공간을 거닐고 있다.
+마침내 당신은 도시의 어둠, 그리고 스산한 안개 속으로 천천히 발을 내딛었다.
+지금은 새벽 4시. 당신은 축축하고 푹신한 수면 위로 걷는 느낌을 느낀다.
+뒤꿈치부터 발바닥을 거쳐 발가락까지 차례로 내리눌러보기도 하며, 당신이 서 있는 곳이 당신을 타고 올라오게 천천히 내버려둔다.
+당신은 어디선가 잔잔한 종 소리를 듣는다.
+당신은 잠시 후, 또 다시 어디선가 들려오는 아이들의 웃음 소리를 듣는다.
+당신은 지금 내면의 바다를 듣고 있다.
+갑자기 프란츠 카프카의 <학술원에 보내는 보고서>라는 소설이 떠올랐다.
+소설은 아프리카 해안 어느 숲 속에서 무한한 자유를 누리며 원숭이답게 살아가는 빨간 피터라는 원숭이의 이야기를 다루고 있다.
+그러던 어느날 피터의 앞으로 백인들은 그를 잡아가 우리에 가둔다.
+난생 처음 우리에 가둔 피터는 처음으로 고민에 빠진다.
+탈출을 할 것인가? 혹은 그대로 있을 것인가?
+그러던 중 피터가 마지막으로 한 선택은 인간들처럼 되기 위한 선택을 내린다.
+침을 뱉고, 술을 마시고, 악수를 하고, 담배를 태우며 서서히 인간 세계의 일원이 되어가는 것이다.
+사람들을 흉내 내는 일은 전혀 어렵지 않았습니다. 
+침 뱉기는 며칠만에 거뜬히 배웠죠. 파이프 담배도 곧 영감처럼 피웠어요. 
+가장 어려웠던 것은 술병이었습니다.
+냄새가 지독했거든요.
+저는 그동안 배운 대로 코르크 마개를 빼고 술병을 입에 갖다 댔죠.
+그러곤 전혀 망설임 없이 표정 하나 변하지 않고 술을 들이켰어요.
+진짜 술꾼처럼 눈동자도 데굴데굴 굴리고, 꿀꺽꿀꺽 소리도 내면서 그야말로 남김없이 술병을 비워버린 겁니다.
+참을 수 없는 충동에 정신이 멍해져서 “헬로!”하고 짤막하게 외쳤습니다.
+인간의 소리를 내뱉은 거였죠.
+이 한마디의 외침으로 저는 인간세계에 뛰어들었고, 거기엔 반향이 뒤따랐습니다.
+“들어 봐, 저놈이 말을 해!”
+그 반향은 땀방울이 뚝뚝 떨어지는 제 온몸에 쏟아지는 입맞춤 같았답니다.`;
+
+  async function typeBoxedText(el, text, charDelay){
+    el.innerHTML='';
+    for(let i=0;i<text.length;i++){
+      const ch = text[i];
+      if(ch === '\n'){
+        el.appendChild(document.createElement('br'));
+        continue;
+      }
+      const span = document.createElement('span');
+      span.className = 'charBox';
+      span.textContent = (ch === ' ' ? '\u00A0' : ch);
+      el.appendChild(span);
+      typeTick();
+      await sleep(charDelay);
+    }
+  }
+
+  async function startMorseSequence(){
+    const pattern = "... . ... .. ... .. .. .   ..... .   .  . ";
+    const vv = window.visualViewport;
+    const maxHeight = (vv ? vv.height : window.innerHeight) * 0.9;
+
+    chapterBox.innerHTML='';
+    let filled = false;
+
+    while(!filled){
+      for(let i=0;i<pattern.length;i++){
+        const ch = pattern[i];
+        const span = document.createElement('span');
+        span.className = 'charBox';
+        span.textContent = (ch === ' ' ? '\u00A0' : ch);
+        chapterBox.appendChild(span);
+        typeTick();
+        await sleep(18);
+      }
+      chapterBox.appendChild(document.createElement('br'));
+      if(chapterBox.scrollHeight >= maxHeight){
+        filled = true;
+      }
+    }
+
+    // 모스부호가 화면을 꽉 채운 후 잠시 유지
+    await sleep(1500);
+    fadeHide(chapterOverlay, 1200);
+  }
+
+  async function startFirstSleepStory(){
+    claimImmersive();
+    await ensureResumed();
+    chapterBox.innerHTML='';
+    fadeShow(chapterOverlay, 400, 'flex');
+    await sleep(420);
+    // 카프카 문단 글자별 입력 + 검정 박스
+    await typeBoxedText(chapterBox, firstSleepStory, 26);
+    // 4초 정도 읽을 시간
+    await sleep(4000);
+    // 모스부호 화면 꽉 채우기
+    await startMorseSequence();
+  }
 
   /* ===== 이름 입력 화면: 달동네 빌딩 (더 위로 올라오게 조정) ===== */
   let nameCityCtx = null;
