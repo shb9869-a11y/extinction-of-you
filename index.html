@@ -77,6 +77,7 @@
     height:100vh;
     display:block;
     z-index:0;
+    filter:grayscale(1); /* 카메라 흑백 모드 */
   }
   #fg{
     position:fixed;
@@ -366,7 +367,7 @@
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
   }
 
-  /* INTRODUCTION 문단 오버레이 (1장 스타일) */
+  /* INTRODUCTION 문단 오버레이 (1장 스타일, NEXT 버튼) */
   #introOverlay{
     position:fixed;
     inset:0;
@@ -375,7 +376,7 @@
     align-items:center;
     justify-content:center;
     background:transparent; /* 어두워지지 않게 */
-    pointer-events:none;
+    pointer-events:auto;
   }
   #introOverlayCenter{
     max-width:min(900px, 92vw);
@@ -390,6 +391,10 @@
     color:#ffffff;
     text-shadow:0 0 8px rgba(0,0,0,0.9);
     white-space:pre-line;
+  }
+  #introNextRow{
+    margin-top:16px;
+    text-align:right;
   }
 
   /* FIRST SLEEP 타이틀 */
@@ -450,7 +455,7 @@
     text-align:right;
   }
 
-  /* FIRST SLEEP: 카프카 문단 + 모스 부호 */
+  /* FIRST SLEEP: 카프카 문단 + 모스 부호 (배경 어둡게 X) */
   #chapterOverlay{
     position:fixed;
     inset:0;
@@ -458,9 +463,10 @@
     display:none;
     align-items:center;
     justify-content:center;
-    background:rgba(0,0,0,0.9);
+    background:transparent; /* 어두워지지 않게 */
     color:#fff;
     padding:24px;
+    pointer-events:none;
   }
   #chapterCenter{
     max-width:min(900px, 92vw);
@@ -556,10 +562,13 @@
   <!-- INTRODUCTION title -->
   <div id="introBig" class="fade"><div id="introBigText">INTRODUCTION</div></div>
 
-  <!-- INTRODUCTION paragraphs overlay (1장 스타일) -->
+  <!-- INTRODUCTION paragraphs overlay (1장 스타일 + NEXT) -->
   <div id="introOverlay" class="fade">
     <div id="introOverlayCenter">
       <div id="introOverlayText"></div>
+      <div id="introNextRow">
+        <button id="introNext" class="uiBtn small" type="button">NEXT</button>
+      </div>
     </div>
   </div>
 
@@ -698,6 +707,7 @@
 
   const introOverlay = qs('#introOverlay');
   const introOverlayText = qs('#introOverlayText');
+  const introNext = qs('#introNext');
 
   const firstSleep = qs('#firstSleep');
   const firstSleepText = qs('#firstSleepText');
@@ -1055,7 +1065,7 @@
     fadeShow(welcome, FADE);
   }, {passive:true});
 
-  /* ===== INTRO big title & paragraphs (1장 스타일) ===== */
+  /* ===== INTRO big title & paragraphs (1장 스타일, NEXT로 넘기기) ===== */
 
   function getIntroParagraphs(){
     return [
@@ -1272,6 +1282,45 @@ ${displayName}의 내면 세계
   ];
   let bubbleTimer=0, bubbleIdx=0;
 
+  /* 인트로 문장 NEXT로 넘기기 */
+  let introLines = [];
+  let introIndex = 0;
+  let introActive = false;
+
+  function buildIntroLines(){
+    const paras = getIntroParagraphs();
+    const lines = [];
+    for(const p of paras){
+      const segs = p.split('\n').map(s=>s.trim()).filter(Boolean);
+      lines.push(...segs);
+    }
+    return lines;
+  }
+
+  function showNextIntroLine(){
+    if(!introActive) return;
+    if(introIndex >= introLines.length){
+      introActive = false;
+      fadeHide(introOverlay, 600);
+      setTimeout(async ()=>{
+        await playTduung();
+        startTransition();
+      }, 650);
+      return;
+    }
+    const line = introLines[introIndex++];
+    introOverlayText.textContent = line;
+    typeTick();
+  }
+
+  function startIntroSentences(){
+    introLines = buildIntroLines();
+    introIndex = 0;
+    introActive = true;
+    fadeShow(introOverlay, 400, 'flex');
+    showNextIntroLine();
+  }
+
   async function showIntroFlow(){
     claimImmersive();
     await ensureResumed();
@@ -1288,28 +1337,22 @@ ${displayName}의 내면 세계
     await sleep(700);
     introBig.style.display='none';
 
-    // 캐릭터 워킹 시작
+    // 캐릭터 워킹 시작 (뒤에서 계속 움직이는 상태 유지)
     introWalking=true;
     introStartTime=performance.now();
     showIntroLayer=true;
     fgAlpha=1.0;
 
-    // 1장 스타일 인트로 문단
-    const paras = getIntroParagraphs();
-    fadeShow(introOverlay, 400, 'flex');
-    for(const p of paras){
-      introOverlayText.textContent='';
-      await sleep(100);
-      introOverlayText.textContent = p;
-      typeTick();
-      await sleep(2000); // 문단마다 2초 정지
-    }
-    fadeHide(introOverlay, 600);
-    await sleep(650);
-
-    await playTduung();
-    startTransition();
+    // 인트로 문장 NEXT로 넘기기 시작
+    startIntroSentences();
   }
+
+  introNext.addEventListener('click', ()=>{
+    ensureResumed().then(async ()=>{
+      await playWoongClick();
+      showNextIntroLine();
+    });
+  }, {passive:true});
 
   document.getElementById('goIntro').addEventListener('click', ()=>{
     ensureResumed().then(async ()=>{
@@ -1462,7 +1505,7 @@ ${displayName}의 내면 세계
     }
   }
 
-  /* Camera & Render (픽셀화 제거) */
+  /* Camera & Render (픽셀화 제거, 흑백은 CSS 필터) */
   let metaReady=false;
   async function startCameraFresh(warmupOnly=false){
     try{
@@ -1578,7 +1621,7 @@ ${displayName}의 내면 세계
       warmupFrames--;
     }
 
-    // 카메라를 바로 전체 화면에 그리기 (픽셀화 없음)
+    // 카메라를 바로 전체 화면에 그리기 (픽셀화 없음, 흑백은 CSS)
     vctx.clearRect(0,0,W,H);
     vctx.imageSmoothingEnabled=true;
     if(camVideo && camVideo.readyState>=2){
@@ -1777,7 +1820,6 @@ ${displayName}의 내면 세계
 그 반향은 땀방울이 뚝뚝 떨어지는 제 온몸에 쏟아지는 입맞춤 같았답니다.`;
 
   async function typeBoxedText(el, text, charDelay){
-    el.innerHTML='';
     for(let i=0;i<text.length;i++){
       const ch = text[i];
       if(ch === '\n'){
@@ -1827,8 +1869,21 @@ ${displayName}의 내면 세계
     chapterBox.innerHTML='';
     fadeShow(chapterOverlay, 400, 'flex');
     await sleep(420);
-    await typeBoxedText(chapterBox, firstSleepStory, 26);
-    await sleep(4000);
+
+    // 1st sleep: 한 문장(한 줄)씩 타이핑, 2초 유지
+    const lines = firstSleepStory.split('\n');
+    for(const line of lines){
+      const trimmed = line.trim();
+      if(!trimmed){
+        chapterBox.appendChild(document.createElement('br'));
+        continue;
+      }
+      await typeBoxedText(chapterBox, trimmed, 26);
+      chapterBox.appendChild(document.createElement('br'));
+      await sleep(2000); // 각 줄(문장)마다 2초 유지
+    }
+
+    await sleep(2000);
     await startMorseSequence();
   }
 
