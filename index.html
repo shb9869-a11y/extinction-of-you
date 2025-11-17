@@ -1179,7 +1179,7 @@
     }catch(e){}
   }
 
-  /* 낮은 드림 "부우웅" 효과음 (수면 타이틀 페이드용) */
+  /* 낮은 드림 "부우웅" 효과음 (수면 타이틀 2초 페이드 동안) */
   async function playDreamWoong(){
     try{
       await ensureResumed();
@@ -1188,13 +1188,13 @@
       const g = audioCtx.createGain();
       o.type = 'sine';
       o.frequency.setValueAtTime(90, now);
-      o.frequency.exponentialRampToValueAtTime(55, now+0.9);
+      o.frequency.exponentialRampToValueAtTime(55, now+2.0);
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.9, now+0.12);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+1.4);
+      g.gain.exponentialRampToValueAtTime(0.9, now+0.15);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+2.0);
       o.connect(g).connect(audioCtx.destination);
       o.start(now);
-      o.stop(now+1.5);
+      o.stop(now+2.05);
     }catch(e){}
   }
 
@@ -1493,16 +1493,22 @@
   const COLOR_FILL='#e0e0e0';
   const COLOR_STROKE='#000';
 
-  function drawPixelHuman(ctx, cx, baselineY, W, hop=0, alpha=1){
+  /* 회전 가능한 인트로 캐릭터 */
+  function drawPixelHuman(ctx, cx, baselineY, W, hop=0, alpha=1, angleRad=0){
     const cell=Math.max(2, Math.min(4, Math.floor(W*0.0018)));
     const cols=PIXEL_SPRITE[0].length;
     const rows=PIXEL_SPRITE.length;
     const width=cols*cell;
     const height=rows*cell;
-    const x0=Math.round(cx-width/2);
-    const y0=Math.round(baselineY-height-hop);
 
+    const x0 = -width/2;
+    const y0 = -height - hop;   // 발이 (0,0)에 닿도록 위로 올림
+
+    ctx.save();
+    ctx.translate(cx, baselineY);
+    ctx.rotate(angleRad);
     ctx.globalAlpha=alpha;
+
     ctx.fillStyle=COLOR_STROKE;
     for(let y=0;y<rows;y++){
       const row=PIXEL_SPRITE[y];
@@ -1525,6 +1531,7 @@
       }
     }
     ctx.globalAlpha=1;
+    ctx.restore();
   }
 
   function getProsceniumRect(){
@@ -1532,7 +1539,7 @@
     return {x:r.left,y:r.top,w:r.width,h:r.height};
   }
 
-  /* 인트로 캐릭터: 프로시니엄 안쪽 라인을 따라 직사각형 경로로 걷기 */
+  /* 인트로 캐릭터: 프로시니엄 안쪽 라인을 따라 직사각형 경로로 걷기 + 방향에 따라 회전 */
   function prosceniumWalkPos(t01){
     const pr = getProsceniumRect();
     const margin = Math.min(pr.w, pr.h) * 0.06;
@@ -1543,24 +1550,28 @@
     const per = (right-left)*2 + (bottom-top)*2;
     let d = ((t01%1)+1)%1 * per;
 
-    let x,y;
+    let x,y,edge;
     if(d <= (right-left)){                           // 아래쪽 왼->오
       x = left + d;
       y = bottom;
+      edge = 'bottom';
     }else if(d <= (right-left)+(bottom-top)){        // 오른쪽 아래->위
       d -= (right-left);
       x = right;
       y = bottom - d;
+      edge = 'right';
     }else if(d <= (right-left)*2 + (bottom-top)){    // 위쪽 오->왼
       d -= (right-left + (bottom-top));
       x = right - d;
       y = top;
+      edge = 'top';
     }else{                                           // 왼쪽 위->아래
       d -= (right-left)*2 + (bottom-top);
       x = left;
       y = top + d;
+      edge = 'left';
     }
-    return { x, y, baselineY:y };
+    return { x, y, baselineY:y, edge };
   }
 
   function drawBubble(ctx, x, y, text){
@@ -2010,7 +2021,22 @@
           const t = ((tGlobal + w.tOffset)%1+1)%1;
           const pos = prosceniumWalkPos(t);
           const hop = Math.max(0,10*Math.sin(t*Math.PI*20));
-          drawPixelHuman(fgctx, Math.round(pos.x), Math.round(pos.baselineY), W, hop, 1);
+
+          let angle = 0;
+          if(pos.edge === 'bottom') angle = 0;               // 바닥: 오른쪽으로 걷기
+          else if(pos.edge === 'right') angle = -Math.PI/2;  // 오른쪽 벽: 위로 걷기
+          else if(pos.edge === 'top') angle = Math.PI;       // 천장: 거꾸로 걷기
+          else if(pos.edge === 'left') angle = Math.PI/2;    // 왼쪽 벽: 아래로 걷기
+
+          drawPixelHuman(
+            fgctx,
+            Math.round(pos.x),
+            Math.round(pos.baselineY),
+            W,
+            hop,
+            1,
+            angle
+          );
 
           if(now-w.bubbleTimer>700+Math.random()*500){
             w.bubbleIndex=(w.bubbleIndex+1)%bubbleSeq.length;
@@ -2180,14 +2206,14 @@
     step();
   }
 
-  /* FIRST SLEEP 타이틀 시퀀스 – SLEEEEEEEEP 1줄 + THE FIRST SLEEP 페이드 인 + 드림 부우웅 */
+  /* FIRST SLEEP 타이틀 시퀀스 – SLEEEEEEEEP 1줄 + THE FIRST SLEEP 페이드 인(2초) + 드림 부우웅(2초) */
   async function runFirstSleepTitleSequence(){
     firstTransWord.textContent='';
     firstTransTitle.textContent='';
 
     firstTransition.style.display='flex';
     firstTransition.style.opacity='0';
-    firstTransition.style.transition='opacity 1600ms ease';
+    firstTransition.style.transition='opacity 2000ms ease';
     await nextFrame();
     firstTransition.style.opacity='1';
 
@@ -2200,11 +2226,11 @@
 
     await sleep(900);
 
-    // THE FIRST SLEEP 텍스트 + 페이드 인
+    // THE FIRST SLEEP 텍스트 + 페이드 인 (2초)
     firstTransTitle.style.opacity = '0';
-    firstTransTitle.style.transition = 'opacity 1200ms ease';
+    firstTransTitle.style.transition = 'opacity 2000ms ease';
     firstTransTitle.textContent = 'THE FIRST SLEEP';
-    playDreamWoong();  // 꿈으로 들어가는 낮은 부우웅
+    playDreamWoong();  // 꿈으로 들어가는 낮은 부우웅 (2초)
     await nextFrame();
     firstTransTitle.style.opacity = '1';
 
@@ -2298,14 +2324,14 @@
     fadeHide(chapterOverlay, 800);
   }
 
-  /* SECOND SLEEP 타이틀 시퀀스 – SLEEEEEEEEP 두 줄 + THE SECOND SLEEP + 드림 부우웅 */
+  /* SECOND SLEEP 타이틀 시퀀스 – SLEEEEEEEEP 두 줄 + THE SECOND SLEEP(2초 페이드) + 드림 부우웅(2초) */
   async function runSecondSleepTitleSequence(){
     sleepLine1.textContent = '';
     sleepLine2.textContent = '';
     sleepSecondTitle.textContent = '';
     sleepTransition.style.display='flex';
     sleepTransition.style.opacity='0';
-    sleepTransition.style.transition='opacity 1600ms ease';
+    sleepTransition.style.transition='opacity 2000ms ease';
     await nextFrame();
     sleepTransition.style.opacity='1';
 
@@ -2326,11 +2352,11 @@
 
     await sleep(900);
 
-    // THE SECOND SLEEP 텍스트 + 페이드 인
+    // THE SECOND SLEEP 텍스트 + 페이드 인 (2초)
     sleepSecondTitle.style.opacity = '0';
-    sleepSecondTitle.style.transition = 'opacity 1200ms ease';
+    sleepSecondTitle.style.transition = 'opacity 2000ms ease';
     sleepSecondTitle.textContent = 'THE SECOND SLEEP';
-    playDreamWoong(); // 두 번째 수면 진입 부우웅
+    playDreamWoong(); // 두 번째 수면 진입 부우웅 (2초)
     await nextFrame();
     sleepSecondTitle.style.opacity = '1';
 
