@@ -267,17 +267,17 @@
     background:rgba(0,0,0,.5);
     color:var(--accent);
   }
-  #nameCard{
-    position:relative;
-    z-index:1;
-    width:min(92vw,600px);
-    text-align:center;
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    padding:24px 20px 20px;
-    border:1px solid #d0d0d0;
-    background:rgba(0,0,0,0.85);
-    box-shadow:0 10px 24px rgba(0,0,0,0.8);
-  }
+#nameCard{
+  position:relative;
+  z-index:1;
+  width:min(92vw,600px);
+  text-align:center;
+  font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+  padding:24px 20px 20px;
+  border:none; /* 하얀 테두리 제거 */
+  background:rgba(0,0,0,0.85);
+  box-shadow:0 10px 24px rgba(0,0,0,0.8);
+}
   #nameCard h2{
     margin:0 0 12px 0;
     letter-spacing:.12em;
@@ -2560,36 +2560,45 @@
     };
   }
 
-  async function showIntroFlow(){
-    claimImmersive();
-    await ensureResumed();
-    if(!Ambient.isRunning()) Ambient.start(0.8, 1.0);
+async function showIntroFlow(){
+  claimImmersive();
+  await ensureResumed();
+  if(!Ambient.isRunning()) Ambient.start(0.8, 1.0);
 
-    showCamera = false;
-    camFadeAlpha = 0;
+  showCamera = false;
+  camFadeAlpha = 0;
 
-    introBig.style.display='flex';
-    introBig.style.opacity='0';
-    await nextFrame();
-    fitTitleLine(introBigText);
-    introBig.style.transition='opacity 1600ms ease';
-    introBig.style.opacity='1';
-    speakText('인트로덕션');
-    await sleep(2200);
-    introBig.style.opacity='0';
-    await sleep(1600);
-    introBig.style.display='none';
-
-    introWalking=true;
-    introStartTime=performance.now();
-    showIntroLayer=true;
-    fgAlpha=1.0;
-    initIntroWalkers();
-
-    introIndex = 0;
-    fadeShow(introDialogue, 300, 'block');
-    typeIntroLine(introIndex);
+  // INTRODUCTION 타이틀도 타이핑되게
+  introBig.style.display = 'flex';
+  introBig.style.opacity = '1';
+  introBig.style.transition = 'none';
+  const word = 'INTRODUCTION';
+  introBigText.textContent = '';
+  for(let i=0;i<word.length;i++){
+    introBigText.textContent += word[i];
+    typeTick();
+    await sleep(45);
   }
+  fitTitleLine(introBigText);
+  speakText('인트로덕션');
+
+  await sleep(1400);
+  introBig.style.transition = 'opacity 1600ms ease';
+  introBig.style.opacity = '0';
+  await sleep(1700);
+  introBig.style.display = 'none';
+
+  // 여기서부터는 기존과 동일: 인트로 캐릭터 + 대화창
+  introWalking = true;
+  introStartTime = performance.now();
+  showIntroLayer = true;
+  fgAlpha = 1.0;
+  initIntroWalkers();
+
+  introIndex = 0;
+  fadeShow(introDialogue, 300, 'block');
+  typeIntroLine(introIndex);
+}
 
   document.getElementById('goIntro').addEventListener('click', ()=>{
     ensureResumed().then(async ()=>{
