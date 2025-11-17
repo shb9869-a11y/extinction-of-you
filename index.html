@@ -81,6 +81,7 @@
     height:100vh;
     display:block;
     z-index:0;
+    /* 카메라를 포함한 뒤 배경은 항상 흑백 */
     filter:grayscale(1);
   }
   #fg{
@@ -255,7 +256,7 @@
     font-size:clamp(9px,1.6vmin,11px);
   }
 
-  /* Name */
+  /* Name – 뒤에 프리셋이 보이도록 반투명 */
   #nameOverlay{
     position:fixed;
     inset:0;
@@ -263,8 +264,7 @@
     display:none;
     align-items:center;
     justify-content:center;
-    /* 프리셋이 뒤에 보이도록 거의 투명 */
-    background:rgba(0,0,0,0.15);
+    background:rgba(0,0,0,.5); /* 프리셋이 비치도록 */
     color:var(--accent);
   }
   #nameCard{
@@ -274,7 +274,7 @@
     text-align:center;
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
     padding:24px 20px 20px;
-    border:1px solid #444;
+    border:1px solid #d0d0d0; /* 하얀 실선 박스 */
     background:rgba(0,0,0,0.85);
     box-shadow:0 10px 24px rgba(0,0,0,0.8);
   }
@@ -349,7 +349,7 @@
   }
   #welcomeCard .title{
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    font-size:clamp(32px, 8vmin, 72px);
+    font-size:clamp(28px, 8vmin, 72px);
     font-weight:400;
     letter-spacing:.12em;
     line-height:1.15;
@@ -357,14 +357,13 @@
     text-transform:uppercase;
     color:var(--accent);
     white-space:nowrap;
-    text-align:center;
   }
   #goIntro{
     margin-top:0;
     font-size:var(--fs-small);
   }
 
-  /* INTRO big title */
+  /* INTRO big title – sleepLine 스타일 공통 적용 */
   #introBig{
     position:fixed;
     inset:0;
@@ -375,18 +374,7 @@
     z-index:210;
   }
   #introBigText{
-    color:var(--accent);
-    font-weight:400;
-    letter-spacing:.16em;
-    font-size:clamp(32px, 12vmin, 160px);
-    text-transform:uppercase;
-    text-align:center;
-    white-space:nowrap;
-    text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7);
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    background:transparent;
-    border:none;
-    padding:0;
+    /* .sleepLine로 폰트/크기 통일 */
   }
 
   /* INTRO 텍스트 박스 */
@@ -415,7 +403,7 @@
     margin-left:auto;
   }
 
-  /* THE FIRST SLEEP title (지금은 사용 X) */
+  /* THE FIRST SLEEP title (지금은 사용 X, 스타일만 통일) */
   #firstSleep{
     position:fixed;
     inset:0;
@@ -427,18 +415,7 @@
     text-align:center;
   }
   #firstSleepText{
-    color:var(--accent);
-    font-weight:400;
-    letter-spacing:.16em;
-    font-size:clamp(32px, 12vmin, 160px);
-    text-transform:uppercase;
-    text-align:center;
-    white-space:nowrap;
-    text-shadow:0 0 8px rgba(0,0,0,.85), 0 2px 4px rgba(0,0,0,.7);
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    background:transparent;
-    border:none;
-    padding:0;
+    /* sleepLine 공통 스타일 사용 */
   }
 
   /* NOTICE Popup (FIRST SLEEP) */
@@ -524,11 +501,11 @@
     box-sizing:border-box;
   }
 
-  /* 모든 수면 타이틀 화면 공통 폰트 (SLEEEEEEEEP, THE FIRST/SECOND/THIRD SLEEP) */
+  /* 공통 타이틀 스타일 (SLEEEEEEEEP, FIRST/SECOND/THIRD SLEEP 다 통일) */
   .sleepLine{
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
     letter-spacing:.16em;
-    font-size:clamp(32px, 12vmin, 160px);
+    font-size:clamp(32px, 12vmin, 160px); /* THE FIRST SLEEP 기준 */
     text-transform:uppercase;
     white-space:nowrap;
     text-shadow:0 0 8px rgba(0,0,0,.85);
@@ -540,7 +517,7 @@
     text-align:center;
   }
 
-  /* INTRO → FIRST SLEEP */
+  /* INTRO → FIRST SLEEP: SLEEEEEEEEP + THE FIRST SLEEP */
   #firstTransition{
     position:fixed;
     inset:0;
@@ -579,7 +556,7 @@
     margin-top:14px;
   }
 
-  /* THIRD SLEEP TRANSITION */
+  /* THIRD SLEEP 타이틀 & NOTICE */
   #thirdTransition{
     position:fixed;
     inset:0;
@@ -589,9 +566,44 @@
     justify-content:center;
     background:#000;
     color:var(--accent);
-    z-index:940;
+    z-index:945;
     pointer-events:none;
     text-align:center;
+  }
+
+  #noticePopup3{
+    position:fixed;
+    inset:0;
+    z-index:950;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,.8);
+  }
+  #noticeCard3{
+    width:min(92vw, 640px);
+    background:#0b0b0b;
+    color:var(--accent);
+    border:1px solid #444;
+    padding:18px;
+    box-shadow:0 10px 30px rgba(0,0,0,.8);
+    font-family:"Courier New",ui-monospace,monospace;
+    line-height:1.7;
+  }
+  #noticeCard3 h3{
+    margin:0 0 6px 0;
+    letter-spacing:.06em;
+    font-weight:700;
+    font-size:clamp(15px,3vmin,20px);
+    color:var(--accent);
+  }
+  #noticeCard3 p{
+    margin:4px 0;
+    font-size:clamp(12px,2.4vmin,16px);
+  }
+  #noticeActions3{
+    margin-top:10px;
+    text-align:right;
   }
 
   /* SECOND NOTICE */
@@ -626,42 +638,6 @@
     font-size:clamp(12px,2.4vmin,16px);
   }
   #noticeActions2{
-    margin-top:10px;
-    text-align:right;
-  }
-
-  /* THIRD NOTICE */
-  #noticePopup3{
-    position:fixed;
-    inset:0;
-    z-index:965;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    background:rgba(0,0,0,.8);
-  }
-  #noticeCard3{
-    width:min(92vw, 640px);
-    background:#0b0b0b;
-    color:var(--accent);
-    border:1px solid #444;
-    padding:18px;
-    box-shadow:0 10px 30px rgba(0,0,0,.8);
-    font-family:"Courier New",ui-monospace,monospace;
-    line-height:1.7;
-  }
-  #noticeCard3 h3{
-    margin:0 0 6px 0;
-    letter-spacing:.06em;
-    font-weight:700;
-    font-size:clamp(15px,3vmin,20px);
-    color:var(--accent);
-  }
-  #noticeCard3 p{
-    margin:4px 0;
-    font-size:clamp(12px,2.4vmin,16px);
-  }
-  #noticeActions3{
     margin-top:10px;
     text-align:right;
   }
@@ -710,40 +686,6 @@
     top:8px;
     right:10px;
   }
-
-  /* THIRD SLEEP GAME POPUP */
-  #gamePopup{
-    position:fixed;
-    inset:0;
-    z-index:980;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    background:rgba(0,0,0,0.9);
-  }
-  #gameInner{
-    position:relative;
-    width:min(96vw, 980px);
-    height:min(90vh, 600px);
-    background:#000;
-    border:1px solid #444;
-    box-shadow:0 10px 40px rgba(0,0,0,0.9);
-    display:flex;
-    flex-direction:column;
-    overflow:hidden;
-  }
-  #gameFrame{
-    flex:1;
-    width:100%;
-    border:none;
-    background:#000;
-  }
-  .game-close{
-    position:absolute;
-    top:10px;
-    right:14px;
-    z-index:10;
-  }
 </style>
 </head>
 <body>
@@ -787,7 +729,7 @@
     </div>
   </div>
 
-  <!-- Name -->
+  <!-- Name (뒤에 프리셋 보이도록) -->
   <div id="nameOverlay" class="fade">
     <div id="nameCard">
       <h2>TELL ME YOUR NAME</h2>
@@ -816,7 +758,7 @@
   </div>
 
   <!-- INTRODUCTION title -->
-  <div id="introBig" class="fade"><div id="introBigText">INTRODUCTION</div></div>
+  <div id="introBig" class="fade"><div id="introBigText" class="sleepLine">INTRODUCTION</div></div>
 
   <!-- INTRODUCTION sentences -->
   <div id="introDialogue">
@@ -825,7 +767,7 @@
   </div>
 
   <!-- THE FIRST SLEEP title (지금은 사용 X) -->
-  <div id="firstSleep"><div id="firstSleepText">THE FIRST SLEEP</div></div>
+  <div id="firstSleep"><div id="firstSleepText" class="sleepLine">THE FIRST SLEEP</div></div>
 
   <!-- NOTICE Popup (FIRST SLEEP) -->
   <div id="noticePopup" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle">
@@ -861,12 +803,9 @@
     <div id="sleepSecondTitle" class="sleepLine"></div>
   </div>
 
-  <!-- THIRD SLEEP TRANSITION -->
+  <!-- THIRD SLEEP 타이틀 -->
   <div id="thirdTransition" class="fade">
-    <div id="thirdSleepLine1" class="sleepLine"></div>
-    <div id="thirdSleepLine2" class="sleepLine"></div>
-    <div id="thirdSleepLine3" class="sleepLine"></div>
-    <div id="thirdSleepTitle" class="sleepLine"></div>
+    <div id="thirdTitle" class="sleepLine">THE THIRD SLEEP</div>
   </div>
 
   <!-- SECOND NOTICE (지도 전) -->
@@ -882,13 +821,13 @@
     </div>
   </div>
 
-  <!-- THIRD NOTICE (게임 전) -->
+  <!-- THIRD NOTICE (게임 진입 전) -->
   <div id="noticePopup3" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle3">
     <div id="noticeCard3">
       <h3 id="noticeTitle3">NOTICE</h3>
-      <p>※ 이제 세 번째 수면으로 진입합니다.</p>
-      <p>※ 화면 중앙의 도시 속을 걷는 게임을 통해, 당신의 내면 도시를 탐험하게 됩니다.</p>
-      <p>※ 준비가 되었다면 아래 ‘OK’를 눌러 게임을 시작합니다.</p>
+      <p>※ 이제 “THE THIRD SLEEP”으로 진입합니다.</p>
+      <p>※ 잠시 후 도시 속으로 진입하는 게임이 팝업처럼 열립니다.</p>
+      <p>※ 그 안에서 SKIP 버튼을 누르면, FOURTH SLEEP → SILENCE → THE END까지 이어집니다.</p>
       <div id="noticeActions3">
         <button id="noticeOk3" class="uiBtn flat" type="button">OK</button>
       </div>
@@ -905,14 +844,6 @@
     <div class="map-popup-inner">
       <button id="mapPopClose" class="uiBtn small map-pop-close" type="button">CLOSE</button>
       <div id="mapPopBody"></div>
-    </div>
-  </div>
-
-  <!-- THIRD SLEEP GAME POPUP -->
-  <div id="gamePopup" class="fade">
-    <div id="gameInner">
-      <button id="gameClose" class="uiBtn small game-close" type="button">CLOSE</button>
-      <iframe id="gameFrame" src="about:blank" title="SLEEP CITY"></iframe>
     </div>
   </div>
 
@@ -970,6 +901,10 @@
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const nextFrame = () => new Promise(resolve=>requestAnimationFrame(()=>resolve()));
   const qs = s => document.querySelector(s);
+
+  /* === 볼륨 공통 설정 === */
+  const MASTER_BGM_GAIN = 0.4;   // 전체 BGM 마스터
+  const MASTER_SFX_GAIN = 0.45;  // 버튼/타이핑/효과음 마스터
 
   document.addEventListener('contextmenu', e=>e.preventDefault());
   document.addEventListener('selectstart', e=>e.preventDefault());
@@ -1052,10 +987,7 @@
   const sleepSecondTitle = qs('#sleepSecondTitle');
 
   const thirdTransition = qs('#thirdTransition');
-  const thirdSleepLine1 = qs('#thirdSleepLine1');
-  const thirdSleepLine2 = qs('#thirdSleepLine2');
-  const thirdSleepLine3 = qs('#thirdSleepLine3');
-  const thirdSleepTitle = qs('#thirdSleepTitle');
+  const thirdTitle = qs('#thirdTitle');
 
   const noticePopup2 = qs('#noticePopup2');
   const noticeOk2 = qs('#noticeOk2');
@@ -1068,10 +1000,6 @@
   const mapPop = qs('#mapPop');
   const mapPopBody = qs('#mapPopBody');
   const mapPopClose = qs('#mapPopClose');
-
-  const gamePopup = qs('#gamePopup');
-  const gameFrame = qs('#gameFrame');
-  const gameClose = qs('#gameClose');
 
   const skipBtn = qs('#skipBtn');
 
@@ -1087,12 +1015,6 @@
   let camFadeAlpha=0;
 
   let audioCtx = null;
-
-  /* === 전체 볼륨 조절용 상수 (여기서만 건드리면 됨) === */
-  const MASTER_SFX_GAIN = 0.45;        // 버튼/타이핑/벨/웅 소리
-  const AMBIENT_TARGET_GAIN = 0.40;    // 배경음악(앰비언트) 전체 크기
-  const TTS_VOLUME = 0.8;              // 화면 읽어주는 TTS 볼륨
-
   function ensureAudio(){
     if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
@@ -1106,7 +1028,7 @@
   /* 현재 챕터 상태 */
   let stage = 'gate';
 
-  /* --------- 입력/타이핑 공용 사운드 --------- */
+  /* --------- 입력/타이핑 공용 사운드 (볼륨 통일) --------- */
   function playGameInputSound(){
     try{
       ensureAudio();
@@ -1120,7 +1042,7 @@
       o1.frequency.setValueAtTime(1350, now);
       o2.frequency.setValueAtTime(900,  now);
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.35 * MASTER_SFX_GAIN, now+0.02);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, now+0.18);
       o1.connect(g); o2.connect(g); g.connect(ctx.destination);
       o1.start(now); o2.start(now);
@@ -1155,23 +1077,25 @@
       if(ttsVoice) u.voice = ttsVoice;
       u.pitch = 1.05;
       u.rate = 0.9;
-      u.volume = TTS_VOLUME;
+      u.volume = 0.9;
       window.speechSynthesis.speak(u);
     }catch(e){}
   }
   /* ----------------------------------------------------- */
 
+  /* ================= 안정화된 BGM 엔진 ================= */
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, killers=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
     function setup(){
-      ctx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+      ensureAudio();
+      ctx = audioCtx;
       master = ctx.createGain();
-      master.gain.value=0.0001;
+      master.gain.value = 0.0001;
       delay = ctx.createDelay(2.5);
-      delay.delayTime.value=0.45;
+      delay.delayTime.value = 0.45;
       fb = ctx.createGain();
-      fb.gain.value=0.35;
+      fb.gain.value = 0.32;
       delay.connect(fb).connect(delay);
       hp = ctx.createBiquadFilter();
       hp.type='highpass';
@@ -1180,10 +1104,10 @@
       lp.type='lowpass';
       lp.frequency.value=4200;
       mix = ctx.createGain();
-      mix.gain.value = 0.5;
+      mix.gain.value = 0.7;
       mix.connect(hp).connect(lp).connect(master);
       busGain = ctx.createGain();
-      busGain.gain.value=0.5;
+      busGain.gain.value = 0.6;
       busGain.connect(master);
       master.connect(ctx.destination);
     }
@@ -1193,14 +1117,16 @@
       delay.connect(mix);
     }
     function airy(){
-      const b=audioCtx.createBuffer(1, audioCtx.sampleRate*2, audioCtx.sampleRate);
+      const b=ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate);
       const d=b.getChannelData(0);
-      for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.10;
-      const s=audioCtx.createBufferSource();
+      for(let i=0;i<d.length;i++){
+        d[i]=(Math.random()*2-1)*0.06; // 노이즈 레벨 살짝 줄임
+      }
+      const s=ctx.createBufferSource();
       s.buffer=b; s.loop=true;
-      const g=audioCtx.createGain();
-      g.gain.value=0.01;
-      const f=audioCtx.createBiquadFilter();
+      const g=ctx.createGain();
+      g.gain.value=0.015;
+      const f=ctx.createBiquadFilter();
       f.type='bandpass';
       f.frequency.value=1100;
       f.Q.value=0.9;
@@ -1210,45 +1136,45 @@
       killers.push(()=>{ try{s.stop();}catch{} });
     }
     function pad(root){
-      const out = audioCtx.createGain();
-      out.gain.value=0.28;
-      const filt=audioCtx.createBiquadFilter();
+      const out = ctx.createGain();
+      out.gain.value=0.24;
+      const filt=ctx.createBiquadFilter();
       filt.type='lowpass';
       filt.frequency.value=1200;
       filt.Q.value=0.7;
-      const lfo=audioCtx.createOscillator();
-      const lfoG=audioCtx.createGain();
+      const lfo=ctx.createOscillator();
+      const lfoG=ctx.createGain();
       lfo.type='sine';
       lfo.frequency.value=0.04;
       lfoG.gain.value=260;
       lfo.connect(lfoG).connect(filt.frequency);
       lfo.start();
       [0,7,12].forEach((i,k)=>{
-        const o=audioCtx.createOscillator();
+        const o=ctx.createOscillator();
         o.type='triangle';
         o.frequency.value=midi(root+i);
         o.detune.value=(k-1)*4;
-        const g=audioCtx.createGain();
-        g.gain.value=0.06;
+        const g=ctx.createGain();
+        g.gain.value=0.05;
         o.connect(g).connect(filt);
         o.start();
-        killers.push(()=>g.disconnect());
+        killers.push(()=>{ try{g.disconnect();}catch{} });
       });
       filt.connect(out);
       connectDW(out);
       killers.push(()=>{ try{ out.disconnect(); }catch{} });
     }
     function plucked(root){
-      const now = audioCtx.currentTime;
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      const f = audioCtx.createBiquadFilter();
+      const now = ctx.currentTime;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      const f = ctx.createBiquadFilter();
       const steps = [0,7,12,14];
       const pick = steps[Math.floor(Math.random()*steps.length)];
       o.type='sine';
       o.frequency.value = midi(root+pick);
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.25 * MASTER_SFX_GAIN, now+0.04);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN*0.6, now+0.04);
       g.gain.exponentialRampToValueAtTime(0.0001, now+1.9);
       f.type='bandpass';
       f.frequency.value = o.frequency.value*2;
@@ -1259,7 +1185,7 @@
       o.stop(now+2.1);
       killers.push(()=>{ try{g.disconnect();}catch{} });
     }
-    async function start(fadeIn=0.8, target=AMBIENT_TARGET_GAIN){
+    async function start(fadeIn=1.0, target=1.0){
       await ensureResumed();
       if(running) return;
       setup();
@@ -1271,28 +1197,32 @@
         if(!running) return;
         const root = seq[i%seq.length];
         pad(root);
-        if(Math.random()<0.8) plucked(root);
+        if(Math.random()<0.7) plucked(root);
         i++;
         setTimeout(tick,9000);
       })();
-      const t=(audioCtx||ctx).currentTime;
+      const t=ctx.currentTime;
+      const targetGain = MASTER_BGM_GAIN * target;
       master.gain.cancelScheduledValues(t);
-      master.gain.setValueAtTime(master.gain.value, t);
-      master.gain.exponentialRampToValueAtTime(target, t+fadeIn);
+      master.gain.setValueAtTime(0.0001, t);
+      master.gain.linearRampToValueAtTime(targetGain, t+fadeIn);
     }
     function stop(fade=2.0){
       if(!running||!master) return;
-      const t=(audioCtx||ctx).currentTime;
+      const t=ctx.currentTime;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setValueAtTime(master.gain.value, t);
       master.gain.linearRampToValueAtTime(0.0001, t+fade);
       setTimeout(()=>{
         killers.forEach(fn=>{try{fn();}catch{}});
         killers=[];
         running=false;
-      }, fade*1000+120);
+      }, fade*1000+200);
     }
     function isRunning(){ return running; }
     return { start, stop, isRunning };
   })();
+  /* ==================================================== */
 
   async function playWoongClick(){
     try{
@@ -1304,7 +1234,7 @@
       o.frequency.setValueAtTime(220, now);
       o.frequency.exponentialRampToValueAtTime(110, now+0.24);
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.5 * MASTER_SFX_GAIN, now+0.03);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.03);
       g.gain.exponentialRampToValueAtTime(0.0001, now+0.35);
       o.connect(g).connect(audioCtx.destination);
       o.start(now);
@@ -1320,7 +1250,7 @@
       o1.type='sine'; o2.type='sine';
       o1.frequency.value=90; o2.frequency.value=45;
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.9 * MASTER_SFX_GAIN, now+0.02);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN*1.1, now+0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, now+0.6);
       o1.connect(g); o2.connect(g); g.connect(audioCtx.destination);
       o1.start(); o2.start();
@@ -1338,7 +1268,7 @@
       osc1.frequency.setValueAtTime(1200, now);
       osc2.frequency.setValueAtTime(1800, now);
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.9 * MASTER_SFX_GAIN, now+0.02);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, now+1.4);
       osc1.connect(g); osc2.connect(g); g.connect(audioCtx.destination);
       osc1.start(now); osc2.start(now);
@@ -1346,7 +1276,7 @@
     }catch(e){}
   }
 
-  /* 낮은 드림 "부우웅" 효과음 (수면 타이틀 2초 페이드 동안) */
+  /* 낮은 드림 "부우웅" 효과음 */
   async function playDreamWoong(){
     try{
       await ensureResumed();
@@ -1357,7 +1287,7 @@
       o.frequency.setValueAtTime(90, now);
       o.frequency.exponentialRampToValueAtTime(55, now+2.0);
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.9 * MASTER_SFX_GAIN, now+0.15);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.15);
       g.gain.exponentialRampToValueAtTime(0.0001, now+2.0);
       o.connect(g).connect(audioCtx.destination);
       o.start(now);
@@ -1381,7 +1311,7 @@
       o1.frequency.setValueAtTime(880, now);
       o2.frequency.setValueAtTime(1320, now);
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.35 * MASTER_SFX_GAIN, now+0.03);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN*0.8, now+0.03);
       g.gain.exponentialRampToValueAtTime(0.0001, now+2.4);
       o1.connect(g); o2.connect(g); g.connect(audioCtx.destination);
       o1.start(now); o2.start(now);
@@ -1402,7 +1332,7 @@
     secondBellRunning = false;
   }
 
-  /* 타이핑 사운드: 위에서 정의한 입력 사운드 사용 */
+  /* 타이핑 사운드 */
   function typeTick(){
     playGameInputSound();
   }
@@ -1448,6 +1378,7 @@
     })
     .then(async (s)=>{
       await ensureResumed();
+      if(!Ambient.isRunning()) Ambient.start(1.2, 1.0);
       claimImmersive();
       s.getTracks().forEach(t=>t.stop());
       camPermGranted = true;
@@ -1457,8 +1388,10 @@
     })
     .finally(()=>{
       fadeHide(overlay, FADE);
-      showPreset();                       // 먼저 프리셋을 뒤에 깔아두고
-      fadeShow(nameOverlay, FADE);        // 그 위에 이름 입력창 뜸
+
+      /* 이름 입력 단계에서부터 프리셋 화면이 뒤에 보이도록 즉시 띄움 */
+      showPreset();
+      fadeShow(nameOverlay, FADE);
       stage = 'name';
       setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 60);
     });
@@ -1478,10 +1411,12 @@
   async function acceptName(){
     claimImmersive();
     await ensureResumed();
+    if(!Ambient.isRunning()) Ambient.start(0.5, 1.0);
     const v = (nickInput.value||'').trim();
     if(v.length>0){ displayName = v; }
     await playWoongClick();
-    fadeHide(nameOverlay, FADE);   // 이름 카드만 사라지고 프리셋은 그대로
+    /* 이름 카드만 사라지고, 프리셋 화면은 그대로 유지 */
+    fadeHide(nameOverlay, FADE);
     stage = 'preset';
     skipBtn.style.display='block';
   }
@@ -1492,15 +1427,13 @@
 
   let saverObjs=[], saverMode='scatter', saverT0=0;
   function showPreset(){
-    preset.style.display='block';
-    preset.classList.add('show');
-    fadeShow(preset, FADE);
-    initSaver();
-    startCameraFresh(true);
-    // 여기서 한 번만 배경음악 시작
-    ensureResumed().then(()=>{
-      if(!Ambient.isRunning()) Ambient.start(1.0, AMBIENT_TARGET_GAIN);
-    });
+    if(preset.style.display!=='block'){
+      preset.style.display='block';
+      preset.classList.add('show');
+      fadeShow(preset, FADE);
+      initSaver();
+      startCameraFresh(true);
+    }
   }
   function initSaver(){
     const w=preset.clientWidth, h=preset.clientHeight;
@@ -1576,9 +1509,11 @@
     requestAnimationFrame(saverLoop);
   }
 
+  /* 프리셋 화면 누르면 웰컴으로 */
   preset.addEventListener('click', async ()=>{
     claimImmersive();
     await ensureResumed();
+    if(!Ambient.isRunning()) Ambient.start(0.5,1.0);
     await playWoongClick();
     fadeHide(preset, FADE);
     await startCameraFresh(false);
@@ -1587,7 +1522,7 @@
     stage = 'welcome';
   }, {passive:true});
 
-  /* 인트로덕션/1장 멘트: placeholder 3줄씩 */
+  /* 인트로/1장 텍스트 placeholder */
   const INTRO_LINES = [
     '멘트를 입력하세요',
     '멘트를 입력하세요',
@@ -1619,6 +1554,7 @@
   function fitTitleLineSafe(){
     fitTitleLine(introBigText);
     fitTitleLine(firstSleepText);
+    fitTitleLine(thirdTitle);
   }
   window.addEventListener('load', fitTitleLineSafe);
 
@@ -1819,6 +1755,37 @@
     },1000);
   }
 
+  /* THIRD SLEEP 이후 sleep-city.html로 이동 */
+  function goToSleepCity(){
+    try{
+      stopSecondBell();
+      if(secondTimer){
+        clearInterval(secondTimer);
+        secondTimer = null;
+      }
+      if(mainTimer){
+        clearInterval(mainTimer);
+        mainTimer = null;
+      }
+      if(Ambient && Ambient.isRunning && Ambient.isRunning()){
+        Ambient.stop(2.5);
+      }
+      stopMicFXFadeOut(1.5);
+      if(camStream){
+        camStream.getTracks().forEach(tr=>tr.stop());
+        camStream = null;
+      }
+      if(micStream){
+        micStream.getTracks().forEach(tr=>tr.stop());
+        micStream = null;
+      }
+    }catch(e){}
+    runTimer.style.display = 'none';
+    document.body.style.transition = 'opacity 1000ms ease';
+    document.body.style.opacity = '0';
+    setTimeout(()=>{ window.location.href = 'sleep-city.html'; }, 1000);
+  }
+
   /* 2장: 8분 타이머 */
   let secondTimer = null;
   let secondLeft  = 0;
@@ -1834,7 +1801,10 @@
       if(secondLeft<=0){
         clearInterval(secondTimer);
         secondTimer=null;
-        onSecondSleepEnd();
+        stopSecondBell();
+        runTimer.style.display='none';
+        /* 2장 끝나면 THIRD SLEEP 시퀀스로 */
+        startThirdSleepSequence();
       }
     },1000);
   }
@@ -2344,7 +2314,7 @@
     await sleep(2000);
 
     if (Ambient && Ambient.isRunning && Ambient.isRunning()){
-      Ambient.stop(3.0);    // 인트로 음악 3초 페이드 아웃
+      Ambient.stop(3.0);
     }
 
     firstTransition.style.transition='opacity 2000ms ease';
@@ -2482,58 +2452,6 @@
     sleepSecondTitle.style.opacity='1';
   }
 
-  async function runThirdSleepTitleSequence(){
-    thirdSleepLine1.textContent = '';
-    thirdSleepLine2.textContent = '';
-    thirdSleepLine3.textContent = '';
-    thirdSleepTitle.textContent = '';
-    thirdTransition.style.display='flex';
-    thirdTransition.style.opacity='0';
-    thirdTransition.style.transition='opacity 2000ms ease';
-    await nextFrame();
-    thirdTransition.style.opacity='1';
-
-    const line = 'SLEEEEEEEEP,';
-
-    for(let i=0;i<line.length;i++){
-      thirdSleepLine1.textContent += line[i];
-      typeTick();
-      await sleep(45);
-    }
-    await sleep(300);
-    for(let i=0;i<line.length;i++){
-      thirdSleepLine2.textContent += line[i];
-      typeTick();
-      await sleep(45);
-    }
-    await sleep(300);
-    for(let i=0;i<line.length;i++){
-      thirdSleepLine3.textContent += line[i];
-      typeTick();
-      await sleep(45);
-    }
-
-    await sleep(900);
-
-    thirdSleepTitle.style.opacity = '0';
-    thirdSleepTitle.style.transition = 'opacity 1500ms ease';
-    thirdSleepTitle.textContent = 'THE THIRD SLEEP';
-    playDreamWoong();
-    speakText('더 써드 슬립');
-    await nextFrame();
-    thirdSleepTitle.style.opacity = '1';
-
-    await sleep(2200);
-
-    thirdTransition.style.transition='opacity 2000ms ease';
-    thirdTransition.style.opacity='0';
-    await sleep(2100);
-    thirdTransition.style.display='none';
-    thirdTransition.style.transition='';
-    thirdSleepTitle.style.transition='';
-    thirdSleepTitle.style.opacity='1';
-  }
-
   async function onFirstSleepTimerEnd(){
     claimImmersive();
     await ensureResumed();
@@ -2581,7 +2499,32 @@
     };
   }
 
-  function showThirdNoticePopup(){
+  /* THIRD SLEEP 타이틀 + NOTICE3 → 게임으로 */
+  async function startThirdSleepSequence(){
+    claimImmersive();
+    await ensureResumed();
+
+    stage = 'thirdIntro';
+
+    thirdTransition.style.display='flex';
+    thirdTransition.style.opacity='0';
+    thirdTransition.style.transition='opacity 2000ms ease';
+    await nextFrame();
+    fitTitleLine(thirdTitle);
+    thirdTransition.style.opacity='1';
+    playDreamWoong();
+    speakText('더 써드 슬립');
+    await sleep(2600);
+
+    thirdTransition.style.transition='opacity 1800ms ease';
+    thirdTransition.style.opacity='0';
+    await sleep(1900);
+    thirdTransition.style.display='none';
+
+    showThirdNotice();
+  }
+
+  function showThirdNotice(){
     function bgTrap3(e){
       if(!e.target.closest('#noticeCard3')){
         e.stopPropagation();
@@ -2592,10 +2535,7 @@
       noticePopup3.addEventListener(ev, bgTrap3, {passive:false});
     });
     fadeShow(noticePopup3, 280, 'flex');
-    stage = 'thirdIntro';
-    setTimeout(()=>{
-      noticeOk3 && noticeOk3.focus && noticeOk3.focus();
-    }, 50);
+    setTimeout(()=>{ noticeOk3 && noticeOk3.focus && noticeOk3.focus(); }, 50);
 
     noticeOk3.onclick = async (e)=>{
       e.stopPropagation();
@@ -2603,14 +2543,16 @@
       await ensureResumed();
       await playWoongClick();
       fadeHide(noticePopup3, 260);
-      await sleep(280);
-      goToSleepCity();   // 세 번째 수면 → 게임 팝업
+      await sleep(300);
+      /* 여기서 게임 페이지로 이동 (게임 안에서 THIRD → FOURTH → SILENCE → THE END + SKIP 처리) */
+      goToSleepCity();
     };
   }
 
   async function showIntroFlow(){
     claimImmersive();
     await ensureResumed();
+    if(!Ambient.isRunning()) Ambient.start(0.8, 1.0);
 
     showCamera = false;
     camFadeAlpha = 0;
@@ -2641,6 +2583,7 @@
   document.getElementById('goIntro').addEventListener('click', ()=>{
     ensureResumed().then(async ()=>{
       claimImmersive();
+      if(!Ambient.isRunning()) Ambient.start(0.8,1.0);
       await playWoongClick();
       fadeHide(welcome, FADE);
       stage = 'intro';
@@ -2765,56 +2708,6 @@
     visualViewport.addEventListener('resize', ()=>setTimeout(setAppH2,50));
   }
 
-  /* SECOND SLEEP 종료 → THIRD SLEEP 시퀀스로 */
-  async function onSecondSleepEnd(){
-    claimImmersive();
-    await ensureResumed();
-    stopSecondBell();
-    if(secondTimer){
-      clearInterval(secondTimer);
-      secondTimer=null;
-    }
-    runTimer.style.display='none';
-    fadeHide(mapOverlay, 800);
-    await sleep(850);
-    await runThirdSleepTitleSequence();
-    showThirdNoticePopup();
-  }
-
-  /* SLEEP CITY 게임을 팝업으로 띄우기 */
-  function goToSleepCity(){
-    try{
-      stopSecondBell();
-      if(secondTimer){
-        clearInterval(secondTimer);
-        secondTimer = null;
-      }
-      if(mainTimer){
-        clearInterval(mainTimer);
-        mainTimer = null;
-      }
-      if(Ambient && Ambient.isRunning && Ambient.isRunning()){
-        Ambient.stop(2.5);
-      }
-      stopMicFXFadeOut(1.5);
-      if(camStream){
-        camStream.getTracks().forEach(tr=>tr.stop());
-        camStream = null;
-      }
-    }catch(e){}
-    runTimer.style.display = 'none';
-
-    gameFrame.src = 'sleep-city.html';
-    fadeShow(gamePopup, 600, 'flex');
-    stage = 'thirdGame';
-  }
-
-  gameClose.addEventListener('click', (e)=>{
-    e.stopPropagation();
-    fadeHide(gamePopup, 400);
-    stage = 'done';
-  }, {passive:true});
-
   /* SKIP 버튼 – 현재 챕터에 맞춰 건너뛰기 */
   skipBtn.addEventListener('click', async ()=>{
     await ensureResumed();
@@ -2827,7 +2720,7 @@
       await sleep(350);
       await playTduung();
       startIntroToFirstSleepSequence();
-    }else if(stage === 'first' || stage === 'firstEnding'){
+    }else if(stage === 'first'){
       if(mainTimer){
         clearInterval(mainTimer);
         mainTimer=null;
@@ -2835,17 +2728,17 @@
       timerFinished = true;
       await onFirstSleepTimerEnd();
     }else if(stage === 'second'){
-      await onSecondSleepEnd();
-    }else if(stage === 'secondIntro'){
-      await runSecondSleepTitleSequence();
-      showSecondNoticePopup();
+      /* 2장에서 SKIP → 바로 THIRD SLEEP 시퀀스로 */
+      stopSecondBell();
+      if(secondTimer){
+        clearInterval(secondTimer);
+        secondTimer=null;
+      }
+      runTimer.style.display='none';
+      await startThirdSleepSequence();
     }else if(stage === 'thirdIntro'){
-      fadeHide(noticePopup3, 200);
-      await sleep(220);
+      /* THIRD SLEEP 타이틀 중 SKIP 시 바로 게임으로 */
       goToSleepCity();
-    }else if(stage === 'thirdGame'){
-      fadeHide(gamePopup, 400);
-      stage = 'done';
     }else{
       if(mainTimer){
         clearInterval(mainTimer);
