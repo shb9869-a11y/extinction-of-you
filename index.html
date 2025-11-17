@@ -81,7 +81,6 @@
     height:100vh;
     display:block;
     z-index:0;
-    /* 카메라를 포함한 뒤 배경은 항상 흑백 */
     filter:grayscale(1);
   }
   #fg{
@@ -264,7 +263,8 @@
     display:none;
     align-items:center;
     justify-content:center;
-    background:rgba(0,0,0,.9);
+    /* 프리셋이 뒤에 보이도록 거의 투명 */
+    background:rgba(0,0,0,0.15);
     color:var(--accent);
   }
   #nameCard{
@@ -349,7 +349,7 @@
   }
   #welcomeCard .title{
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    font-size:clamp(28px, 8vmin, 72px);
+    font-size:clamp(32px, 8vmin, 72px);
     font-weight:400;
     letter-spacing:.12em;
     line-height:1.15;
@@ -357,6 +357,7 @@
     text-transform:uppercase;
     color:var(--accent);
     white-space:nowrap;
+    text-align:center;
   }
   #goIntro{
     margin-top:0;
@@ -523,8 +524,23 @@
     box-sizing:border-box;
   }
 
-  /* INTRO → FIRST SLEEP: SLEEEEEEEEP + THE FIRST SLEEP (두 줄 타이핑)
-     → 모두 THE FIRST SLEEP 기준 폰트 크기 & 중앙 정렬 */
+  /* 모든 수면 타이틀 화면 공통 폰트 (SLEEEEEEEEP, THE FIRST/SECOND/THIRD SLEEP) */
+  .sleepLine{
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    letter-spacing:.16em;
+    font-size:clamp(32px, 12vmin, 160px);
+    text-transform:uppercase;
+    white-space:nowrap;
+    text-shadow:0 0 8px rgba(0,0,0,.85);
+    margin:6px 0;
+    padding:8px 16px;
+    background:transparent;
+    border:none;
+    display:inline-block;
+    text-align:center;
+  }
+
+  /* INTRO → FIRST SLEEP */
   #firstTransition{
     position:fixed;
     inset:0;
@@ -538,20 +554,6 @@
     pointer-events:none;
     text-align:center;
   }
-  .sleepLine{
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    letter-spacing:.16em;
-    font-size:clamp(32px, 12vmin, 160px); /* THE FIRST SLEEP 기준 */
-    text-transform:uppercase;
-    white-space:nowrap;
-    text-shadow:0 0 8px rgba(0,0,0,.85);
-    margin:6px 0;
-    padding:8px 16px;
-    background:transparent;
-    border:none;
-    display:inline-block;
-    text-align:center;
-  }
   #firstTransWord{
     margin-bottom:10px;
   }
@@ -559,8 +561,7 @@
     margin-top:10px;
   }
 
-  /* BETWEEN FIRST & SECOND SLEEP (두 줄 SLEEEEEEEEP + THE SECOND SLEEP)
-     → 동일한 폰트 크기 & 중앙 정렬 유지 */
+  /* BETWEEN FIRST & SECOND SLEEP */
   #sleepTransition{
     position:fixed;
     inset:0;
@@ -576,6 +577,21 @@
   }
   #sleepSecondTitle{
     margin-top:14px;
+  }
+
+  /* THIRD SLEEP TRANSITION */
+  #thirdTransition{
+    position:fixed;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    color:var(--accent);
+    z-index:940;
+    pointer-events:none;
+    text-align:center;
   }
 
   /* SECOND NOTICE */
@@ -610,6 +626,42 @@
     font-size:clamp(12px,2.4vmin,16px);
   }
   #noticeActions2{
+    margin-top:10px;
+    text-align:right;
+  }
+
+  /* THIRD NOTICE */
+  #noticePopup3{
+    position:fixed;
+    inset:0;
+    z-index:965;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,.8);
+  }
+  #noticeCard3{
+    width:min(92vw, 640px);
+    background:#0b0b0b;
+    color:var(--accent);
+    border:1px solid #444;
+    padding:18px;
+    box-shadow:0 10px 30px rgba(0,0,0,.8);
+    font-family:"Courier New",ui-monospace,monospace;
+    line-height:1.7;
+  }
+  #noticeCard3 h3{
+    margin:0 0 6px 0;
+    letter-spacing:.06em;
+    font-weight:700;
+    font-size:clamp(15px,3vmin,20px);
+    color:var(--accent);
+  }
+  #noticeCard3 p{
+    margin:4px 0;
+    font-size:clamp(12px,2.4vmin,16px);
+  }
+  #noticeActions3{
     margin-top:10px;
     text-align:right;
   }
@@ -657,6 +709,40 @@
     position:absolute;
     top:8px;
     right:10px;
+  }
+
+  /* THIRD SLEEP GAME POPUP */
+  #gamePopup{
+    position:fixed;
+    inset:0;
+    z-index:980;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,0.9);
+  }
+  #gameInner{
+    position:relative;
+    width:min(96vw, 980px);
+    height:min(90vh, 600px);
+    background:#000;
+    border:1px solid #444;
+    box-shadow:0 10px 40px rgba(0,0,0,0.9);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  #gameFrame{
+    flex:1;
+    width:100%;
+    border:none;
+    background:#000;
+  }
+  .game-close{
+    position:absolute;
+    top:10px;
+    right:14px;
+    z-index:10;
   }
 </style>
 </head>
@@ -775,6 +861,14 @@
     <div id="sleepSecondTitle" class="sleepLine"></div>
   </div>
 
+  <!-- THIRD SLEEP TRANSITION -->
+  <div id="thirdTransition" class="fade">
+    <div id="thirdSleepLine1" class="sleepLine"></div>
+    <div id="thirdSleepLine2" class="sleepLine"></div>
+    <div id="thirdSleepLine3" class="sleepLine"></div>
+    <div id="thirdSleepTitle" class="sleepLine"></div>
+  </div>
+
   <!-- SECOND NOTICE (지도 전) -->
   <div id="noticePopup2" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle2">
     <div id="noticeCard2">
@@ -784,6 +878,19 @@
       <p>※ 준비가 되었다면 아래 ‘OK’를 눌러 지도로 이동합니다.</p>
       <div id="noticeActions2">
         <button id="noticeOk2" class="uiBtn flat" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- THIRD NOTICE (게임 전) -->
+  <div id="noticePopup3" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle3">
+    <div id="noticeCard3">
+      <h3 id="noticeTitle3">NOTICE</h3>
+      <p>※ 이제 세 번째 수면으로 진입합니다.</p>
+      <p>※ 화면 중앙의 도시 속을 걷는 게임을 통해, 당신의 내면 도시를 탐험하게 됩니다.</p>
+      <p>※ 준비가 되었다면 아래 ‘OK’를 눌러 게임을 시작합니다.</p>
+      <div id="noticeActions3">
+        <button id="noticeOk3" class="uiBtn flat" type="button">OK</button>
       </div>
     </div>
   </div>
@@ -798,6 +905,14 @@
     <div class="map-popup-inner">
       <button id="mapPopClose" class="uiBtn small map-pop-close" type="button">CLOSE</button>
       <div id="mapPopBody"></div>
+    </div>
+  </div>
+
+  <!-- THIRD SLEEP GAME POPUP -->
+  <div id="gamePopup" class="fade">
+    <div id="gameInner">
+      <button id="gameClose" class="uiBtn small game-close" type="button">CLOSE</button>
+      <iframe id="gameFrame" src="about:blank" title="SLEEP CITY"></iframe>
     </div>
   </div>
 
@@ -936,14 +1051,27 @@
   const sleepLine2 = qs('#sleepLine2');
   const sleepSecondTitle = qs('#sleepSecondTitle');
 
+  const thirdTransition = qs('#thirdTransition');
+  const thirdSleepLine1 = qs('#thirdSleepLine1');
+  const thirdSleepLine2 = qs('#thirdSleepLine2');
+  const thirdSleepLine3 = qs('#thirdSleepLine3');
+  const thirdSleepTitle = qs('#thirdSleepTitle');
+
   const noticePopup2 = qs('#noticePopup2');
   const noticeOk2 = qs('#noticeOk2');
+
+  const noticePopup3 = qs('#noticePopup3');
+  const noticeOk3 = qs('#noticeOk3');
 
   const mapOverlay = qs('#mapOverlay');
   const mapCanvas = qs('#mapCanvas');
   const mapPop = qs('#mapPop');
   const mapPopBody = qs('#mapPopBody');
   const mapPopClose = qs('#mapPopClose');
+
+  const gamePopup = qs('#gamePopup');
+  const gameFrame = qs('#gameFrame');
+  const gameClose = qs('#gameClose');
 
   const skipBtn = qs('#skipBtn');
 
@@ -959,6 +1087,12 @@
   let camFadeAlpha=0;
 
   let audioCtx = null;
+
+  /* === 전체 볼륨 조절용 상수 (여기서만 건드리면 됨) === */
+  const MASTER_SFX_GAIN = 0.45;        // 버튼/타이핑/벨/웅 소리
+  const AMBIENT_TARGET_GAIN = 0.40;    // 배경음악(앰비언트) 전체 크기
+  const TTS_VOLUME = 0.8;              // 화면 읽어주는 TTS 볼륨
+
   function ensureAudio(){
     if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
@@ -986,7 +1120,7 @@
       o1.frequency.setValueAtTime(1350, now);
       o2.frequency.setValueAtTime(900,  now);
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.35, now+0.02);
+      g.gain.exponentialRampToValueAtTime(0.35 * MASTER_SFX_GAIN, now+0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, now+0.18);
       o1.connect(g); o2.connect(g); g.connect(ctx.destination);
       o1.start(now); o2.start(now);
@@ -1002,7 +1136,6 @@
     if(!ttsReady) return;
     const voices = window.speechSynthesis.getVoices();
     if(!voices || !voices.length) return;
-    // ko 여성 → 그 외 ko → 그 외 아무거나
     ttsVoice =
       voices.find(v => v.lang.startsWith('ko') && /female|woman|A|F/i.test(v.name)) ||
       voices.find(v => v.lang.startsWith('ko')) ||
@@ -1021,8 +1154,8 @@
       const u = new SpeechSynthesisUtterance(text);
       if(ttsVoice) u.voice = ttsVoice;
       u.pitch = 1.05;
-      u.rate = 0.9;     // 나긋하게
-      u.volume = 0.9;
+      u.rate = 0.9;
+      u.volume = TTS_VOLUME;
       window.speechSynthesis.speak(u);
     }catch(e){}
   }
@@ -1033,31 +1166,31 @@
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
     function setup(){
       ctx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
-      master = ctx.createGain(); 
+      master = ctx.createGain();
       master.gain.value=0.0001;
-      delay = ctx.createDelay(2.5); 
+      delay = ctx.createDelay(2.5);
       delay.delayTime.value=0.45;
-      fb = ctx.createGain(); 
-      fb.gain.value=0.35; 
+      fb = ctx.createGain();
+      fb.gain.value=0.35;
       delay.connect(fb).connect(delay);
-      hp = ctx.createBiquadFilter(); 
-      hp.type='highpass'; 
+      hp = ctx.createBiquadFilter();
+      hp.type='highpass';
       hp.frequency.value=150;
-      lp = ctx.createBiquadFilter(); 
-      lp.type='lowpass'; 
+      lp = ctx.createBiquadFilter();
+      lp.type='lowpass';
       lp.frequency.value=4200;
-      mix = ctx.createGain(); 
+      mix = ctx.createGain();
       mix.gain.value = 0.5;
       mix.connect(hp).connect(lp).connect(master);
-      busGain = ctx.createGain(); 
-      busGain.gain.value=0.5; 
+      busGain = ctx.createGain();
+      busGain.gain.value=0.5;
       busGain.connect(master);
       master.connect(ctx.destination);
     }
-    function connectDW(node){ 
-      node.connect(busGain); 
-      node.connect(delay); 
-      delay.connect(mix); 
+    function connectDW(node){
+      node.connect(busGain);
+      node.connect(delay);
+      delay.connect(mix);
     }
     function airy(){
       const b=audioCtx.createBuffer(1, audioCtx.sampleRate*2, audioCtx.sampleRate);
@@ -1065,11 +1198,11 @@
       for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.10;
       const s=audioCtx.createBufferSource();
       s.buffer=b; s.loop=true;
-      const g=audioCtx.createGain(); 
+      const g=audioCtx.createGain();
       g.gain.value=0.01;
-      const f=audioCtx.createBiquadFilter(); 
-      f.type='bandpass'; 
-      f.frequency.value=1100; 
+      const f=audioCtx.createBiquadFilter();
+      f.type='bandpass';
+      f.frequency.value=1100;
       f.Q.value=0.9;
       s.connect(f).connect(g);
       connectDW(g);
@@ -1077,25 +1210,25 @@
       killers.push(()=>{ try{s.stop();}catch{} });
     }
     function pad(root){
-      const out = audioCtx.createGain(); 
+      const out = audioCtx.createGain();
       out.gain.value=0.28;
-      const filt=audioCtx.createBiquadFilter(); 
-      filt.type='lowpass'; 
-      filt.frequency.value=1200; 
+      const filt=audioCtx.createBiquadFilter();
+      filt.type='lowpass';
+      filt.frequency.value=1200;
       filt.Q.value=0.7;
-      const lfo=audioCtx.createOscillator(); 
+      const lfo=audioCtx.createOscillator();
       const lfoG=audioCtx.createGain();
-      lfo.type='sine'; 
-      lfo.frequency.value=0.04; 
+      lfo.type='sine';
+      lfo.frequency.value=0.04;
       lfoG.gain.value=260;
-      lfo.connect(lfoG).connect(filt.frequency); 
+      lfo.connect(lfoG).connect(filt.frequency);
       lfo.start();
       [0,7,12].forEach((i,k)=>{
         const o=audioCtx.createOscillator();
         o.type='triangle';
         o.frequency.value=midi(root+i);
         o.detune.value=(k-1)*4;
-        const g=audioCtx.createGain(); 
+        const g=audioCtx.createGain();
         g.gain.value=0.06;
         o.connect(g).connect(filt);
         o.start();
@@ -1115,7 +1248,7 @@
       o.type='sine';
       o.frequency.value = midi(root+pick);
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.25, now+0.04);
+      g.gain.exponentialRampToValueAtTime(0.25 * MASTER_SFX_GAIN, now+0.04);
       g.gain.exponentialRampToValueAtTime(0.0001, now+1.9);
       f.type='bandpass';
       f.frequency.value = o.frequency.value*2;
@@ -1126,7 +1259,7 @@
       o.stop(now+2.1);
       killers.push(()=>{ try{g.disconnect();}catch{} });
     }
-    async function start(fadeIn=0.8, target=0.5){
+    async function start(fadeIn=0.8, target=AMBIENT_TARGET_GAIN){
       await ensureResumed();
       if(running) return;
       setup();
@@ -1171,7 +1304,7 @@
       o.frequency.setValueAtTime(220, now);
       o.frequency.exponentialRampToValueAtTime(110, now+0.24);
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.5, now+0.03);
+      g.gain.exponentialRampToValueAtTime(0.5 * MASTER_SFX_GAIN, now+0.03);
       g.gain.exponentialRampToValueAtTime(0.0001, now+0.35);
       o.connect(g).connect(audioCtx.destination);
       o.start(now);
@@ -1187,7 +1320,7 @@
       o1.type='sine'; o2.type='sine';
       o1.frequency.value=90; o2.frequency.value=45;
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.9, now+0.02);
+      g.gain.exponentialRampToValueAtTime(0.9 * MASTER_SFX_GAIN, now+0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, now+0.6);
       o1.connect(g); o2.connect(g); g.connect(audioCtx.destination);
       o1.start(); o2.start();
@@ -1205,7 +1338,7 @@
       osc1.frequency.setValueAtTime(1200, now);
       osc2.frequency.setValueAtTime(1800, now);
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.9, now+0.02);
+      g.gain.exponentialRampToValueAtTime(0.9 * MASTER_SFX_GAIN, now+0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, now+1.4);
       osc1.connect(g); osc2.connect(g); g.connect(audioCtx.destination);
       osc1.start(now); osc2.start(now);
@@ -1224,7 +1357,7 @@
       o.frequency.setValueAtTime(90, now);
       o.frequency.exponentialRampToValueAtTime(55, now+2.0);
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.9, now+0.15);
+      g.gain.exponentialRampToValueAtTime(0.9 * MASTER_SFX_GAIN, now+0.15);
       g.gain.exponentialRampToValueAtTime(0.0001, now+2.0);
       o.connect(g).connect(audioCtx.destination);
       o.start(now);
@@ -1248,7 +1381,7 @@
       o1.frequency.setValueAtTime(880, now);
       o2.frequency.setValueAtTime(1320, now);
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.35, now+0.03);
+      g.gain.exponentialRampToValueAtTime(0.35 * MASTER_SFX_GAIN, now+0.03);
       g.gain.exponentialRampToValueAtTime(0.0001, now+2.4);
       o1.connect(g); o2.connect(g); g.connect(audioCtx.destination);
       o1.start(now); o2.start(now);
@@ -1315,7 +1448,6 @@
     })
     .then(async (s)=>{
       await ensureResumed();
-      if(!Ambient.isRunning()) Ambient.start(0.8, 0.5);
       claimImmersive();
       s.getTracks().forEach(t=>t.stop());
       camPermGranted = true;
@@ -1325,7 +1457,8 @@
     })
     .finally(()=>{
       fadeHide(overlay, FADE);
-      fadeShow(nameOverlay, FADE);
+      showPreset();                       // 먼저 프리셋을 뒤에 깔아두고
+      fadeShow(nameOverlay, FADE);        // 그 위에 이름 입력창 뜸
       stage = 'name';
       setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 60);
     });
@@ -1345,12 +1478,10 @@
   async function acceptName(){
     claimImmersive();
     await ensureResumed();
-    if(!Ambient.isRunning()) Ambient.start(0.2, 0.5);
     const v = (nickInput.value||'').trim();
     if(v.length>0){ displayName = v; }
     await playWoongClick();
-    fadeHide(nameOverlay, FADE);
-    showPreset();
+    fadeHide(nameOverlay, FADE);   // 이름 카드만 사라지고 프리셋은 그대로
     stage = 'preset';
     skipBtn.style.display='block';
   }
@@ -1366,6 +1497,10 @@
     fadeShow(preset, FADE);
     initSaver();
     startCameraFresh(true);
+    // 여기서 한 번만 배경음악 시작
+    ensureResumed().then(()=>{
+      if(!Ambient.isRunning()) Ambient.start(1.0, AMBIENT_TARGET_GAIN);
+    });
   }
   function initSaver(){
     const w=preset.clientWidth, h=preset.clientHeight;
@@ -1444,7 +1579,6 @@
   preset.addEventListener('click', async ()=>{
     claimImmersive();
     await ensureResumed();
-    if(!Ambient.isRunning()) Ambient.start(0.2, 0.5);
     await playWoongClick();
     fadeHide(preset, FADE);
     await startCameraFresh(false);
@@ -1525,7 +1659,6 @@
   const COLOR_FILL='#d0d0d0';
   const COLOR_STROKE='#000';
 
-  /* 회전 가능한 인트로 캐릭터 */
   function drawPixelHuman(ctx, cx, baselineY, W, hop=0, alpha=1, angleRad=0){
     const cell=Math.max(2, Math.min(4, Math.floor(W*0.0018)));
     const cols=PIXEL_SPRITE[0].length;
@@ -1571,7 +1704,6 @@
     return {x:r.left,y:r.top,w:r.width,h:r.height};
   }
 
-  /* 인트로 캐릭터: 프로시니엄 안쪽 라인을 따라 직사각형 경로로 걷기 + 방향에 따라 회전 */
   function prosceniumWalkPos(t01){
     const pr = getProsceniumRect();
     const margin = Math.min(pr.w, pr.h) * 0.06;
@@ -1583,21 +1715,21 @@
     let d = ((t01%1)+1)%1 * per;
 
     let x,y,edge;
-    if(d <= (right-left)){                           // 아래쪽 왼->오
+    if(d <= (right-left)){
       x = left + d;
       y = bottom;
       edge = 'bottom';
-    }else if(d <= (right-left)+(bottom-top)){        // 오른쪽 아래->위
+    }else if(d <= (right-left)+(bottom-top)){
       d -= (right-left);
       x = right;
       y = bottom - d;
       edge = 'right';
-    }else if(d <= (right-left)*2 + (bottom-top)){    // 위쪽 오->왼
+    }else if(d <= (right-left)*2 + (bottom-top)){
       d -= (right-left + (bottom-top));
       x = right - d;
       y = top;
       edge = 'top';
-    }else{                                           // 왼쪽 위->아래
+    }else{
       d -= (right-left)*2 + (bottom-top);
       x = left;
       y = top + d;
@@ -1638,8 +1770,6 @@
     ctx.fillText(text,bx+pad,by+pad+12);
     ctx.restore();
   }
-
-  /* 인트로 건물(예전 코드)는 제거 – 도시 디자인 없음 */
 
   let introWalking=false;
   let introStartTime=0;
@@ -1689,37 +1819,6 @@
     },1000);
   }
 
-  /* sleep-city.html로 이동하는 공통 함수 */
-  function goToSleepCity(){
-    try{
-      stopSecondBell();
-      if(secondTimer){
-        clearInterval(secondTimer);
-        secondTimer = null;
-      }
-      if(mainTimer){
-        clearInterval(mainTimer);
-        mainTimer = null;
-      }
-      if(Ambient && Ambient.isRunning && Ambient.isRunning()){
-        Ambient.stop(2.5);
-      }
-      stopMicFXFadeOut(1.5);
-      if(camStream){
-        camStream.getTracks().forEach(tr=>tr.stop());
-        camStream = null;
-      }
-      if(micStream){
-        micStream.getTracks().forEach(tr=>tr.stop());
-        micStream = null;
-      }
-    }catch(e){}
-    runTimer.style.display = 'none';
-    document.body.style.transition = 'opacity 1000ms ease';
-    document.body.style.opacity = '0';
-    setTimeout(()=>{ window.location.href = 'sleep-city.html'; }, 1000);
-  }
-
   /* 2장: 8분 타이머 */
   let secondTimer = null;
   let secondLeft  = 0;
@@ -1735,9 +1834,7 @@
       if(secondLeft<=0){
         clearInterval(secondTimer);
         secondTimer=null;
-        stopSecondBell();
-        runTimer.style.display='none';
-        goToSleepCity();
+        onSecondSleepEnd();
       }
     },1000);
   }
@@ -2173,7 +2270,7 @@
   async function typeIntroLine(idx){
     introTextEl.textContent='';
     const text = resolveIntroLine(idx);
-    speakText(text);           // TTS: 인트로 문장 읽기
+    speakText(text);
     for(let i=0;i<text.length;i++){
       introTextEl.textContent += text[i];
       typeTick();
@@ -2240,14 +2337,14 @@
     firstTransTitle.style.transition = 'opacity 1500ms ease';
     firstTransTitle.textContent = 'THE FIRST SLEEP';
     playDreamWoong();
-    speakText('더 퍼스트 슬립');   // 타이틀 TTS (한국어식)
+    speakText('더 퍼스트 슬립');
     await nextFrame();
     firstTransTitle.style.opacity = '1';
 
     await sleep(2000);
 
     if (Ambient && Ambient.isRunning && Ambient.isRunning()){
-      Ambient.stop(3.0);
+      Ambient.stop(3.0);    // 인트로 음악 3초 페이드 아웃
     }
 
     firstTransition.style.transition='opacity 2000ms ease';
@@ -2309,7 +2406,7 @@
   async function typeFirstSleepLine(text){
     chapterBox.innerHTML='';
     const speak = text.replace(/\n/g,' ');
-    speakText(speak);         // 1장 문장 TTS
+    speakText(speak);
     for(let i=0;i<text.length;i++){
       const ch = text[i];
       if(ch === '\n'){
@@ -2385,6 +2482,58 @@
     sleepSecondTitle.style.opacity='1';
   }
 
+  async function runThirdSleepTitleSequence(){
+    thirdSleepLine1.textContent = '';
+    thirdSleepLine2.textContent = '';
+    thirdSleepLine3.textContent = '';
+    thirdSleepTitle.textContent = '';
+    thirdTransition.style.display='flex';
+    thirdTransition.style.opacity='0';
+    thirdTransition.style.transition='opacity 2000ms ease';
+    await nextFrame();
+    thirdTransition.style.opacity='1';
+
+    const line = 'SLEEEEEEEEP,';
+
+    for(let i=0;i<line.length;i++){
+      thirdSleepLine1.textContent += line[i];
+      typeTick();
+      await sleep(45);
+    }
+    await sleep(300);
+    for(let i=0;i<line.length;i++){
+      thirdSleepLine2.textContent += line[i];
+      typeTick();
+      await sleep(45);
+    }
+    await sleep(300);
+    for(let i=0;i<line.length;i++){
+      thirdSleepLine3.textContent += line[i];
+      typeTick();
+      await sleep(45);
+    }
+
+    await sleep(900);
+
+    thirdSleepTitle.style.opacity = '0';
+    thirdSleepTitle.style.transition = 'opacity 1500ms ease';
+    thirdSleepTitle.textContent = 'THE THIRD SLEEP';
+    playDreamWoong();
+    speakText('더 써드 슬립');
+    await nextFrame();
+    thirdSleepTitle.style.opacity = '1';
+
+    await sleep(2200);
+
+    thirdTransition.style.transition='opacity 2000ms ease';
+    thirdTransition.style.opacity='0';
+    await sleep(2100);
+    thirdTransition.style.display='none';
+    thirdTransition.style.transition='';
+    thirdSleepTitle.style.transition='';
+    thirdSleepTitle.style.opacity='1';
+  }
+
   async function onFirstSleepTimerEnd(){
     claimImmersive();
     await ensureResumed();
@@ -2432,10 +2581,36 @@
     };
   }
 
+  function showThirdNoticePopup(){
+    function bgTrap3(e){
+      if(!e.target.closest('#noticeCard3')){
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }
+    ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{
+      noticePopup3.addEventListener(ev, bgTrap3, {passive:false});
+    });
+    fadeShow(noticePopup3, 280, 'flex');
+    stage = 'thirdIntro';
+    setTimeout(()=>{
+      noticeOk3 && noticeOk3.focus && noticeOk3.focus();
+    }, 50);
+
+    noticeOk3.onclick = async (e)=>{
+      e.stopPropagation();
+      claimImmersive();
+      await ensureResumed();
+      await playWoongClick();
+      fadeHide(noticePopup3, 260);
+      await sleep(280);
+      goToSleepCity();   // 세 번째 수면 → 게임 팝업
+    };
+  }
+
   async function showIntroFlow(){
     claimImmersive();
     await ensureResumed();
-    if(!Ambient.isRunning()) Ambient.start(0.2, 0.5);
 
     showCamera = false;
     camFadeAlpha = 0;
@@ -2466,7 +2641,6 @@
   document.getElementById('goIntro').addEventListener('click', ()=>{
     ensureResumed().then(async ()=>{
       claimImmersive();
-      if(!Ambient.isRunning()) Ambient.start(0.2,0.5);
       await playWoongClick();
       fadeHide(welcome, FADE);
       stage = 'intro';
@@ -2591,6 +2765,56 @@
     visualViewport.addEventListener('resize', ()=>setTimeout(setAppH2,50));
   }
 
+  /* SECOND SLEEP 종료 → THIRD SLEEP 시퀀스로 */
+  async function onSecondSleepEnd(){
+    claimImmersive();
+    await ensureResumed();
+    stopSecondBell();
+    if(secondTimer){
+      clearInterval(secondTimer);
+      secondTimer=null;
+    }
+    runTimer.style.display='none';
+    fadeHide(mapOverlay, 800);
+    await sleep(850);
+    await runThirdSleepTitleSequence();
+    showThirdNoticePopup();
+  }
+
+  /* SLEEP CITY 게임을 팝업으로 띄우기 */
+  function goToSleepCity(){
+    try{
+      stopSecondBell();
+      if(secondTimer){
+        clearInterval(secondTimer);
+        secondTimer = null;
+      }
+      if(mainTimer){
+        clearInterval(mainTimer);
+        mainTimer = null;
+      }
+      if(Ambient && Ambient.isRunning && Ambient.isRunning()){
+        Ambient.stop(2.5);
+      }
+      stopMicFXFadeOut(1.5);
+      if(camStream){
+        camStream.getTracks().forEach(tr=>tr.stop());
+        camStream = null;
+      }
+    }catch(e){}
+    runTimer.style.display = 'none';
+
+    gameFrame.src = 'sleep-city.html';
+    fadeShow(gamePopup, 600, 'flex');
+    stage = 'thirdGame';
+  }
+
+  gameClose.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    fadeHide(gamePopup, 400);
+    stage = 'done';
+  }, {passive:true});
+
   /* SKIP 버튼 – 현재 챕터에 맞춰 건너뛰기 */
   skipBtn.addEventListener('click', async ()=>{
     await ensureResumed();
@@ -2603,7 +2827,7 @@
       await sleep(350);
       await playTduung();
       startIntroToFirstSleepSequence();
-    }else if(stage === 'first'){
+    }else if(stage === 'first' || stage === 'firstEnding'){
       if(mainTimer){
         clearInterval(mainTimer);
         mainTimer=null;
@@ -2611,13 +2835,17 @@
       timerFinished = true;
       await onFirstSleepTimerEnd();
     }else if(stage === 'second'){
-      stopSecondBell();
-      if(secondTimer){
-        clearInterval(secondTimer);
-        secondTimer=null;
-      }
-      runTimer.style.display='none';
+      await onSecondSleepEnd();
+    }else if(stage === 'secondIntro'){
+      await runSecondSleepTitleSequence();
+      showSecondNoticePopup();
+    }else if(stage === 'thirdIntro'){
+      fadeHide(noticePopup3, 200);
+      await sleep(220);
       goToSleepCity();
+    }else if(stage === 'thirdGame'){
+      fadeHide(gamePopup, 400);
+      stage = 'done';
     }else{
       if(mainTimer){
         clearInterval(mainTimer);
