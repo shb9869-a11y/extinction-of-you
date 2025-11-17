@@ -264,7 +264,7 @@
     display:none;
     align-items:center;
     justify-content:center;
-    background:rgba(0,0,0,.5); /* 프리셋이 비치도록 */
+    background:rgba(0,0,0,.5);
     color:var(--accent);
   }
   #nameCard{
@@ -274,7 +274,7 @@
     text-align:center;
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
     padding:24px 20px 20px;
-    border:1px solid #d0d0d0; /* 하얀 실선 박스 */
+    border:1px solid #d0d0d0;
     background:rgba(0,0,0,0.85);
     box-shadow:0 10px 24px rgba(0,0,0,0.8);
   }
@@ -363,7 +363,7 @@
     font-size:var(--fs-small);
   }
 
-  /* INTRO big title – sleepLine 스타일 공통 적용 */
+  /* INTRO big title */
   #introBig{
     position:fixed;
     inset:0;
@@ -374,7 +374,6 @@
     z-index:210;
   }
   #introBigText{
-    /* .sleepLine로 폰트/크기 통일 */
   }
 
   /* INTRO 텍스트 박스 */
@@ -403,7 +402,7 @@
     margin-left:auto;
   }
 
-  /* THE FIRST SLEEP title (지금은 사용 X, 스타일만 통일) */
+  /* FIRST SLEEP title (지금은 사용 X) */
   #firstSleep{
     position:fixed;
     inset:0;
@@ -415,7 +414,6 @@
     text-align:center;
   }
   #firstSleepText{
-    /* sleepLine 공통 스타일 사용 */
   }
 
   /* NOTICE Popup (FIRST SLEEP) */
@@ -489,7 +487,7 @@
     box-shadow:none;
   }
 
-  /* 1장 텍스트 글자 박스 – 노란 테두리 제거 */
+  /* 1장 텍스트 글자 박스 – 테두리 제거 */
   .charBox{
     display:inline-block;
     background:#000;
@@ -501,11 +499,11 @@
     box-sizing:border-box;
   }
 
-  /* 공통 타이틀 스타일 (SLEEEEEEEEP, FIRST/SECOND/THIRD SLEEP 다 통일) */
+  /* 공통 타이틀 스타일 */
   .sleepLine{
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
     letter-spacing:.16em;
-    font-size:clamp(32px, 12vmin, 160px); /* THE FIRST SLEEP 기준 */
+    font-size:clamp(32px, 12vmin, 160px); /* FIRST SLEEP 기준 */
     text-transform:uppercase;
     white-space:nowrap;
     text-shadow:0 0 8px rgba(0,0,0,.85);
@@ -515,9 +513,8 @@
     border:none;
     display:inline-block;
     text-align:center;
-    max-width:90vw; /* 화면 넘지 않도록 제한 */
-    word-break:break-word; /* 글자 잘리면 줄바꿈 */
-    overflow-wrap:break-word;
+    max-width:96vw;
+    box-sizing:border-box;
   }
 
   /* INTRO → FIRST SLEEP: SLEEEEEEEEP + THE FIRST SLEEP */
@@ -609,7 +606,7 @@
     text-align:right;
   }
 
-  /* SECOND NOTICE (지도 전) */
+  /* SECOND NOTICE */
   #noticePopup2{
     position:fixed;
     inset:0;
@@ -689,21 +686,6 @@
     top:8px;
     right:10px;
   }
-
-  /* 게임 iframe 컨테이너 */
-  #gameContainer{
-    position:fixed;
-    inset:0;
-    z-index:2000;
-    display:none;
-    background:#000;
-  }
-  #gameFrame{
-    width:100%;
-    height:100%;
-    border:none;
-    display:block;
-  }
 </style>
 </head>
 <body>
@@ -747,7 +729,7 @@
     </div>
   </div>
 
-  <!-- Name (뒤에 프리셋 보이도록) -->
+  <!-- Name -->
   <div id="nameOverlay" class="fade">
     <div id="nameCard">
       <h2>TELL ME YOUR NAME</h2>
@@ -865,11 +847,6 @@
     </div>
   </div>
 
-  <!-- 게임 컨테이너 (iframe) -->
-  <div id="gameContainer">
-    <iframe id="gameFrame" src="sleep-city.html"></iframe>
-  </div>
-
 <script>
 (() => {
   (function injectManifest(){
@@ -926,8 +903,8 @@
   const qs = s => document.querySelector(s);
 
   /* === 볼륨 공통 설정 === */
-  const MASTER_BGM_GAIN = 0.4;   // 전체 BGM 마스터
-  const MASTER_SFX_GAIN = 0.45;  // 버튼/타이핑/효과음 마스터
+  const MASTER_BGM_GAIN = 0.4;
+  const MASTER_SFX_GAIN = 0.45;
 
   document.addEventListener('contextmenu', e=>e.preventDefault());
   document.addEventListener('selectstart', e=>e.preventDefault());
@@ -1024,9 +1001,6 @@
   const mapPopBody = qs('#mapPopBody');
   const mapPopClose = qs('#mapPopClose');
 
-  const gameContainer = qs('#gameContainer');
-  const gameFrame = qs('#gameFrame');
-
   const skipBtn = qs('#skipBtn');
 
   let vctx=null, fgctx=null;
@@ -1054,7 +1028,7 @@
   /* 현재 챕터 상태 */
   let stage = 'gate';
 
-  /* --------- 입력/타이핑 공용 사운드 (볼륨 통일) --------- */
+  /* --------- 입력/타이핑 공용 사운드 --------- */
   function playGameInputSound(){
     try{
       ensureAudio();
@@ -1076,7 +1050,7 @@
     }catch(e){}
   }
 
-  /* --------- TTS (나긋한 여자 목소리) --------- */
+  /* --------- TTS --------- */
   let ttsReady = 'speechSynthesis' in window;
   let ttsVoice = null;
 
@@ -1146,7 +1120,7 @@
       const b=ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate);
       const d=b.getChannelData(0);
       for(let i=0;i<d.length;i++){
-        d[i]=(Math.random()*2-1)*0.06; // 노이즈 레벨 살짝 줄임
+        d[i]=(Math.random()*2-1)*0.06;
       }
       const s=ctx.createBufferSource();
       s.buffer=b; s.loop=true;
@@ -1470,8 +1444,8 @@
         ch:letters[i%letters.length],
         x:Math.random()*w,
         y:Math.random()*h,
-        vx:(Math.random()*0.7+0.2)*(Math.random()<.5?-1:1), /* 속도 감소 */
-        vy:(Math.random()*0.7+0.2)*(Math.random()<.5?-1:1), /* 속도 감소 */
+        vx:(Math.random()*1.2+0.3)*(Math.random()<.5?-1:1),
+        vy:(Math.random()*1.2+0.3)*(Math.random()<.5?-1:1),
         phase:Math.random()*Math.PI*2,
         size:(Math.floor(Math.random()*60)+90)*2
       });
@@ -1508,7 +1482,7 @@
     ctx.textAlign='center';
     ctx.textBaseline='middle';
     const dt=(now-saverT0)/1000;
-    if(dt>Math.random()*2+8){ /* 전환 주기 증가 */
+    if(dt>Math.random()*2+6){
       saverMode=(saverMode==='scatter'?'assemble':'scatter');
       saverT0=now;
     }
@@ -1523,7 +1497,8 @@
       o.y+=o.vy;
       if(o.x<0||o.x>w) o.vx*=-1;
       if(o.y<0||o.y>h) o.vy*=-1;
-      const wob=Math.sin(now/1200+o.phase)*0.08+1; /* 꿀렁임 느리게, 진폭 작게 */
+      /* 꿀렁이는 속도 느리게: 500 → 1500 */
+      const wob=Math.sin(now/1500+o.phase)*0.12+1;
       ctx.save();
       ctx.translate(o.x,o.y);
       ctx.scale(wob,1/wob);
@@ -1568,13 +1543,13 @@
   function fitTitleLine(el){
     if(!el) return;
     const fr=getFrameRect();
-    const maxW=Math.min(window.innerWidth*0.92, fr.width*0.88); /* 여유 공간 증가 */
+    /* 타이틀은 프레임 안에 들어오는 기준으로 축소 */
+    const maxW=Math.min(window.innerWidth*0.96, fr.width*0.96);
     const cs=getComputedStyle(el);
     let size=parseFloat(cs.fontSize)||48;
-    el.style.whiteSpace='normal'; /* 줄바꿈 허용 */
-    el.style.wordBreak='break-word';
-    while(el.scrollWidth>maxW && size>14){
-      size*=0.92; /* 더 부드럽게 감소 */
+    el.style.whiteSpace='nowrap';
+    while(el.scrollWidth>maxW && size>16){
+      size*=0.94;
       el.style.fontSize=size+'px';
     }
   }
@@ -1589,13 +1564,12 @@
     const titles = document.querySelectorAll('#welcomeCard .title');
     const card = document.getElementById('welcomeCard');
     if(!titles.length || !card) return;
-    const maxW = card.clientWidth * 0.92;
+    const maxW = card.clientWidth * 0.95;
     titles.forEach(el=>{
-      el.style.whiteSpace='normal';
-      el.style.wordBreak='break-word';
+      el.style.whiteSpace='nowrap';
       let size = parseFloat(getComputedStyle(el).fontSize) || 40;
       while(el.scrollWidth>maxW && size>14){
-        size *= 0.92;
+        size *= 0.94;
         el.style.fontSize = size+'px';
       }
     });
@@ -1783,7 +1757,7 @@
     },1000);
   }
 
-  /* THIRD SLEEP 이후 sleep-city.html로 이동 */
+  /* THIRD SLEEP 이후 게임 페이지로 이동 */
   function goToSleepCity(){
     try{
       stopSecondBell();
@@ -1809,26 +1783,9 @@
       }
     }catch(e){}
     runTimer.style.display = 'none';
-    
-    /* 모든 UI 숨기고 iframe으로 게임 로드 */
-    document.querySelectorAll('div:not(#gameContainer)').forEach(el=>{
-      if(el.id !== 'gameContainer' && el.id !== 'skipBtn'){
-        el.style.display = 'none';
-      }
-    });
-    
-    gameContainer.style.display = 'block';
-    skipBtn.style.display = 'block';
-    skipBtn.style.zIndex = '2001';
-    
-    stage = 'game';
-    
-    // 10초 후 자동으로 엔딩으로 (테스트용, 실제 게임 시간 조정 필요)
-    setTimeout(()=>{
-      if(stage === 'game'){
-        skipBtn.click();
-      }
-    }, 30000); // 30초 후 자동 종료 (실제 게임 시간으로 조정)
+    document.body.style.transition = 'opacity 1000ms ease';
+    document.body.style.opacity = '0';
+    setTimeout(()=>{ window.location.href = 'sleep-city.html'; }, 1000);
   }
 
   /* 2장: 8분 타이머 */
@@ -2345,12 +2302,16 @@
       typeTick();
       await sleep(45);
     }
+    /* 타이핑 완료 후 가로 길이에 맞게 축소 */
+    fitTitleLine(firstTransWord);
 
     await sleep(900);
 
     firstTransTitle.style.opacity = '0';
     firstTransTitle.style.transition = 'opacity 1500ms ease';
     firstTransTitle.textContent = 'THE FIRST SLEEP';
+    /* 본문 타이틀도 화면 내로 맞추기 */
+    fitTitleLine(firstTransTitle);
     playDreamWoong();
     speakText('더 퍼스트 슬립');
     await nextFrame();
@@ -2422,6 +2383,7 @@
     chapterBox.innerHTML='';
     const speak = text.replace(/\n/g,' ');
     speakText(speak);
+    /* 문법 에러 수정: let i=0 */
     for(let i=0;i<text.length;i++){
       const ch = text[i];
       if(ch === '\n'){
@@ -2440,4 +2402,370 @@
   async function startFirstSleepStory(){
     claimImmersive();
     await ensureResumed();
-    fadeShow
+    fadeShow(chapterOverlay, 400, 'flex');
+    await sleep(420);
+
+    for(const line of FIRST_SLEEP_LINES){
+      await typeFirstSleepLine(line);
+      await sleep(4000);
+    }
+
+    fadeHide(chapterOverlay, 800);
+  }
+
+  async function runSecondSleepTitleSequence(){
+    sleepLine1.textContent = '';
+    sleepLine2.textContent = '';
+    sleepSecondTitle.textContent = '';
+    sleepTransition.style.display='flex';
+    sleepTransition.style.opacity='0';
+    sleepTransition.style.transition='opacity 2000ms ease';
+    await nextFrame();
+    sleepTransition.style.opacity='1';
+
+    const line1 = 'SLEEEEEEEEP,';
+    const line2 = 'SLEEEEEEEEP,';
+
+    for(let i=0;i<line1.length;i++){
+      sleepLine1.textContent += line1[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(sleepLine1);
+
+    await sleep(350);
+    for(let i=0;i<line2.length;i++){
+      sleepLine2.textContent += line2[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(sleepLine2);
+
+    await sleep(900);
+
+    sleepSecondTitle.style.opacity = '0';
+    sleepSecondTitle.style.transition = 'opacity 1500ms ease';
+    sleepSecondTitle.textContent = 'THE SECOND SLEEP';
+    fitTitleLine(sleepSecondTitle);
+    playDreamWoong();
+    speakText('더 세컨드 슬립');
+    await nextFrame();
+    sleepSecondTitle.style.opacity = '1';
+
+    await sleep(2200);
+
+    sleepTransition.style.transition='opacity 2000ms ease';
+    sleepTransition.style.opacity='0';
+    await sleep(2100);
+    sleepTransition.style.display='none';
+    sleepTransition.style.transition='';
+    sleepSecondTitle.style.transition='';
+    sleepSecondTitle.style.opacity='1';
+  }
+
+  async function onFirstSleepTimerEnd(){
+    claimImmersive();
+    await ensureResumed();
+
+    controls.classList.remove('show');
+    captureBtn.classList.remove('show');
+    runTimer.style.display='none';
+
+    fadeHide(chapterOverlay, 800);
+
+    fadeOutCamera(2500);
+    stopMicFXFadeOut(2.5);
+
+    await sleep(400);
+    await runSecondSleepTitleSequence();
+
+    stage = 'secondIntro';
+    showSecondNoticePopup();
+  }
+
+  function showSecondNoticePopup(){
+    function bgTrap2(e){
+      if(!e.target.closest('#noticeCard2')){
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }
+    ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{
+      noticePopup2.addEventListener(ev, bgTrap2, {passive:false});
+    });
+    fadeShow(noticePopup2, 280, 'flex');
+    setTimeout(()=>{
+      noticeOk2 && noticeOk2.focus && noticeOk2.focus();
+    }, 50);
+
+    noticeOk2.onclick = async (e)=>{
+      e.stopPropagation();
+      claimImmersive();
+      await ensureResumed();
+      await playWoongClick();
+      fadeHide(noticePopup2, 260);
+      await sleep(280);
+      await playBellChime();
+      showMapOverlay();
+    };
+  }
+
+  /* THIRD SLEEP 타이틀 + NOTICE3 → 게임으로 */
+  async function startThirdSleepSequence(){
+    claimImmersive();
+    await ensureResumed();
+
+    stage = 'thirdIntro';
+
+    thirdTransition.style.display='flex';
+    thirdTransition.style.opacity='0';
+    thirdTransition.style.transition='opacity 2000ms ease';
+    await nextFrame();
+    fitTitleLine(thirdTitle);
+    thirdTransition.style.opacity='1';
+    playDreamWoong();
+    speakText('더 써드 슬립');
+    await sleep(2600);
+
+    thirdTransition.style.transition='opacity 1800ms ease';
+    thirdTransition.style.opacity='0';
+    await sleep(1900);
+    thirdTransition.style.display='none';
+
+    showThirdNotice();
+  }
+
+  function showThirdNotice(){
+    function bgTrap3(e){
+      if(!e.target.closest('#noticeCard3')){
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }
+    ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{
+      noticePopup3.addEventListener(ev, bgTrap3, {passive:false});
+    });
+    fadeShow(noticePopup3, 280, 'flex');
+    setTimeout(()=>{ noticeOk3 && noticeOk3.focus && noticeOk3.focus(); }, 50);
+
+    noticeOk3.onclick = async (e)=>{
+      e.stopPropagation();
+      claimImmersive();
+      await ensureResumed();
+      await playWoongClick();
+      fadeHide(noticePopup3, 260);
+      await sleep(300);
+      /* 여기서 게임 페이지로 이동 */
+      goToSleepCity();
+    };
+  }
+
+  async function showIntroFlow(){
+    claimImmersive();
+    await ensureResumed();
+    if(!Ambient.isRunning()) Ambient.start(0.8, 1.0);
+
+    showCamera = false;
+    camFadeAlpha = 0;
+
+    introBig.style.display='flex';
+    introBig.style.opacity='0';
+    await nextFrame();
+    fitTitleLine(introBigText);
+    introBig.style.transition='opacity 1600ms ease';
+    introBig.style.opacity='1';
+    speakText('인트로덕션');
+    await sleep(2200);
+    introBig.style.opacity='0';
+    await sleep(1600);
+    introBig.style.display='none';
+
+    introWalking=true;
+    introStartTime=performance.now();
+    showIntroLayer=true;
+    fgAlpha=1.0;
+    initIntroWalkers();
+
+    introIndex = 0;
+    fadeShow(introDialogue, 300, 'block');
+    typeIntroLine(introIndex);
+  }
+
+  document.getElementById('goIntro').addEventListener('click', ()=>{
+    ensureResumed().then(async ()=>{
+      claimImmersive();
+      if(!Ambient.isRunning()) Ambient.start(0.8,1.0);
+      await playWoongClick();
+      fadeHide(welcome, FADE);
+      stage = 'intro';
+      showIntroFlow();
+    });
+  }, {passive:true});
+
+  let mapMarkers = [];
+
+  function drawMap(){
+    if(!mapOverlay || mapOverlay.style.display==='none') return;
+    const rect = mapOverlay.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+    const dpr = window.devicePixelRatio || 1;
+    mapCanvas.width = w*dpr;
+    mapCanvas.height = h*dpr;
+    const ctx = mapCanvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle='#000';
+    ctx.fillRect(0,0,w,h);
+
+    const cx = w*0.5;
+    const cy = h*0.5;
+
+    const mw = w*0.7;
+    const mh = h*0.6;
+    const left = cx - mw/2;
+    const top  = cy - mh/2;
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(left, top, mw, mh);
+    ctx.strokeStyle='rgba(208,208,208,0.85)';
+    ctx.lineWidth=2;
+    ctx.strokeRect(left, top, mw, mh);
+
+    const r = Math.min(mw,mh)*0.16;
+    ctx.fillStyle='#555555';
+    ctx.beginPath();
+    for(let i=0;i<6;i++){
+      const ang = Math.PI/2 + i*Math.PI/3;
+      const x = cx + r*Math.cos(ang);
+      const y = cy + r*Math.sin(ang);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    mapMarkers=[];
+    const rectW = r*0.9;
+    const rectH = r*0.5;
+    const offsets = [
+      {id:1, dx:0,       dy:-r*1.7},
+      {id:2, dx:r*1.45,  dy:-r*1.05},
+      {id:3, dx:r*1.9,   dy:0},
+      {id:4, dx:r*1.45,  dy:r*1.05},
+      {id:5, dx:0,       dy:r*1.7},
+      {id:6, dx:-r*1.45, dy:r*1.05},
+      {id:7, dx:-r*1.9,  dy:0},
+      {id:8, dx:-r*1.45, dy:-r*1.05}
+    ];
+
+    ctx.font='14px "Press Start 2P","Courier New",monospace';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+
+    offsets.forEach(o=>{
+      const cxRect = cx + o.dx;
+      const cyRect = cy + o.dy;
+      const x = cxRect - rectW/2;
+      const y = cyRect - rectH/2;
+
+      mapMarkers.push({id:o.id, x, y, w:rectW, h:rectH});
+
+      ctx.fillStyle='rgba(0,0,0,0.85)';
+      ctx.fillRect(x,y,rectW,rectH);
+      ctx.strokeStyle='rgba(208,208,208,0.9)';
+      ctx.strokeRect(x,y,rectW,rectH);
+      ctx.fillStyle='rgba(208,208,208,0.96)';
+      ctx.fillText(String(o.id), x+rectW/2, y+rectH/2+1);
+    });
+  }
+
+  function showMapOverlay(){
+    fadeShow(mapOverlay, 600, 'flex');
+    setTimeout(drawMap, 80);
+    stage = 'second';
+    startSecondTimer();
+    startSecondBell();
+    runTimer.style.display='block';
+  }
+
+  function openMarkerPopup(id){
+    mapPopBody.textContent = `ZONE ${id}`;
+    speakText(`존 ${id}`);
+    mapPop.style.display='flex';
+  }
+
+  mapPopClose.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    mapPop.style.display='none';
+  }, {passive:true});
+
+  mapCanvas.addEventListener('pointerdown', (e)=>{
+    const rect = mapCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    for(const m of mapMarkers){
+      if(x>=m.x && x<=m.x+m.w && y>=m.y && y<=m.y+m.h){
+        openMarkerPopup(m.id);
+        break;
+      }
+    }
+  });
+
+  function setAppH2(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
+  setAppH2();
+  addEventListener('resize', setAppH2, {passive:true});
+  if (window.visualViewport){
+    visualViewport.addEventListener('resize', ()=>setTimeout(setAppH2,50));
+  }
+
+  /* SKIP 버튼 – 현재 챕터에 맞춰 건너뛰기 */
+  skipBtn.addEventListener('click', async ()=>{
+    await ensureResumed();
+    await playWoongClick();
+
+    if(stage === 'intro'){
+      fadeHide(introDialogue, 300);
+      introWalking=false;
+      showIntroLayer=false;
+      await sleep(350);
+      await playTduung();
+      startIntroToFirstSleepSequence();
+    }else if(stage === 'first'){
+      if(mainTimer){
+        clearInterval(mainTimer);
+        mainTimer=null;
+      }
+      timerFinished = true;
+      await onFirstSleepTimerEnd();
+    }else if(stage === 'second'){
+      /* 2장에서 SKIP → 바로 THIRD SLEEP 시퀀스로 */
+      stopSecondBell();
+      if(secondTimer){
+        clearInterval(secondTimer);
+        secondTimer=null;
+      }
+      runTimer.style.display='none';
+      await startThirdSleepSequence();
+    }else if(stage === 'thirdIntro'){
+      /* THIRD SLEEP 타이틀/노티스 구간에서 SKIP → 바로 게임으로 */
+      goToSleepCity();
+    }else{
+      if(mainTimer){
+        clearInterval(mainTimer);
+        mainTimer=null;
+      }
+      timerFinished = true;
+      await onFirstSleepTimerEnd();
+    }
+  }, {passive:true});
+
+  startCameraFresh(true);
+  if(!animStarted){
+    animStarted=true;
+    loop();
+  }
+})();
+</script>
+</body>
+</html>
