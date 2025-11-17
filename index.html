@@ -525,9 +525,13 @@
     box-sizing:border-box;
   }
 
-  /* INTRO → FIRST SLEEP: SLEEEEEEEEP + THE FIRST SLEEP (두 줄 타이핑)
-     → 모두 THE FIRST SLEEP 기준 폰트 크기 & 중앙 정렬 */
-  #firstTransition{
+  /* 공통 수면 타이틀 레이아웃 */
+  #firstTransition,
+  #sleepTransition,
+  #thirdTransition,
+  #fourthTransition,
+  #silenceScreen,
+  #endScreen{
     position:fixed;
     inset:0;
     display:none;
@@ -540,6 +544,8 @@
     pointer-events:none;
     text-align:center;
   }
+
+  /* INTRO → FIRST SLEEP: SLEEEEEEEEP + THE FIRST SLEEP */
   .sleepLine{
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
     letter-spacing:.16em;
@@ -561,21 +567,7 @@
     margin-top:10px;
   }
 
-  /* BETWEEN FIRST & SECOND SLEEP (두 줄 SLEEEEEEEEP + THE SECOND SLEEP)
-     → 동일한 폰트 크기 & 중앙 정렬 유지 */
-  #sleepTransition{
-    position:fixed;
-    inset:0;
-    display:none;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    background:#000;
-    color:var(--accent);
-    z-index:940;
-    pointer-events:none;
-    text-align:center;
-  }
+  /* BETWEEN FIRST & SECOND SLEEP */
   #sleepSecondTitle{
     margin-top:14px;
   }
@@ -659,6 +651,15 @@
     position:absolute;
     top:8px;
     right:10px;
+  }
+
+  /* END 화면용 안내 문구 */
+  .endNote{
+    margin-top:12px;
+    font-family:"Courier New",ui-monospace,monospace;
+    font-size:clamp(11px,1.9vmin,14px);
+    color:var(--accent);
+    opacity:0.85;
   }
 </style>
 </head>
@@ -776,6 +777,34 @@
     <div id="sleepLine1" class="sleepLine"></div>
     <div id="sleepLine2" class="sleepLine"></div>
     <div id="sleepSecondTitle" class="sleepLine"></div>
+  </div>
+
+  <!-- THIRD SLEEP 타이틀 -->
+  <div id="thirdTransition" class="fade">
+    <div id="thirdLine1" class="sleepLine"></div>
+    <div id="thirdLine2" class="sleepLine"></div>
+    <div id="thirdLine3" class="sleepLine"></div>
+    <div id="thirdTitle" class="sleepLine"></div>
+  </div>
+
+  <!-- FOURTH SLEEP 타이틀: SLEEEEEEEEP, 네 줄 + THE FOURTH SLEEP -->
+  <div id="fourthTransition" class="fade">
+    <div id="fourthLine1" class="sleepLine"></div>
+    <div id="fourthLine2" class="sleepLine"></div>
+    <div id="fourthLine3" class="sleepLine"></div>
+    <div id="fourthLine4" class="sleepLine"></div>
+    <div id="fourthTitle" class="sleepLine"></div>
+  </div>
+
+  <!-- SILENCE 화면 -->
+  <div id="silenceScreen" class="fade">
+    <div class="sleepLine">SILENCE</div>
+  </div>
+
+  <!-- THE END 화면 -->
+  <div id="endScreen" class="fade">
+    <div class="sleepLine">THE END</div>
+    <div class="endNote">사용하신 태블릿과 헤드폰은 안내 데스크로 반납해주세요.</div>
   </div>
 
   <!-- SECOND NOTICE (지도 전) -->
@@ -940,6 +969,22 @@
   const sleepLine2 = qs('#sleepLine2');
   const sleepSecondTitle = qs('#sleepSecondTitle');
 
+  const thirdTransition = qs('#thirdTransition');
+  const thirdLine1 = qs('#thirdLine1');
+  const thirdLine2 = qs('#thirdLine2');
+  const thirdLine3 = qs('#thirdLine3');
+  const thirdTitle = qs('#thirdTitle');
+
+  const fourthTransition = qs('#fourthTransition');
+  const fourthLine1 = qs('#fourthLine1');
+  const fourthLine2 = qs('#fourthLine2');
+  const fourthLine3 = qs('#fourthLine3');
+  const fourthLine4 = qs('#fourthLine4');
+  const fourthTitle = qs('#fourthTitle');
+
+  const silenceScreen = qs('#silenceScreen');
+  const endScreen = qs('#endScreen');
+
   const noticePopup2 = qs('#noticePopup2');
   const noticeOk2 = qs('#noticeOk2');
 
@@ -975,6 +1020,55 @@
 
   /* 현재 챕터 상태 */
   let stage = 'gate';
+
+  /* --------- 브라우저 TTS (여자, 나긋한 목소리) --------- */
+  let ttsEnabled = 'speechSynthesis' in window;
+  let ttsVoice = null;
+
+  function pickTTSVoice(){
+    if(!ttsEnabled) return;
+    const synth = window.speechSynthesis;
+    const voices = synth.getVoices();
+    if(!voices || !voices.length) return;
+
+    // 1) ko-KR 여성
+    ttsVoice = voices.find(v =>
+      /ko/i.test(v.lang || '') &&
+      /female|woman|girl|여|Woman/i.test(v.name)
+    ) ||
+    // 2) ko-KR 아무거나
+    voices.find(v => /ko/i.test(v.lang || '')) ||
+    // 3) 여성 느낌 영어
+    voices.find(v =>
+      /female|woman|girl/i.test(v.name)
+    ) ||
+    // 4) 첫번째
+    voices[0];
+  }
+
+  if(ttsEnabled){
+    pickTTSVoice();
+    window.speechSynthesis.onvoiceschanged = pickTTSVoice;
+  }
+
+  function speakTTS(text){
+    if(!ttsEnabled || !text) return;
+    try{
+      const synth = window.speechSynthesis;
+      synth.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      if(ttsVoice){
+        utter.voice = ttsVoice;
+        utter.lang = ttsVoice.lang || 'ko-KR';
+      }else{
+        utter.lang = 'ko-KR';
+      }
+      utter.rate = 0.95;   // 조금 느리고
+      utter.pitch = 1.1;   // 살짝 높은, 나긋한 느낌
+      synth.speak(utter);
+    }catch(e){}
+  }
+  /* ----------------------------------------------------- */
 
   /* --------- 입력/타이핑 공용 사운드 (Sleep City 스타일 느낌) --------- */
   function playGameInputSound(){
@@ -1675,7 +1769,7 @@
     },1000);
   }
 
-  /* sleep-city.html로 이동하는 공통 함수 */
+  /* sleep-city.html로 이동하는 공통 함수 (2장 타이머 끝 등에서 사용 가능) */
   function goToSleepCity(){
     try{
       stopSecondBell();
@@ -1715,7 +1809,7 @@
     runTimer.textContent = formatMMSS(secondLeft);
     runTimer.style.display = 'block';
     if(secondTimer) clearInterval(secondTimer);
-    secondTimer = setInterval(()=>{
+    secondTimer = setInterval(async ()=>{
       secondLeft = Math.max(0, secondLeft-1);
       runTimer.textContent = formatMMSS(secondLeft);
       if(secondLeft<=0){
@@ -1723,7 +1817,11 @@
         secondTimer=null;
         stopSecondBell();
         runTimer.style.display='none';
-        goToSleepCity();     // 2장 타이머 끝나면 sleep-city.html로 이동
+        // 2장 타이머가 자연스럽게 끝났을 때도 3rd sleep으로
+        fadeHide(mapOverlay, 500);
+        mapPop.style.display='none';
+        await sleep(520);
+        await runThirdSleepTitleSequence();
       }
     },1000);
   }
@@ -2165,6 +2263,8 @@
   async function typeIntroLine(idx){
     introTextEl.textContent='';
     const text = resolveIntroLine(idx);
+    // 대사 TTS: 타이핑 시작하자마자 읽기
+    speakTTS(text);
     for(let i=0;i<text.length;i++){
       introTextEl.textContent += text[i];
       typeTick();
@@ -2208,8 +2308,7 @@
     step();
   }
 
-  /* FIRST SLEEP 타이틀 시퀀스 – SLEEEEEEEEP 1줄 + THE FIRST SLEEP 페이드 인(1.5초) + 드림 부우웅
-     + THE FIRST SLEEP 사라질 때 인트로 음악 3초 페이드 아웃 */
+  /* FIRST SLEEP 타이틀 시퀀스 */
   async function runFirstSleepTitleSequence(){
     firstTransWord.textContent='';
     firstTransTitle.textContent='';
@@ -2302,6 +2401,8 @@
 
   async function typeFirstSleepLine(text){
     chapterBox.innerHTML='';
+    // 대사 TTS
+    speakTTS(text);
     for(let i=0;i<text.length;i++){
       const ch = text[i];
       if(ch === '\n'){
@@ -2331,7 +2432,7 @@
     fadeHide(chapterOverlay, 800);
   }
 
-  /* SECOND SLEEP 타이틀 시퀀스 – SLEEEEEEEEP 두 줄 + THE SECOND SLEEP(1.5초 페이드) + 드림 부우웅 */
+  /* SECOND SLEEP 타이틀 시퀀스 – SLEEEEEEEEP 두 줄 + THE SECOND SLEEP */
   async function runSecondSleepTitleSequence(){
     sleepLine1.textContent = '';
     sleepLine2.textContent = '';
@@ -2376,6 +2477,135 @@
     sleepTransition.style.transition='';
     sleepSecondTitle.style.transition='';
     sleepSecondTitle.style.opacity='1';
+  }
+
+  /* THIRD SLEEP 타이틀: SLEEEEEEEEP, 세 줄 + THE THIRD SLEEP */
+  async function runThirdSleepTitleSequence(){
+    thirdLine1.textContent='';
+    thirdLine2.textContent='';
+    thirdLine3.textContent='';
+    thirdTitle.textContent='';
+
+    thirdTransition.style.display='flex';
+    thirdTransition.style.opacity='0';
+    thirdTransition.style.transition='opacity 2000ms ease';
+    await nextFrame();
+    thirdTransition.style.opacity='1';
+
+    const line = 'SLEEEEEEEEP,';
+    const arr = [thirdLine1, thirdLine2, thirdLine3];
+
+    for(let idx=0; idx<arr.length; idx++){
+      for(let i=0;i<line.length;i++){
+        arr[idx].textContent += line[i];
+        typeTick();
+        await sleep(45);
+      }
+      await sleep(350);
+    }
+
+    await sleep(900);
+
+    thirdTitle.style.opacity='0';
+    thirdTitle.style.transition='opacity 1500ms ease';
+    thirdTitle.textContent='THE THIRD SLEEP';
+    playDreamWoong();
+    await nextFrame();
+    thirdTitle.style.opacity='1';
+
+    await sleep(2200);
+
+    thirdTransition.style.transition='opacity 2000ms ease';
+    thirdTransition.style.opacity='0';
+    await sleep(2100);
+    thirdTransition.style.display='none';
+    thirdTransition.style.transition='';
+    thirdTitle.style.transition='';
+    thirdTitle.style.opacity='1';
+
+    stage = 'third';
+  }
+
+  /* FOURTH SLEEP 타이틀: SLEEEEEEEEP, 네 줄 + THE FOURTH SLEEP */
+  async function runFourthSleepTitleSequence(){
+    fourthLine1.textContent='';
+    fourthLine2.textContent='';
+    fourthLine3.textContent='';
+    fourthLine4.textContent='';
+    fourthTitle.textContent='';
+
+    fourthTransition.style.display='flex';
+    fourthTransition.style.opacity='0';
+    fourthTransition.style.transition='opacity 2000ms ease';
+    await nextFrame();
+    fourthTransition.style.opacity='1';
+
+    const line = 'SLEEEEEEEEP,';
+    const arr = [fourthLine1, fourthLine2, fourthLine3, fourthLine4];
+
+    for(let idx=0; idx<arr.length; idx++){
+      for(let i=0;i<line.length;i++){
+        arr[idx].textContent += line[i];
+        typeTick();
+        await sleep(45);
+      }
+      await sleep(350);
+    }
+
+    await sleep(900);
+
+    fourthTitle.style.opacity='0';
+    fourthTitle.style.transition='opacity 1500ms ease';
+    fourthTitle.textContent='THE FOURTH SLEEP';
+    playDreamWoong();
+    await nextFrame();
+    fourthTitle.style.opacity='1';
+
+    await sleep(2200);
+
+    fourthTransition.style.transition='opacity 2000ms ease';
+    fourthTransition.style.opacity='0';
+    await sleep(2100);
+    fourthTransition.style.display='none';
+    fourthTransition.style.transition='';
+    fourthTitle.style.transition='';
+    fourthTitle.style.opacity='1';
+
+    stage = 'fourth';
+  }
+
+  /* SILENCE 화면 */
+  async function showSilenceScreen(){
+    // 남아있는 사운드들 천천히 정리
+    if(Ambient && Ambient.isRunning && Ambient.isRunning()){
+      Ambient.stop(3.0);
+    }
+    stopMicFXFadeOut(2.5);
+    stopSecondBell();
+
+    silenceScreen.style.display='flex';
+    silenceScreen.style.opacity='0';
+    silenceScreen.style.transition='opacity 2000ms ease';
+    await nextFrame();
+    silenceScreen.style.opacity='1';
+    await sleep(2200);
+
+    stage = 'silence';
+  }
+
+  /* THE END 화면 */
+  async function showEndScreen(){
+    fadeHide(silenceScreen, 1500);
+    await sleep(1600);
+    endScreen.style.display='flex';
+    endScreen.style.opacity='0';
+    endScreen.style.transition='opacity 2000ms ease';
+    await nextFrame();
+    endScreen.style.opacity='1';
+    stage = 'end';
+
+    // 엔드 화면에서는 더 이상 스킵 필요 없음
+    skipBtn.style.display='none';
   }
 
   async function onFirstSleepTimerEnd(){
@@ -2706,7 +2936,10 @@
   }
 
   function openMarkerPopup(id){
-    mapPopBody.textContent = `ZONE ${id}`;
+    const text = `ZONE ${id}`;
+    mapPopBody.textContent = text;
+    // 지도 팝업도 대사처럼 TTS
+    speakTTS(text);
     mapPop.style.display='flex';
   }
 
@@ -2754,13 +2987,26 @@
       timerFinished = true;
       await onFirstSleepTimerEnd();
     }else if(stage === 'second'){
+      // 2장 진행 중 SKIP → THIRD SLEEP 타이틀
       stopSecondBell();
       if(secondTimer){
         clearInterval(secondTimer);
         secondTimer=null;
       }
       runTimer.style.display='none';
-      goToSleepCity();      // 2장 진행 중 SKIP → sleep-city.html
+      fadeHide(mapOverlay, 500);
+      mapPop.style.display='none';
+      await sleep(520);
+      await runThirdSleepTitleSequence();
+    }else if(stage === 'third'){
+      // THIRD SLEEP에서 SKIP → FOURTH SLEEP 타이틀
+      await runFourthSleepTitleSequence();
+    }else if(stage === 'fourth'){
+      // FOURTH SLEEP에서 SKIP → SILENCE
+      await showSilenceScreen();
+    }else if(stage === 'silence'){
+      // SILENCE에서 SKIP → THE END + 반납 안내
+      await showEndScreen();
     }else{
       if(mainTimer){
         clearInterval(mainTimer);
