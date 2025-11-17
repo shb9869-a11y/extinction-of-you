@@ -36,8 +36,8 @@
     --dialogue-offset-vh: 8vh;
     --char-offset-vh: 16vh;
 
-    /* 전체 톤을 흑백 계열로 */
-    --accent: #e0e0e0;
+    /* 전체 톤을 한 톤 더 어둡게 */
+    --accent: #c4c4c4;
   }
 
   html,body{
@@ -108,7 +108,7 @@
     top:calc(var(--frame) + var(--safe-t));
     right:calc(var(--frame) + var(--safe-r));
     bottom:calc(var(--frame) + var(--safe-b));
-    border:2px solid rgba(224,224,224,.75);
+    border:2px solid rgba(180,180,180,.75);
     pointer-events:none;
     z-index:50;
   }
@@ -292,7 +292,7 @@
     width:100%;
     padding:14px 14px;
     background:rgba(0,0,0,.88);
-    border:1px solid #777;
+    border:1px solid #555;
     color:var(--accent);
     font-size:var(--fs-name);
     outline:none;
@@ -300,7 +300,7 @@
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
   }
   #nick::placeholder{
-    color:rgba(224,224,224,0.25);
+    color:rgba(196,196,196,0.25);
   }
   #nameRow{
     display:flex;
@@ -397,7 +397,7 @@
     bottom:calc(var(--frame) + var(--safe-b) + 12px);
     max-width:min(420px, 60vw);
     padding:12px 14px 10px;
-    border:1px solid rgba(224,224,224,0.9);
+    border:1px solid rgba(190,190,190,0.9);
     background:#000;
     font-family:"Courier New",ui-monospace,monospace;
     font-size:clamp(11px,2.1vmin,15px);
@@ -971,7 +971,7 @@
   /* 현재 챕터 상태 */
   let stage = 'gate';
 
-  /* --------- 입력/타이핑 공용 사운드 (Sleep City 스타일 느낌) --------- */
+  /* --------- 입력/타이핑 공용 사운드 --------- */
   function playGameInputSound(){
     try{
       ensureAudio();
@@ -1179,22 +1179,22 @@
     }catch(e){}
   }
 
-  /* 낮은 드림 "부우웅" 효과음 (수면 타이틀 2초 페이드 동안) */
+  /* 낮은 드림 "부우웅" 효과음 (수면 타이틀 1.5초 페이드 동안) */
   async function playDreamWoong(){
     try{
       await ensureResumed();
       const now = audioCtx.currentTime;
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
-      o.type = 'sine';
-      o.frequency.setValueAtTime(90, now);
-      o.frequency.exponentialRampToValueAtTime(55, now+2.0);
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(140, now);
+      o.frequency.exponentialRampToValueAtTime(70, now+1.5);
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.9, now+0.15);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+2.0);
+      g.gain.exponentialRampToValueAtTime(1.1, now+0.12);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+1.5);
       o.connect(g).connect(audioCtx.destination);
       o.start(now);
-      o.stop(now+2.05);
+      o.stop(now+1.6);
     }catch(e){}
   }
 
@@ -1402,7 +1402,7 @@
       ctx.translate(o.x,o.y);
       ctx.scale(wob,1/wob);
       ctx.font=`900 ${o.size}px "Press Start 2P", system-ui, sans-serif`;
-      ctx.fillStyle='#e0e0e0';
+      ctx.fillStyle='#c5c5c5';
       ctx.fillText(o.ch,0,0);
       ctx.restore();
     }
@@ -1490,7 +1490,7 @@
     ".XX....XX...",
     ".XX....XX..."
   ];
-  const COLOR_FILL='#e0e0e0';
+  const COLOR_FILL='#c6c6c6';
   const COLOR_STROKE='#000';
 
   /* 회전 가능한 인트로 캐릭터 */
@@ -1584,7 +1584,7 @@
     const by=Math.round(y-h-18);
     ctx.save();
     ctx.fillStyle='rgba(0,0,0,0.9)';
-    ctx.strokeStyle='rgba(255,255,255,0.35)';
+    ctx.strokeStyle='rgba(200,200,200,0.35)';
     ctx.lineWidth=1;
     ctx.beginPath();
     ctx.moveTo(bx+r,by);
@@ -1602,7 +1602,7 @@
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle='#fff';
+    ctx.fillStyle='#dcdcdc';
     ctx.fillText(text,bx+pad,by+pad+12);
     ctx.restore();
   }
@@ -1612,7 +1612,7 @@
   let nameCityRunning = false;
   let lastFlicker = 0;
 
-  /* 인트로덕션용 건물 배열 (닉네임 도시 스타일 복붙) — 인트로에서는 사용하지 않음 */
+  /* 인트로덕션용 건물 배열 – 현재는 사용하지 않음 */
   let introBuildings = [];
 
   function generateIntroBuildings(){
@@ -1620,7 +1620,6 @@
   }
 
   function drawIntroBuildings(ctx){
-    /* 인트로 건물은 요청에 따라 사용하지 않음 */
     return;
   }
 
@@ -1639,7 +1638,6 @@
   function initIntroWalkers(){
     const now = performance.now();
     introWalkers = [];
-    // 캐릭터 1명만 유지
     introWalkers.push({
       tOffset: 0,
       bubbleIndex: 0,
@@ -1721,7 +1719,7 @@
         secondTimer=null;
         stopSecondBell();
         runTimer.style.display='none';
-        goToSleepCity();     // 2장 타이머 끝나면 sleep-city.html로 이동
+        goToSleepCity();
       }
     },1000);
   }
@@ -1990,7 +1988,7 @@
     vctx.clearRect(0,0,W,H);
     vctx.imageSmoothingEnabled=true;
 
-    /* 카메라: 항상 흑백 (CSS + JS 이중 안전장치) */
+    /* 카메라: 항상 흑백 */
     if (showCamera && camVideo && camVideo.readyState>=2){
       vctx.save();
       vctx.filter='grayscale(1)';
@@ -2011,8 +2009,7 @@
       fgctx.rect(pr.x,pr.y,pr.w,pr.h);
       fgctx.clip();
 
-      /* 인트로덕션 건물: 제거 (닉네임 도시는 그대로) */
-      // drawIntroBuildings(fgctx);
+      drawIntroBuildings(fgctx);
 
       if(introWalking && introWalkers.length){
         const now=performance.now();
@@ -2023,10 +2020,10 @@
           const hop = Math.max(0,10*Math.sin(t*Math.PI*20));
 
           let angle = 0;
-          if(pos.edge === 'bottom') angle = 0;               // 바닥: 오른쪽으로 걷기
-          else if(pos.edge === 'right') angle = -Math.PI/2;  // 오른쪽 벽: 위로 걷기
-          else if(pos.edge === 'top') angle = Math.PI;       // 천장: 거꾸로 걷기
-          else if(pos.edge === 'left') angle = Math.PI/2;    // 왼쪽 벽: 아래로 걷기
+          if(pos.edge === 'bottom') angle = 0;
+          else if(pos.edge === 'right') angle = -Math.PI/2;
+          else if(pos.edge === 'top') angle = Math.PI;
+          else if(pos.edge === 'left') angle = Math.PI/2;
 
           drawPixelHuman(
             fgctx,
@@ -2206,7 +2203,7 @@
     step();
   }
 
-  /* FIRST SLEEP 타이틀 시퀀스 – SLEEEEEEEEP 1줄 + THE FIRST SLEEP 페이드 인(2초) + 드림 부우웅(2초) */
+  /* FIRST SLEEP 타이틀 시퀀스 – SLEEEEEEEEP 1줄 + THE FIRST SLEEP 1.5초 페이드 */
   async function runFirstSleepTitleSequence(){
     firstTransWord.textContent='';
     firstTransTitle.textContent='';
@@ -2217,7 +2214,7 @@
     await nextFrame();
     firstTransition.style.opacity='1';
 
-    const word = 'SLEEEEEEEEP,';   // e 개수 통일
+    const word = 'SLEEEEEEEEP,';
     for(let i=0;i<word.length;i++){
       firstTransWord.textContent += word[i];
       typeTick();
@@ -2226,15 +2223,14 @@
 
     await sleep(900);
 
-    // THE FIRST SLEEP 텍스트 + 페이드 인 (2초)
     firstTransTitle.style.opacity = '0';
-    firstTransTitle.style.transition = 'opacity 2000ms ease';
+    firstTransTitle.style.transition = 'opacity 1500ms ease';
     firstTransTitle.textContent = 'THE FIRST SLEEP';
-    playDreamWoong();  // 꿈으로 들어가는 낮은 부우웅 (2초)
+    playDreamWoong();  // 꿈으로 들어가는 낮은 부우웅
     await nextFrame();
     firstTransTitle.style.opacity = '1';
 
-    await sleep(2600);
+    await sleep(1800);
 
     firstTransition.style.transition='opacity 2000ms ease';
     firstTransition.style.opacity='0';
@@ -2324,7 +2320,7 @@
     fadeHide(chapterOverlay, 800);
   }
 
-  /* SECOND SLEEP 타이틀 시퀀스 – SLEEEEEEEEP 두 줄 + THE SECOND SLEEP(2초 페이드) + 드림 부우웅(2초) */
+  /* SECOND SLEEP 타이틀 – SLEEEEEEEEP 두 줄 + THE SECOND SLEEP 1.5초 페이드 */
   async function runSecondSleepTitleSequence(){
     sleepLine1.textContent = '';
     sleepLine2.textContent = '';
@@ -2335,8 +2331,8 @@
     await nextFrame();
     sleepTransition.style.opacity='1';
 
-    const line1 = 'SLEEEEEEEEP,';   // 통일
-    const line2 = 'SLEEEEEEEEP,';   // 통일
+    const line1 = 'SLEEEEEEEEP,';
+    const line2 = 'SLEEEEEEEEP,';
 
     for(let i=0;i<line1.length;i++){
       sleepLine1.textContent += line1[i];
@@ -2352,15 +2348,14 @@
 
     await sleep(900);
 
-    // THE SECOND SLEEP 텍스트 + 페이드 인 (2초)
     sleepSecondTitle.style.opacity = '0';
-    sleepSecondTitle.style.transition = 'opacity 2000ms ease';
+    sleepSecondTitle.style.transition = 'opacity 1500ms ease';
     sleepSecondTitle.textContent = 'THE SECOND SLEEP';
-    playDreamWoong(); // 두 번째 수면 진입 부우웅 (2초)
+    playDreamWoong();
     await nextFrame();
     sleepSecondTitle.style.opacity = '1';
 
-    await sleep(2600);
+    await sleep(1800);
 
     sleepTransition.style.transition='opacity 2000ms ease';
     sleepTransition.style.opacity='0';
@@ -2413,7 +2408,7 @@
       await playWoongClick();
       fadeHide(noticePopup2, 260);
       await sleep(280);
-      await playBellChime();   // 진입 종
+      await playBellChime();
       showMapOverlay();
     };
   }
@@ -2572,8 +2567,8 @@
         wv.value += (wv.target - wv.value) * speed;
 
         const v = clamp(wv.value, 0, 1);
-        const off = { r:20, g:20, b:20 };
-        const on  = { r:220, g:220, b:220 };
+        const off = { r:30, g:30, b:30 };
+        const on  = { r:210, g:210, b:210 };
         const r = off.r + (on.r - off.r) * v;
         const g = off.g + (on.g - off.g) * v;
         const bcol = off.b + (on.b - off.b) * v;
@@ -2630,7 +2625,6 @@
     const cx = w*0.5;
     const cy = h*0.5;
 
-    /* 2장 지도: 직각 사각형 프레임 안에 구조 */
     const mw = w*0.7;
     const mh = h*0.6;
     const left = cx - mw/2;
@@ -2638,7 +2632,7 @@
 
     ctx.fillStyle = '#000';
     ctx.fillRect(left, top, mw, mh);
-    ctx.strokeStyle='rgba(224,224,224,0.85)';
+    ctx.strokeStyle='rgba(190,190,190,0.85)';
     ctx.lineWidth=2;
     ctx.strokeRect(left, top, mw, mh);
 
@@ -2682,9 +2676,9 @@
 
       ctx.fillStyle='rgba(0,0,0,0.85)';
       ctx.fillRect(x,y,rectW,rectH);
-      ctx.strokeStyle='rgba(224,224,224,0.9)';
+      ctx.strokeStyle='rgba(190,190,190,0.9)';
       ctx.strokeRect(x,y,rectW,rectH);
-      ctx.fillStyle='rgba(224,224,224,0.96)';
+      ctx.fillStyle='rgba(200,200,200,0.96)';
       ctx.fillText(String(o.id), x+rectW/2, y+rectH/2+1);
     });
   }
@@ -2693,8 +2687,8 @@
     fadeShow(mapOverlay, 600, 'flex');
     setTimeout(drawMap, 80);
     stage = 'second';
-    startSecondTimer();   // 2장: 8분 타이머 시작
-    startSecondBell();    // 2장: 짤랑 짤랑 종소리 루프 시작
+    startSecondTimer();
+    startSecondBell();
     runTimer.style.display='block';
   }
 
@@ -2753,9 +2747,8 @@
         secondTimer=null;
       }
       runTimer.style.display='none';
-      goToSleepCity();      // 2장 진행 중 SKIP → sleep-city.html
+      goToSleepCity();
     }else{
-      // 그 외 상태에서는 2장 시퀀스로 강제 진입
       if(mainTimer){
         clearInterval(mainTimer);
         mainTimer=null;
