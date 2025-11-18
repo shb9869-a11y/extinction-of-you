@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport"
-      content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,interactive-widget=resizes-content">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,interactive-widget=resizes-content">
 <title>SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP</title>
 
+<!-- 픽셀 게임 폰트 -->
 <link rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
 
@@ -22,709 +22,927 @@
 
     --fs-body: clamp(12px, 2.2vmin, 16px);
     --fs-strong: clamp(14px, 2.8vmin, 20px);
-    --fs-small: clamp(10px, 1.8vmin, 13px);
+    --fs-small: clamp(11px, 1.8vmin, 14px);
+    --fs-name: clamp(14px,2.8vmin,20px);
 
-    --c-bg: #000000;
-    --c-fg: #f4f4f4;
-    --c-accent: #d0d0d0;
-    --c-accent-soft: #666666;
-    --c-border: #444444;
-    --shadow-soft: 0 0 0 1px rgba(255,255,255,0.06),
-                   0 18px 45px rgba(0,0,0,0.85);
+    --pad-btn-y: clamp(6px, 1.1vmin, 10px);
+    --pad-btn-x: clamp(10px, 1.8vmin, 20px);
+
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+    --safe-l: env(safe-area-inset-left, 0px);
+    --safe-r: env(safe-area-inset-right, 0px);
+
+    --dialogue-offset-vh: 8vh;
+    --char-offset-vh: 16vh;
+
+    /* 전체 톤을 흑백 계열로 (조금 더 어두운 회색) */
+    --accent: #d0d0d0;
+  }
+
+  html,body{
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    background:#000;
+    overflow:hidden;
+    touch-action:manipulation;
+  }
+
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans KR",sans-serif;
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-touch-callout:none;
+    color:var(--accent);
   }
 
   *{
-    box-sizing:border-box;
-    margin:0;
-    padding:0;
-  }
-  html,body{
-    width:100%;
-    height:100%;
-    background:#000;
-    color:var(--c-fg);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-                 "Press Start 2P", sans-serif;
-    overscroll-behavior:none;
     -webkit-user-select:none;
     user-select:none;
-    touch-action:manipulation;
+    -webkit-touch-callout:none;
+    -webkit-tap-highlight-color: transparent;
+    box-sizing:border-box;
   }
-  body{
-    display:flex;
-    align-items:center;
-    justify-content:center;
+  input, textarea{
+    -webkit-user-select:text;
+    user-select:text;
   }
-  #app{
-    position:relative;
+
+  .fade{opacity:0; transition:opacity 1800ms ease}
+  .fade.show{opacity:1}
+
+  #view{
+    position:fixed;
+    left:0;
+    top:0;
     width:100vw;
-    height:var(--appH);
-    background:#000;
-    overflow:hidden;
-  }
-
-  .frameOuter{
-    position:absolute;
-    inset:0;
-    padding:var(--frame);
-    display:flex;
-    align-items:stretch;
-    justify-content:stretch;
-  }
-  .frameBox{
-    position:relative;
-    flex:1;
-    border:1px solid var(--c-border);
-    box-shadow:var(--shadow-soft);
-    background:#000;
-    overflow:hidden;
-  }
-
-  #view,#fg,#freezeLayer{
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
+    height:100vh;
     display:block;
+    z-index:0;
+    filter:grayscale(1);
   }
   #fg{
-    pointer-events:none;
-  }
-  #freezeLayer{
-    display:none;
+    position:fixed;
+    left:0;
+    top:0;
+    width:100vw;
+    height:100vh;
+    display:block;
+    z-index:880;
     pointer-events:none;
   }
 
-  .hud{
-    position:absolute;
+  #freezeLayer{
+    position:fixed;
     inset:0;
-    display:flex;
-    flex-direction:column;
-    justify-content:space-between;
-    pointer-events:none;
-    padding:var(--frame);
+    z-index:500;
+    display:none;
   }
+
+  .frameBox{
+    position:fixed;
+    left:calc(var(--frame) + var(--safe-l));
+    top:calc(var(--frame) + var(--safe-t));
+    right:calc(var(--frame) + var(--safe-r));
+    bottom:calc(var(--frame) + var(--safe-b));
+    border:2px solid rgba(208,208,208,.75);
+    pointer-events:none;
+    z-index:50;
+  }
+
+  .uiBtn{
+    background:transparent;
+    color:var(--accent);
+    border:none;
+    font-size:var(--fs-strong);
+    padding:var(--pad-btn-y) var(--pad-btn-x);
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    white-space:nowrap;
+    cursor:pointer;
+    user-select:none;
+  }
+  .uiBtn.small{
+    font-size:var(--fs-small);
+    padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6);
+  }
+  .uiBtn.flat{
+    border:none;
+    background:transparent;
+    text-decoration:none;
+  }
+  .uiBtn[disabled]{
+    opacity:.35;
+    pointer-events:none;
+    filter:grayscale(1);
+  }
+  .hide{display:none !important;}
+
+  .controls{
+    position:fixed;
+    right:calc(var(--frame) + var(--ui-gap) + var(--safe-r));
+    bottom:calc(var(--frame) + var(--ui-gap) + var(--safe-b));
+    z-index:400;
+    display:flex;
+    gap:6px;
+    align-items:center;
+    opacity:0;
+    transition:opacity 1800ms ease;
+  }
+  .controls.show{opacity:1}
+
+  .readout{
+    min-width:48px;
+    text-align:center;
+    opacity:.9;
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    font-size:var(--fs-small);
+    color:var(--accent);
+  }
+
+  .btn-capture{
+    position:fixed;
+    left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
+    bottom:calc(var(--frame) + var(--ui-gap) + var(--safe-b));
+    z-index:450;
+    opacity:0;
+    transition:opacity 1800ms ease;
+  }
+  .btn-capture.show{opacity:1}
+
+  /* SKIP 버튼 (모든 장에서 좌측 상단) */
+  .skip-btn{
+    position:fixed;
+    left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
+    top:calc(var(--frame) + var(--ui-gap) + var(--safe-t));
+    z-index:1001;
+    display:none;
+  }
+
+  #mapLauncher, #docLauncher, #audioToggle { display:none; }
 
   #runTimer{
-    align-self:flex-end;
-    font-family:"Press Start 2P", monospace;
-    font-size:clamp(11px,2vmin,14px);
-    background:rgba(0,0,0,0.75);
-    border:1px solid rgba(208,208,208,0.35);
-    padding:4px 8px;
-    border-radius:4px;
-    letter-spacing:.08em;
+    position:fixed;
+    right:calc(var(--frame) + var(--ui-gap) + var(--safe-r));
+    top:calc(var(--frame) + var(--ui-gap) + var(--safe-t));
+    z-index:460;
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    font-size:var(--fs-strong);
+    color:var(--accent);
+    opacity:.95;
+    pointer-events:none;
+    user-select:none;
     display:none;
   }
 
-  #controls{
-    display:flex;
-    gap:var(--ui-gap);
-    pointer-events:auto;
-    opacity:0;
-    transform:translateY(6px);
-    transition:opacity 350ms ease, transform 350ms ease;
-  }
-  #controls.show{
-    opacity:1;
-    transform:translateY(0);
+  .credits{
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    letter-spacing:.08em;
+    font-size:clamp(9px,1.4vmin,11px);
+    margin:0;
+    color:var(--accent);
   }
 
-  .uiPanel{
-    display:flex;
-    align-items:center;
-    gap:6px;
-    padding:5px 8px;
-    background:rgba(0,0,0,0.78);
-    border-radius:6px;
-    border:1px solid rgba(255,255,255,0.14);
-    backdrop-filter:blur(10px);
-  }
-  .uiLabel{
-    font-size:var(--fs-small);
-    opacity:.75;
-    letter-spacing:.05em;
-  }
-  .uiBtn{
-    border:none;
-    outline:none;
-    padding:4px 8px;
-    border-radius:4px;
-    font-size:var(--fs-small);
-    font-family:"Press Start 2P", monospace;
-    background:#111;
-    color:var(--c-fg);
-    border:1px solid rgba(255,255,255,0.24);
-    box-shadow:0 2px 0 rgba(0,0,0,0.6);
-    cursor:pointer;
-    touch-action:manipulation;
-  }
-  .uiBtn:active{
-    transform:translateY(1px);
-    box-shadow:0 0 0 rgba(0,0,0,0.6);
-  }
-
-  #zoomVal{
-    min-width:3em;
-    text-align:center;
-  }
-  #captureBtn{
-    pointer-events:auto;
-    opacity:0;
-    transform:translateY(6px);
-    transition:opacity 350ms ease, transform 350ms ease;
-  }
-  #captureBtn.show{
-    opacity:1;
-    transform:translateY(0);
-  }
-
-  /* rotate overlay */
   #rotateOverlay{
     position:fixed;
     inset:0;
-    background:#000;
-    color:#fff;
+    z-index:1000;
     display:none;
     align-items:center;
     justify-content:center;
-    padding:24px;
-    z-index:9999;
-  }
-  #rotateOverlayInner{
-    border:1px solid #444;
-    border-radius:10px;
-    padding:20px 24px;
-    max-width:460px;
     text-align:center;
-    box-shadow:var(--shadow-soft);
-    background:#050505;
-    font-family:"Press Start 2P", monospace;
-    font-size:12px;
-    line-height:1.6;
-  }
-
-  /* gate overlay */
-  #overlay{
-    position:absolute;
-    inset:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
     background:#000;
-    z-index:40;
-  }
-  #overlayCard{
-    border-radius:12px;
-    padding:20px 22px;
-    max-width:480px;
-    width:min(80vw,480px);
-    background:#050505;
-    box-shadow:var(--shadow-soft);
-    border:1px solid #444;
-    text-align:center;
-    font-family:"Press Start 2P", monospace;
-  }
-  #overlayCard h1{
-    font-size:12px;
-    margin-bottom:14px;
-    letter-spacing:.12em;
-  }
-  #overlayCard p{
-    font-size:11px;
-    line-height:1.7;
-    opacity:.9;
-  }
-  #permGateBtn{
-    margin-top:18px;
-    width:100%;
-  }
-
-  /* 이름 overlay */
-  #nameOverlay{
-    position:absolute;
-    inset:0;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:35;
-    background:radial-gradient(circle at center,#111 0,#000 60%);
-  }
-  #nameCard{
-    background:#050505;
-    border-radius:12px;
-    border:1px solid #444;
-    box-shadow:var(--shadow-soft);
-    padding:18px 20px 20px;
-    width:min(80vw,420px);
-    font-family:"Press Start 2P", monospace;
-  }
-  #nameCard h2{
-    font-size:11px;
-    margin-bottom:10px;
-    letter-spacing:.1em;
-  }
-  #nameCard p{
-    font-size:10px;
-    line-height:1.6;
-    opacity:.9;
-    margin-bottom:10px;
-  }
-  #nick{
-    width:100%;
-    padding:7px 8px;
-    border-radius:4px;
-    border:1px solid #444;
-    background:#000;
-    color:#fff;
-    font-family:"Press Start 2P", monospace;
-    font-size:10px;
-    margin-bottom:10px;
-  }
-
-  /* preset saver */
-  #preset{
-    position:absolute;
-    inset:0;
-    display:none;
-    z-index:20;
-    background:#000;
-  }
-  #presetCanvas{
-    width:100%;
-    height:100%;
-    display:block;
-  }
-
-  /* welcome */
-  #overlayWelcome{
-    position:absolute;
-    inset:0;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:28;
-    background:radial-gradient(circle at center,#050505 0,#000 55%);
-  }
-  #welcomeCard{
-    background:#050505;
-    border-radius:12px;
-    border:1px solid #444;
-    box-shadow:var(--shadow-soft);
-    padding:18px 20px 22px;
-    width:min(86vw,560px);
-    font-family:"Press Start 2P", monospace;
-    text-align:left;
-  }
-  #welcomeCard .title{
-    font-size:12px;
-    margin-bottom:8px;
-    letter-spacing:.12em;
-  }
-  #welcomeCard .body{
-    font-size:10px;
-    line-height:1.7;
-    opacity:.9;
-    margin-bottom:14px;
-  }
-  #goIntro{
-    display:inline-block;
-    margin-top:8px;
-  }
-
-  /* intro big */
-  #introBig{
-    position:absolute;
-    inset:0;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:25;
-    background:#000;
-  }
-  #introBigText{
-    font-family:"Press Start 2P", monospace;
-    font-size:clamp(18px,5vmin,28px);
-    letter-spacing:.16em;
-  }
-
-  /* intro dialogue */
-  #introDialogue{
-    position:absolute;
-    inset:auto var(--frame) var(--frame) var(--frame);
-    max-width:640px;
-    margin:0 auto;
-    background:rgba(0,0,0,0.85);
-    border-radius:12px;
-    border:1px solid rgba(255,255,255,0.16);
-    padding:14px 16px 12px;
-    font-family:"Press Start 2P", monospace;
-    font-size:10px;
-    line-height:1.7;
-    display:none;
-    z-index:26;
-  }
-  #introText{
-    margin-bottom:10px;
-    min-height:3em;
-  }
-  #introNext{
-    width:100%;
-    margin-top:4px;
-  }
-
-  /* FIRST SLEEP title */
-  #firstTransition,
-  #sleepTransition,
-  #thirdTransition,
-  #fourthTransition{
-    position:absolute;
-    inset:0;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    flex-direction:column;
-    background:#000;
-    z-index:30;
-    gap:12px;
-  }
-  #firstTransWord,
-  #firstTransTitle,
-  #sleepLine1,#sleepLine2,#sleepSecondTitle,
-  #thirdSleepLine1,#thirdSleepLine2,#thirdSleepLine3,#thirdTitle,
-  #fourthSleepLine1,#fourthSleepLine2,#fourthSleepLine3,#fourthSleepLine4,#fourthTitle{
-    font-family:"Press Start 2P", monospace;
-    font-size:clamp(18px,4.8vmin,26px);
-    letter-spacing:.12em;
-    text-align:center;
-  }
-
-  /* chapter text */
-  #chapterOverlay{
-    position:absolute;
-    inset:var(--frame);
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:24;
-    pointer-events:none;
-  }
-  #chapterBox{
-    max-width:720px;
-    padding:14px 16px;
-    background:rgba(0,0,0,0.72);
-    border-radius:12px;
-    border:1px solid rgba(255,255,255,0.2);
-    font-family:"Press Start 2P", monospace;
-    font-size:10px;
-    line-height:1.9;
-  }
-
-  /* notice popups */
-  .popupOverlay{
-    position:absolute;
-    inset:0;
-    background:rgba(0,0,0,0.85);
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:45;
-  }
-  .popupCard{
-    width:min(80vw,460px);
-    background:#050505;
-    border-radius:12px;
-    border:1px solid #444;
-    box-shadow:var(--shadow-soft);
-    padding:16px 18px 18px;
-    font-family:"Press Start 2P", monospace;
-    font-size:10px;
-    line-height:1.8;
-  }
-  .popupCard h2{
-    font-size:11px;
-    margin-bottom:8px;
-    letter-spacing:.12em;
-  }
-  .popupCard p{
-    margin-bottom:10px;
-  }
-  .popupCard .popupBtnRow{
-    display:flex;
-    justify-content:flex-end;
-  }
-  .popupCard button{
-    min-width:96px;
-  }
-
-  /* map overlay */
-  #mapOverlay{
-    position:absolute;
-    inset:var(--frame);
-    background:rgba(0,0,0,0.94);
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:32;
-  }
-  #mapCanvas{
-    width:100%;
-    height:100%;
-    display:block;
-  }
-  #mapPop{
-    position:absolute;
-    left:50%;
-    bottom:var(--frame);
-    transform:translateX(-50%);
-    display:none;
-    z-index:33;
-  }
-  #mapPopCard{
-    background:#050505;
-    border-radius:10px;
-    border:1px solid #444;
-    box-shadow:var(--shadow-soft);
-    padding:10px 12px;
-    min-width:220px;
-    font-family:"Press Start 2P", monospace;
-    font-size:10px;
-  }
-  #mapPopTitle{
-    font-size:11px;
-    margin-bottom:4px;
-    letter-spacing:.12em;
-  }
-
-  /* skip button */
-  #skipBtn{
-    position:absolute;
-    top:var(--frame);
-    left:var(--frame);
-    z-index:50;
+    color:var(--accent);
+    padding:40px;
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
     pointer-events:auto;
   }
 
-  /* END overlay */
-  #endOverlay{
-    position:absolute;
+  /* Gate */
+  #overlay{
+    position:fixed;
     inset:0;
-    background:#000;
+    z-index:300;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));
+    color:var(--accent);
+    background:rgba(0,0,0,.85);
+  }
+  #overlayContent{
+    max-width:min(92vw, 72ch);
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    line-height:1.7;
+    text-align:center;
+  }
+  .gateLine{
+    display:inline-block;
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    font-size:var(--fs-small);
+    border:none;
+    background:transparent;
+    color:var(--accent);
+    cursor:pointer;
+    padding:6px 10px;
+    width:100%;
+    line-height:1.6;
+  }
+  .gateHint{
+    opacity:.7;
+    margin-top:6px;
+    font-size:clamp(9px,1.6vmin,11px);
+  }
+
+  /* Name – 뒤에 프리셋이 보이도록 반투명 */
+  #nameOverlay{
+    position:fixed;
+    inset:0;
+    z-index:260;
     display:none;
     align-items:center;
     justify-content:center;
-    flex-direction:column;
-    gap:18px;
-    z-index:60;
+    background:rgba(0,0,0,.5);
+    color:var(--accent);
   }
-  #endSilence,
-  #endTheEnd,
-  #endReturn{
-    font-family:"Press Start 2P", monospace;
+  #nameCard{
+    position:relative;
+    z-index:1;
+    width:min(92vw,600px);
+    text-align:center;
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    padding:24px 20px 20px;
+    border:none;
+    background:rgba(0,0,0,0.85);
+    box-shadow:0 10px 24px rgba(0,0,0,0.8);
+  }
+  #nameCard h2{
+    margin:0 0 12px 0;
+    letter-spacing:.12em;
+    font-size:var(--fs-name);
+    font-weight:400;
+    text-shadow:0 0 12px rgba(0,0,0,.9);
+    color:var(--accent);
+  }
+  #nick{
+    width:100%;
+    padding:14px 14px;
+    background:rgba(0,0,0,.88);
+    border:1px solid #777;
+    color:var(--accent);
+    font-size:var(--fs-name);
+    outline:none;
+    box-shadow:0 0 12px rgba(0,0,0,.8);
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+  }
+  #nick::placeholder{
+    color:rgba(208,208,208,0.25);
+  }
+  #nameRow{
+    display:flex;
+    gap:10px;
+    margin-top:16px;
+    justify-content:center;
+  }
+  #nameRow .uiBtn{
+    padding:10px 18px;
+  }
+
+  /* Preset */
+  #preset{
+    position:fixed;
+    inset:0;
+    z-index:250;
+    background:#000;
+    display:none;
+    cursor:pointer;
+  }
+  #presetCanvas{
+    position:absolute;
+    left:0;top:0;width:100%;height:100%;
+  }
+
+  /* Welcome */
+  #overlayWelcome{
+    position:fixed;
+    inset:0;
+    z-index:220;
+    display:none;
+    place-items:center;
+    color:var(--accent);
+    background:rgba(0,0,0,.55);
+    padding:0;
+  }
+  #welcomeCard{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+    max-width:min(92vw, 820px);
+    margin:0 auto;
+    text-align:center;
+    padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;
+    gap:18px;
+  }
+  #welcomeCard .title{
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    font-size:clamp(28px, 8vmin, 72px);
+    font-weight:400;
+    letter-spacing:.12em;
+    line-height:1.15;
+    margin:0;
+    text-transform:uppercase;
+    color:var(--accent);
+    white-space:nowrap;
+  }
+  #goIntro{
+    margin-top:0;
+    font-size:var(--fs-small);
+  }
+
+  /* INTRO big title */
+  #introBig{
+    position:fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+    z-index:210;
+  }
+
+  /* INTRO 텍스트 박스 */
+  #introDialogue{
+    position:fixed;
+    right:calc(var(--frame) + var(--safe-r) + 12px);
+    bottom:calc(var(--frame) + var(--safe-b) + 12px);
+    max-width:min(420px, 60vw);
+    padding:12px 14px 10px;
+    border:1px solid rgba(208,208,208,0.9);
+    background:#000;
+    font-family:"Courier New",ui-monospace,monospace;
+    font-size:clamp(11px,2.1vmin,15px);
+    line-height:1.7;
+    color:var(--accent);
+    display:none;
+    z-index:900;
+  }
+  #introText{
+    margin-bottom:8px;
+    text-align:left;
+    white-space:pre-line;
+  }
+  #introNext{
+    display:inline-block;
+    margin-left:auto;
+  }
+
+  /* THE FIRST SLEEP title (지금은 사용 X) */
+  #firstSleep{
+    position:fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+    z-index:850;
     text-align:center;
   }
-  #endSilence{
-    font-size:clamp(18px,4.5vmin,26px);
+
+  /* NOTICE Popup (FIRST SLEEP) */
+  #noticePopup{
+    position:fixed;
+    inset:0;
+    z-index:900;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,.72);
   }
-  #endTheEnd{
-    font-size:clamp(18px,4.5vmin,26px);
+  #noticeCard{
+    width:min(92vw, 640px);
+    background:#0b0b0b;
+    color:var(--accent);
+    border:1px solid #333;
+    padding:18px;
+    box-shadow:0 10px 30px rgba(0,0,0,.6);
+    font-family:"Courier New",ui-monospace,monospace;
+    line-height:1.7;
+  }
+  #noticeCard h3{
+    margin:0 0 6px 0;
+    letter-spacing:.06em;
+    font-weight:700;
+    font-size:clamp(15px,3vmin,20px);
+    color:var(--accent);
+  }
+  #noticeCard p{
+    margin:4px 0;
+    font-size:clamp(12px,2.4vmin,16px);
+  }
+  #noticeActions{
+    margin-top:10px;
+    text-align:right;
+  }
+
+  /* FIRST SLEEP: 중앙 문장 오버레이 */
+  #chapterOverlay{
+    position:fixed;
+    inset:0;
+    z-index:930;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:transparent;
+    color:var(--accent);
+    padding:24px;
+    pointer-events:none;
+  }
+  #chapterCenter{
+    max-width:min(900px, 92vw);
+    max-height:80vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    overflow:hidden;
+  }
+  #chapterBox{
+    display:inline-block;
+    font-family:"Courier New",ui-monospace,monospace;
+    line-height:1.8;
+    font-size:clamp(11px,2.0vmin,15px);
+    text-align:center;
+    color:var(--accent);
+    padding:0;
+    background:transparent;
+    border:none;
+    box-shadow:none;
+  }
+
+  /* 1장 텍스트 글자 박스 – 테두리 제거 */
+  .charBox{
+    display:inline-block;
+    background:#000;
+    color:var(--accent);
+    padding:3px 2px;
+    margin:1px 0;
+    border-radius:0;
+    border:none;
+    box-sizing:border-box;
+  }
+
+  /* 공통 타이틀 스타일 */
+  .sleepLine{
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    letter-spacing:.16em;
+    font-size:clamp(32px, 12vmin, 160px);
+    text-transform:uppercase;
+    white-space:nowrap;
+    text-shadow:0 0 8px rgba(0,0,0,.85);
+    margin:6px 0;
+    padding:8px 16px;
+    background:transparent;
+    border:none;
+    display:inline-block;
+    text-align:center;
+    max-width:96vw;
+    box-sizing:border-box;
+  }
+
+  /* INTRO → FIRST SLEEP */
+  #firstTransition{
+    position:fixed;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    color:var(--accent);
+    z-index:940;
+    pointer-events:none;
+    text-align:center;
+  }
+
+  /* BETWEEN FIRST & SECOND SLEEP */
+  #sleepTransition{
+    position:fixed;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    color:var(--accent);
+    z-index:940;
+    pointer-events:none;
+    text-align:center;
+  }
+
+  /* THIRD SLEEP 타이틀 */
+  #thirdTransition{
+    position:fixed;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    color:var(--accent);
+    z-index:945;
+    pointer-events:none;
+    text-align:center;
+  }
+
+  /* FOURTH SLEEP 타이틀 */
+  #fourthTransition{
+    position:fixed;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    color:var(--accent);
+    z-index:946;
+    pointer-events:none;
+    text-align:center;
+  }
+
+  /* THIRD NOTICE */
+  #noticePopup3{
+    position:fixed;
+    inset:0;
+    z-index:950;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,.8);
+  }
+  #noticeCard3{
+    width:min(92vw, 640px);
+    background:#0b0b0b;
+    color:var(--accent);
+    border:1px solid #444;
+    padding:18px;
+    box-shadow:0 10px 30px rgba(0,0,0,.8);
+    font-family:"Courier New",ui-monospace,monospace;
+    line-height:1.7;
+  }
+  #noticeCard3 h3{
+    margin:0 0 6px 0;
+    letter-spacing:.06em;
+    font-weight:700;
+    font-size:clamp(15px,3vmin,20px);
+    color:var(--accent);
+  }
+  #noticeCard3 p{
+    margin:4px 0;
+    font-size:clamp(12px,2.4vmin,16px);
+  }
+  #noticeActions3{
+    margin-top:10px;
+    text-align:right;
+  }
+
+  /* SECOND NOTICE */
+  #noticePopup2{
+    position:fixed;
+    inset:0;
+    z-index:960;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,.8);
+  }
+  #noticeCard2{
+    width:min(92vw, 640px);
+    background:#0b0b0b;
+    color:var(--accent);
+    border:1px solid #444;
+    padding:18px;
+    box-shadow:0 10px 30px rgba(0,0,0,.8);
+    font-family:"Courier New",ui-monospace,monospace;
+    line-height:1.7;
+  }
+  #noticeCard2 h3{
+    margin:0 0 6px 0;
+    letter-spacing:.06em;
+    font-weight:700;
+    font-size:clamp(15px,3vmin,20px);
+    color:var(--accent);
+  }
+  #noticeCard2 p{
+    margin:4px 0;
+    font-size:clamp(12px,2.4vmin,16px);
+  }
+  #noticeActions2{
+    margin-top:10px;
+    text-align:right;
+  }
+
+  /* FOURTH NOTICE */
+  #noticePopup4{
+    position:fixed;
+    inset:0;
+    z-index:965;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,.8);
+  }
+  #noticeCard4{
+    width:min(92vw, 640px);
+    background:#0b0b0b;
+    color:var(--accent);
+    border:1px solid #444;
+    padding:18px;
+    box-shadow:0 10px 30px rgba(0,0,0,.8);
+    font-family:"Courier New",ui-monospace,monospace;
+    line-height:1.7;
+  }
+  #noticeCard4 h3{
+    margin:0 0 6px 0;
+    letter-spacing:.06em;
+    font-weight:700;
+    font-size:clamp(15px,3vmin,20px);
+    color:var(--accent);
+  }
+  #noticeCard4 p{
+    margin:4px 0;
+    font-size:clamp(12px,2.4vmin,16px);
+  }
+  #noticeActions4{
+    margin-top:10px;
+    text-align:right;
+  }
+
+  /* MAP OVERLAY – 2장 직사각형 지도 */
+  #mapOverlay{
+    position:fixed;
+    inset:0;
+    z-index:950;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    overflow:hidden;
+  }
+  #mapCanvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+  }
+
+  .map-popup{
+    position:fixed;
+    inset:0;
+    z-index:970;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+  }
+  .map-popup-inner{
+    pointer-events:auto;
+    width:min(92vw, 520px);
+    background:#050505;
+    border:1px solid #333;
+    box-shadow:0 10px 30px rgba(0,0,0,.85);
+    padding:18px 18px 14px;
+    color:var(--accent);
+    font-family:"Courier New",ui-monospace,monospace;
+    position:relative;
+    line-height:1.7;
+  }
+  .map-pop-close{
+    position:absolute;
+    top:8px;
+    right:10px;
+  }
+
+  /* ENDING OVERLAY */
+  #endOverlay{
+    position:fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    color:var(--accent);
+    z-index:980;
+    text-align:center;
+  }
+  #endInner{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:18px;
   }
   #endReturn{
-    font-size:10px;
-    max-width:480px;
-    line-height:1.8;
-    opacity:.8;
+    font-family:"Courier New",ui-monospace,monospace;
+    font-size:clamp(11px,2.0vmin,15px);
+    max-width:72ch;
+    line-height:1.7;
   }
 </style>
 </head>
 <body>
-<div id="app">
-  <div class="frameOuter">
-    <div class="frameBox">
-      <canvas id="view"></canvas>
-      <canvas id="fg"></canvas>
-      <canvas id="freezeLayer"></canvas>
+  <canvas id="view"></canvas>
+  <canvas id="fg"></canvas>
 
-      <div class="hud">
-        <div id="runTimer">00:00</div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none;">
-          <div id="controls">
-            <div class="uiPanel">
-              <span class="uiLabel">ZOOM</span>
-              <button id="zoomOut" class="uiBtn">RESET</button>
-              <button id="zoomIn" class="uiBtn">+</button>
-              <span id="zoomVal" class="uiLabel">1.0×</span>
-            </div>
-          </div>
-          <button id="captureBtn" class="uiBtn">CAPTURE</button>
-        </div>
-      </div>
+  <canvas id="freezeLayer"></canvas>
+  <div class="frameBox" aria-hidden="true"></div>
 
-      <!-- gate overlay -->
-      <div id="overlay">
-        <div id="overlayCard">
-          <h1>SLEEEEEEEEEEP</h1>
-          <p>
-            TAP ANYWHERE TO ALLOW<br>
-            CAMERA / MICROPHONE / AUDIO / VOICE.
-          </p>
-          <button id="permGateBtn" class="uiBtn">TAP TO START</button>
-        </div>
-      </div>
+  <div class="controls" id="controls">
+    <button class="uiBtn small" id="zoomOut">–</button>
+    <div class="readout"><span id="zoomVal">1.0×</span></div>
+    <button class="uiBtn small" id="zoomIn">+</button>
+  </div>
+  <button id="captureBtn" class="uiBtn small btn-capture">CAPTURE</button>
 
-      <!-- rotate -->
-      <div id="rotateOverlay">
-        <div id="rotateOverlayInner">
-          PLEASE ROTATE YOUR DEVICE.<br>
-          THIS PROGRAM IS LANDSCAPE ONLY.
-        </div>
-      </div>
+  <!-- 공통 SKIP 버튼 -->
+  <button id="skipBtn" class="uiBtn small skip-btn" type="button">SKIP</button>
 
-      <!-- 이름 입력 -->
-      <div id="nameOverlay">
-        <div id="nameCard">
-          <h2>ENTER YOUR NAME</h2>
-          <p>
-            이 프로그램 속에서 불릴 이름을 입력해 주세요.<br>
-            입력하지 않으면 &ldquo;_____&rdquo;로 진행됩니다.
-          </p>
-          <input id="nick" autocomplete="off" placeholder="YOUR NAME" />
-          <button id="nameSubmit" class="uiBtn">OK</button>
-        </div>
-      </div>
+  <button id="docLauncher" class="uiBtn small">DOCUMENT</button>
+  <button id="mapLauncher" class="uiBtn small">MAP</button>
+  <button id="audioToggle" class="uiBtn small">AUDIO</button>
+  <div id="runTimer" aria-live="polite">05:00</div>
 
-      <!-- 프리셋 세이버 -->
-      <div id="preset">
-        <canvas id="presetCanvas"></canvas>
-      </div>
-
-      <!-- 웰컴 -->
-      <div id="overlayWelcome">
-        <div id="welcomeCard">
-          <div class="title">WELCOME</div>
-          <div class="body">
-            30분 동안, 당신의 내면 도시를 거닐게 됩니다.<br>
-            이어폰을 귀에 꽂고, 작은 목소리로만 말해 주세요.
-          </div>
-          <button id="goIntro" class="uiBtn">ENTER INTRODUCTION</button>
-        </div>
-      </div>
-
-      <!-- INTRODUCTION 타이틀 -->
-      <div id="introBig">
-        <div id="introBigText">INTRODUCTION</div>
-      </div>
-
-      <!-- INTRO 대화 -->
-      <div id="introDialogue">
-        <div id="introText"></div>
-        <button id="introNext" class="uiBtn">NEXT</button>
-      </div>
-
-      <!-- FIRST SLEEP 전환 -->
-      <div id="firstTransition">
-        <div id="firstTransWord"></div>
-        <div id="firstTransTitle"></div>
-      </div>
-
-      <!-- SECOND SLEEP 전환 -->
-      <div id="sleepTransition">
-        <div id="sleepLine1"></div>
-        <div id="sleepLine2"></div>
-        <div id="sleepSecondTitle"></div>
-      </div>
-
-      <!-- THIRD SLEEP 전환 -->
-      <div id="thirdTransition">
-        <div id="thirdSleepLine1"></div>
-        <div id="thirdSleepLine2"></div>
-        <div id="thirdSleepLine3"></div>
-        <div id="thirdTitle"></div>
-      </div>
-
-      <!-- FOURTH SLEEP 전환 -->
-      <div id="fourthTransition">
-        <div id="fourthSleepLine1"></div>
-        <div id="fourthSleepLine2"></div>
-        <div id="fourthSleepLine3"></div>
-        <div id="fourthSleepLine4"></div>
-        <div id="fourthTitle"></div>
-      </div>
-
-      <!-- 챕터 텍스트 -->
-      <div id="chapterOverlay">
-        <div id="chapterBox"></div>
-      </div>
-
-      <!-- 첫 번째 알림 -->
-      <div id="noticePopup" class="popupOverlay">
-        <div id="noticeCard" class="popupCard">
-          <h2>THE FIRST SLEEP</h2>
-          <p>
-            지금부터 카메라와 마이크가 켜집니다.<br>
-            화면 속 도시를 조용히 바라보며, 작은 목소리로 숨을 섞어 주세요.
-          </p>
-          <div class="popupBtnRow">
-            <button id="noticeOk" class="uiBtn">OK</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 두 번째 알림 -->
-      <div id="noticePopup2" class="popupOverlay">
-        <div id="noticeCard2" class="popupCard">
-          <h2>THE SECOND SLEEP</h2>
-          <p>
-            이제 도시의 지도를 펼칩니다.<br>
-            원하는 구역을 눌러, 그곳의 울림을 들어 보세요.
-          </p>
-          <div class="popupBtnRow">
-            <button id="noticeOk2" class="uiBtn">OK</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 세 번째 알림 -->
-      <div id="noticePopup3" class="popupOverlay">
-        <div id="noticeCard3" class="popupCard">
-          <h2>THE THIRD SLEEP</h2>
-          <p>
-            마지막으로, 당신은 내면의 거리를 걷게 됩니다.<br>
-            소리와 함께 천천히, 스스로를 따라가 보세요.
-          </p>
-          <div class="popupBtnRow">
-            <button id="noticeOk3" class="uiBtn">OK</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 지도 -->
-      <div id="mapOverlay">
-        <canvas id="mapCanvas"></canvas>
-        <div id="mapPop">
-          <div id="mapPopCard">
-            <div id="mapPopTitle">ZONE</div>
-            <div id="mapPopBody"></div>
-            <div style="margin-top:6px;text-align:right;">
-              <button id="mapPopClose" class="uiBtn">OK</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- SKIP -->
-      <button id="skipBtn" class="uiBtn" style="display:none;">SKIP</button>
-
-      <!-- END -->
-      <div id="endOverlay">
-        <div id="endSilence"></div>
-        <div id="endTheEnd"></div>
-        <div id="endReturn"></div>
-      </div>
-
+  <div id="rotateOverlay" aria-live="polite">
+    <div>
+      <b>Landscape mode required</b><br/>
+      Please rotate your device to landscape to continue.<br/>
+      If the screen doesn’t rotate, unlock orientation in your device settings.
     </div>
   </div>
-</div>
+
+  <!-- Permission Gate -->
+  <div id="overlay" class="fade show">
+    <div id="overlayContent">
+      <div class="credits">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
+      <button id="permGateBtn" class="gateLine" type="button">
+        Tap anywhere to allow Camera, Microphone & Motion sensors
+      </button>
+      <div class="gateHint">After allowing, you'll move to the name screen.</div>
+    </div>
+  </div>
+
+  <!-- Name -->
+  <div id="nameOverlay" class="fade">
+    <div id="nameCard">
+      <h2>TELL ME YOUR NAME</h2>
+      <input id="nick" type="text" maxlength="24" placeholder="" autocomplete="off" />
+      <div id="nameRow">
+        <button id="nameSubmit" class="uiBtn flat" type="button">GO</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preset -->
+  <div id="preset" class="fade" title="Tap to continue">
+    <canvas id="presetCanvas"></canvas>
+  </div>
+
+  <!-- Welcome -->
+  <div id="overlayWelcome" class="fade">
+    <div id="welcomeCard">
+      <div class="credits">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
+      <div class="title">SLEEEEEEEEP,</div>
+      <div class="title">SLEEEEEEEEP,</div>
+      <div class="title">SLEEEEEEEEP,</div>
+      <div class="title">SLEEEEEEEEP,</div>
+      <button id="goIntro" class="uiBtn flat" type="button">PRESS HERE TO SLEEP</button>
+    </div>
+  </div>
+
+  <!-- INTRODUCTION title -->
+  <div id="introBig" class="fade"><div id="introBigText" class="sleepLine">INTRODUCTION</div></div>
+
+  <!-- INTRODUCTION sentences -->
+  <div id="introDialogue">
+    <div id="introText"></div>
+    <button id="introNext" class="uiBtn small" type="button">NEXT</button>
+  </div>
+
+  <!-- THE FIRST SLEEP title (unused direct) -->
+  <div id="firstSleep"><div id="firstSleepText" class="sleepLine">THE FIRST SLEEP</div></div>
+
+  <!-- NOTICE Popup (FIRST SLEEP) -->
+  <div id="noticePopup" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle">
+    <div id="noticeCard">
+      <h3 id="noticeTitle">NOTICE</h3>
+      <p>※ “THE FIRST SLEEP”은 눈으로 인식하던 타자를 귀로 인식해 나가는 챕터입니다.</p>
+      <p>※ 앞으로 당신의 태블릿 위로 타자와 몇가지 흔적들이 텍스트로 제시될 것입니다.</p>
+      <p>※ 당신은 내면 세계의 탐험가로써 그 흔적들을 화면 아래 ‘CAPTURE’와 ‘+’, ‘-’버튼을 눌러 포착하세요.</p>
+      <p>※ 확인하셨다면, 아래 ‘OK’버튼을 눌러주세요</p>
+      <div id="noticeActions">
+        <button id="noticeOk" class="uiBtn flat" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIRST SLEEP: 중앙 문장 -->
+  <div id="chapterOverlay" class="fade">
+    <div id="chapterCenter">
+      <div id="chapterBox"></div>
+    </div>
+  </div>
+
+  <!-- INTRO → FIRST SLEEP -->
+  <div id="firstTransition" class="fade">
+    <div id="firstTransWord" class="sleepLine"></div>
+    <div id="firstTransTitle" class="sleepLine"></div>
+  </div>
+
+  <!-- BETWEEN FIRST & SECOND SLEEP -->
+  <div id="sleepTransition" class="fade">
+    <div id="sleepLine1" class="sleepLine"></div>
+    <div id="sleepLine2" class="sleepLine"></div>
+    <div id="sleepSecondTitle" class="sleepLine"></div>
+  </div>
+
+  <!-- THIRD SLEEP 타이틀 -->
+  <div id="thirdTransition" class="fade">
+    <div id="thirdLine1" class="sleepLine"></div>
+    <div id="thirdLine2" class="sleepLine"></div>
+    <div id="thirdLine3" class="sleepLine"></div>
+    <div id="thirdTitle" class="sleepLine">THE THIRD SLEEP</div>
+  </div>
+
+  <!-- FOURTH SLEEP 타이틀 -->
+  <div id="fourthTransition" class="fade">
+    <div id="fourthLine1" class="sleepLine"></div>
+    <div id="fourthLine2" class="sleepLine"></div>
+    <div id="fourthLine3" class="sleepLine"></div>
+    <div id="fourthLine4" class="sleepLine"></div>
+    <div id="fourthTitle" class="sleepLine">THE FOURTH SLEEP</div>
+  </div>
+
+  <!-- SECOND NOTICE (지도 전) -->
+  <div id="noticePopup2" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle2">
+    <div id="noticeCard2">
+      <h3 id="noticeTitle2">NOTICE</h3>
+      <p>※ 이제 두 번째 수면으로 진입하기 전, 내면의 지도 위에서 여덟 개의 지점을 탐험하게 됩니다.</p>
+      <p>※ 지도 중앙의 육각형을 중심으로 1번부터 8번까지의 사각형을 클릭하여 각 구역의 목소리를 불러오세요.</p>
+      <p>※ 준비가 되었다면 아래 ‘OK’를 눌러 지도로 이동합니다.</p>
+      <div id="noticeActions2">
+        <button id="noticeOk2" class="uiBtn flat" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- THIRD NOTICE (3번째 수면) -->
+  <div id="noticePopup3" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle3">
+    <div id="noticeCard3">
+      <h3 id="noticeTitle3">NOTICE</h3>
+      <p>※ 이제 “THE THIRD SLEEP”으로 진입합니다.</p>
+      <p>※ 잠시 후 5분 동안 이 수면 상태가 이어집니다.</p>
+      <p>※ 타이머가 끝나면 “THE FOURTH SLEEP”으로 이어집니다.</p>
+      <div id="noticeActions3">
+        <button id="noticeOk3" class="uiBtn flat" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOURTH NOTICE (4번째 수면) -->
+  <div id="noticePopup4" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle4">
+    <div id="noticeCard4">
+      <h3 id="noticeTitle4">NOTICE</h3>
+      <p>※ 이제 “THE FOURTH SLEEP”으로 진입합니다.</p>
+      <p>※ 잠시 후 5분 동안 이 수면 상태가 이어집니다.</p>
+      <p>※ 타이머가 끝나면 “SILENCE” 화면으로 전환됩니다.</p>
+      <div id="noticeActions4">
+        <button id="noticeOk4" class="uiBtn flat" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAP OVERLAY -->
+  <div id="mapOverlay">
+    <canvas id="mapCanvas"></canvas>
+  </div>
+
+  <!-- MAP POPUP -->
+  <div id="mapPop" class="map-popup">
+    <div class="map-popup-inner">
+      <button id="mapPopClose" class="uiBtn small map-pop-close" type="button">CLOSE</button>
+      <div id="mapPopBody"></div>
+    </div>
+  </div>
+
+  <!-- ENDING OVERLAY: SILENCE / THE END (장면에 따라 하나만 사용) -->
+  <div id="endOverlay" class="fade">
+    <div id="endInner">
+      <div id="endSilence" class="sleepLine"></div>
+      <div id="endTheEnd" class="sleepLine"></div>
+      <div id="endReturn"></div>
+    </div>
+  </div>
 
 <script>
 (() => {
@@ -781,70 +999,7 @@
   const nextFrame = () => new Promise(resolve=>requestAnimationFrame(()=>resolve()));
   const qs = s => document.querySelector(s);
 
-  /* ====== 오디오 / TTS 공통 ====== */
-  let audioCtx = null;
-  let audioPrimed = false;
-
-  function ensureAudio(){
-    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-
-  async function primeAudio(){
-    ensureAudio();
-    if(audioCtx.state === 'suspended'){
-      try{ await audioCtx.resume(); }catch(e){}
-    }
-    audioPrimed = true;
-  }
-
-  async function ensureResumed(){
-    ensureAudio();
-    if(audioCtx.state === 'suspended'){
-      try{ await audioCtx.resume(); }catch(e){}
-    }
-  }
-
-  /* === TTS 설정 === */
-  let ttsReady   = 'speechSynthesis' in window;
-  let ttsVoice   = null;
-  let ttsEnabled = false;
-
-  function selectKoreanVoice(voices){
-    let v = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('ko'));
-    if(!v) v = voices.find(v => /korean/i.test(v.name||'')) || voices[0];
-    return v || null;
-  }
-
-  function initTts(){
-    if(!ttsReady) return;
-    const voices = window.speechSynthesis.getVoices() || [];
-    if(!voices.length){
-      setTimeout(initTts, 400);
-      return;
-    }
-    ttsVoice = selectKoreanVoice(voices);
-    ttsEnabled = !!ttsVoice;
-  }
-
-  if(ttsReady){
-    initTts();
-    window.speechSynthesis.onvoiceschanged = initTts;
-  }
-
-  function speakText(text){
-    if(!ttsReady || !text) return;
-    try{
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      if(ttsVoice) u.voice = ttsVoice;
-      u.lang  = (ttsVoice && ttsVoice.lang) ? ttsVoice.lang : 'ko-KR';
-      u.pitch = 1.0;
-      u.rate  = 0.9;
-      u.volume= 1.0;
-      window.speechSynthesis.speak(u);
-    }catch(e){}
-  }
-
+  /* === 볼륨 공통 설정 === */
   const MASTER_BGM_GAIN = 0.4;
   const MASTER_SFX_GAIN = 0.45;
 
@@ -900,6 +1055,9 @@
   const introTextEl = qs('#introText');
   const introNextBtn = qs('#introNext');
 
+  const firstSleep = qs('#firstSleep');
+  const firstSleepText = qs('#firstSleepText');
+
   const controls = qs('#controls');
   const zoomIn = qs('#zoomIn');
   const zoomOut = qs('#zoomOut');
@@ -926,16 +1084,16 @@
   const sleepSecondTitle = qs('#sleepSecondTitle');
 
   const thirdTransition = qs('#thirdTransition');
-  const thirdSleepLine1 = qs('#thirdSleepLine1');
-  const thirdSleepLine2 = qs('#thirdSleepLine2');
-  const thirdSleepLine3 = qs('#thirdSleepLine3');
+  const thirdLine1 = qs('#thirdLine1');
+  const thirdLine2 = qs('#thirdLine2');
+  const thirdLine3 = qs('#thirdLine3');
   const thirdTitle = qs('#thirdTitle');
 
   const fourthTransition = qs('#fourthTransition');
-  const fourthSleepLine1 = qs('#fourthSleepLine1');
-  const fourthSleepLine2 = qs('#fourthSleepLine2');
-  const fourthSleepLine3 = qs('#fourthSleepLine3');
-  const fourthSleepLine4 = qs('#fourthSleepLine4');
+  const fourthLine1 = qs('#fourthLine1');
+  const fourthLine2 = qs('#fourthLine2');
+  const fourthLine3 = qs('#fourthLine3');
+  const fourthLine4 = qs('#fourthLine4');
   const fourthTitle = qs('#fourthTitle');
 
   const noticePopup2 = qs('#noticePopup2');
@@ -943,6 +1101,9 @@
 
   const noticePopup3 = qs('#noticePopup3');
   const noticeOk3 = qs('#noticeOk3');
+
+  const noticePopup4 = qs('#noticePopup4');
+  const noticeOk4 = qs('#noticeOk4');
 
   const mapOverlay = qs('#mapOverlay');
   const mapCanvas = qs('#mapCanvas');
@@ -968,415 +1129,75 @@
   let showCamera=false;
   let camFadeAlpha=0;
 
-  /* --------- 타이핑/버튼 사운드 ---------- */
-  let typeBuffer = null;
-  let lastTypeSoundTime = 0;
-
-  function buildTypeBuffer(ctx){
-    const duration   = 0.04;
-    const sampleRate = ctx.sampleRate;
-    const length     = Math.floor(sampleRate * duration);
-    const buffer     = ctx.createBuffer(1, length, sampleRate);
-    const data       = buffer.getChannelData(0);
-    const freq       = 1800;
-
-    for(let i=0;i<length;i++){
-      const t   = i / sampleRate;
-      const env = Math.exp(-t * 20);
-      const phase = 2 * Math.PI * freq * t;
-      data[i] = Math.sin(phase) * env;
-    }
-    return buffer;
+  let audioCtx = null;
+  function ensureAudio(){
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  async function ensureResumed(){
+    try{
+      ensureAudio();
+      if(audioCtx.state==='suspended') await audioCtx.resume();
+    }catch{}
   }
 
-  function playTypeBeep(){
+  /* 현재 챕터 상태 */
+  let stage = 'gate';
+
+  /* --------- 입력/타이핑 공용 사운드 --------- */
+  function playGameInputSound(){
     try{
       ensureAudio();
       const ctx = audioCtx;
-      const now = ctx.currentTime || 0;
-
-      // 갤탭에서 버벅임 줄이려고, 0.07초보다 촘촘한 건 막기
-      if(now - lastTypeSoundTime < 0.07) return;
-      lastTypeSoundTime = now;
-
-      if(!typeBuffer) typeBuffer = buildTypeBuffer(ctx);
-      const src = ctx.createBufferSource();
-      src.buffer = typeBuffer;
-      const g = ctx.createGain();
-      g.gain.value = MASTER_SFX_GAIN * 0.75;
-      src.connect(g).connect(ctx.destination);
-      src.start();
+      const now = ctx.currentTime;
+      const o1 = ctx.createOscillator();
+      const o2 = ctx.createOscillator();
+      const g  = ctx.createGain();
+      o1.type = 'triangle';
+      o2.type = 'triangle';
+      o1.frequency.setValueAtTime(1350, now);
+      o2.frequency.setValueAtTime(900,  now);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+0.18);
+      o1.connect(g); o2.connect(g); g.connect(ctx.destination);
+      o1.start(now); o2.start(now);
+      o1.stop(now+0.2); o2.stop(now+0.2);
     }catch(e){}
   }
 
-  function typeTick(){
-    playTypeBeep();
+  /* --------- TTS --------- */
+  let ttsReady = 'speechSynthesis' in window;
+  let ttsVoice = null;
+
+  function chooseTtsVoice(){
+    if(!ttsReady) return;
+    const voices = window.speechSynthesis.getVoices();
+    if(!voices || !voices.length) return;
+    ttsVoice =
+      voices.find(v => v.lang.startsWith('ko') && /female|woman|A|F/i.test(v.name)) ||
+      voices.find(v => v.lang.startsWith('ko')) ||
+      voices[0];
   }
 
-  function updateZoomLabel(){
-    zoomVal.textContent = ZOOM.toFixed(1)+'×';
+  if(ttsReady){
+    chooseTtsVoice();
+    window.speechSynthesis.onvoiceschanged = chooseTtsVoice;
   }
-  updateZoomLabel();
-  zoomIn.addEventListener('click', ()=>{
-    ZOOM=Math.min(3.0, ZOOM+0.05);
-    updateZoomLabel();
-    playClick();   // await 안 씀 → 딜레이 최소화
-  }, {passive:true});
-  zoomOut.addEventListener('click', ()=>{
-    ZOOM=1.0;
-    updateZoomLabel();
-    playClick();
-  }, {passive:true});
 
-  async function immediateGestureStart(e){
-    e && e.preventDefault && e.preventDefault();
-
-    claimImmersive();
-    await primeAudio();
-    initTts();
-
+  function speakText(text){
+    if(!ttsReady || !text) return;
     try{
-      if (typeof DeviceOrientationEvent !== 'undefined' &&
-          typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission().catch(()=>{});
-      }
-    }catch(_){}
-
-    navigator.mediaDevices.getUserMedia({
-      video:{
-        facingMode:{ideal:'environment'},
-        width:{min:1280,ideal:1920},
-        height:{min:720,ideal:1080},
-        aspectRatio:{ideal:16/9}
-      },
-      audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}
-    })
-    .then((s)=>{
-      s.getTracks().forEach(t=>t.stop());
-      camPermGranted = true;
-    })
-    .catch(err=>{
-      console.warn('permission error:', err);
-    })
-    .finally(()=>{
-      fadeHide(overlay, FADE);
-      showPreset();
-      fadeShow(nameOverlay, FADE);
-      stage = 'name';
-      setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 80);
-    });
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      if(ttsVoice) u.voice = ttsVoice;
+      u.pitch = 1.05;
+      u.rate = 0.9;
+      u.volume = 0.9;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
   }
 
-  ['click','touchstart','pointerdown'].forEach(type=>{
-    permBtn.addEventListener(type, immediateGestureStart, {passive:false});
-    overlay.addEventListener(type, immediateGestureStart, {passive:false});
-    window.addEventListener(type, (ev)=>{
-      if(getComputedStyle(overlay).display !== 'none'){
-        immediateGestureStart(ev);
-      }
-    }, {passive:false});
-  });
-
-  let displayName = '_____';
-  async function acceptName(){
-    claimImmersive();
-    await ensureResumed();
-    const v = (nickInput.value||'').trim();
-    if(v.length>0){ displayName = v; }
-    playClick();
-    fadeHide(nameOverlay, FADE);
-    stage = 'preset';
-    skipBtn.style.display='block';
-  }
-  nameSubmit.addEventListener('click', acceptName, {passive:true});
-  nickInput.addEventListener('keydown', (e)=>{
-    if(e.key==='Enter'){ acceptName(); }
-  });
-
-  /* ===== 프리셋 세이버 ===== */
-  let saverObjs = [];
-  let saverT0 = 0;
-  let lastSaverTime = null;
-
-  function showPreset(){
-    if(preset.style.display!=='block'){
-      preset.style.display='block';
-      fadeShow(preset, FADE);
-      initSaver();
-      startCameraFresh(true);
-    }
-  }
-
-  function initSaver(){
-    const w = preset.clientWidth;
-    const h = preset.clientHeight;
-    saverObjs = [];
-    const letters = ['S','L','E','E','E','E','E','E','E','E','P'];
-
-    for(let i=0;i<20;i++){
-      saverObjs.push({
-        ch: letters[i % letters.length],
-        x: Math.random() * w,
-        y: Math.random() * h,
-        vx: (Math.random()*0.2 + 0.08) * (Math.random() < 0.5 ? -1 : 1),
-        vy: (Math.random()*0.2 + 0.08) * (Math.random() < 0.5 ? -1 : 1),
-        phase: Math.random() * Math.PI * 2,
-        size: (Math.floor(Math.random()*60)+90)*2
-      });
-    }
-    saverT0 = performance.now();
-    lastSaverTime = null;
-    requestAnimationFrame(saverLoop);
-  }
-
-  function saverLoop(){
-    if(preset.style.display==='none') {
-      lastSaverTime = null;
-      return;
-    }
-    const now = performance.now();
-    const w = preset.clientWidth;
-    const h = preset.clientHeight;
-    const dpr = devicePixelRatio || 1;
-
-    if(lastSaverTime == null) lastSaverTime = now;
-    const dt = (now - lastSaverTime) / 1000;
-    lastSaverTime = now;
-
-    presetCanvas.width = w * dpr;
-    presetCanvas.height = h * dpr;
-    const ctx = presetCanvas.getContext('2d');
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    ctx.clearRect(0,0,w,h);
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0,0,w,h);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    for(const o of saverObjs){
-      o.x += o.vx * dt * 60;
-      o.y += o.vy * dt * 60;
-
-      if(o.x < 0 || o.x > w){
-        o.vx *= -1;
-        o.x = Math.max(0, Math.min(w, o.x));
-      }
-      if(o.y < 0 || o.y > h){
-        o.vy *= -1;
-        o.y = Math.max(0, Math.min(h, o.y));
-      }
-
-      o.phase += dt * 0.6;
-      const wob = Math.sin(o.phase)*0.08 + 1;
-
-      ctx.save();
-      ctx.translate(o.x, o.y);
-      ctx.scale(wob, 1 / wob);
-      ctx.font = `900 ${o.size}px "Press Start 2P", system-ui, sans-serif`;
-      ctx.fillStyle = '#d0d0d0';
-      ctx.fillText(o.ch, 0, 0);
-      ctx.restore();
-    }
-
-    requestAnimationFrame(saverLoop);
-  }
-
-  preset.addEventListener('click', ()=>{
-    claimImmersive();
-    ensureResumed();
-    if(!Ambient.isRunning()) Ambient.start(0.5,1.0);
-    playClick();
-    fadeHide(preset, FADE);
-    startCameraFresh(false);
-    fadeShow(welcome, FADE);
-    stage = 'welcome';
-  }, {passive:true});
-
-  const INTRO_LINES = [
-    '멘트를 입력하세요',
-    '멘트를 입력하세요',
-    '멘트를 입력하세요'
-  ];
-
-  const FIRST_SLEEP_LINES = [
-    '멘트를 입력하세요',
-    '멘트를 입력하세요',
-    '멘트를 입력하세요'
-  ];
-
-  function getFrameRect(){
-    return document.querySelector('.frameBox').getBoundingClientRect();
-  }
-
-  function fitTitleLine(el){
-    if(!el) return;
-    const fr=getFrameRect();
-    const maxW=Math.min(window.innerWidth*0.96, fr.width*0.96);
-    const cs=getComputedStyle(el);
-    let size=parseFloat(cs.fontSize)||48;
-    el.style.whiteSpace='nowrap';
-    while(el.scrollWidth>maxW && size>16){
-      size*=0.94;
-      el.style.fontSize=size+'px';
-    }
-  }
-
-  const PIXEL_SPRITE=[
-    "..XXXXXX....",
-    ".XXXXXXXX...",
-    ".XX.XX.XX...",
-    ".XXXXXXXX...",
-    "..XXXXXX....",
-    ".XXXXXXXX...",
-    ".XXXXXXXX...",
-    ".XXXXXXXX...",
-    ".XXXXXXXX...",
-    ".XXXXXXXX...",
-    ".XX....XX...",
-    ".XX....XX...",
-    ".XX....XX...",
-    ".XX....XX...",
-    ".XX....XX...",
-    ".XX....XX..."
-  ];
-  const COLOR_FILL='#d0d0d0';
-  const COLOR_STROKE='#000';
-
-  function drawPixelHuman(ctx, cx, baselineY, W, hop=0, alpha=1, angleRad=0){
-    const cell=Math.max(2, Math.min(4, Math.floor(W*0.0018)));
-    const cols=PIXEL_SPRITE[0].length;
-    const rows=PIXEL_SPRITE.length;
-    const width=cols*cell;
-    const height=rows*cell;
-
-    const x0 = -width/2;
-    const y0 = -height - hop;
-
-    ctx.save();
-    ctx.translate(cx,baselineY);
-    ctx.rotate(angleRad);
-    ctx.globalAlpha=alpha;
-
-    ctx.fillStyle=COLOR_STROKE;
-    for(let y=0;y<rows;y++){
-      const row=PIXEL_SPRITE[y];
-      for(let x=0;x<cols;x++){
-        if(row[x]==='X'){
-          ctx.fillRect(x0+x*cell-1,y0+y*cell,cell,cell);
-          ctx.fillRect(x0+x*cell+1,y0+y*cell,cell,cell);
-          ctx.fillRect(x0+x*cell,y0+y*cell-1,cell,cell);
-          ctx.fillRect(x0+x*cell,y0+y*cell+1,cell,cell);
-        }
-      }
-    }
-    ctx.fillStyle=COLOR_FILL;
-    for(let y=0;y<rows;y++){
-      const row=PIXEL_SPRITE[y];
-      for(let x=0;x<cols;x++){
-        if(row[x]==='X'){
-          ctx.fillRect(x0+x*cell,y0+y*cell,cell,cell);
-        }
-      }
-    }
-    ctx.globalAlpha=1;
-    ctx.restore();
-  }
-
-  function getProsceniumRect(){
-    const r=getFrameRect();
-    return {x:r.left,y:r.top,w:r.width,h:r.height};
-  }
-
-  function prosceniumWalkPos(t01){
-    const pr = getProsceniumRect();
-    const margin = Math.min(pr.w, pr.h) * 0.06;
-    const left   = pr.x + margin;
-    const right  = pr.x + pr.w - margin;
-    const top    = pr.y + margin;
-    const bottom = pr.y + pr.h - margin;
-    const per = (right-left)*2 + (bottom-top)*2;
-    let d = ((t01%1)+1)%1 * per;
-
-    let x,y,edge;
-    if(d <= (right-left)){
-      x = left + d;
-      y = bottom;
-      edge = 'bottom';
-    }else if(d <= (right-left)+(bottom-top)){
-      d -= (right-left);
-      x = right;
-      y = bottom - d;
-      edge = 'right';
-    }else if(d <= (right-left)*2 + (bottom-top)){
-      d -= (right-left + (bottom-top));
-      x = right - d;
-      y = top;
-      edge = 'top';
-    }else{
-      d -= (right-left)*2 + (bottom-top);
-      x = left;
-      y = top + d;
-      edge = 'left';
-    }
-    return { x, y, baselineY:y, edge };
-  }
-
-  function drawBubble(ctx, x, y, text){
-    const pad=6, r=6;
-    ctx.font='12px "Courier New", monospace';
-    const m=ctx.measureText(text);
-    const w=Math.max(28,m.width+pad*2);
-    const h=18+pad*2;
-    const bx=Math.round(x-w/2);
-    const by=Math.round(y-h-18);
-    ctx.save();
-    ctx.fillStyle='rgba(0,0,0,0.9)';
-    ctx.strokeStyle='rgba(208,208,208,0.35)';
-    ctx.lineWidth=1;
-    ctx.beginPath();
-    ctx.moveTo(bx+r,by);
-    ctx.arcTo(bx+w,by,bx+w,by+h,r);
-    ctx.arcTo(bx+w,by+h,bx,by+h,r);
-    ctx.arcTo(bx,by+h,bx,by,r);
-    ctx.arcTo(bx,by,bx+w,by,r);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x-6,by+h-1);
-    ctx.lineTo(x,by+h+6);
-    ctx.lineTo(x+6,by+h-1);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle='#d0d0d0';
-    ctx.fillText(text,bx+pad,by+pad+12);
-    ctx.restore();
-  }
-
-  let introWalking=false;
-  let introStartTime=0;
-  const INTRO_WALK_DURATION=60_000;
-  const bubbleSeq=[
-    "HELLO","…","HI","…","HELLO!","…",
-    "…헤헤","기억나?","여기 있어.","…쉿","보고 있어",
-    "꿈이야?","아냐","…조금 더 가까이","같이 갈래?",
-    "손… 잡을래?","…응","괜찮아","거기 있어",
-    "작게 불러","내 이름"
-  ];
-  let introWalkers=[];
-
-  function initIntroWalkers(){
-    const now = performance.now();
-    introWalkers = [];
-    introWalkers.push({
-      tOffset: 0,
-      bubbleIndex: 0,
-      bubbleTimer: now + 500
-    });
-  }
-
-  /* ============= BGM & SFX ============= */
+  /* ================= 안정화된 BGM 엔진 ================= */
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, killers=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
@@ -1515,48 +1336,64 @@
     function isRunning(){ return running; }
     return { start, stop, isRunning };
   })();
+  /* ==================================================== */
 
-  function playClick(){
+  async function playWoongClick(){
     try{
-      ensureAudio();
+      await ensureResumed();
       const now = audioCtx.currentTime;
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
       o.type='sine';
       o.frequency.setValueAtTime(220, now);
-      o.frequency.exponentialRampToValueAtTime(110, now+0.22);
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+0.3);
-      o.connect(g).connect(audioCtx.destination);
-      o.start(now);
-      o.stop(now+0.35);
-    }catch(e){}
-  }
-
-  async function playBellChime(){
-    try{
-      ensureAudio();
-      const now = audioCtx.currentTime;
-      const o1 = audioCtx.createOscillator();
-      const o2 = audioCtx.createOscillator();
-      const g  = audioCtx.createGain();
-      o1.type='sine';
-      o2.type='sine';
-      o1.frequency.setValueAtTime(1200, now);
-      o2.frequency.setValueAtTime(1800, now);
+      o.frequency.exponentialRampToValueAtTime(110, now+0.24);
       g.gain.setValueAtTime(0.0001, now);
       g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.03);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+1.4);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+0.35);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(now);
+      o.stop(now+0.4);
+    }catch(e){}
+  }
+  async function playTduung(){
+    try{
+      await ensureResumed();
+      const now = audioCtx.currentTime;
+      const o1=audioCtx.createOscillator(), o2=audioCtx.createOscillator();
+      const g=audioCtx.createGain();
+      o1.type='sine'; o2.type='sine';
+      o1.frequency.value=90; o2.frequency.value=45;
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN*1.1, now+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+0.6);
       o1.connect(g); o2.connect(g); g.connect(audioCtx.destination);
-      o1.start(now); o2.start(now);
-      o1.stop(now+1.5); o2.stop(now+1.5);
+      o1.start(); o2.start();
+      o1.stop(now+0.62); o2.stop(now+0.62);
+    }catch(e){}
+  }
+  async function playBellChime(){
+    try{
+      await ensureResumed();
+      const now = audioCtx.currentTime;
+      const osc1 = audioCtx.createOscillator();
+      const osc2 = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc1.type='sine'; osc2.type='sine';
+      osc1.frequency.setValueAtTime(1200, now);
+      osc2.frequency.setValueAtTime(1800, now);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+1.4);
+      osc1.connect(g); osc2.connect(g); g.connect(audioCtx.destination);
+      osc1.start(now); osc2.start(now);
+      osc1.stop(now+1.5); osc2.stop(now+1.5);
     }catch(e){}
   }
 
+  /* 낮은 드림 "부우웅" 효과음 */
   async function playDreamWoong(){
     try{
-      ensureAudio();
+      await ensureResumed();
       const now = audioCtx.currentTime;
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
@@ -1572,12 +1409,13 @@
     }catch(e){}
   }
 
+  /* 2장용: 작은 짤랑 짤랑 종소리 루프 */
   let secondBellInterval = null;
   let secondBellRunning = false;
 
   async function playSoftBellChime(){
     try{
-      ensureAudio();
+      await ensureResumed();
       const now = audioCtx.currentTime;
       const o1 = audioCtx.createOscillator();
       const o2 = audioCtx.createOscillator();
@@ -1608,38 +1446,446 @@
     secondBellRunning = false;
   }
 
-  /* ====== 타이머들 ====== */
-  let mainTimer=null, mainLeft=5*60, timerFinished=false;
+  /* 타이핑 사운드 */
+  function typeTick(){
+    playGameInputSound();
+  }
+
+  function updateZoomLabel(){
+    zoomVal.textContent = ZOOM.toFixed(1)+'×';
+  }
+  updateZoomLabel();
+  zoomIn.addEventListener('click', async ()=>{
+    ZOOM=Math.min(3.0, ZOOM+0.05);
+    updateZoomLabel();
+    await playWoongClick();
+  }, {passive:true});
+  zoomOut.addEventListener('click', async ()=>{
+    ZOOM=1.0;
+    updateZoomLabel();
+    await playWoongClick();
+  }, {passive:true});
+
+  async function immediateGestureStart(e){
+    e && e.preventDefault && e.preventDefault();
+
+    claimImmersive();
+    await ensureResumed();
+
+    try{
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+          .then(()=>{ claimImmersive(); })
+          .catch(()=>{});
+      }
+    }catch(_){}
+
+    navigator.mediaDevices.getUserMedia({
+      video:{
+        facingMode:{ideal:'environment'},
+        width:{min:1280,ideal:1920},
+        height:{min:720,ideal:1080},
+        aspectRatio:{ideal:16/9}
+      },
+      audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}
+    })
+    .then(async (s)=>{
+      await ensureResumed();
+      if(!Ambient.isRunning()) Ambient.start(1.2, 1.0);
+      claimImmersive();
+      s.getTracks().forEach(t=>t.stop());
+      camPermGranted = true;
+    })
+    .catch(err=>{
+      console.warn('permission error:', err);
+    })
+    .finally(()=>{
+      fadeHide(overlay, FADE);
+
+      /* 이름 입력 단계에서부터 프리셋 화면이 뒤에 보이도록 즉시 띄움 */
+      showPreset();
+      fadeShow(nameOverlay, FADE);
+      stage = 'name';
+      setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 60);
+    });
+  }
+
+  ['click','touchstart','pointerdown'].forEach(type=>{
+    permBtn.addEventListener(type, immediateGestureStart, {passive:false});
+    overlay.addEventListener(type, immediateGestureStart, {passive:false});
+    window.addEventListener(type, (ev)=>{
+      if(getComputedStyle(overlay).display !== 'none'){
+        immediateGestureStart(ev);
+      }
+    }, {passive:false});
+  });
+
+  let displayName = '_____';
+  async function acceptName(){
+    claimImmersive();
+    await ensureResumed();
+    if(!Ambient.isRunning()) Ambient.start(0.5, 1.0);
+    const v = (nickInput.value||'').trim();
+    if(v.length>0){ displayName = v; }
+    await playWoongClick();
+    fadeHide(nameOverlay, FADE);
+    stage = 'preset';
+    skipBtn.style.display='block';
+  }
+  nameSubmit.addEventListener('click', acceptName, {passive:true});
+  nickInput.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter'){ acceptName(); }
+  });
+
+  /* === 프리셋 세이버 === */
+  let saverObjs = [];
+  let lastSaverTime = null;
+
+  function showPreset(){
+    if(preset.style.display!=='block'){
+      preset.style.display='block';
+      preset.classList.add('show');
+      fadeShow(preset, FADE);
+      initSaver();
+      startCameraFresh(true);
+    }
+  }
+
+  function initSaver(){
+    const w = preset.clientWidth;
+    const h = preset.clientHeight;
+    saverObjs = [];
+    const letters = ['S','L','E','E','E','E','E','E','E','E','P'];
+
+    for(let i=0;i<20;i++){
+      saverObjs.push({
+        ch: letters[i % letters.length],
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random()*0.2 + 0.08) * (Math.random() < 0.5 ? -1 : 1),
+        vy: (Math.random()*0.2 + 0.08) * (Math.random() < 0.5 ? -1 : 1),
+        phase: Math.random() * Math.PI * 2,
+        size: (Math.floor(Math.random()*60)+90)*2
+      });
+    }
+    lastSaverTime = null;
+    requestAnimationFrame(saverLoop);
+  }
+
+  function saverLoop(){
+    if(preset.style.display==='none') {
+      lastSaverTime = null;
+      return;
+    }
+    const now = performance.now();
+    const w = preset.clientWidth;
+    const h = preset.clientHeight;
+    const dpr = devicePixelRatio || 1;
+
+    if(lastSaverTime == null) lastSaverTime = now;
+    const dt = (now - lastSaverTime) / 1000;
+    lastSaverTime = now;
+
+    presetCanvas.width = w * dpr;
+    presetCanvas.height = h * dpr;
+    const ctx = presetCanvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0,0,w,h);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for(const o of saverObjs){
+      o.x += o.vx * dt * 60;
+      o.y += o.vy * dt * 60;
+
+      if(o.x < 0 || o.x > w){
+        o.vx *= -1;
+        o.x = Math.max(0, Math.min(w, o.x));
+      }
+      if(o.y < 0 || o.y > h){
+        o.vy *= -1;
+        o.y = Math.max(0, Math.min(h, o.y));
+      }
+
+      o.phase += dt * 0.6;
+      const wob = Math.sin(o.phase)*0.08 + 1;
+
+      ctx.save();
+      ctx.translate(o.x, o.y);
+      ctx.scale(wob, 1 / wob);
+      ctx.font = `900 ${o.size}px "Press Start 2P", system-ui, sans-serif`;
+      ctx.fillStyle = '#d0d0d0';
+      ctx.fillText(o.ch, 0, 0);
+      ctx.restore();
+    }
+
+    requestAnimationFrame(saverLoop);
+  }
+
+  /* 프리셋 화면 누르면 웰컴으로 */
+  preset.addEventListener('click', async ()=>{
+    claimImmersive();
+    await ensureResumed();
+    if(!Ambient.isRunning()) Ambient.start(0.5,1.0);
+    await playWoongClick();
+    fadeHide(preset, FADE);
+    await startCameraFresh(false);
+    fadeShow(welcome, FADE);
+    fitWelcomeTitles();
+    stage = 'welcome';
+  }, {passive:true});
+
+  /* 인트로/1장 텍스트 placeholder */
+  const INTRO_LINES = [
+    '멘트를 입력하세요',
+    '멘트를 입력하세요',
+    '멘트를 입력하세요'
+  ];
+
+  const FIRST_SLEEP_LINES = [
+    '멘트를 입력하세요',
+    '멘트를 입력하세요',
+    '멘트를 입력하세요'
+  ];
+
+  function getFrameRect(){
+    return document.querySelector('.frameBox').getBoundingClientRect();
+  }
+
+  function fitTitleLine(el){
+    if(!el) return;
+    const fr=getFrameRect();
+    const maxW=Math.min(window.innerWidth*0.96, fr.width*0.96);
+    const cs=getComputedStyle(el);
+    let size=parseFloat(cs.fontSize)||48;
+    el.style.whiteSpace='nowrap';
+    while(el.scrollWidth>maxW && size>16){
+      size*=0.94;
+      el.style.fontSize=size+'px';
+    }
+  }
+  function fitTitleLineSafe(){
+    [
+      introBigText,
+      firstSleepText,
+      thirdTitle,
+      fourthTitle,
+      sleepSecondTitle,
+      sleepLine1,
+      sleepLine2,
+      thirdLine1,thirdLine2,thirdLine3,
+      fourthLine1,fourthLine2,fourthLine3,fourthLine4
+    ].forEach(fitTitleLine);
+  }
+  window.addEventListener('load', fitTitleLineSafe);
+
+  function fitWelcomeTitles(){
+    const titles = document.querySelectorAll('#welcomeCard .title');
+    const card = document.getElementById('welcomeCard');
+    if(!titles.length || !card) return;
+    const maxW = card.clientWidth * 0.95;
+    titles.forEach(el=>{
+      el.style.whiteSpace='nowrap';
+      let size = parseFloat(getComputedStyle(el).fontSize) || 40;
+      while(el.scrollWidth>maxW && size>14){
+        size *= 0.94;
+        el.style.fontSize = size+'px';
+      }
+    });
+  }
+  window.addEventListener('resize', ()=>fitWelcomeTitles(), {passive:true});
+
+  /* === 토끼 픽셀 스프라이트 === */
+  const PIXEL_SPRITE=[
+    "....XX......",
+    "...XXXX.....",
+    "..XXXXXX....",
+    "..XX..XX....",
+    "..XXXXXX....",
+    ".XXXXXXXX...",
+    ".XX.XX.XX...",
+    ".XXXXXXXX...",
+    ".XXXXXXXX...",
+    ".XXXXXXXX...",
+    "..XXXXXX....",
+    "...XXXX.....",
+    "...XXXX.....",
+    "...XXXX.....",
+    "..XX..XX....",
+    ".XX....XX..."
+  ];
+  const COLOR_FILL='#d0d0d0';
+  const COLOR_STROKE='#000';
+
+  function drawPixelRabbit(ctx, cx, baselineY, W, hop=0, alpha=1, angleRad=0){
+    const cell=Math.max(2, Math.min(4, Math.floor(W*0.0018)));
+    const cols=PIXEL_SPRITE[0].length;
+    const rows=PIXEL_SPRITE.length;
+    const width=cols*cell;
+    const height=rows*cell;
+
+    const x0 = -width/2;
+    const y0 = -height - hop;
+
+    ctx.save();
+    ctx.translate(cx,baselineY);
+    ctx.rotate(angleRad);
+    ctx.globalAlpha=alpha;
+
+    ctx.fillStyle=COLOR_STROKE;
+    for(let y=0;y<rows;y++){
+      const row=PIXEL_SPRITE[y];
+      for(let x=0;x<cols;x++){
+        if(row[x]==='X'){
+          ctx.fillRect(x0+x*cell-1,y0+y*cell,cell,cell);
+          ctx.fillRect(x0+x*cell+1,y0+y*cell,cell,cell);
+          ctx.fillRect(x0+x*cell,y0+y*cell-1,cell,cell);
+          ctx.fillRect(x0+x*cell,y0+y*cell+1,cell,cell);
+        }
+      }
+    }
+    ctx.fillStyle=COLOR_FILL;
+    for(let y=0;y<rows;y++){
+      const row=PIXEL_SPRITE[y];
+      for(let x=0;x<cols;x++){
+        if(row[x]==='X'){
+          ctx.fillRect(x0+x*cell,y0+y*cell,cell,cell);
+        }
+      }
+    }
+    ctx.globalAlpha=1;
+    ctx.restore();
+  }
+
+  function getProsceniumRect(){
+    const r=getFrameRect();
+    return {x:r.left,y:r.top,w:r.width,h:r.height};
+  }
+
+  function prosceniumWalkPos(t01){
+    const pr = getProsceniumRect();
+    const margin = Math.min(pr.w, pr.h) * 0.06;
+    const left   = pr.x + margin;
+    const right  = pr.x + pr.w - margin;
+    const top    = pr.y + margin;
+    const bottom = pr.y + pr.h - margin;
+    const per = (right-left)*2 + (bottom-top)*2;
+    let d = ((t01%1)+1)%1 * per;
+
+    let x,y,edge;
+    if(d <= (right-left)){
+      x = left + d;
+      y = bottom;
+      edge = 'bottom';
+    }else if(d <= (right-left)+(bottom-top)){
+      d -= (right-left);
+      x = right;
+      y = bottom - d;
+      edge = 'right';
+    }else if(d <= (right-left)*2 + (bottom-top)){
+      d -= (right-left + (bottom-top));
+      x = right - d;
+      y = top;
+      edge = 'top';
+    }else{
+      d -= (right-left)*2 + (bottom-top);
+      x = left;
+      y = top + d;
+      edge = 'left';
+    }
+    return { x, y, baselineY:y, edge };
+  }
+
+  function drawBubble(ctx, x, y, text){
+    const pad=6, r=6;
+    ctx.font='12px "Courier New", monospace';
+    const m=ctx.measureText(text);
+    const w=Math.max(28,m.width+pad*2);
+    const h=18+pad*2;
+    const bx=Math.round(x-w/2);
+    const by=Math.round(y-h-18);
+    ctx.save();
+    ctx.fillStyle='rgba(0,0,0,0.9)';
+    ctx.strokeStyle='rgba(208,208,208,0.35)';
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(bx+r,by);
+    ctx.arcTo(bx+w,by,bx+w,by+h,r);
+    ctx.arcTo(bx+w,by+h,bx,by+h,r);
+    ctx.arcTo(bx,by+h,bx,by,r);
+    ctx.arcTo(bx,by,bx+w,by,r);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x-6,by+h-1);
+    ctx.lineTo(x,by+h+6);
+    ctx.lineTo(x+6,by+h-1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle='#d0d0d0';
+    ctx.fillText(text,bx+pad,by+pad+12);
+    ctx.restore();
+  }
+
+  let introWalking=false;
+  let introStartTime=0;
+  const INTRO_WALK_DURATION=60_000;
+  const bubbleSeq=[
+    "HELLO","…","HI","…","HELLO!","…",
+    "…헤헤","기억나?","여기 있어.","…쉿","보고 있어",
+    "꿈이야?","아냐","…조금 더 가까이","같이 갈래?",
+    "손… 잡을래?","…응","괜찮아","거기 있어",
+    "작게 불러","내 이름"
+  ];
+  let introWalkers=[];
+
+  function initIntroWalkers(){
+    const now = performance.now();
+    introWalkers = [];
+    introWalkers.push({
+      tOffset: 0,
+      bubbleIndex: 0,
+      bubbleTimer: now + 500
+    });
+  }
+
+  /* 공통 타이머 시스템 (모든 장 5분) */
+  let stageTimer = null;
+  let stageSeconds = 0;
+  let stageOnEnd = null;
+
   function formatMMSS(s){
     const m=Math.floor(s/60);
     const ss=(s%60).toString().padStart(2,'0');
     return `${m.toString().padStart(2,'0')}:${ss}`;
   }
-  function startMainTimer(){
-    mainLeft=5*60;
-    timerFinished=false;
-    runTimer.textContent=formatMMSS(mainLeft);
+
+  function startStageTimer(sec, onEnd){
+    if(stageTimer) clearInterval(stageTimer);
+    stageSeconds = sec;
+    stageOnEnd   = onEnd;
+    runTimer.textContent = formatMMSS(stageSeconds);
     runTimer.style.display='block';
-    if(mainTimer) clearInterval(mainTimer);
-    mainTimer=setInterval(()=>{
-      mainLeft=Math.max(0,mainLeft-1);
-      runTimer.textContent=formatMMSS(mainLeft);
-      if(mainLeft<=0){
-        clearInterval(mainTimer);
-        mainTimer=null;
-        if(!timerFinished){
-          timerFinished=true;
-          onFirstSleepTimerEnd();
-        }
+    stageTimer = setInterval(()=>{
+      stageSeconds = Math.max(0, stageSeconds-1);
+      runTimer.textContent = formatMMSS(stageSeconds);
+      if(stageSeconds<=0){
+        clearInterval(stageTimer);
+        stageTimer=null;
+        runTimer.style.display='none';
+        const cb = stageOnEnd;
+        stageOnEnd = null;
+        if(cb) cb();
       }
     },1000);
   }
 
-  let secondTimer=null, secondLeft=0, finalTimer=null, finalLeft=0;
-  let fourthTimer=null, fourthLeft=0;
-  let silenceTimer=null, silenceLeft=0;
-  let endTimer=null, endLeft=0;
-
+  /* 엔딩용 타이핑 */
   async function typeSleepLine(el, text){
     el.textContent = '';
     for(let i=0;i<text.length;i++){
@@ -1650,34 +1896,11 @@
     fitTitleLine(el);
   }
 
-  async function startTheEndChapter(){
-    stage = 'theEnd';
-    endTheEnd.textContent = '';
-    if(endReturn) endReturn.textContent = '';
-    await typeSleepLine(endTheEnd, 'THE END');
-    speakText('디 엔드');
-
-    endLeft = 5*60;
-    runTimer.textContent = formatMMSS(endLeft);
-    runTimer.style.display = 'block';
-    if(endTimer) clearInterval(endTimer);
-    endTimer = setInterval(()=>{
-      endLeft = Math.max(0, endLeft-1);
-      runTimer.textContent = formatMMSS(endLeft);
-      if(endLeft<=0){
-        clearInterval(endTimer);
-        endTimer=null;
-        runTimer.style.display='none';
-        if(endReturn){
-          endReturn.textContent = '※ 프로그램이 종료되었습니다. 태블릿과 헤드폰을 반납해 주세요.';
-        }
-      }
-    },1000);
-  }
-
-  async function showEndingSequence(){
+  /* SILENCE 장면 */
+  async function showSilenceStage(){
     claimImmersive();
     await ensureResumed();
+
     if (Ambient && Ambient.isRunning && Ambient.isRunning()){
       Ambient.stop(3.0);
     }
@@ -1686,150 +1909,44 @@
 
     endSilence.textContent = '';
     endTheEnd.textContent  = '';
-    if(endReturn) endReturn.textContent = '';
+    endReturn.textContent  = '';
 
     fadeShow(endOverlay, 2000, 'flex');
     await sleep(2200);
 
-    stage = 'silence';
     await typeSleepLine(endSilence, 'SILENCE');
     speakText('사일런스');
-    playDreamWoong();
-
-    silenceLeft = 5*60;
-    runTimer.textContent = formatMMSS(silenceLeft);
-    runTimer.style.display = 'block';
-    if(silenceTimer) clearInterval(silenceTimer);
-    silenceTimer = setInterval(()=>{
-      silenceLeft = Math.max(0, silenceLeft-1);
-      runTimer.textContent = formatMMSS(silenceLeft);
-      if(silenceLeft<=0){
-        clearInterval(silenceTimer);
-        silenceTimer=null;
-        runTimer.style.display='none';
-        startTheEndChapter();
-      }
-    },1000);
   }
 
-  function startFourthTimer(){
-    stage = 'fourth';
-    fourthLeft = 5*60;
-    runTimer.textContent = formatMMSS(fourthLeft);
-    runTimer.style.display = 'block';
-    if(fourthTimer) clearInterval(fourthTimer);
-    fourthTimer = setInterval(()=>{
-      fourthLeft = Math.max(0, fourthLeft-1);
-      runTimer.textContent = formatMMSS(fourthLeft);
-      if(fourthLeft<=0){
-        clearInterval(fourthTimer);
-        fourthTimer=null;
-        runTimer.style.display='none';
-        showEndingSequence();
-      }
-    },1000);
-  }
-
-  async function startFourthSleepSequence(){
+  /* THE END 장면 */
+  async function showEndStage(){
     claimImmersive();
     await ensureResumed();
 
-    stage = 'fourthIntro';
+    endSilence.textContent = '';
+    endTheEnd.textContent  = '';
+    endReturn.textContent  = '';
 
-    fourthSleepLine1.textContent='';
-    fourthSleepLine2.textContent='';
-    fourthSleepLine3.textContent='';
-    fourthSleepLine4.textContent='';
-    fourthTitle.textContent='';
-
-    fourthTransition.style.display='flex';
-    fourthTransition.style.opacity='0';
-    fourthTransition.style.transition='opacity 2000ms ease';
-    await nextFrame();
-    fourthTransition.style.opacity='1';
-
-    const word = 'SLEEEEEEEEP,';
-
-    for(let i=0;i<word.length;i++){
-      fourthSleepLine1.textContent += word[i];
-      typeTick();
-      await sleep(45);
+    if(getComputedStyle(endOverlay).display === 'none'){
+      fadeShow(endOverlay, 1500, 'flex');
+      await sleep(1600);
     }
-    fitTitleLine(fourthSleepLine1);
-    await sleep(350);
 
-    for(let i=0;i<word.length;i++){
-      fourthSleepLine2.textContent += word[i];
-      typeTick();
-      await sleep(45);
-    }
-    fitTitleLine(fourthSleepLine2);
-    await sleep(350);
-
-    for(let i=0;i<word.length;i++){
-      fourthSleepLine3.textContent += word[i];
-      typeTick();
-      await sleep(45);
-    }
-    fitTitleLine(fourthSleepLine3);
-    await sleep(350);
-
-    for(let i=0;i<word.length;i++){
-      fourthSleepLine4.textContent += word[i];
-      typeTick();
-      await sleep(45);
-    }
-    fitTitleLine(fourthSleepLine4);
-
-    await sleep(900);
-
-    fourthTitle.style.opacity='0';
-    fourthTitle.style.transition='opacity 1500ms ease';
-    fourthTitle.textContent='THE FOURTH SLEEP';
-    fitTitleLine(fourthTitle);
-    playDreamWoong();
-    speakText('더 포스 슬립');
-    await nextFrame();
-    fourthTitle.style.opacity='1';
-
-    await sleep(2200);
-
-    fourthTransition.style.transition='opacity 2000ms ease';
-    fourthTransition.style.opacity='0';
-    await sleep(2100);
-    fourthTransition.style.display='none';
-    fourthTransition.style.transition='';
-    fourthTitle.style.transition='';
-    fourthTitle.style.opacity='1';
-
-    startFourthTimer();
+    await typeSleepLine(endTheEnd, 'THE END');
+    speakText('디 엔드');
+    endReturn.textContent = '※ 프로그램이 종료되었습니다. 태블릿과 헤드폰을 반납해 주세요.';
   }
 
-  function goToSleepCity(){
-    try{
-      stopSecondBell();
-      if(secondTimer){
-        clearInterval(secondTimer);
-        secondTimer = null;
-      }
-    }catch(e){}
+  /* SILENCE 타이머 끝 → THE END */
+  function onSilenceTimerEnd(){
+    showEndStage();
+  }
 
-    stage = 'third';
-    finalLeft = 5*60;
-    runTimer.textContent = formatMMSS(finalLeft);
-    runTimer.style.display = 'block';
-
-    if(finalTimer) clearInterval(finalTimer);
-    finalTimer = setInterval(()=>{
-      finalLeft = Math.max(0, finalLeft - 1);
-      runTimer.textContent = formatMMSS(finalLeft);
-      if(finalLeft <= 0){
-        clearInterval(finalTimer);
-        finalTimer = null;
-        runTimer.style.display = 'none';
-        startFourthSleepSequence();
-      }
-    }, 1000);
+  /* SILENCE로 진입 (4번째 수면 후) */
+  async function goToSilence(){
+    await showSilenceStage();
+    stage = 'silence';
+    startStageTimer(5*60, onSilenceTimerEnd);
   }
 
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, micPreGain=null;
@@ -2029,7 +2146,7 @@
       }
       document.querySelectorAll('.uiBtn').forEach(b=>{
         b.addEventListener('click', ()=>{
-          primeAudio();
+          ensureResumed().then(playWoongClick);
         }, {passive:true});
       });
     }catch(e){
@@ -2105,7 +2222,7 @@
       vctx.fillRect(0,0,W,H);
     }
 
-    const pr=getFrameRect();
+    const pr=getProsceniumRect();
     fgctx.clearRect(0,0,W,H);
     if(showIntroLayer && fgAlpha>0.001){
       fgctx.save();
@@ -2128,7 +2245,7 @@
           else if(pos.edge === 'top') angle = Math.PI;
           else if(pos.edge === 'left') angle = Math.PI/2;
 
-          drawPixelHuman(
+          drawPixelRabbit(
             fgctx,
             Math.round(pos.x),
             Math.round(pos.baselineY),
@@ -2138,10 +2255,9 @@
             angle
           );
 
-          const now2 = performance.now();
-          if(now2-w.bubbleTimer>700+Math.random()*500){
+          if(now-w.bubbleTimer>700+Math.random()*500){
             w.bubbleIndex=(w.bubbleIndex+1)%bubbleSeq.length;
-            w.bubbleTimer=now2;
+            w.bubbleTimer=now;
           }
           drawBubble(fgctx, Math.round(pos.x), Math.round(pos.baselineY)-28, bubbleSeq[w.bubbleIndex]);
         });
@@ -2192,11 +2308,11 @@
   }
 
   let captureAnimating=false;
-  captureBtn.addEventListener('click', ()=>{
+  captureBtn.addEventListener('click', async ()=>{
     claimImmersive();
     if(captureAnimating) return;
-    primeAudio();
-    playClick();
+    await ensureResumed();
+    await playWoongClick();
     captureAnimating=true;
     capturing=true;
     const cssW=view.clientWidth;
@@ -2267,21 +2383,20 @@
     speakText(text);
     for(let i=0;i<text.length;i++){
       introTextEl.textContent += text[i];
-      if(i%2===0) typeTick();  // 2글자마다 한 번만 소리
+      typeTick();
       await sleep(24);
     }
   }
 
-  introNextBtn.addEventListener('click', ()=>{
-    primeAudio();
-    playClick();
+  introNextBtn.addEventListener('click', async ()=>{
+    await ensureResumed();
+    await playWoongClick();
     introIndex++;
     if(introIndex >= INTRO_LINES.length){
       fadeHide(introDialogue, 300);
-      setTimeout(async ()=>{
-        await playBellChime();
-        startIntroToFirstSleepSequence();
-      }, 320);
+      await sleep(350);
+      await playTduung();
+      startIntroToFirstSleepSequence();
     }else{
       typeIntroLine(introIndex);
     }
@@ -2385,7 +2500,7 @@
       e.stopPropagation();
       claimImmersive();
       await ensureResumed();
-      playClick();
+      await playWoongClick();
       fadeHide(noticePopup, 250);
       await sleep(260);
 
@@ -2396,7 +2511,7 @@
       captureBtn.classList.add('show');
 
       stage = 'first';
-      startMainTimer();
+      startStageTimer(5*60, onFirstSleepTimerEnd);
       startFirstSleepStory();
     };
   }
@@ -2415,7 +2530,7 @@
       span.className = 'charBox';
       span.textContent = ch;
       chapterBox.appendChild(span);
-      if(i%2===0) typeTick();
+      typeTick();
       await sleep(26);
     }
   }
@@ -2430,8 +2545,6 @@
       await typeFirstSleepLine(line);
       await sleep(4000);
     }
-
-    fadeHide(chapterOverlay, 800);
   }
 
   async function runSecondSleepTitleSequence(){
@@ -2444,19 +2557,18 @@
     await nextFrame();
     sleepTransition.style.opacity='1';
 
-    const line1 = 'SLEEEEEEEEP,';
-    const line2 = 'SLEEEEEEEEP,';
+    const line = 'SLEEEEEEEEP,';
 
-    for(let i=0;i<line1.length;i++){
-      sleepLine1.textContent += line1[i];
+    for(let i=0;i<line.length;i++){
+      sleepLine1.textContent += line[i];
       typeTick();
       await sleep(45);
     }
     fitTitleLine(sleepLine1);
 
     await sleep(350);
-    for(let i=0;i<line2.length;i++){
-      sleepLine2.textContent += line2[i];
+    for(let i=0;i<line.length;i++){
+      sleepLine2.textContent += line[i];
       typeTick();
       await sleep(45);
     }
@@ -2524,7 +2636,7 @@
       e.stopPropagation();
       claimImmersive();
       await ensureResumed();
-      playClick();
+      await playWoongClick();
       fadeHide(noticePopup2, 260);
       await sleep(280);
       await playBellChime();
@@ -2532,16 +2644,17 @@
     };
   }
 
+  /* THIRD SLEEP 타이틀 + NOTICE3 → 5분 타이머 */
   async function startThirdSleepSequence(){
     claimImmersive();
     await ensureResumed();
 
     stage = 'thirdIntro';
 
-    thirdSleepLine1.textContent='';
-    thirdSleepLine2.textContent='';
-    thirdSleepLine3.textContent='';
-    thirdTitle.textContent='';
+    thirdLine1.textContent = '';
+    thirdLine2.textContent = '';
+    thirdLine3.textContent = '';
+    thirdTitle.textContent = 'THE THIRD SLEEP';
 
     thirdTransition.style.display='flex';
     thirdTransition.style.opacity='0';
@@ -2549,36 +2662,34 @@
     await nextFrame();
     thirdTransition.style.opacity='1';
 
-    const word = 'SLEEEEEEEEP,';
+    const word='SLEEEEEEEEP,';
 
     for(let i=0;i<word.length;i++){
-      thirdSleepLine1.textContent += word[i];
+      thirdLine1.textContent += word[i];
       typeTick();
       await sleep(45);
     }
-    fitTitleLine(thirdSleepLine1);
-    await sleep(350);
+    fitTitleLine(thirdLine1);
 
+    await sleep(300);
     for(let i=0;i<word.length;i++){
-      thirdSleepLine2.textContent += word[i];
+      thirdLine2.textContent += word[i];
       typeTick();
       await sleep(45);
     }
-    fitTitleLine(thirdSleepLine2);
-    await sleep(350);
+    fitTitleLine(thirdLine2);
 
+    await sleep(300);
     for(let i=0;i<word.length;i++){
-      thirdSleepLine3.textContent += word[i];
+      thirdLine3.textContent += word[i];
       typeTick();
       await sleep(45);
     }
-    fitTitleLine(thirdSleepLine3);
+    fitTitleLine(thirdLine3);
 
     await sleep(900);
-
     thirdTitle.style.opacity='0';
     thirdTitle.style.transition='opacity 1500ms ease';
-    thirdTitle.textContent='THE THIRD SLEEP';
     fitTitleLine(thirdTitle);
     playDreamWoong();
     speakText('더 써드 슬립');
@@ -2591,9 +2702,6 @@
     thirdTransition.style.opacity='0';
     await sleep(1900);
     thirdTransition.style.display='none';
-    thirdTransition.style.transition='';
-    thirdTitle.style.transition='';
-    thirdTitle.style.opacity='1';
 
     showThirdNotice();
   }
@@ -2606,296 +2714,4 @@
       }
     }
     ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{
-      noticePopup3.addEventListener(ev, bgTrap3, {passive:false});
-    });
-    fadeShow(noticePopup3, 280, 'flex');
-    playBellChime();
-    setTimeout(()=>{ noticeOk3 && noticeOk3.focus && noticeOk3.focus(); }, 50);
-
-    noticeOk3.onclick = async (e)=>{
-      e.stopPropagation();
-      claimImmersive();
-      await ensureResumed();
-      playClick();
-      fadeHide(noticePopup3, 260);
-      await sleep(300);
-      goToSleepCity();
-    };
-  }
-
-  async function showIntroFlow(){
-    claimImmersive();
-    await ensureResumed();
-    if(!Ambient.isRunning()) Ambient.start(0.8, 1.0);
-
-    showCamera = false;
-    camFadeAlpha = 0;
-
-    introBig.style.display = 'flex';
-    introBig.style.opacity = '1';
-    introBig.style.transition = 'none';
-    const word = 'INTRODUCTION';
-    introBigText.textContent = '';
-    speakText('인트로덕션');
-    for(let i=0;i<word.length;i++){
-      introBigText.textContent += word[i];
-      typeTick();
-      await sleep(45);
-    }
-    fitTitleLine(introBigText);
-
-    await sleep(1400);
-    introBig.style.transition = 'opacity 1600ms ease';
-    introBig.style.opacity = '0';
-    await sleep(1700);
-    introBig.style.display = 'none';
-
-    introWalking = true;
-    introStartTime = performance.now();
-    showIntroLayer = true;
-    fgAlpha = 1.0;
-    initIntroWalkers();
-
-    introIndex = 0;
-    fadeShow(introDialogue, 300, 'block');
-    typeIntroLine(introIndex);
-  }
-
-  document.getElementById('goIntro').addEventListener('click', ()=>{
-    primeAudio();
-    ensureResumed().then(async ()=>{
-      claimImmersive();
-      if(!Ambient.isRunning()) Ambient.start(0.8,1.0);
-      playClick();
-      fadeHide(welcome, FADE);
-      stage = 'intro';
-      showIntroFlow();
-    });
-  }, {passive:true});
-
-  let mapMarkers = [];
-
-  function drawMap(){
-    if(!mapOverlay || mapOverlay.style.display==='none') return;
-    const rect = mapOverlay.getBoundingClientRect();
-    const w = rect.width;
-    const h = rect.height;
-    const dpr = window.devicePixelRatio || 1;
-    mapCanvas.width = w*dpr;
-    mapCanvas.height = h*dpr;
-    const ctx = mapCanvas.getContext('2d');
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-
-    ctx.clearRect(0,0,w,h);
-    ctx.fillStyle='#000';
-    ctx.fillRect(0,0,w,h);
-
-    const cx = w*0.5;
-    const cy = h*0.5;
-
-    const mw = w*0.7;
-    const mh = h*0.6;
-    const left = cx - mw/2;
-    const top  = cy - mh/2;
-
-    ctx.fillStyle='#000';
-    ctx.fillRect(left, top, mw, mh);
-    ctx.strokeStyle='rgba(208,208,208,0.85)';
-    ctx.lineWidth=2;
-    ctx.strokeRect(left, top, mw, mh);
-
-    const r = Math.min(mw,mh)*0.16;
-    ctx.fillStyle='#555555';
-    ctx.beginPath();
-    for(let i=0;i<6;i++){
-      const ang = Math.PI/2 + i*Math.PI/3;
-      const x = cx + r*Math.cos(ang);
-      const y = cy + r*Math.sin(ang);
-      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    }
-    ctx.closePath();
-    ctx.fill();
-
-    mapMarkers=[];
-    const rectW = r*0.9;
-    const rectH = r*0.5;
-    const offsets = [
-      {id:1, dx:0,       dy:-r*1.7},
-      {id:2, dx:r*1.45,  dy:-r*1.05},
-      {id:3, dx:r*1.9,   dy:0},
-      {id:4, dx:r*1.45,  dy:r*1.05},
-      {id:5, dx:0,       dy:r*1.7},
-      {id:6, dx:-r*1.45, dy:r*1.05},
-      {id:7, dx:-r*1.9,  dy:0},
-      {id:8, dx:-r*1.45, dy:-r*1.05}
-    ];
-
-    ctx.font='14px "Press Start 2P","Courier New",monospace';
-    ctx.textAlign='center';
-    ctx.textBaseline='middle';
-
-    offsets.forEach(o=>{
-      const cxRect = cx + o.dx;
-      const cyRect = cy + o.dy;
-      const x = cxRect - rectW/2;
-      const y = cyRect - rectH/2;
-
-      mapMarkers.push({id:o.id, x, y, w:rectW, h:rectH});
-
-      ctx.fillStyle='rgba(0,0,0,0.85)';
-      ctx.fillRect(x,y,rectW,rectH);
-      ctx.strokeStyle='rgba(208,208,208,0.9)';
-      ctx.strokeRect(x,y,rectW,rectH);
-      ctx.fillStyle='rgba(208,208,208,0.96)';
-      ctx.fillText(String(o.id), x+rectW/2, y+rectH/2+1);
-    });
-  }
-
-  function showMapOverlay(){
-    fadeShow(mapOverlay, 600, 'flex');
-    setTimeout(drawMap, 80);
-    stage = 'second';
-    startSecondTimer();
-    startSecondBell();
-    runTimer.style.display='block';
-  }
-
-  function openMarkerPopup(id){
-    const txt = `ZONE ${id}`;
-    mapPopBody.textContent = txt;
-    speakText(`존 ${id}`);
-    mapPop.style.display='flex';
-  }
-
-  mapPopClose.addEventListener('click', (e)=>{
-    e.stopPropagation();
-    mapPop.style.display='none';
-  }, {passive:true});
-
-  mapCanvas.addEventListener('pointerdown', (e)=>{
-    const rect = mapCanvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    for(const m of mapMarkers){
-      if(x>=m.x && x<=m.x+m.w && y>=m.y && y<=m.y+m.h){
-        openMarkerPopup(m.id);
-        break;
-      }
-    }
-  });
-
-  function startSecondTimer(){
-    secondLeft = 5*60;
-    runTimer.textContent = formatMMSS(secondLeft);
-    runTimer.style.display = 'block';
-    if(secondTimer) clearInterval(secondTimer);
-    secondTimer = setInterval(()=>{
-      secondLeft = Math.max(0, secondLeft-1);
-      runTimer.textContent = formatMMSS(secondLeft);
-      if(secondLeft<=0){
-        clearInterval(secondTimer);
-        secondTimer=null;
-        stopSecondBell();
-        runTimer.style.display='none';
-        endSecondStageAndStartThird();
-      }
-    },1000);
-  }
-
-  async function endSecondStageAndStartThird(){
-    fadeHide(mapOverlay, 600);
-    mapPop.style.display = 'none';
-    await sleep(650);
-    await startThirdSleepSequence();
-  }
-
-  function setAppH2(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
-  setAppH2();
-  addEventListener('resize', setAppH2, {passive:true});
-  if (window.visualViewport){
-    visualViewport.addEventListener('resize', ()=>setTimeout(setAppH2,50));
-  }
-
-  /* ====== SKIP 버튼 ====== */
-  skipBtn.addEventListener('click', ()=>{
-    primeAudio();
-    playClick();
-
-    if(stage === 'intro'){
-      fadeHide(introDialogue, 300);
-      introWalking=false;
-      showIntroLayer=false;
-      setTimeout(async ()=>{
-        await playBellChime();
-        startIntroToFirstSleepSequence();
-      }, 350);
-    }else if(stage === 'first'){
-      if(mainTimer){
-        clearInterval(mainTimer);
-        mainTimer=null;
-      }
-      timerFinished = true;
-      onFirstSleepTimerEnd();
-    }else if(stage === 'second'){
-      stopSecondBell();
-      if(secondTimer){
-        clearInterval(secondTimer);
-        secondTimer=null;
-      }
-      runTimer.style.display='none';
-      endSecondStageAndStartThird();
-    }else if(stage === 'thirdIntro'){
-      goToSleepCity();
-    }else if(stage === 'third'){
-      if(finalTimer){
-        clearInterval(finalTimer);
-        finalTimer = null;
-      }
-      runTimer.style.display='none';
-      startFourthSleepSequence();
-    }else if(stage === 'fourthIntro'){
-      startFourthTimer();
-    }else if(stage === 'fourth'){
-      if(fourthTimer){
-        clearInterval(fourthTimer);
-        fourthTimer = null;
-      }
-      runTimer.style.display='none';
-      showEndingSequence();
-    }else if(stage === 'silence'){
-      if(silenceTimer){
-        clearInterval(silenceTimer);
-        silenceTimer=null;
-      }
-      runTimer.style.display='none';
-      startTheEndChapter();
-    }else if(stage === 'theEnd'){
-      if(endTimer){
-        clearInterval(endTimer);
-        endTimer=null;
-      }
-      runTimer.style.display='none';
-      if(endReturn){
-        endReturn.textContent = '※ 프로그램이 종료되었습니다. 태블릿과 헤드폰을 반납해 주세요.';
-      }
-    }else{
-      if(mainTimer){
-        clearInterval(mainTimer);
-        mainTimer=null;
-      }
-      timerFinished = true;
-      onFirstSleepTimerEnd();
-    }
-  }, {passive:true});
-
-  startCameraFresh(true);
-  if(!animStarted){
-    animStarted=true;
-    loop();
-  }
-
-  window.stage = 'gate';
-})();
-</script>
-</body>
-</html>
+      noticePopup3.add
