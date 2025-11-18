@@ -556,7 +556,7 @@
     margin-top:14px;
   }
 
-  /* THIRD SLEEP 타이틀 (3줄 SLEEEEEEEEP) */
+  /* THIRD SLEEP 타이틀 (3줄) */
   #thirdTransition{
     position:fixed;
     inset:0;
@@ -571,7 +571,7 @@
     text-align:center;
   }
 
-  /* FOURTH SLEEP 타이틀 (4줄 SLEEEEEEEEP) */
+  /* FOURTH SLEEP 타이틀 (4줄) */
   #fourthTransition{
     position:fixed;
     inset:0;
@@ -1094,69 +1094,100 @@
   function ensureAudio(){
     if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
+
   async function ensureResumed(){
     try{
       ensureAudio();
-      if(audioCtx.state==='suspended') await audioCtx.resume();
+      if(audioCtx.state === 'suspended') await audioCtx.resume();
+      // TTS도 제스처 이후에 다시 초기화 (안드로이드 대응)
+      if(ttsReady && !ttsEnabled){
+        initTts();
+      }
     }catch{}
   }
 
-  /* 현재 챕터 상태 */
-  let stage = 'gate';
+  /* --------- TTS (모바일 친화 버전) --------- */
+  let ttsReady   = 'speechSynthesis' in window;
+  let ttsVoice   = null;
+  let ttsEnabled = false;
 
-  /* --------- 입력/타이핑 공용 사운드 --------- */
-  function playGameInputSound(){
-    try{
-      ensureAudio();
-      const ctx = audioCtx;
-      const now = ctx.currentTime;
-      const o1 = ctx.createOscillator();
-      const o2 = ctx.createOscillator();
-      const g  = ctx.createGain();
-      o1.type = 'triangle';
-      o2.type = 'triangle';
-      o1.frequency.setValueAtTime(1350, now);
-      o2.frequency.setValueAtTime(900,  now);
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+0.18);
-      o1.connect(g); o2.connect(g); g.connect(ctx.destination);
-      o1.start(now); o2.start(now);
-      o1.stop(now+0.2); o2.stop(now+0.2);
-    }catch(e){}
-  }
-
-  /* --------- TTS --------- */
-  let ttsReady = 'speechSynthesis' in window;
-  let ttsVoice = null;
-
-  function chooseTtsVoice(){
+  function initTts(){
     if(!ttsReady) return;
     const voices = window.speechSynthesis.getVoices();
-    if(!voices || !voices.length) return;
+    if(!voices || !voices.length){
+      // 안드로이드에서 voices가 늦게 들어오는 경우 재시도
+      setTimeout(initTts, 500);
+      return;
+    }
     ttsVoice =
       voices.find(v => v.lang.startsWith('ko') && /female|woman|A|F/i.test(v.name)) ||
       voices.find(v => v.lang.startsWith('ko')) ||
       voices[0];
+    ttsEnabled = true;
   }
 
   if(ttsReady){
-    chooseTtsVoice();
-    window.speechSynthesis.onvoiceschanged = chooseTtsVoice;
+    initTts();
+    window.speechSynthesis.onvoiceschanged = initTts;
   }
 
   function speakText(text){
-    if(!ttsReady || !text) return;
+    if(!ttsReady || !ttsEnabled || !text) return;
     try{
-      window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       if(ttsVoice) u.voice = ttsVoice;
-      u.pitch = 1.05;
-      u.rate = 0.9;
+      u.pitch  = 1.05;
+      u.rate   = 0.9;
       u.volume = 0.9;
       window.speechSynthesis.speak(u);
+    }catch(e){
+      // TTS가 막혀있으면 조용히 패스
+    }
+  }
+
+  /* --------- 입력/타이핑 공용 사운드 (모바일 최적화) --------- */
+  let typeBuffer = null;
+  let lastTypeSoundTime = 0;
+
+  function buildTypeBuffer(ctx){
+    const duration   = 0.08; // 80ms
+    const sampleRate = ctx.sampleRate;
+    const length     = Math.floor(sampleRate * duration);
+    const buffer     = ctx.createBuffer(1, length, sampleRate);
+    const data       = buffer.getChannelData(0);
+    const freq       = 1400;
+
+    for(let i=0;i<length;i++){
+      const t   = i / sampleRate;
+      const env = Math.exp(-t * 12);
+      const phase = 2 * Math.PI * freq * t;
+      data[i] = Math.sin(phase) * env;
+    }
+    return buffer;
+  }
+
+  function playGameInputSound(){
+    try{
+      ensureAudio();
+      const ctx = audioCtx;
+      const now = ctx.currentTime || 0;
+
+      // 너무 자주 안 울리게 (약 30fps)
+      if(now - lastTypeSoundTime < 0.03) return;
+      lastTypeSoundTime = now;
+
+      if(!typeBuffer) typeBuffer = buildTypeBuffer(ctx);
+
+      const src = ctx.createBufferSource();
+      src.buffer = typeBuffer;
+      const g = ctx.createGain();
+      g.gain.value = MASTER_SFX_GAIN;
+
+      src.connect(g).connect(ctx.destination);
+      src.start();
     }catch(e){}
   }
+
   /* ----------------------------------------------------- */
 
   /* ================= 안정화된 BGM 엔진 ================= */
@@ -1408,7 +1439,7 @@
     secondBellRunning = false;
   }
 
-  /* 타이핑 사운드 */
+  /* 타이핑 사운드 트리거 */
   function typeTick(){
     playGameInputSound();
   }
