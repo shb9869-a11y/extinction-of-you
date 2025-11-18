@@ -267,17 +267,17 @@
     background:rgba(0,0,0,.5);
     color:var(--accent);
   }
-#nameCard{
-  position:relative;
-  z-index:1;
-  width:min(92vw,600px);
-  text-align:center;
-  font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-  padding:24px 20px 20px;
-  border:none; /* 하얀 테두리 제거 */
-  background:rgba(0,0,0,0.85);
-  box-shadow:0 10px 24px rgba(0,0,0,0.8);
-}
+  #nameCard{
+    position:relative;
+    z-index:1;
+    width:min(92vw,600px);
+    text-align:center;
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    padding:24px 20px 20px;
+    border:none; /* 하얀 테두리 제거 */
+    background:rgba(0,0,0,0.85);
+    box-shadow:0 10px 24px rgba(0,0,0,0.8);
+  }
   #nameCard h2{
     margin:0 0 12px 0;
     letter-spacing:.12em;
@@ -686,6 +686,25 @@
     top:8px;
     right:10px;
   }
+
+  /* ENDING OVERLAY */
+  #endOverlay{
+    position:fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    color:var(--accent);
+    z-index:980;
+    text-align:center;
+  }
+  #endInner{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:18px;
+  }
 </style>
 </head>
 <body>
@@ -821,13 +840,13 @@
     </div>
   </div>
 
-  <!-- THIRD NOTICE (게임 진입 전) -->
+  <!-- THIRD NOTICE (게임 대신 5분 타이머/엔딩) -->
   <div id="noticePopup3" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle3">
     <div id="noticeCard3">
       <h3 id="noticeTitle3">NOTICE</h3>
       <p>※ 이제 “THE THIRD SLEEP”으로 진입합니다.</p>
-      <p>※ 잠시 후 도시 속으로 진입하는 게임이 팝업처럼 열립니다.</p>
-      <p>※ 그 안에서 SKIP 버튼을 누르면, FOURTH SLEEP → SILENCE → THE END까지 이어집니다.</p>
+      <p>※ 잠시 후 5분 동안 이 수면 상태가 이어집니다.</p>
+      <p>※ 타이머가 끝나면 “SILENCE” 화면과 “THE END” 화면으로 이어집니다.</p>
       <div id="noticeActions3">
         <button id="noticeOk3" class="uiBtn flat" type="button">OK</button>
       </div>
@@ -844,6 +863,14 @@
     <div class="map-popup-inner">
       <button id="mapPopClose" class="uiBtn small map-pop-close" type="button">CLOSE</button>
       <div id="mapPopBody"></div>
+    </div>
+  </div>
+
+  <!-- ENDING OVERLAY: SILENCE / THE END -->
+  <div id="endOverlay" class="fade">
+    <div id="endInner">
+      <div id="endSilence" class="sleepLine"></div>
+      <div id="endTheEnd" class="sleepLine"></div>
     </div>
   </div>
 
@@ -1002,6 +1029,10 @@
   const mapPopClose = qs('#mapPopClose');
 
   const skipBtn = qs('#skipBtn');
+
+  const endOverlay = qs('#endOverlay');
+  const endSilence = qs('#endSilence');
+  const endTheEnd  = qs('#endTheEnd');
 
   let vctx=null, fgctx=null;
 
@@ -1425,7 +1456,11 @@
     if(e.key==='Enter'){ acceptName(); }
   });
 
-  let saverObjs=[], saverMode='scatter', saverT0=0;
+  /* === 프리셋 세이버: 안정화 버전 === */
+  let saverObjs = [];
+  let saverT0 = 0;
+  let lastSaverTime = null;
+
   function showPreset(){
     if(preset.style.display!=='block'){
       preset.style.display='block';
@@ -1435,78 +1470,81 @@
       startCameraFresh(true);
     }
   }
+
   function initSaver(){
-    const w=preset.clientWidth, h=preset.clientHeight;
-    saverObjs=[];
-    const letters=['S','L','E','E','E','E','E','E','E','E','P'];
+    const w = preset.clientWidth;
+    const h = preset.clientHeight;
+    saverObjs = [];
+    const letters = ['S','L','E','E','E','E','E','E','E','E','P'];
+
     for(let i=0;i<20;i++){
       saverObjs.push({
-        ch:letters[i%letters.length],
-        x:Math.random()*w,
-        y:Math.random()*h,
-        vx:(Math.random()*1.2+0.3)*(Math.random()<.5?-1:1),
-        vy:(Math.random()*1.2+0.3)*(Math.random()<.5?-1:1),
-        phase:Math.random()*Math.PI*2,
-        size:(Math.floor(Math.random()*60)+90)*2
+        ch: letters[i % letters.length],
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random()*0.2 + 0.08) * (Math.random() < 0.5 ? -1 : 1),
+        vy: (Math.random()*0.2 + 0.08) * (Math.random() < 0.5 ? -1 : 1),
+        phase: Math.random() * Math.PI * 2,
+        size: (Math.floor(Math.random()*60)+90)*2
       });
     }
-    saverT0=performance.now();
+    saverT0 = performance.now();
+    lastSaverTime = null;
     requestAnimationFrame(saverLoop);
   }
-  function saverTargetsForWord(){
-    const w=preset.clientWidth, h=preset.clientHeight;
-    const base=Math.min(w,h)*0.55;
-    const cx=w/2, cy=h/2;
-    const spacing=base/5;
-    const left=cx-(spacing*2);
-    return [
-      {x:left,y:cy},
-      {x:left+spacing,y:cy},
-      {x:left+spacing*2,y:cy},
-      {x:left+spacing*3,y:cy},
-      {x:left+spacing*4,y:cy}
-    ];
-  }
+
   function saverLoop(){
-    if(preset.style.display==='none') return;
-    const now=performance.now();
-    const w=preset.clientWidth, h=preset.clientHeight;
-    const dpr=devicePixelRatio||1;
-    presetCanvas.width=w*dpr;
-    presetCanvas.height=h*dpr;
-    const ctx=presetCanvas.getContext('2d');
+    if(preset.style.display==='none') {
+      lastSaverTime = null;
+      return;
+    }
+    const now = performance.now();
+    const w = preset.clientWidth;
+    const h = preset.clientHeight;
+    const dpr = devicePixelRatio || 1;
+
+    if(lastSaverTime == null) lastSaverTime = now;
+    const dt = (now - lastSaverTime) / 1000; // 초 단위
+    lastSaverTime = now;
+
+    presetCanvas.width = w * dpr;
+    presetCanvas.height = h * dpr;
+    const ctx = presetCanvas.getContext('2d');
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,w,h);
-    ctx.fillStyle='#000';
+    ctx.fillStyle = '#000';
     ctx.fillRect(0,0,w,h);
-    ctx.textAlign='center';
-    ctx.textBaseline='middle';
-    const dt=(now-saverT0)/1000;
-    if(dt>Math.random()*2+6){
-      saverMode=(saverMode==='scatter'?'assemble':'scatter');
-      saverT0=now;
-    }
-    const targets=saverMode==='assemble'?saverTargetsForWord():null;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
     for(const o of saverObjs){
-      if(saverMode==='assemble'){
-        const g=targets[0];
-        o.vx += (g.x-o.x)*0.0006;
-        o.vy += (g.y-o.y)*0.0006;
+      // 위치 업데이트 (dt 기반)
+      o.x += o.vx * dt * 60;
+      o.y += o.vy * dt * 60;
+
+      // 화면 밖으로 튀어나가면 살짝 튕김
+      if(o.x < 0 || o.x > w){
+        o.vx *= -1;
+        o.x = Math.max(0, Math.min(w, o.x));
       }
-      o.x+=o.vx;
-      o.y+=o.vy;
-      if(o.x<0||o.x>w) o.vx*=-1;
-      if(o.y<0||o.y>h) o.vy*=-1;
-      /* 꿀렁이는 속도 느리게: 500 → 1500 */
-      const wob=Math.sin(now/1500+o.phase)*0.12+1;
+      if(o.y < 0 || o.y > h){
+        o.vy *= -1;
+        o.y = Math.max(0, Math.min(h, o.y));
+      }
+
+      // 꿀렁이는 속도/진폭 고정
+      o.phase += dt * 0.6;
+      const wob = Math.sin(o.phase)*0.08 + 1;
+
       ctx.save();
-      ctx.translate(o.x,o.y);
-      ctx.scale(wob,1/wob);
-      ctx.font=`900 ${o.size}px "Press Start 2P", system-ui, sans-serif`;
-      ctx.fillStyle='#d0d0d0';
-      ctx.fillText(o.ch,0,0);
+      ctx.translate(o.x, o.y);
+      ctx.scale(wob, 1 / wob);
+      ctx.font = `900 ${o.size}px "Press Start 2P", system-ui, sans-serif`;
+      ctx.fillStyle = '#d0d0d0';
+      ctx.fillText(o.ch, 0, 0);
       ctx.restore();
     }
+
     requestAnimationFrame(saverLoop);
   }
 
@@ -1543,7 +1581,6 @@
   function fitTitleLine(el){
     if(!el) return;
     const fr=getFrameRect();
-    /* 타이틀은 프레임 안에 들어오는 기준으로 축소 */
     const maxW=Math.min(window.innerWidth*0.96, fr.width*0.96);
     const cs=getComputedStyle(el);
     let size=parseFloat(cs.fontSize)||48;
@@ -1757,36 +1794,9 @@
     },1000);
   }
 
-  /* THIRD SLEEP 이후 게임 페이지로 이동 */
-  function goToSleepCity(){
-    try{
-      stopSecondBell();
-      if(secondTimer){
-        clearInterval(secondTimer);
-        secondTimer = null;
-      }
-      if(mainTimer){
-        clearInterval(mainTimer);
-        mainTimer = null;
-      }
-      if(Ambient && Ambient.isRunning && Ambient.isRunning()){
-        Ambient.stop(2.5);
-      }
-      stopMicFXFadeOut(1.5);
-      if(camStream){
-        camStream.getTracks().forEach(tr=>tr.stop());
-        camStream = null;
-      }
-      if(micStream){
-        micStream.getTracks().forEach(tr=>tr.stop());
-        micStream = null;
-      }
-    }catch(e){}
-    runTimer.style.display = 'none';
-    document.body.style.transition = 'opacity 1000ms ease';
-    document.body.style.opacity = '0';
-    setTimeout(()=>{ window.location.href = 'sleep-city.html'; }, 1000);
-  }
+  /* 최종(타이틀 NOTICE 이후) 5분 타이머 */
+  let finalTimer = null;
+  let finalLeft  = 0;
 
   /* 2장: 8분 타이머 */
   let secondTimer = null;
@@ -1809,6 +1819,77 @@
         startThirdSleepSequence();
       }
     },1000);
+  }
+
+  /* 엔딩용 타이핑 */
+  async function typeSleepLine(el, text){
+    el.textContent = '';
+    for(let i=0;i<text.length;i++){
+      el.textContent += text[i];
+      typeTick();
+      await sleep(50);
+    }
+    fitTitleLine(el);
+  }
+
+  async function showEndingSequence(){
+    claimImmersive();
+    await ensureResumed();
+
+    if (Ambient && Ambient.isRunning && Ambient.isRunning()){
+      Ambient.stop(3.0);
+    }
+    stopMicFXFadeOut(2.5);
+    fadeOutCamera(2000);
+
+    endSilence.textContent = '';
+    endTheEnd.textContent  = '';
+
+    fadeShow(endOverlay, 2000, 'flex');
+    await sleep(2200);
+
+    // SILENCE
+    await typeSleepLine(endSilence, 'SILENCE');
+    playDreamWoong();
+    speakText('사일런스');
+
+    await sleep(2500);
+
+    // THE END
+    await typeSleepLine(endTheEnd, 'THE END');
+    speakText('디 엔드');
+  }
+
+  /* THIRD SLEEP 이후: 별도 게임 없이 5분 타이머 → 엔딩 */
+  function goToSleepCity(){
+    try{
+      stopSecondBell();
+      if(secondTimer){
+        clearInterval(secondTimer);
+        secondTimer = null;
+      }
+      if(mainTimer){
+        clearInterval(mainTimer);
+        mainTimer = null;
+      }
+    }catch(e){}
+
+    stage = 'final';
+    finalLeft = 5*60; // 5분
+    runTimer.textContent = formatMMSS(finalLeft);
+    runTimer.style.display = 'block';
+
+    if(finalTimer) clearInterval(finalTimer);
+    finalTimer = setInterval(()=>{
+      finalLeft = Math.max(0, finalLeft - 1);
+      runTimer.textContent = formatMMSS(finalLeft);
+      if(finalLeft <= 0){
+        clearInterval(finalTimer);
+        finalTimer = null;
+        runTimer.style.display = 'none';
+        showEndingSequence();
+      }
+    }, 1000);
   }
 
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, micPreGain=null;
@@ -2302,7 +2383,6 @@
       typeTick();
       await sleep(45);
     }
-    /* 타이핑 완료 후 가로 길이에 맞게 축소 */
     fitTitleLine(firstTransWord);
 
     await sleep(900);
@@ -2310,7 +2390,6 @@
     firstTransTitle.style.opacity = '0';
     firstTransTitle.style.transition = 'opacity 1500ms ease';
     firstTransTitle.textContent = 'THE FIRST SLEEP';
-    /* 본문 타이틀도 화면 내로 맞추기 */
     fitTitleLine(firstTransTitle);
     playDreamWoong();
     speakText('더 퍼스트 슬립');
@@ -2383,7 +2462,6 @@
     chapterBox.innerHTML='';
     const speak = text.replace(/\n/g,' ');
     speakText(speak);
-    /* 문법 에러 수정: let i=0 */
     for(let i=0;i<text.length;i++){
       const ch = text[i];
       if(ch === '\n'){
@@ -2510,7 +2588,7 @@
     };
   }
 
-  /* THIRD SLEEP 타이틀 + NOTICE3 → 게임으로 */
+  /* THIRD SLEEP 타이틀 + NOTICE3 → 5분 타이머/엔딩 */
   async function startThirdSleepSequence(){
     claimImmersive();
     await ensureResumed();
@@ -2555,50 +2633,50 @@
       await playWoongClick();
       fadeHide(noticePopup3, 260);
       await sleep(300);
-      /* 여기서 게임 페이지로 이동 */
+      /* 여기서 5분 타이머 시작 → 엔딩 */
       goToSleepCity();
     };
   }
 
-async function showIntroFlow(){
-  claimImmersive();
-  await ensureResumed();
-  if(!Ambient.isRunning()) Ambient.start(0.8, 1.0);
+  async function showIntroFlow(){
+    claimImmersive();
+    await ensureResumed();
+    if(!Ambient.isRunning()) Ambient.start(0.8, 1.0);
 
-  showCamera = false;
-  camFadeAlpha = 0;
+    showCamera = false;
+    camFadeAlpha = 0;
 
-  // INTRODUCTION 타이틀도 타이핑되게
-  introBig.style.display = 'flex';
-  introBig.style.opacity = '1';
-  introBig.style.transition = 'none';
-  const word = 'INTRODUCTION';
-  introBigText.textContent = '';
-  for(let i=0;i<word.length;i++){
-    introBigText.textContent += word[i];
-    typeTick();
-    await sleep(45);
+    // INTRODUCTION 타이틀도 타이핑되게
+    introBig.style.display = 'flex';
+    introBig.style.opacity = '1';
+    introBig.style.transition = 'none';
+    const word = 'INTRODUCTION';
+    introBigText.textContent = '';
+    for(let i=0;i<word.length;i++){
+      introBigText.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(introBigText);
+    speakText('인트로덕션');
+
+    await sleep(1400);
+    introBig.style.transition = 'opacity 1600ms ease';
+    introBig.style.opacity = '0';
+    await sleep(1700);
+    introBig.style.display = 'none';
+
+    // 여기서부터는 인트로 캐릭터 + 대화창
+    introWalking = true;
+    introStartTime = performance.now();
+    showIntroLayer = true;
+    fgAlpha = 1.0;
+    initIntroWalkers();
+
+    introIndex = 0;
+    fadeShow(introDialogue, 300, 'block');
+    typeIntroLine(introIndex);
   }
-  fitTitleLine(introBigText);
-  speakText('인트로덕션');
-
-  await sleep(1400);
-  introBig.style.transition = 'opacity 1600ms ease';
-  introBig.style.opacity = '0';
-  await sleep(1700);
-  introBig.style.display = 'none';
-
-  // 여기서부터는 기존과 동일: 인트로 캐릭터 + 대화창
-  introWalking = true;
-  introStartTime = performance.now();
-  showIntroLayer = true;
-  fgAlpha = 1.0;
-  initIntroWalkers();
-
-  introIndex = 0;
-  fadeShow(introDialogue, 300, 'block');
-  typeIntroLine(introIndex);
-}
 
   document.getElementById('goIntro').addEventListener('click', ()=>{
     ensureResumed().then(async ()=>{
@@ -2757,8 +2835,16 @@ async function showIntroFlow(){
       runTimer.style.display='none';
       await startThirdSleepSequence();
     }else if(stage === 'thirdIntro'){
-      /* THIRD SLEEP 타이틀/노티스 구간에서 SKIP → 바로 게임으로 */
+      /* THIRD SLEEP 타이틀/노티스 구간에서 SKIP → 바로 5분 타이머 시작 */
       goToSleepCity();
+    }else if(stage === 'final'){
+      /* 이미 마지막 타이머 중에 SKIP 누르면 바로 엔딩으로 */
+      if(finalTimer){
+        clearInterval(finalTimer);
+        finalTimer = null;
+      }
+      runTimer.style.display='none';
+      await showEndingSequence();
     }else{
       if(mainTimer){
         clearInterval(mainTimer);
