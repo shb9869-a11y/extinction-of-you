@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
+<meta charset="utf-8"/>
 <meta name="viewport"
       content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,interactive-widget=resizes-content">
 <title>SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP</title>
 
+<!-- Pixel font -->
 <link rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
 
@@ -17,2885 +18,525 @@
 <style>
   :root{
     --appH: 100svh;
-    --frame: clamp(16px, 4vmin, 40px);
-    --ui-gap: 8px;
+    --fs-body: 14px;
+    --fs-strong: 18px;
+    --fs-small: 12px;
 
-    --fs-body: clamp(12px, 2.2vmin, 16px);
-    --fs-strong: clamp(14px, 2.8vmin, 20px);
-    --fs-small: clamp(10px, 1.8vmin, 13px);
-
-    --c-bg: #000000;
-    --c-fg: #f4f4f4;
-    --c-accent: #d0d0d0;
-    --c-accent-soft: #666666;
-    --c-border: #444444;
-    --shadow-soft: 0 0 0 1px rgba(255,255,255,0.06),
-                   0 18px 45px rgba(0,0,0,0.85);
+    --yellow: #f0e7a0;
+    --black: #000000;
+    --dark:  #0d0d0d;
   }
 
-  *{
-    box-sizing:border-box;
-    margin:0;
-    padding:0;
-  }
   html,body{
-    width:100%;
-    height:100%;
+    margin:0;padding:0;
+    width:100%;height:100%;
+    font-family:'Press Start 2P', monospace;
     background:#000;
-    color:var(--c-fg);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-                 "Press Start 2P", sans-serif;
-    overscroll-behavior:none;
-    -webkit-user-select:none;
-    user-select:none;
-    touch-action:manipulation;
+    overflow:hidden;
   }
-  body{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-  #app{
-    position:relative;
-    width:100vw;
+
+  .scene{
+    position:absolute;
+    inset:0;
+    width:100%;
     height:var(--appH);
-    background:#000;
-    overflow:hidden;
-  }
-
-  .frameOuter{
-    position:absolute;
-    inset:0;
-    padding:var(--frame);
-    display:flex;
-    align-items:stretch;
-    justify-content:stretch;
-  }
-  .frameBox{
-    position:relative;
-    flex:1;
-    border:1px solid var(--c-border);
-    box-shadow:var(--shadow-soft);
-    background:#000;
-    overflow:hidden;
-  }
-
-  #view,#fg,#freezeLayer{
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
-    display:block;
-  }
-  #fg{
-    pointer-events:none;
-  }
-  #freezeLayer{
-    display:none;
-    pointer-events:none;
-  }
-
-  .hud{
-    position:absolute;
-    inset:0;
     display:flex;
     flex-direction:column;
-    justify-content:space-between;
-    pointer-events:none;
-    padding:var(--frame);
-  }
-
-  #runTimer{
-    align-self:flex-end;
-    font-family:"Press Start 2P", monospace;
-    font-size:clamp(11px,2vmin,14px);
-    background:rgba(0,0,0,0.75);
-    border:1px solid rgba(208,208,208,0.35);
-    padding:4px 8px;
-    border-radius:4px;
-    letter-spacing:.08em;
-    display:none;
-  }
-
-  #controls{
-    display:flex;
-    gap:var(--ui-gap);
-    pointer-events:auto;
-    opacity:0;
-    transform:translateY(6px);
-    transition:opacity 350ms ease, transform 350ms ease;
-  }
-  #controls.show{
-    opacity:1;
-    transform:translateY(0);
-  }
-
-  .uiPanel{
-    display:flex;
     align-items:center;
-    gap:6px;
-    padding:5px 8px;
-    background:rgba(0,0,0,0.78);
-    border-radius:6px;
-    border:1px solid rgba(255,255,255,0.14);
-    backdrop-filter:blur(10px);
+    justify-content:center;
+    background:#000;
+    color:#f0e7a0;
+    font-size:var(--fs-body);
+    opacity:0;
+    transition:opacity 0.8s ease;
+    pointer-events:none;
   }
-  .uiLabel{
-    font-size:var(--fs-small);
-    opacity:.75;
-    letter-spacing:.05em;
+  .scene.active{
+    opacity:1;
+    pointer-events:auto;
   }
-  .uiBtn{
+
+  .title{
+    font-size:24px;
+    text-align:center;
+    line-height:1.6;
+    margin-bottom:24px;
+  }
+
+  .btn{
+    padding:12px 20px;
+    margin-top:20px;
+    background:#f0e7a0;
+    color:#000;
     border:none;
-    outline:none;
-    padding:4px 8px;
-    border-radius:4px;
-    font-size:var(--fs-small);
-    font-family:"Press Start 2P", monospace;
-    background:#111;
-    color:var(--c-fg);
-    border:1px solid rgba(255,255,255,0.24);
-    box-shadow:0 2px 0 rgba(0,0,0,0.6);
+    font-family:'Press Start 2P';
+    font-size:14px;
     cursor:pointer;
-    touch-action:manipulation;
-  }
-  .uiBtn:active{
-    transform:translateY(1px);
-    box-shadow:0 0 0 rgba(0,0,0,0.6);
   }
 
-  #zoomVal{
-    min-width:3em;
-    text-align:center;
-  }
-  #captureBtn{
-    pointer-events:auto;
-    opacity:0;
-    transform:translateY(6px);
-    transition:opacity 350ms ease, transform 350ms ease;
-  }
-  #captureBtn.show{
-    opacity:1;
-    transform:translateY(0);
-  }
-
-  /* rotate overlay */
-  #rotateOverlay{
-    position:fixed;
-    inset:0;
-    background:#000;
-    color:#fff;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    padding:24px;
-    z-index:9999;
-  }
-  #rotateOverlayInner{
-    border:1px solid #444;
-    border-radius:10px;
-    padding:20px 24px;
-    max-width:460px;
-    text-align:center;
-    box-shadow:var(--shadow-soft);
-    background:#050505;
-    font-family:"Press Start 2P", monospace;
-    font-size:12px;
-    line-height:1.6;
-  }
-
-  /* gate overlay */
-  #overlay{
-    position:absolute;
-    inset:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:#000;
-    z-index:40;
-  }
-  #overlayCard{
-    border-radius:12px;
-    padding:20px 22px;
-    max-width:480px;
-    width:min(80vw,480px);
-    background:#050505;
-    box-shadow:var(--shadow-soft);
-    border:1px solid #444;
-    text-align:center;
-    font-family:"Press Start 2P", monospace;
-  }
-  #overlayCard h1{
-    font-size:12px;
-    margin-bottom:14px;
-    letter-spacing:.12em;
-  }
-  #overlayCard p{
-    font-size:11px;
-    line-height:1.7;
-    opacity:.9;
-  }
-  #permGateBtn{
-    margin-top:18px;
-    width:100%;
-  }
-
-  /* 이름 overlay */
-  #nameOverlay{
-    position:absolute;
-    inset:0;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:35;
-    background:radial-gradient(circle at center,#111 0,#000 60%);
-  }
-  #nameCard{
-    background:#050505;
-    border-radius:12px;
-    border:1px solid #444;
-    box-shadow:var(--shadow-soft);
-    padding:18px 20px 20px;
-    width:min(80vw,420px);
-    font-family:"Press Start 2P", monospace;
-  }
-  #nameCard h2{
-    font-size:11px;
-    margin-bottom:10px;
-    letter-spacing:.1em;
-  }
-  #nameCard p{
-    font-size:10px;
-    line-height:1.6;
-    opacity:.9;
-    margin-bottom:10px;
-  }
-  #nick{
-    width:100%;
-    padding:7px 8px;
-    border-radius:4px;
-    border:1px solid #444;
-    background:#000;
-    color:#fff;
-    font-family:"Press Start 2P", monospace;
-    font-size:10px;
-    margin-bottom:10px;
-  }
-
-  /* preset saver */
-  #preset{
-    position:absolute;
-    inset:0;
-    display:none;
-    z-index:20;
-    background:#000;
-  }
-  #presetCanvas{
-    width:100%;
-    height:100%;
-    display:block;
-  }
-
-  /* welcome */
-  #overlayWelcome{
-    position:absolute;
-    inset:0;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:28;
-    background:radial-gradient(circle at center,#050505 0,#000 55%);
-  }
-  #welcomeCard{
-    background:#050505;
-    border-radius:12px;
-    border:1px solid #444;
-    box-shadow:var(--shadow-soft);
-    padding:18px 20px 22px;
-    width:min(86vw,560px);
-    font-family:"Press Start 2P", monospace;
-    text-align:left;
-  }
-  #welcomeCard .title{
-    font-size:12px;
-    margin-bottom:8px;
-    letter-spacing:.12em;
-  }
-  #welcomeCard .body{
-    font-size:10px;
-    line-height:1.7;
-    opacity:.9;
-    margin-bottom:14px;
-  }
-  #goIntro{
-    display:inline-block;
-    margin-top:8px;
-  }
-
-  /* intro big */
-  #introBig{
-    position:absolute;
-    inset:0;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:25;
-    background:#000;
-  }
-  #introBigText{
-    font-family:"Press Start 2P", monospace;
-    font-size:clamp(18px,5vmin,28px);
-    letter-spacing:.16em;
-  }
-
-  /* intro dialogue */
-  #introDialogue{
-    position:absolute;
-    inset:auto var(--frame) var(--frame) var(--frame);
-    max-width:640px;
+  .typewrap{
+    width:80%;
+    max-width:900px;
     margin:0 auto;
-    background:rgba(0,0,0,0.85);
-    border-radius:12px;
-    border:1px solid rgba(255,255,255,0.16);
-    padding:14px 16px 12px;
-    font-family:"Press Start 2P", monospace;
-    font-size:10px;
-    line-height:1.7;
-    display:none;
-    z-index:26;
-  }
-  #introText{
-    margin-bottom:10px;
-    min-height:3em;
-  }
-  #introNext{
-    width:100%;
-    margin-top:4px;
-  }
-
-  /* FIRST SLEEP title */
-  #firstTransition,
-  #sleepTransition,
-  #thirdTransition,
-  #fourthTransition{
-    position:absolute;
-    inset:0;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    flex-direction:column;
-    background:#000;
-    z-index:30;
-    gap:12px;
-  }
-  #firstTransWord,
-  #firstTransTitle,
-  #sleepLine1,#sleepLine2,#sleepSecondTitle,
-  #thirdSleepLine1,#thirdSleepLine2,#thirdSleepLine3,#thirdTitle,
-  #fourthSleepLine1,#fourthSleepLine2,#fourthSleepLine3,#fourthSleepLine4,#fourthTitle{
-    font-family:"Press Start 2P", monospace;
-    font-size:clamp(18px,4.8vmin,26px);
-    letter-spacing:.12em;
-    text-align:center;
-  }
-
-  /* chapter text */
-  #chapterOverlay{
-    position:absolute;
-    inset:var(--frame);
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:24;
-    pointer-events:none;
-  }
-  #chapterBox{
-    max-width:720px;
-    padding:14px 16px;
-    background:rgba(0,0,0,0.72);
-    border-radius:12px;
-    border:1px solid rgba(255,255,255,0.2);
-    font-family:"Press Start 2P", monospace;
-    font-size:10px;
-    line-height:1.9;
-  }
-
-  /* notice popups */
-  .popupOverlay{
-    position:absolute;
-    inset:0;
-    background:rgba(0,0,0,0.85);
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:45;
-  }
-  .popupCard{
-    width:min(80vw,460px);
-    background:#050505;
-    border-radius:12px;
-    border:1px solid #444;
-    box-shadow:var(--shadow-soft);
-    padding:16px 18px 18px;
-    font-family:"Press Start 2P", monospace;
-    font-size:10px;
+    text-align:left;
     line-height:1.8;
-  }
-  .popupCard h2{
-    font-size:11px;
-    margin-bottom:8px;
-    letter-spacing:.12em;
-  }
-  .popupCard p{
-    margin-bottom:10px;
-  }
-  .popupCard .popupBtnRow{
-    display:flex;
-    justify-content:flex-end;
-  }
-  .popupCard button{
-    min-width:96px;
+    white-space:pre-wrap;
   }
 
-  /* map overlay */
-  #mapOverlay{
+  .skip-btn{
     position:absolute;
-    inset:var(--frame);
-    background:rgba(0,0,0,0.94);
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:32;
+    left:20px;
+    top:20px;
+    padding:10px 16px;
+    font-size:12px;
+    background:#222;
+    color:#fff;
+    border:none;
+    z-index:99999;
+    cursor:pointer;
+    opacity:0.7;
   }
-  #mapCanvas{
+
+  video#cam{
+    position:absolute;
+    inset:0;
     width:100%;
     height:100%;
-    display:block;
+    object-fit:cover;
+    filter:grayscale(1);
+    opacity:0;
+    transition:opacity 1s ease;
   }
-  #mapPop{
-    position:absolute;
-    left:50%;
-    bottom:var(--frame);
-    transform:translateX(-50%);
-    display:none;
-    z-index:33;
-  }
-  #mapPopCard{
-    background:#050505;
-    border-radius:10px;
-    border:1px solid #444;
-    box-shadow:var(--shadow-soft);
-    padding:10px 12px;
-    min-width:220px;
-    font-family:"Press Start 2P", monospace;
-    font-size:10px;
-  }
-  #mapPopTitle{
-    font-size:11px;
-    margin-bottom:4px;
-    letter-spacing:.12em;
-  }
-
-  /* skip button */
-  #skipBtn{
-    position:absolute;
-    top:var(--frame);
-    left:var(--frame);
-    z-index:50;
-    pointer-events:auto;
-  }
-
-  /* END overlay */
-  #endOverlay{
-    position:absolute;
-    inset:0;
-    background:#000;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    flex-direction:column;
-    gap:18px;
-    z-index:60;
-  }
-  #endSilence,
-  #endTheEnd,
-  #endReturn{
-    font-family:"Press Start 2P", monospace;
-    text-align:center;
-  }
-  #endSilence{
-    font-size:clamp(18px,4.5vmin,26px);
-  }
-  #endTheEnd{
-    font-size:clamp(18px,4.5vmin,26px);
-  }
-  #endReturn{
-    font-size:10px;
-    max-width:480px;
-    line-height:1.8;
-    opacity:.8;
+  video#cam.on{
+    opacity:1;
   }
 </style>
 </head>
 <body>
-<div id="app">
-  <div class="frameOuter">
-    <div class="frameBox">
-      <canvas id="view"></canvas>
-      <canvas id="fg"></canvas>
-      <canvas id="freezeLayer"></canvas>
+<!-- 카메라 영상 -->
+<video id="cam" playsinline autoplay muted></video>
 
-      <div class="hud">
-        <div id="runTimer">00:00</div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none;">
-          <div id="controls">
-            <div class="uiPanel">
-              <span class="uiLabel">ZOOM</span>
-              <button id="zoomOut" class="uiBtn">RESET</button>
-              <button id="zoomIn" class="uiBtn">+</button>
-              <span id="zoomVal" class="uiLabel">1.0×</span>
-            </div>
-          </div>
-          <button id="captureBtn" class="uiBtn">CAPTURE</button>
-        </div>
-      </div>
+<!-- 스킵 버튼 (모든 장면 공통) -->
+<button class="skip-btn" id="skipBtn">SKIP</button>
 
-      <!-- gate overlay -->
-      <div id="overlay">
-        <div id="overlayCard">
-          <h1>SLEEEEEEEEEEP</h1>
-          <p>
-            TAP ANYWHERE TO ALLOW<br>
-            CAMERA / MICROPHONE / AUDIO / VOICE.
-          </p>
-          <button id="permGateBtn" class="uiBtn">TAP TO START</button>
-        </div>
-      </div>
-
-      <!-- rotate -->
-      <div id="rotateOverlay">
-        <div id="rotateOverlayInner">
-          PLEASE ROTATE YOUR DEVICE.<br>
-          THIS PROGRAM IS LANDSCAPE ONLY.
-        </div>
-      </div>
-
-      <!-- 이름 입력 -->
-      <div id="nameOverlay">
-        <div id="nameCard">
-          <h2>ENTER YOUR NAME</h2>
-          <p>
-            이 프로그램 속에서 불릴 이름을 입력해 주세요.<br>
-            입력하지 않으면 &ldquo;_____&rdquo;로 진행됩니다.
-          </p>
-          <input id="nick" autocomplete="off" placeholder="YOUR NAME" />
-          <button id="nameSubmit" class="uiBtn">OK</button>
-        </div>
-      </div>
-
-      <!-- 프리셋 세이버 -->
-      <div id="preset">
-        <canvas id="presetCanvas"></canvas>
-      </div>
-
-      <!-- 웰컴 -->
-      <div id="overlayWelcome">
-        <div id="welcomeCard">
-          <div class="title">WELCOME</div>
-          <div class="body">
-            30분 동안, 당신의 내면 도시를 거닐게 됩니다.<br>
-            이어폰을 귀에 꽂고, 작은 목소리로만 말해 주세요.
-          </div>
-          <button id="goIntro" class="uiBtn">ENTER INTRODUCTION</button>
-        </div>
-      </div>
-
-      <!-- INTRODUCTION 타이틀 -->
-      <div id="introBig">
-        <div id="introBigText">INTRODUCTION</div>
-      </div>
-
-      <!-- INTRO 대화 -->
-      <div id="introDialogue">
-        <div id="introText"></div>
-        <button id="introNext" class="uiBtn">NEXT</button>
-      </div>
-
-      <!-- FIRST SLEEP 전환 -->
-      <div id="firstTransition">
-        <div id="firstTransWord"></div>
-        <div id="firstTransTitle"></div>
-      </div>
-
-      <!-- SECOND SLEEP 전환 -->
-      <div id="sleepTransition">
-        <div id="sleepLine1"></div>
-        <div id="sleepLine2"></div>
-        <div id="sleepSecondTitle"></div>
-      </div>
-
-      <!-- THIRD SLEEP 전환 -->
-      <div id="thirdTransition">
-        <div id="thirdSleepLine1"></div>
-        <div id="thirdSleepLine2"></div>
-        <div id="thirdSleepLine3"></div>
-        <div id="thirdTitle"></div>
-      </div>
-
-      <!-- FOURTH SLEEP 전환 -->
-      <div id="fourthTransition">
-        <div id="fourthSleepLine1"></div>
-        <div id="fourthSleepLine2"></div>
-        <div id="fourthSleepLine3"></div>
-        <div id="fourthSleepLine4"></div>
-        <div id="fourthTitle"></div>
-      </div>
-
-      <!-- 챕터 텍스트 -->
-      <div id="chapterOverlay">
-        <div id="chapterBox"></div>
-      </div>
-
-      <!-- 첫 번째 알림 -->
-      <div id="noticePopup" class="popupOverlay">
-        <div id="noticeCard" class="popupCard">
-          <h2>THE FIRST SLEEP</h2>
-          <p>
-            지금부터 카메라와 마이크가 켜집니다.<br>
-            화면 속 도시를 조용히 바라보며, 작은 목소리로 숨을 섞어 주세요.
-          </p>
-          <div class="popupBtnRow">
-            <button id="noticeOk" class="uiBtn">OK</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 두 번째 알림 -->
-      <div id="noticePopup2" class="popupOverlay">
-        <div id="noticeCard2" class="popupCard">
-          <h2>THE SECOND SLEEP</h2>
-          <p>
-            이제 도시의 지도를 펼칩니다.<br>
-            원하는 구역을 눌러, 그곳의 울림을 들어 보세요.
-          </p>
-          <div class="popupBtnRow">
-            <button id="noticeOk2" class="uiBtn">OK</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 세 번째 알림 -->
-      <div id="noticePopup3" class="popupOverlay">
-        <div id="noticeCard3" class="popupCard">
-          <h2>THE THIRD SLEEP</h2>
-          <p>
-            마지막으로, 당신은 내면의 거리를 걷게 됩니다.<br>
-            소리와 함께 천천히, 스스로를 따라가 보세요.
-          </p>
-          <div class="popupBtnRow">
-            <button id="noticeOk3" class="uiBtn">OK</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 지도 -->
-      <div id="mapOverlay">
-        <canvas id="mapCanvas"></canvas>
-        <div id="mapPop">
-          <div id="mapPopCard">
-            <div id="mapPopTitle">ZONE</div>
-            <div id="mapPopBody"></div>
-            <div style="margin-top:6px;text-align:right;">
-              <button id="mapPopClose" class="uiBtn">OK</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- SKIP -->
-      <button id="skipBtn" class="uiBtn" style="display:none;">SKIP</button>
-
-      <!-- END -->
-      <div id="endOverlay">
-        <div id="endSilence"></div>
-        <div id="endTheEnd"></div>
-        <div id="endReturn"></div>
-      </div>
-
-    </div>
-  </div>
+<!-- ================================
+     SCENE: INTRODUCTION
+================================ -->
+<div class="scene active" id="scene-intro">
+  <div class="title">SLEEEEEEEEEEP</div>
+  <button class="btn" id="introNextBtn">NEXT</button>
 </div>
 
+<!-- ================================
+     SCENE: FIRST SLEEP (Scene 1)
+================================ -->
+<div class="scene" id="scene-1">
+  <div class="title">THE FIRST SLEEP</div>
+  <div class="typewrap" id="text-1"></div>
+</div>
+
+<!-- ================================
+     SCENE: SECOND SLEEP (Scene 2)
+================================ -->
+<div class="scene" id="scene-2">
+  <div class="title">THE SECOND SLEEP</div>
+  <div class="typewrap" id="text-2"></div>
+</div>
+
+<!-- ================================
+     SCENE: THIRD SLEEP (Scene 3)
+================================ -->
+<div class="scene" id="scene-3">
+  <div class="title">THE THIRD SLEEP</div>
+  <div class="typewrap" id="text-3"></div>
+</div>
+
+<!-- ================================
+     SCENE: FOURTH SLEEP (Scene 4)
+================================ -->
+<div class="scene" id="scene-4">
+  <div class="title">THE FOURTH SLEEP</div>
+  <div class="typewrap" id="text-4"></div>
+</div>
+
+<!-- ================================
+     SCENE: SILENCE (카메라만 켜짐)
+================================ -->
+<div class="scene" id="scene-silence">
+  <div class="title">SILENCE</div>
+</div>
+
+<!-- ================================
+     SCENE: THE END
+================================ -->
+<div class="scene" id="scene-end">
+  <div class="title">THE END</div>
+  <button class="btn" id="restartBtn">RESTART</button>
+</div>
+
+<!-- ================================
+     SCRIPT 영역 시작
+================================ -->
 <script>
-(() => {
-  (function injectManifest(){
-    const manifest = {
-      "name":"SLEEEEEP",
-      "short_name":"SLEEEEEP",
-      "display":"fullscreen",
-      "start_url":"./",
-      "background_color":"#000",
-      "theme_color":"#000",
-      "icons":[]
-    };
-    const url = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:"application/manifest+json"}));
-    const link = document.createElement('link');
-    link.rel='manifest';
-    link.href=url;
-    document.head.appendChild(link);
-  })();
+/* ============================================================
+   AUDIO ENGINE (WebAudio)
+   갤럭시탭 A9+ 딜레이 제거 + 안정화 버전
+============================================================ */
+let audioCtx;
+let audioReady = false;
 
-  async function enterFullscreen(){
-    try{
-      const el = document.documentElement;
-      if (!document.fullscreenElement) {
-        if (el.requestFullscreen) await el.requestFullscreen({ navigationUI: 'hide' });
-        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-      }
-    }catch(e){}
-    try{
-      if (screen.orientation && screen.orientation.lock) {
-        await screen.orientation.lock('landscape').catch(()=>{});
-      }
-    }catch(e){}
+function ensureAudio(){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
-  let wakeLock = null;
-  async function keepAwake(){
-    try{
-      if ('wakeLock' in navigator) {
-        wakeLock = await navigator.wakeLock.request('screen');
-        wakeLock.addEventListener('release', ()=>{});
-      }
-    }catch(e){}
-  }
-  function claimImmersive(){ enterFullscreen(); keepAwake(); }
-  document.addEventListener('visibilitychange', async ()=>{
-    if (document.visibilityState === 'visible' && wakeLock) {
-      try{ wakeLock = await navigator.wakeLock.request('screen'); }catch(e){}
-    }
-  });
+  audioReady = true;
+}
 
-  const FADE = 1800;
-  const sleep = ms => new Promise(r=>setTimeout(r,ms));
-  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
-  const nextFrame = () => new Promise(resolve=>requestAnimationFrame(()=>resolve()));
-  const qs = s => document.querySelector(s);
-
-  /* ====== 오디오 / TTS 공통 ====== */
-  let audioCtx = null;
-  let audioPrimed = false;
-
-  function ensureAudio(){
-    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-
-  async function primeAudio(){
+/* ------------------------
+   버튼 사운드 (딜레이 없는 버전)
+------------------------- */
+function playButtonSound(){
+  try{
     ensureAudio();
-    if(audioCtx.state === 'suspended'){
-      try{ await audioCtx.resume(); }catch(e){}
-    }
-    audioPrimed = true;
-  }
+    const ctx = audioCtx;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
 
-  async function ensureResumed(){
+    osc.frequency.value = 600;
+    osc.type = "square";
+
+    gain.gain.setValueAtTime(0.001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15);
+
+    osc.connect(gain).connect(ctx.destination);
+
+    osc.start();
+    osc.stop(ctx.currentTime + 0.16);
+  } catch(e){}
+}
+
+/* ------------------------
+   타이핑 사운드 (버벅임 제거)
+------------------------- */
+let typeBuffer = null;
+let lastType = 0;
+
+function buildTypeBuffer(ctx){
+  const duration = 0.06;
+  const sr = ctx.sampleRate;
+  const length = Math.floor(sr * duration);
+  const buf = ctx.createBuffer(1, length, sr);
+  const data = buf.getChannelData(0);
+
+  for(let i=0; i<length; i++){
+    const t = i / sr;
+    const env = Math.exp(-t * 20);
+    const freq = 1600;
+    data[i] = Math.sin(2*Math.PI*freq*t) * env;
+  }
+  return buf;
+}
+
+function playType(){
+  try{
     ensureAudio();
-    if(audioCtx.state === 'suspended'){
-      try{ await audioCtx.resume(); }catch(e){}
+    const ctx = audioCtx;
+    const now = ctx.currentTime;
+
+    if(now - lastType < 0.03) return;
+    lastType = now;
+
+    if(!typeBuffer) typeBuffer = buildTypeBuffer(ctx);
+
+    const src = ctx.createBufferSource();
+    src.buffer = typeBuffer;
+    const g = ctx.createGain();
+    g.gain.value = 0.25;
+
+    src.connect(g).connect(ctx.destination);
+    src.start();
+  }catch(e){}
+}
+
+/* ============================================================
+   TTS (한국어 남자 목소리 우선 + 갤탭 재초기화 지원)
+============================================================ */
+let ttsReady = 'speechSynthesis' in window;
+let ttsVoice = null;
+let ttsEnabled = false;
+
+function pickMaleKoreanVoice(voices){
+  const ko = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith("ko"));
+
+  return (
+    ko.find(v => /male|man|남성|남자|M/i.test(v.name)) ||
+    (ko.length ? ko[0] : null) ||
+    voices.find(v => /male|man/i.test(v.name)) ||
+    voices[0]
+  );
+}
+
+function initTts(retry = 0){
+  if(!ttsReady) return;
+
+  const voices = window.speechSynthesis.getVoices();
+
+  if(!voices || !voices.length){
+    if(retry < 10){
+      setTimeout(()=>initTts(retry+1), 300);
     }
+    return;
   }
 
-  /* === TTS 설정 === */
-  let ttsReady   = 'speechSynthesis' in window;
-  let ttsVoice   = null;
-  let ttsEnabled = false;
+  ttsVoice = pickMaleKoreanVoice(voices);
+  ttsEnabled = true;
+}
 
-  function selectKoreanVoice(voices){
-    let v = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('ko'));
-    if(!v) v = voices.find(v => /korean/i.test(v.name||'')) || voices[0];
-    return v || null;
-  }
+if(ttsReady){
+  initTts();
+  window.speechSynthesis.onvoiceschanged = () => initTts();
+}
 
-  function initTts(){
-    if(!ttsReady) return;
-    const voices = window.speechSynthesis.getVoices() || [];
-    if(!voices.length){
-      setTimeout(initTts, 400);
-      return;
+/* ------------------------
+   speakText()
+------------------------- */
+function speakText(text){
+  if(!ttsReady || !ttsEnabled || !text) return;
+  try{
+    const u = new SpeechSynthesisUtterance(text);
+    if(ttsVoice) u.voice = ttsVoice;
+
+    u.pitch = 0.9;   // 남성 톤
+    u.rate  = 0.9;
+    u.volume = 1;
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+
+  }catch(e){}
+}
+
+/* ============================================================
+   사용자 제스처 이후 오디오/TTS 재활성화
+============================================================ */
+async function resumeAll(){
+  try{
+    ensureAudio();
+    if(audioCtx.state === "suspended") await audioCtx.resume();
+
+    if(ttsReady && !ttsEnabled){
+      initTts();
     }
-    ttsVoice = selectKoreanVoice(voices);
-    ttsEnabled = !!ttsVoice;
-  }
+  }catch(e){}
+}
 
-  if(ttsReady){
-    initTts();
-    window.speechSynthesis.onvoiceschanged = initTts;
-  }
+document.body.addEventListener("pointerdown", resumeAll, {once:false});
+document.body.addEventListener("click", resumeAll, {once:false});
+/* ============================================================
+   TEXT TYPING SYSTEM
+============================================================ */
+function sleep(ms){ return new Promise(res => setTimeout(res, ms)); }
 
-  function speakText(text){
-    if(!ttsReady || !text) return;
-    try{
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      if(ttsVoice) u.voice = ttsVoice;
-      u.lang  = (ttsVoice && ttsVoice.lang) ? ttsVoice.lang : 'ko-KR';
-      u.pitch = 1.0;
-      u.rate  = 0.9;
-      u.volume= 1.0;
-      window.speechSynthesis.speak(u);
-    }catch(e){}
-  }
+async function typeText(targetEl, text, speed=28, speak=false){
+  targetEl.innerHTML = "";
+  for(let i=0;i<text.length;i++){
+    const ch = text[i];
+    targetEl.innerHTML += ch;
 
-  const MASTER_BGM_GAIN = 0.4;
-  const MASTER_SFX_GAIN = 0.45;
+    // 타이핑 사운드
+    playType();
 
-  document.addEventListener('contextmenu', e=>e.preventDefault());
-  document.addEventListener('selectstart', e=>e.preventDefault());
-
-  function fadeShow(el, dur=FADE, display='flex'){
-    el.style.display=display;
-    el.style.opacity='0';
-    el.style.transition=`opacity ${dur}ms ease`;
-    requestAnimationFrame(()=> el.style.opacity='1');
-  }
-  function fadeHide(el, dur=FADE){
-    el.style.transition=`opacity ${dur}ms ease`;
-    el.style.opacity='0';
-    setTimeout(()=>{ el.style.display='none'; }, dur);
-  }
-
-  function setAppH(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
-  setAppH();
-  addEventListener('resize', setAppH, {passive:true});
-  if (window.visualViewport){
-    visualViewport.addEventListener('resize', ()=>setTimeout(setAppH,50));
-  }
-
-  const rotateOverlay = qs('#rotateOverlay');
-  function isPortrait(){
-    const vv=window.visualViewport;
-    const w=vv?vv.width:innerWidth, h=vv?vv.height:innerHeight;
-    return h>w;
-  }
-  function updateRotateOverlay(){
-    rotateOverlay.style.display = isPortrait() ? 'flex' : 'none';
-  }
-  ['load','pageshow','resize','orientationchange','visibilitychange'].forEach(ev=>{
-    addEventListener(ev, updateRotateOverlay, {passive:true});
-  });
-  updateRotateOverlay();
-
-  const overlay = qs('#overlay');
-  const permBtn = qs('#permGateBtn');
-  const nameOverlay = qs('#nameOverlay');
-  const nickInput = qs('#nick');
-  const nameSubmit = qs('#nameSubmit');
-  const preset = qs('#preset');
-  const presetCanvas = qs('#presetCanvas');
-  const welcome = qs('#overlayWelcome');
-
-  const introBig = qs('#introBig');
-  const introBigText = qs('#introBigText');
-
-  const introDialogue = qs('#introDialogue');
-  const introTextEl = qs('#introText');
-  const introNextBtn = qs('#introNext');
-
-  const controls = qs('#controls');
-  const zoomIn = qs('#zoomIn');
-  const zoomOut = qs('#zoomOut');
-  const zoomVal = qs('#zoomVal');
-  const captureBtn = qs('#captureBtn');
-  const view = qs('#view');
-  const fg = qs('#fg');
-  const freezeLayer = qs('#freezeLayer');
-  const runTimer = qs('#runTimer');
-
-  const noticePopup = qs('#noticePopup');
-  const noticeOk = qs('#noticeOk');
-
-  const chapterOverlay = qs('#chapterOverlay');
-  const chapterBox = qs('#chapterBox');
-
-  const firstTransition = qs('#firstTransition');
-  const firstTransWord = qs('#firstTransWord');
-  const firstTransTitle = qs('#firstTransTitle');
-
-  const sleepTransition = qs('#sleepTransition');
-  const sleepLine1 = qs('#sleepLine1');
-  const sleepLine2 = qs('#sleepLine2');
-  const sleepSecondTitle = qs('#sleepSecondTitle');
-
-  const thirdTransition = qs('#thirdTransition');
-  const thirdSleepLine1 = qs('#thirdSleepLine1');
-  const thirdSleepLine2 = qs('#thirdSleepLine2');
-  const thirdSleepLine3 = qs('#thirdSleepLine3');
-  const thirdTitle = qs('#thirdTitle');
-
-  const fourthTransition = qs('#fourthTransition');
-  const fourthSleepLine1 = qs('#fourthSleepLine1');
-  const fourthSleepLine2 = qs('#fourthSleepLine2');
-  const fourthSleepLine3 = qs('#fourthSleepLine3');
-  const fourthSleepLine4 = qs('#fourthSleepLine4');
-  const fourthTitle = qs('#fourthTitle');
-
-  const noticePopup2 = qs('#noticePopup2');
-  const noticeOk2 = qs('#noticeOk2');
-
-  const noticePopup3 = qs('#noticePopup3');
-  const noticeOk3 = qs('#noticeOk3');
-
-  const mapOverlay = qs('#mapOverlay');
-  const mapCanvas = qs('#mapCanvas');
-  const mapPop = qs('#mapPop');
-  const mapPopBody = qs('#mapPopBody');
-  const mapPopClose = qs('#mapPopClose');
-
-  const skipBtn = qs('#skipBtn');
-
-  const endOverlay = qs('#endOverlay');
-  const endSilence = qs('#endSilence');
-  const endTheEnd  = qs('#endTheEnd');
-  const endReturn  = qs('#endReturn');
-
-  let vctx=null, fgctx=null;
-
-  let camPermGranted=false;
-  let camStream=null, camVideo=null, ZOOM=1.0;
-  let animStarted=false, capturing=false, warmupFrames=0;
-
-  let showIntroLayer=false;
-  let fgAlpha=1.0;
-  let showCamera=false;
-  let camFadeAlpha=0;
-
-  /* --------- 타이핑/버튼 사운드 ---------- */
-  let typeBuffer = null;
-  let lastTypeSoundTime = 0;
-
-  function buildTypeBuffer(ctx){
-    const duration   = 0.04;
-    const sampleRate = ctx.sampleRate;
-    const length     = Math.floor(sampleRate * duration);
-    const buffer     = ctx.createBuffer(1, length, sampleRate);
-    const data       = buffer.getChannelData(0);
-    const freq       = 1800;
-
-    for(let i=0;i<length;i++){
-      const t   = i / sampleRate;
-      const env = Math.exp(-t * 20);
-      const phase = 2 * Math.PI * freq * t;
-      data[i] = Math.sin(phase) * env;
+    // 필요 시 읽어주기
+    if(speak && ch !== "\n"){
+      // 글자가 조금 누적될 때마다 읽도록 설정 가능
     }
-    return buffer;
+
+    await sleep(speed);
   }
+}
 
-  function playTypeBeep(){
-    try{
-      ensureAudio();
-      const ctx = audioCtx;
-      const now = ctx.currentTime || 0;
+/* ============================================================
+   CAMERA SYSTEM
+============================================================ */
+const cam = document.getElementById("cam");
 
-      // 갤탭에서 버벅임 줄이려고, 0.07초보다 촘촘한 건 막기
-      if(now - lastTypeSoundTime < 0.07) return;
-      lastTypeSoundTime = now;
-
-      if(!typeBuffer) typeBuffer = buildTypeBuffer(ctx);
-      const src = ctx.createBufferSource();
-      src.buffer = typeBuffer;
-      const g = ctx.createGain();
-      g.gain.value = MASTER_SFX_GAIN * 0.75;
-      src.connect(g).connect(ctx.destination);
-      src.start();
-    }catch(e){}
-  }
-
-  function typeTick(){
-    playTypeBeep();
-  }
-
-  function updateZoomLabel(){
-    zoomVal.textContent = ZOOM.toFixed(1)+'×';
-  }
-  updateZoomLabel();
-  zoomIn.addEventListener('click', ()=>{
-    ZOOM=Math.min(3.0, ZOOM+0.05);
-    updateZoomLabel();
-    playClick();   // await 안 씀 → 딜레이 최소화
-  }, {passive:true});
-  zoomOut.addEventListener('click', ()=>{
-    ZOOM=1.0;
-    updateZoomLabel();
-    playClick();
-  }, {passive:true});
-
-  async function immediateGestureStart(e){
-    e && e.preventDefault && e.preventDefault();
-
-    claimImmersive();
-    await primeAudio();
-    initTts();
-
-    try{
-      if (typeof DeviceOrientationEvent !== 'undefined' &&
-          typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission().catch(()=>{});
-      }
-    }catch(_){}
-
-    navigator.mediaDevices.getUserMedia({
-      video:{
-        facingMode:{ideal:'environment'},
-        width:{min:1280,ideal:1920},
-        height:{min:720,ideal:1080},
-        aspectRatio:{ideal:16/9}
-      },
-      audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}
-    })
-    .then((s)=>{
-      s.getTracks().forEach(t=>t.stop());
-      camPermGranted = true;
-    })
-    .catch(err=>{
-      console.warn('permission error:', err);
-    })
-    .finally(()=>{
-      fadeHide(overlay, FADE);
-      showPreset();
-      fadeShow(nameOverlay, FADE);
-      stage = 'name';
-      setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 80);
+async function enableCamera(){
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:"user" },
+      audio:false
     });
+    cam.srcObject = stream;
+    cam.classList.add("on");
+  }catch(e){
+    console.log("Camera blocked:", e);
   }
+}
 
-  ['click','touchstart','pointerdown'].forEach(type=>{
-    permBtn.addEventListener(type, immediateGestureStart, {passive:false});
-    overlay.addEventListener(type, immediateGestureStart, {passive:false});
-    window.addEventListener(type, (ev)=>{
-      if(getComputedStyle(overlay).display !== 'none'){
-        immediateGestureStart(ev);
-      }
-    }, {passive:false});
+function disableCamera(){
+  cam.classList.remove("on");
+  if(cam.srcObject){
+    cam.srcObject.getTracks().forEach(t => t.stop());
+    cam.srcObject = null;
+  }
+}
+
+/* ============================================================
+   SCENE MANAGER
+============================================================ */
+let currentScene = "scene-intro";
+
+function showScene(id){
+  // 모든 scene 숨기기
+  document.querySelectorAll(".scene").forEach(s=>{
+    s.classList.remove("active");
   });
 
-  let displayName = '_____';
-  async function acceptName(){
-    claimImmersive();
-    await ensureResumed();
-    const v = (nickInput.value||'').trim();
-    if(v.length>0){ displayName = v; }
-    playClick();
-    fadeHide(nameOverlay, FADE);
-    stage = 'preset';
-    skipBtn.style.display='block';
+  // 해당 scene만 보이기
+  const sc = document.getElementById(id);
+  if(sc){
+    sc.classList.add("active");
+    currentScene = id;
   }
-  nameSubmit.addEventListener('click', acceptName, {passive:true});
-  nickInput.addEventListener('keydown', (e)=>{
-    if(e.key==='Enter'){ acceptName(); }
-  });
-
-  /* ===== 프리셋 세이버 ===== */
-  let saverObjs = [];
-  let saverT0 = 0;
-  let lastSaverTime = null;
-
-  function showPreset(){
-    if(preset.style.display!=='block'){
-      preset.style.display='block';
-      fadeShow(preset, FADE);
-      initSaver();
-      startCameraFresh(true);
-    }
-  }
-
-  function initSaver(){
-    const w = preset.clientWidth;
-    const h = preset.clientHeight;
-    saverObjs = [];
-    const letters = ['S','L','E','E','E','E','E','E','E','E','P'];
-
-    for(let i=0;i<20;i++){
-      saverObjs.push({
-        ch: letters[i % letters.length],
-        x: Math.random() * w,
-        y: Math.random() * h,
-        vx: (Math.random()*0.2 + 0.08) * (Math.random() < 0.5 ? -1 : 1),
-        vy: (Math.random()*0.2 + 0.08) * (Math.random() < 0.5 ? -1 : 1),
-        phase: Math.random() * Math.PI * 2,
-        size: (Math.floor(Math.random()*60)+90)*2
-      });
-    }
-    saverT0 = performance.now();
-    lastSaverTime = null;
-    requestAnimationFrame(saverLoop);
-  }
-
-  function saverLoop(){
-    if(preset.style.display==='none') {
-      lastSaverTime = null;
-      return;
-    }
-    const now = performance.now();
-    const w = preset.clientWidth;
-    const h = preset.clientHeight;
-    const dpr = devicePixelRatio || 1;
-
-    if(lastSaverTime == null) lastSaverTime = now;
-    const dt = (now - lastSaverTime) / 1000;
-    lastSaverTime = now;
-
-    presetCanvas.width = w * dpr;
-    presetCanvas.height = h * dpr;
-    const ctx = presetCanvas.getContext('2d');
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    ctx.clearRect(0,0,w,h);
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0,0,w,h);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    for(const o of saverObjs){
-      o.x += o.vx * dt * 60;
-      o.y += o.vy * dt * 60;
-
-      if(o.x < 0 || o.x > w){
-        o.vx *= -1;
-        o.x = Math.max(0, Math.min(w, o.x));
-      }
-      if(o.y < 0 || o.y > h){
-        o.vy *= -1;
-        o.y = Math.max(0, Math.min(h, o.y));
-      }
-
-      o.phase += dt * 0.6;
-      const wob = Math.sin(o.phase)*0.08 + 1;
-
-      ctx.save();
-      ctx.translate(o.x, o.y);
-      ctx.scale(wob, 1 / wob);
-      ctx.font = `900 ${o.size}px "Press Start 2P", system-ui, sans-serif`;
-      ctx.fillStyle = '#d0d0d0';
-      ctx.fillText(o.ch, 0, 0);
-      ctx.restore();
-    }
-
-    requestAnimationFrame(saverLoop);
-  }
-
-  preset.addEventListener('click', ()=>{
-    claimImmersive();
-    ensureResumed();
-    if(!Ambient.isRunning()) Ambient.start(0.5,1.0);
-    playClick();
-    fadeHide(preset, FADE);
-    startCameraFresh(false);
-    fadeShow(welcome, FADE);
-    stage = 'welcome';
-  }, {passive:true});
-
-  const INTRO_LINES = [
-    '멘트를 입력하세요',
-    '멘트를 입력하세요',
-    '멘트를 입력하세요'
-  ];
-
-  const FIRST_SLEEP_LINES = [
-    '멘트를 입력하세요',
-    '멘트를 입력하세요',
-    '멘트를 입력하세요'
-  ];
-
-  function getFrameRect(){
-    return document.querySelector('.frameBox').getBoundingClientRect();
-  }
-
-  function fitTitleLine(el){
-    if(!el) return;
-    const fr=getFrameRect();
-    const maxW=Math.min(window.innerWidth*0.96, fr.width*0.96);
-    const cs=getComputedStyle(el);
-    let size=parseFloat(cs.fontSize)||48;
-    el.style.whiteSpace='nowrap';
-    while(el.scrollWidth>maxW && size>16){
-      size*=0.94;
-      el.style.fontSize=size+'px';
-    }
-  }
-
-  const PIXEL_SPRITE=[
-    "..XXXXXX....",
-    ".XXXXXXXX...",
-    ".XX.XX.XX...",
-    ".XXXXXXXX...",
-    "..XXXXXX....",
-    ".XXXXXXXX...",
-    ".XXXXXXXX...",
-    ".XXXXXXXX...",
-    ".XXXXXXXX...",
-    ".XXXXXXXX...",
-    ".XX....XX...",
-    ".XX....XX...",
-    ".XX....XX...",
-    ".XX....XX...",
-    ".XX....XX...",
-    ".XX....XX..."
-  ];
-  const COLOR_FILL='#d0d0d0';
-  const COLOR_STROKE='#000';
-
-  function drawPixelHuman(ctx, cx, baselineY, W, hop=0, alpha=1, angleRad=0){
-    const cell=Math.max(2, Math.min(4, Math.floor(W*0.0018)));
-    const cols=PIXEL_SPRITE[0].length;
-    const rows=PIXEL_SPRITE.length;
-    const width=cols*cell;
-    const height=rows*cell;
-
-    const x0 = -width/2;
-    const y0 = -height - hop;
-
-    ctx.save();
-    ctx.translate(cx,baselineY);
-    ctx.rotate(angleRad);
-    ctx.globalAlpha=alpha;
-
-    ctx.fillStyle=COLOR_STROKE;
-    for(let y=0;y<rows;y++){
-      const row=PIXEL_SPRITE[y];
-      for(let x=0;x<cols;x++){
-        if(row[x]==='X'){
-          ctx.fillRect(x0+x*cell-1,y0+y*cell,cell,cell);
-          ctx.fillRect(x0+x*cell+1,y0+y*cell,cell,cell);
-          ctx.fillRect(x0+x*cell,y0+y*cell-1,cell,cell);
-          ctx.fillRect(x0+x*cell,y0+y*cell+1,cell,cell);
-        }
-      }
-    }
-    ctx.fillStyle=COLOR_FILL;
-    for(let y=0;y<rows;y++){
-      const row=PIXEL_SPRITE[y];
-      for(let x=0;x<cols;x++){
-        if(row[x]==='X'){
-          ctx.fillRect(x0+x*cell,y0+y*cell,cell,cell);
-        }
-      }
-    }
-    ctx.globalAlpha=1;
-    ctx.restore();
-  }
-
-  function getProsceniumRect(){
-    const r=getFrameRect();
-    return {x:r.left,y:r.top,w:r.width,h:r.height};
-  }
-
-  function prosceniumWalkPos(t01){
-    const pr = getProsceniumRect();
-    const margin = Math.min(pr.w, pr.h) * 0.06;
-    const left   = pr.x + margin;
-    const right  = pr.x + pr.w - margin;
-    const top    = pr.y + margin;
-    const bottom = pr.y + pr.h - margin;
-    const per = (right-left)*2 + (bottom-top)*2;
-    let d = ((t01%1)+1)%1 * per;
-
-    let x,y,edge;
-    if(d <= (right-left)){
-      x = left + d;
-      y = bottom;
-      edge = 'bottom';
-    }else if(d <= (right-left)+(bottom-top)){
-      d -= (right-left);
-      x = right;
-      y = bottom - d;
-      edge = 'right';
-    }else if(d <= (right-left)*2 + (bottom-top)){
-      d -= (right-left + (bottom-top));
-      x = right - d;
-      y = top;
-      edge = 'top';
-    }else{
-      d -= (right-left)*2 + (bottom-top);
-      x = left;
-      y = top + d;
-      edge = 'left';
-    }
-    return { x, y, baselineY:y, edge };
-  }
-
-  function drawBubble(ctx, x, y, text){
-    const pad=6, r=6;
-    ctx.font='12px "Courier New", monospace';
-    const m=ctx.measureText(text);
-    const w=Math.max(28,m.width+pad*2);
-    const h=18+pad*2;
-    const bx=Math.round(x-w/2);
-    const by=Math.round(y-h-18);
-    ctx.save();
-    ctx.fillStyle='rgba(0,0,0,0.9)';
-    ctx.strokeStyle='rgba(208,208,208,0.35)';
-    ctx.lineWidth=1;
-    ctx.beginPath();
-    ctx.moveTo(bx+r,by);
-    ctx.arcTo(bx+w,by,bx+w,by+h,r);
-    ctx.arcTo(bx+w,by+h,bx,by+h,r);
-    ctx.arcTo(bx,by+h,bx,by,r);
-    ctx.arcTo(bx,by,bx+w,by,r);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x-6,by+h-1);
-    ctx.lineTo(x,by+h+6);
-    ctx.lineTo(x+6,by+h-1);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle='#d0d0d0';
-    ctx.fillText(text,bx+pad,by+pad+12);
-    ctx.restore();
-  }
-
-  let introWalking=false;
-  let introStartTime=0;
-  const INTRO_WALK_DURATION=60_000;
-  const bubbleSeq=[
-    "HELLO","…","HI","…","HELLO!","…",
-    "…헤헤","기억나?","여기 있어.","…쉿","보고 있어",
-    "꿈이야?","아냐","…조금 더 가까이","같이 갈래?",
-    "손… 잡을래?","…응","괜찮아","거기 있어",
-    "작게 불러","내 이름"
-  ];
-  let introWalkers=[];
-
-  function initIntroWalkers(){
-    const now = performance.now();
-    introWalkers = [];
-    introWalkers.push({
-      tOffset: 0,
-      bubbleIndex: 0,
-      bubbleTimer: now + 500
-    });
-  }
-
-  /* ============= BGM & SFX ============= */
-  const Ambient = (() => {
-    let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, killers=[];
-    function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
-    function setup(){
-      ensureAudio();
-      ctx = audioCtx;
-      master = ctx.createGain();
-      master.gain.value = 0.0001;
-      delay = ctx.createDelay(2.5);
-      delay.delayTime.value = 0.45;
-      fb = ctx.createGain();
-      fb.gain.value = 0.32;
-      delay.connect(fb).connect(delay);
-      hp = ctx.createBiquadFilter();
-      hp.type='highpass';
-      hp.frequency.value=150;
-      lp = ctx.createBiquadFilter();
-      lp.type='lowpass';
-      lp.frequency.value=4200;
-      mix = ctx.createGain();
-      mix.gain.value = 0.7;
-      mix.connect(hp).connect(lp).connect(master);
-      busGain = ctx.createGain();
-      busGain.gain.value = 0.6;
-      busGain.connect(master);
-      master.connect(ctx.destination);
-    }
-    function connectDW(node){
-      node.connect(busGain);
-      node.connect(delay);
-      delay.connect(mix);
-    }
-    function airy(){
-      const b=ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate);
-      const d=b.getChannelData(0);
-      for(let i=0;i<d.length;i++){
-        d[i]=(Math.random()*2-1)*0.06;
-      }
-      const s=ctx.createBufferSource();
-      s.buffer=b; s.loop=true;
-      const g=ctx.createGain();
-      g.gain.value=0.015;
-      const f=ctx.createBiquadFilter();
-      f.type='bandpass';
-      f.frequency.value=1100;
-      f.Q.value=0.9;
-      s.connect(f).connect(g);
-      connectDW(g);
-      s.start();
-      killers.push(()=>{ try{s.stop();}catch{} });
-    }
-    function pad(root){
-      const out = ctx.createGain();
-      out.gain.value=0.24;
-      const filt=ctx.createBiquadFilter();
-      filt.type='lowpass';
-      filt.frequency.value=1200;
-      filt.Q.value=0.7;
-      const lfo=ctx.createOscillator();
-      const lfoG=ctx.createGain();
-      lfo.type='sine';
-      lfo.frequency.value=0.04;
-      lfoG.gain.value=260;
-      lfo.connect(lfoG).connect(filt.frequency);
-      lfo.start();
-      [0,7,12].forEach((i,k)=>{
-        const o=ctx.createOscillator();
-        o.type='triangle';
-        o.frequency.value=midi(root+i);
-        o.detune.value=(k-1)*4;
-        const g=ctx.createGain();
-        g.gain.value=0.05;
-        o.connect(g).connect(filt);
-        o.start();
-        killers.push(()=>{ try{g.disconnect();}catch{} });
-      });
-      filt.connect(out);
-      connectDW(out);
-      killers.push(()=>{ try{ out.disconnect(); }catch{} });
-    }
-    function plucked(root){
-      const now = ctx.currentTime;
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      const f = ctx.createBiquadFilter();
-      const steps = [0,7,12,14];
-      const pick = steps[Math.floor(Math.random()*steps.length)];
-      o.type='sine';
-      o.frequency.value = midi(root+pick);
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN*0.6, now+0.04);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+1.9);
-      f.type='bandpass';
-      f.frequency.value = o.frequency.value*2;
-      f.Q.value=4;
-      o.connect(f).connect(g);
-      connectDW(g);
-      o.start(now);
-      o.stop(now+2.1);
-      killers.push(()=>{ try{g.disconnect();}catch{} });
-    }
-    async function start(fadeIn=1.0, target=1.0){
-      await ensureResumed();
-      if(running) return;
-      setup();
-      running=true;
-      airy();
-      const seq=[57,52,48,43];
-      let i=0;
-      (function tick(){
-        if(!running) return;
-        const root = seq[i%seq.length];
-        pad(root);
-        if(Math.random()<0.7) plucked(root);
-        i++;
-        setTimeout(tick,9000);
-      })();
-      const t=ctx.currentTime;
-      const targetGain = MASTER_BGM_GAIN * target;
-      master.gain.cancelScheduledValues(t);
-      master.gain.setValueAtTime(0.0001, t);
-      master.gain.linearRampToValueAtTime(targetGain, t+fadeIn);
-    }
-    function stop(fade=2.0){
-      if(!running||!master) return;
-      const t=ctx.currentTime;
-      master.gain.cancelScheduledValues(t);
-      master.gain.setValueAtTime(master.gain.value, t);
-      master.gain.linearRampToValueAtTime(0.0001, t+fade);
-      setTimeout(()=>{
-        killers.forEach(fn=>{try{fn();}catch{}});
-        killers=[];
-        running=false;
-      }, fade*1000+200);
-    }
-    function isRunning(){ return running; }
-    return { start, stop, isRunning };
-  })();
-
-  function playClick(){
-    try{
-      ensureAudio();
-      const now = audioCtx.currentTime;
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.type='sine';
-      o.frequency.setValueAtTime(220, now);
-      o.frequency.exponentialRampToValueAtTime(110, now+0.22);
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+0.3);
-      o.connect(g).connect(audioCtx.destination);
-      o.start(now);
-      o.stop(now+0.35);
-    }catch(e){}
-  }
-
-  async function playBellChime(){
-    try{
-      ensureAudio();
-      const now = audioCtx.currentTime;
-      const o1 = audioCtx.createOscillator();
-      const o2 = audioCtx.createOscillator();
-      const g  = audioCtx.createGain();
-      o1.type='sine';
-      o2.type='sine';
-      o1.frequency.setValueAtTime(1200, now);
-      o2.frequency.setValueAtTime(1800, now);
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.03);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+1.4);
-      o1.connect(g); o2.connect(g); g.connect(audioCtx.destination);
-      o1.start(now); o2.start(now);
-      o1.stop(now+1.5); o2.stop(now+1.5);
-    }catch(e){}
-  }
-
-  async function playDreamWoong(){
-    try{
-      ensureAudio();
-      const now = audioCtx.currentTime;
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.type = 'sine';
-      o.frequency.setValueAtTime(90, now);
-      o.frequency.exponentialRampToValueAtTime(55, now+2.0);
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.15);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+2.0);
-      o.connect(g).connect(audioCtx.destination);
-      o.start(now);
-      o.stop(now+2.05);
-    }catch(e){}
-  }
-
-  let secondBellInterval = null;
-  let secondBellRunning = false;
-
-  async function playSoftBellChime(){
-    try{
-      ensureAudio();
-      const now = audioCtx.currentTime;
-      const o1 = audioCtx.createOscillator();
-      const o2 = audioCtx.createOscillator();
-      const g  = audioCtx.createGain();
-      o1.type='sine';
-      o2.type='sine';
-      o1.frequency.setValueAtTime(880, now);
-      o2.frequency.setValueAtTime(1320, now);
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN*0.8, now+0.03);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+2.4);
-      o1.connect(g); o2.connect(g); g.connect(audioCtx.destination);
-      o1.start(now); o2.start(now);
-      o1.stop(now+2.5); o2.stop(now+2.5);
-    }catch(e){}
-  }
-
-  function startSecondBell(){
-    if(secondBellRunning) return;
-    secondBellRunning = true;
-    playSoftBellChime();
-    secondBellInterval = setInterval(()=>{ playSoftBellChime(); }, 12000);
-  }
-
-  function stopSecondBell(){
-    if(secondBellInterval) clearInterval(secondBellInterval);
-    secondBellInterval = null;
-    secondBellRunning = false;
-  }
-
-  /* ====== 타이머들 ====== */
-  let mainTimer=null, mainLeft=5*60, timerFinished=false;
-  function formatMMSS(s){
-    const m=Math.floor(s/60);
-    const ss=(s%60).toString().padStart(2,'0');
-    return `${m.toString().padStart(2,'0')}:${ss}`;
-  }
-  function startMainTimer(){
-    mainLeft=5*60;
-    timerFinished=false;
-    runTimer.textContent=formatMMSS(mainLeft);
-    runTimer.style.display='block';
-    if(mainTimer) clearInterval(mainTimer);
-    mainTimer=setInterval(()=>{
-      mainLeft=Math.max(0,mainLeft-1);
-      runTimer.textContent=formatMMSS(mainLeft);
-      if(mainLeft<=0){
-        clearInterval(mainTimer);
-        mainTimer=null;
-        if(!timerFinished){
-          timerFinished=true;
-          onFirstSleepTimerEnd();
-        }
-      }
-    },1000);
-  }
-
-  let secondTimer=null, secondLeft=0, finalTimer=null, finalLeft=0;
-  let fourthTimer=null, fourthLeft=0;
-  let silenceTimer=null, silenceLeft=0;
-  let endTimer=null, endLeft=0;
-
-  async function typeSleepLine(el, text){
-    el.textContent = '';
-    for(let i=0;i<text.length;i++){
-      el.textContent += text[i];
-      typeTick();
-      await sleep(50);
-    }
-    fitTitleLine(el);
-  }
-
-  async function startTheEndChapter(){
-    stage = 'theEnd';
-    endTheEnd.textContent = '';
-    if(endReturn) endReturn.textContent = '';
-    await typeSleepLine(endTheEnd, 'THE END');
-    speakText('디 엔드');
-
-    endLeft = 5*60;
-    runTimer.textContent = formatMMSS(endLeft);
-    runTimer.style.display = 'block';
-    if(endTimer) clearInterval(endTimer);
-    endTimer = setInterval(()=>{
-      endLeft = Math.max(0, endLeft-1);
-      runTimer.textContent = formatMMSS(endLeft);
-      if(endLeft<=0){
-        clearInterval(endTimer);
-        endTimer=null;
-        runTimer.style.display='none';
-        if(endReturn){
-          endReturn.textContent = '※ 프로그램이 종료되었습니다. 태블릿과 헤드폰을 반납해 주세요.';
-        }
-      }
-    },1000);
-  }
-
-  async function showEndingSequence(){
-    claimImmersive();
-    await ensureResumed();
-    if (Ambient && Ambient.isRunning && Ambient.isRunning()){
-      Ambient.stop(3.0);
-    }
-    stopMicFXFadeOut(2.5);
-    fadeOutCamera(2000);
-
-    endSilence.textContent = '';
-    endTheEnd.textContent  = '';
-    if(endReturn) endReturn.textContent = '';
-
-    fadeShow(endOverlay, 2000, 'flex');
-    await sleep(2200);
-
-    stage = 'silence';
-    await typeSleepLine(endSilence, 'SILENCE');
-    speakText('사일런스');
-    playDreamWoong();
-
-    silenceLeft = 5*60;
-    runTimer.textContent = formatMMSS(silenceLeft);
-    runTimer.style.display = 'block';
-    if(silenceTimer) clearInterval(silenceTimer);
-    silenceTimer = setInterval(()=>{
-      silenceLeft = Math.max(0, silenceLeft-1);
-      runTimer.textContent = formatMMSS(silenceLeft);
-      if(silenceLeft<=0){
-        clearInterval(silenceTimer);
-        silenceTimer=null;
-        runTimer.style.display='none';
-        startTheEndChapter();
-      }
-    },1000);
-  }
-
-  function startFourthTimer(){
-    stage = 'fourth';
-    fourthLeft = 5*60;
-    runTimer.textContent = formatMMSS(fourthLeft);
-    runTimer.style.display = 'block';
-    if(fourthTimer) clearInterval(fourthTimer);
-    fourthTimer = setInterval(()=>{
-      fourthLeft = Math.max(0, fourthLeft-1);
-      runTimer.textContent = formatMMSS(fourthLeft);
-      if(fourthLeft<=0){
-        clearInterval(fourthTimer);
-        fourthTimer=null;
-        runTimer.style.display='none';
-        showEndingSequence();
-      }
-    },1000);
-  }
-
-  async function startFourthSleepSequence(){
-    claimImmersive();
-    await ensureResumed();
-
-    stage = 'fourthIntro';
-
-    fourthSleepLine1.textContent='';
-    fourthSleepLine2.textContent='';
-    fourthSleepLine3.textContent='';
-    fourthSleepLine4.textContent='';
-    fourthTitle.textContent='';
-
-    fourthTransition.style.display='flex';
-    fourthTransition.style.opacity='0';
-    fourthTransition.style.transition='opacity 2000ms ease';
-    await nextFrame();
-    fourthTransition.style.opacity='1';
-
-    const word = 'SLEEEEEEEEP,';
-
-    for(let i=0;i<word.length;i++){
-      fourthSleepLine1.textContent += word[i];
-      typeTick();
-      await sleep(45);
-    }
-    fitTitleLine(fourthSleepLine1);
-    await sleep(350);
-
-    for(let i=0;i<word.length;i++){
-      fourthSleepLine2.textContent += word[i];
-      typeTick();
-      await sleep(45);
-    }
-    fitTitleLine(fourthSleepLine2);
-    await sleep(350);
-
-    for(let i=0;i<word.length;i++){
-      fourthSleepLine3.textContent += word[i];
-      typeTick();
-      await sleep(45);
-    }
-    fitTitleLine(fourthSleepLine3);
-    await sleep(350);
-
-    for(let i=0;i<word.length;i++){
-      fourthSleepLine4.textContent += word[i];
-      typeTick();
-      await sleep(45);
-    }
-    fitTitleLine(fourthSleepLine4);
-
-    await sleep(900);
-
-    fourthTitle.style.opacity='0';
-    fourthTitle.style.transition='opacity 1500ms ease';
-    fourthTitle.textContent='THE FOURTH SLEEP';
-    fitTitleLine(fourthTitle);
-    playDreamWoong();
-    speakText('더 포스 슬립');
-    await nextFrame();
-    fourthTitle.style.opacity='1';
-
-    await sleep(2200);
-
-    fourthTransition.style.transition='opacity 2000ms ease';
-    fourthTransition.style.opacity='0';
-    await sleep(2100);
-    fourthTransition.style.display='none';
-    fourthTransition.style.transition='';
-    fourthTitle.style.transition='';
-    fourthTitle.style.opacity='1';
-
-    startFourthTimer();
-  }
-
-  function goToSleepCity(){
-    try{
-      stopSecondBell();
-      if(secondTimer){
-        clearInterval(secondTimer);
-        secondTimer = null;
-      }
-    }catch(e){}
-
-    stage = 'third';
-    finalLeft = 5*60;
-    runTimer.textContent = formatMMSS(finalLeft);
-    runTimer.style.display = 'block';
-
-    if(finalTimer) clearInterval(finalTimer);
-    finalTimer = setInterval(()=>{
-      finalLeft = Math.max(0, finalLeft - 1);
-      runTimer.textContent = formatMMSS(finalLeft);
-      if(finalLeft <= 0){
-        clearInterval(finalTimer);
-        finalTimer = null;
-        runTimer.style.display = 'none';
-        startFourthSleepSequence();
-      }
-    }, 1000);
-  }
-
-  let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, micPreGain=null;
-  function makeImpulse(ctx, seconds=6.0, decay=8.0){
-    const rate=ctx.sampleRate;
-    const len=rate*seconds;
-    const ir=ctx.createBuffer(2, len, rate);
-    for(let ch=0; ch<2; ch++){
-      const data=ir.getChannelData(ch);
-      for(let i=0;i<len;i++){
-        const t=i/len;
-        data[i]=(Math.random()*2-1)*Math.pow(1-t,decay);
-      }
-    }
-    return ir;
-  }
-
-  async function startMicFXFadeIn(fadeSec=2.5){
-    try{
-      await ensureResumed();
-      if(!micStream){
-        micStream = await navigator.mediaDevices.getUserMedia({
-          audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false},
-          video:false
-        });
-      }
-      if(!micSrc){
-        micSrc = audioCtx.createMediaStreamSource(micStream);
-      }
-
-      micPreGain = audioCtx.createGain();
-      micPreGain.gain.value = 1.0;
-
-      lowshelf = audioCtx.createBiquadFilter();
-      highshelf = audioCtx.createBiquadFilter();
-      lpf = audioCtx.createBiquadFilter();
-      panNode = audioCtx.createStereoPanner();
-
-      lpf.type='lowpass';
-      lpf.frequency.value=2800;
-      lpf.Q.value=0.3;
-
-      lowshelf.type='lowshelf';
-      lowshelf.frequency.value=350;
-      lowshelf.gain.value=0;
-
-      highshelf.type='highshelf';
-      highshelf.frequency.value=3500;
-      highshelf.gain.value=0;
-
-      revConvolver = audioCtx.createConvolver();
-      revConvolver.buffer = makeImpulse(audioCtx, 6.0, 8.0);
-
-      dryGain = audioCtx.createGain();
-      wetGain = audioCtx.createGain();
-      dryGain.gain.value = 0.0;
-      wetGain.gain.value = 0.0;
-
-      const out = audioCtx.createGain();
-      out.gain.value = 0.7;
-
-      micSrc.connect(micPreGain);
-      micPreGain.connect(lowshelf)
-               .connect(highshelf)
-               .connect(lpf)
-               .connect(panNode);
-
-      panNode.connect(dryGain);
-      panNode.connect(revConvolver);
-      revConvolver.connect(wetGain);
-
-      dryGain.connect(out);
-      wetGain.connect(out);
-      out.connect(audioCtx.destination);
-
-      window.addEventListener('deviceorientation', onTiltAudio, {passive:true});
-
-      const t = audioCtx.currentTime;
-      dryGain.gain.linearRampToValueAtTime(0.6, t+fadeSec);
-      wetGain.gain.linearRampToValueAtTime(0.6, t+fadeSec);
-    }catch(e){
-      console.warn('startMicFX error', e);
-    }
-  }
-
-  function stopMicFXFadeOut(sec=2.5){
-    try{
-      if(!audioCtx) return;
-      const t = audioCtx.currentTime;
-      if(dryGain) dryGain.gain.linearRampToValueAtTime(0.0001, t+sec);
-      if(wetGain) wetGain.gain.linearRampToValueAtTime(0.0001, t+sec);
-      if(micPreGain) micPreGain.gain.linearRampToValueAtTime(0.0001, t+sec);
-      setTimeout(()=>{
-        try{
-          if(micStream){
-            micStream.getTracks().forEach(tr=>tr.stop());
-          }
-        }catch(e){}
-        micStream=null;
-        micSrc=null;
-        panNode=null;
-        lpf=null;
-        lowshelf=null;
-        highshelf=null;
-        revConvolver=null;
-        dryGain=null;
-        wetGain=null;
-        micPreGain=null;
-        window.removeEventListener('deviceorientation', onTiltAudio);
-      }, sec*1000+200);
-    }catch(e){}
-  }
-
-  function onTiltAudio(e){
-    if(!audioCtx || !panNode) return;
-
-    const gamma = clamp(e.gamma ?? 0, -90, 90);
-    panNode.pan.value = gamma / 90;
-
-    const beta = clamp(e.beta ?? 0, -90, 90);
-
-    if(lowshelf) {
-      lowshelf.gain.value = (beta < 0) ? (beta / 90) * 10 : 0;
-    }
-
-    if(highshelf) {
-      highshelf.gain.value = (beta > 0) ? (beta / 90) * 10 : 0;
-    }
-
-    if(lpf) {
-      let cutoff;
-      if(beta >= 0) {
-        cutoff = 2800 + (beta / 90) * (4500 - 2800);
-      } else {
-        cutoff = 2800 + (beta / 90) * (2800 - 900);
-      }
-      lpf.frequency.value = clamp(cutoff, 900, 4500);
-      lpf.Q.value = 0.2 + (Math.abs(beta) / 90) * 0.3;
-    }
-
-    if(wetGain && dryGain) {
-      const tilt = Math.abs(beta) / 90;
-      const wetBase = 0.42;
-      const wetAmount = wetBase + tilt * 0.25;
-      wetGain.gain.value = clamp(wetAmount, 0.35, 0.67);
-      dryGain.gain.value = clamp(1.0 - wetGain.gain.value * 0.5, 0.5, 0.85);
-    }
-  }
-
-  let metaReady=false;
-  async function startCameraFresh(warmupOnly=false){
-    try{
-      if(!camPermGranted){
-        await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}, audio:true})
-          .then(s=>{
-            s.getTracks().forEach(t=>t.stop());
-            camPermGranted=true;
-          });
-      }
-      if(!camVideo){
-        camVideo=document.createElement('video');
-        camVideo.setAttribute('playsinline','');
-        camVideo.autoplay=true;
-        camVideo.playsInline=true;
-        camVideo.muted=true;
-      }
-      if(!camStream){
-        camStream = await navigator.mediaDevices.getUserMedia({
-          video:{
-            facingMode:{ideal:'environment'},
-            width:{min:1280,ideal:1920},
-            height:{min:720,ideal:1080},
-            aspectRatio:{ideal:16/9}
-          },
-          audio:false
-        });
-        camVideo.srcObject=camStream;
-      }
-      await camVideo.play().catch(()=>{});
-      if (camVideo.readyState < 1){
-        await new Promise(res=>camVideo.addEventListener('loadedmetadata', res, {once:true}));
-      }
-      metaReady=true;
-      resizeAll();
-      warmupFrames=0;
-
-      if(!vctx){
-        vctx=view.getContext('2d',{alpha:false});
-      }
-      if(!fgctx){
-        fgctx=fg.getContext('2d',{alpha:true});
-      }
-      resizeAll();
-      if(!animStarted && !warmupOnly){
-        animStarted=true;
-        loop();
-      }
-      document.querySelectorAll('.uiBtn').forEach(b=>{
-        b.addEventListener('click', ()=>{
-          primeAudio();
-        }, {passive:true});
-      });
-    }catch(e){
-      console.warn('startCameraFresh error:', e);
-    }
-  }
-
-  function resizeAll(){
-    const dpr=window.devicePixelRatio||1;
-    const w=window.innerWidth;
-    const h=window.innerHeight;
-    view.width=w*dpr;
-    view.height=h*dpr;
-    if(vctx) vctx.setTransform(dpr,0,0,dpr,0,0);
-    fg.width=w*dpr;
-    fg.height=h*dpr;
-    if(fgctx) fgctx.setTransform(dpr,0,0,dpr,0,0);
-    if(mapOverlay.style.display!=='none') drawMap();
-  }
-  addEventListener('resize', ()=>{
-    setTimeout(resizeAll,30);
-    warmupFrames=30;
-  }, {passive:true});
-
-  function drawBestCover(ctx, video, W, H, PW, PH){
-    const vw=video.videoWidth||0, vh=video.videoHeight||0;
-    if(!vw||!vh) return;
-    function coverScore(rot){
-      let rw=rot?vh:vw, rh=rot?vw:vh;
-      const s=Math.max(PW/rw, PH/rh)*ZOOM;
-      const dw=rw*s, dh=rh*s;
-      const letter=Math.max(0,(PW-dw))+Math.max(0,(PH-dh));
-      return {rot,s,dw,dh,letter};
-    }
-    const a=coverScore(false), b=coverScore(true);
-    let best=(b.letter<a.letter)?b:a;
-    ctx.save();
-    if(best.rot){
-      ctx.translate(PW/2,PH/2);
-      ctx.rotate(Math.PI/2);
-      ctx.drawImage(video,-best.dh/2,-best.dw/2,best.dh,best.dw);
-    }else{
-      const dx=(PW-best.dw)/2;
-      const dy=(PH-best.dh)/2;
-      ctx.drawImage(video,dx,dy,best.dw,best.dh);
-    }
-    ctx.restore();
-  }
-
-  function loop(){
-    requestAnimationFrame(loop);
-    if(capturing) return;
-    if(!vctx || !fgctx) return;
-
-    const W=view.width/(devicePixelRatio||1);
-    const H=view.height/(devicePixelRatio||1);
-    if(warmupFrames>0){
-      resizeAll();
-      warmupFrames--;
-    }
-
-    vctx.clearRect(0,0,W,H);
-    vctx.imageSmoothingEnabled=true;
-
-    if (showCamera && camVideo && camVideo.readyState>=2){
-      vctx.save();
-      vctx.filter='grayscale(1)';
-      drawBestCover(vctx, camVideo, W, H, W, H);
-      vctx.restore();
-      vctx.filter='none';
-    } else {
-      vctx.fillStyle='#000000';
-      vctx.fillRect(0,0,W,H);
-    }
-
-    const pr=getFrameRect();
-    fgctx.clearRect(0,0,W,H);
-    if(showIntroLayer && fgAlpha>0.001){
-      fgctx.save();
-      fgctx.globalAlpha=fgAlpha;
-      fgctx.beginPath();
-      fgctx.rect(pr.x,pr.y,pr.w,pr.h);
-      fgctx.clip();
-
-      if(introWalking && introWalkers.length){
-        const now=performance.now();
-        const tGlobal=(now-introStartTime)/INTRO_WALK_DURATION;
-        introWalkers.forEach(w=>{
-          const t = ((tGlobal + w.tOffset)%1+1)%1;
-          const pos = prosceniumWalkPos(t);
-          const hop = Math.max(0,10*Math.sin(t*Math.PI*20));
-
-          let angle = 0;
-          if(pos.edge === 'bottom') angle = 0;
-          else if(pos.edge === 'right') angle = -Math.PI/2;
-          else if(pos.edge === 'top') angle = Math.PI;
-          else if(pos.edge === 'left') angle = Math.PI/2;
-
-          drawPixelHuman(
-            fgctx,
-            Math.round(pos.x),
-            Math.round(pos.baselineY),
-            W,
-            hop,
-            1,
-            angle
-          );
-
-          const now2 = performance.now();
-          if(now2-w.bubbleTimer>700+Math.random()*500){
-            w.bubbleIndex=(w.bubbleIndex+1)%bubbleSeq.length;
-            w.bubbleTimer=now2;
-          }
-          drawBubble(fgctx, Math.round(pos.x), Math.round(pos.baselineY)-28, bubbleSeq[w.bubbleIndex]);
-        });
-      }
-
-      fgctx.restore();
-    }
-
-    if (camFadeAlpha > 0){
-      vctx.save();
-      vctx.fillStyle = `rgba(0,0,0,${camFadeAlpha})`;
-      vctx.fillRect(0,0,W,H);
-      vctx.restore();
-    }
-  }
-
-  function fadeInCamera(ms=2500){
-    showCamera = true;
-    camFadeAlpha = 1;
-    const t0 = performance.now();
-    function step(){
-      const k = Math.min(1, (performance.now()-t0)/ms);
-      camFadeAlpha = 1-k;
-      if(k<1){
-        requestAnimationFrame(step);
-      }else{
-        camFadeAlpha = 0;
-      }
-    }
-    step();
-  }
-
-  function fadeOutCamera(ms=2500){
-    showCamera = true;
-    camFadeAlpha = 0;
-    const t0 = performance.now();
-    function step(){
-      const k = Math.min(1, (performance.now()-t0)/ms);
-      camFadeAlpha = k;
-      if(k<1){
-        requestAnimationFrame(step);
-      }else{
-        camFadeAlpha = 1;
-        showCamera = false;
-      }
-    }
-    step();
-  }
-
-  let captureAnimating=false;
-  captureBtn.addEventListener('click', ()=>{
-    claimImmersive();
-    if(captureAnimating) return;
-    primeAudio();
-    playClick();
-    captureAnimating=true;
-    capturing=true;
-    const cssW=view.clientWidth;
-    const cssH=view.clientHeight;
-    freezeLayer.width=cssW;
-    freezeLayer.height=cssH;
-    const displayCtx=freezeLayer.getContext('2d');
-    displayCtx.imageSmoothingEnabled=false;
-    freezeLayer.style.transition='';
-    freezeLayer.style.opacity='0';
-    freezeLayer.style.display='block';
-
-    const snapshot=document.createElement('canvas');
-    snapshot.width=cssW;
-    snapshot.height=cssH;
-    const snapCtx=snapshot.getContext('2d');
-    snapCtx.imageSmoothingEnabled=false;
-    snapCtx.drawImage(view,0,0,view.width,view.height,0,0,cssW,cssH);
-    snapCtx.drawImage(fg,0,0,fg.width,fg.height,0,0,cssW,cssH);
-
-    const off=document.createElement('canvas');
-    const oc=off.getContext('2d');
-    let px=2.4;
-    const step=1.015;
-    let revealed=false;
-    function anim(){
-      if(px>420){
-        freezeLayer.style.transition='opacity 2000ms ease';
-        freezeLayer.style.opacity='0';
-        setTimeout(()=>{
-          freezeLayer.style.display='none';
-          freezeLayer.style.transition='';
-          capturing=false;
-          captureAnimating=false;
-        },2020);
-        return;
-      }
-      const w=Math.max(1,Math.floor(cssW/px));
-      const h=Math.max(1,Math.floor(cssH/px));
-      off.width=w;
-      off.height=h;
-      oc.imageSmoothingEnabled=false;
-      oc.clearRect(0,0,w,h);
-      oc.drawImage(snapshot,0,0,cssW,cssH,0,0,w,h);
-      displayCtx.clearRect(0,0,cssW,cssH);
-      displayCtx.imageSmoothingEnabled=false;
-      displayCtx.globalAlpha=1.0;
-      displayCtx.drawImage(off,0,0,w,h,0,0,cssW,cssH);
-      if(!revealed){
-        freezeLayer.style.opacity='1';
-        revealed=true;
-      }
-      px=px*step+0.35;
-      requestAnimationFrame(anim);
-    }
-    requestAnimationFrame(anim);
-  });
-
-  let introIndex=0;
-  function resolveIntroLine(i){
-    let line = INTRO_LINES[i] || '';
-    return line.replace(/_____/g, displayName);
-  }
-
-  async function typeIntroLine(idx){
-    introTextEl.textContent='';
-    const text = resolveIntroLine(idx);
-    speakText(text);
-    for(let i=0;i<text.length;i++){
-      introTextEl.textContent += text[i];
-      if(i%2===0) typeTick();  // 2글자마다 한 번만 소리
-      await sleep(24);
-    }
-  }
-
-  introNextBtn.addEventListener('click', ()=>{
-    primeAudio();
-    playClick();
-    introIndex++;
-    if(introIndex >= INTRO_LINES.length){
-      fadeHide(introDialogue, 300);
-      setTimeout(async ()=>{
-        await playBellChime();
-        startIntroToFirstSleepSequence();
-      }, 320);
-    }else{
-      typeIntroLine(introIndex);
-    }
-  }, {passive:true});
-
-  function fadeIntroLayerOut(ms=4500){
-    const t0=performance.now();
-    const startAlpha=fgAlpha;
-    function step(){
-      const k=Math.min(1,(performance.now()-t0)/ms);
-      fgAlpha=startAlpha*(1-k);
-      if(k<1){
-        requestAnimationFrame(step);
-      }else{
-        fgAlpha=0;
-        showIntroLayer=false;
-        introWalking=false;
-        if(fgctx){
-          const W=view.width/(devicePixelRatio||1);
-          const H=view.height/(devicePixelRatio||1);
-          fgctx.clearRect(0,0,W,H);
-        }
-      }
-    }
-    step();
-  }
-
-  async function runFirstSleepTitleSequence(){
-    firstTransWord.textContent='';
-    firstTransTitle.textContent='';
-
-    firstTransition.style.display='flex';
-    firstTransition.style.opacity='0';
-    firstTransition.style.transition='opacity 2000ms ease';
-    await nextFrame();
-    firstTransition.style.opacity='1';
-
-    const word = 'SLEEEEEEEEP,';
-    for(let i=0;i<word.length;i++){
-      firstTransWord.textContent += word[i];
-      typeTick();
-      await sleep(45);
-    }
-    fitTitleLine(firstTransWord);
-
-    await sleep(900);
-
-    firstTransTitle.style.opacity = '0';
-    firstTransTitle.style.transition = 'opacity 1500ms ease';
-    firstTransTitle.textContent = 'THE FIRST SLEEP';
-    fitTitleLine(firstTransTitle);
-    playDreamWoong();
-    speakText('더 퍼스트 슬립');
-    await nextFrame();
-    firstTransTitle.style.opacity = '1';
-
-    await sleep(2000);
-
-    if (Ambient && Ambient.isRunning && Ambient.isRunning()){
-      Ambient.stop(3.0);
-    }
-
-    firstTransition.style.transition='opacity 2000ms ease';
-    firstTransition.style.opacity='0';
-    await sleep(2100);
-    firstTransition.style.display='none';
-    firstTransition.style.transition='';
-    firstTransTitle.style.transition='';
-    firstTransTitle.style.opacity='1';
-  }
-
-  async function startIntroToFirstSleepSequence(){
-    claimImmersive();
-    await ensureResumed();
-
-    introWalking=true;
-    fadeIntroLayerOut(4500);
-
-    await sleep(1000);
-    await runFirstSleepTitleSequence();
-
-    showNoticePopup();
-  }
-
-  function showNoticePopup(){
-    function bgTrap(e){
-      if(!e.target.closest('#noticeCard')){
-        e.stopPropagation();
-        e.preventDefault();
-      }
-    }
-    ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{
-      noticePopup.addEventListener(ev, bgTrap, {passive:false});
-    });
-    fadeShow(noticePopup, 280, 'flex');
-    playBellChime();
-    setTimeout(()=>{
-      noticeOk && noticeOk.focus && noticeOk.focus();
-    }, 50);
-    noticeOk.onclick = async (e)=>{
-      e.stopPropagation();
-      claimImmersive();
-      await ensureResumed();
-      playClick();
-      fadeHide(noticePopup, 250);
-      await sleep(260);
-
-      fadeInCamera(2500);
-      startMicFXFadeIn(2.5);
-
-      controls.classList.add('show');
-      captureBtn.classList.add('show');
-
-      stage = 'first';
-      startMainTimer();
-      startFirstSleepStory();
-    };
-  }
-
-  async function typeFirstSleepLine(text){
-    chapterBox.innerHTML='';
-    const speak = text.replace(/\n/g,' ');
-    speakText(speak);
-    for(let i=0;i<text.length;i++){
-      const ch = text[i];
-      if(ch === '\n'){
-        chapterBox.appendChild(document.createElement('br'));
-        continue;
-      }
-      const span = document.createElement('span');
-      span.className = 'charBox';
-      span.textContent = ch;
-      chapterBox.appendChild(span);
-      if(i%2===0) typeTick();
-      await sleep(26);
-    }
-  }
-
-  async function startFirstSleepStory(){
-    claimImmersive();
-    await ensureResumed();
-    fadeShow(chapterOverlay, 400, 'flex');
-    await sleep(420);
-
-    for(const line of FIRST_SLEEP_LINES){
-      await typeFirstSleepLine(line);
-      await sleep(4000);
-    }
-
-    fadeHide(chapterOverlay, 800);
-  }
-
-  async function runSecondSleepTitleSequence(){
-    sleepLine1.textContent = '';
-    sleepLine2.textContent = '';
-    sleepSecondTitle.textContent = '';
-    sleepTransition.style.display='flex';
-    sleepTransition.style.opacity='0';
-    sleepTransition.style.transition='opacity 2000ms ease';
-    await nextFrame();
-    sleepTransition.style.opacity='1';
-
-    const line1 = 'SLEEEEEEEEP,';
-    const line2 = 'SLEEEEEEEEP,';
-
-    for(let i=0;i<line1.length;i++){
-      sleepLine1.textContent += line1[i];
-      typeTick();
-      await sleep(45);
-    }
-    fitTitleLine(sleepLine1);
-
-    await sleep(350);
-    for(let i=0;i<line2.length;i++){
-      sleepLine2.textContent += line2[i];
-      typeTick();
-      await sleep(45);
-    }
-    fitTitleLine(sleepLine2);
-
-    await sleep(900);
-
-    sleepSecondTitle.style.opacity = '0';
-    sleepSecondTitle.style.transition = 'opacity 1500ms ease';
-    sleepSecondTitle.textContent = 'THE SECOND SLEEP';
-    fitTitleLine(sleepSecondTitle);
-    playDreamWoong();
-    speakText('더 세컨드 슬립');
-    await nextFrame();
-    sleepSecondTitle.style.opacity = '1';
-
-    await sleep(2200);
-
-    sleepTransition.style.transition='opacity 2000ms ease';
-    sleepTransition.style.opacity='0';
-    await sleep(2100);
-    sleepTransition.style.display='none';
-    sleepTransition.style.transition='';
-    sleepSecondTitle.style.transition='';
-    sleepSecondTitle.style.opacity='1';
-  }
-
-  async function onFirstSleepTimerEnd(){
-    claimImmersive();
-    await ensureResumed();
-
-    controls.classList.remove('show');
-    captureBtn.classList.remove('show');
-    runTimer.style.display='none';
-
-    fadeHide(chapterOverlay, 800);
-
-    fadeOutCamera(2500);
-    stopMicFXFadeOut(2.5);
-
-    await sleep(400);
-    await runSecondSleepTitleSequence();
-
-    stage = 'secondIntro';
-    showSecondNoticePopup();
-  }
-
-  function showSecondNoticePopup(){
-    function bgTrap2(e){
-      if(!e.target.closest('#noticeCard2')){
-        e.stopPropagation();
-        e.preventDefault();
-      }
-    }
-    ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{
-      noticePopup2.addEventListener(ev, bgTrap2, {passive:false});
-    });
-    fadeShow(noticePopup2, 280, 'flex');
-    playBellChime();
-    setTimeout(()=>{
-      noticeOk2 && noticeOk2.focus && noticeOk2.focus();
-    }, 50);
-
-    noticeOk2.onclick = async (e)=>{
-      e.stopPropagation();
-      claimImmersive();
-      await ensureResumed();
-      playClick();
-      fadeHide(noticePopup2, 260);
-      await sleep(280);
-      await playBellChime();
-      showMapOverlay();
-    };
-  }
-
-  async function startThirdSleepSequence(){
-    claimImmersive();
-    await ensureResumed();
-
-    stage = 'thirdIntro';
-
-    thirdSleepLine1.textContent='';
-    thirdSleepLine2.textContent='';
-    thirdSleepLine3.textContent='';
-    thirdTitle.textContent='';
-
-    thirdTransition.style.display='flex';
-    thirdTransition.style.opacity='0';
-    thirdTransition.style.transition='opacity 2000ms ease';
-    await nextFrame();
-    thirdTransition.style.opacity='1';
-
-    const word = 'SLEEEEEEEEP,';
-
-    for(let i=0;i<word.length;i++){
-      thirdSleepLine1.textContent += word[i];
-      typeTick();
-      await sleep(45);
-    }
-    fitTitleLine(thirdSleepLine1);
-    await sleep(350);
-
-    for(let i=0;i<word.length;i++){
-      thirdSleepLine2.textContent += word[i];
-      typeTick();
-      await sleep(45);
-    }
-    fitTitleLine(thirdSleepLine2);
-    await sleep(350);
-
-    for(let i=0;i<word.length;i++){
-      thirdSleepLine3.textContent += word[i];
-      typeTick();
-      await sleep(45);
-    }
-    fitTitleLine(thirdSleepLine3);
-
-    await sleep(900);
-
-    thirdTitle.style.opacity='0';
-    thirdTitle.style.transition='opacity 1500ms ease';
-    thirdTitle.textContent='THE THIRD SLEEP';
-    fitTitleLine(thirdTitle);
-    playDreamWoong();
-    speakText('더 써드 슬립');
-    await nextFrame();
-    thirdTitle.style.opacity='1';
-
-    await sleep(2200);
-
-    thirdTransition.style.transition='opacity 1800ms ease';
-    thirdTransition.style.opacity='0';
-    await sleep(1900);
-    thirdTransition.style.display='none';
-    thirdTransition.style.transition='';
-    thirdTitle.style.transition='';
-    thirdTitle.style.opacity='1';
-
-    showThirdNotice();
-  }
-
-  function showThirdNotice(){
-    function bgTrap3(e){
-      if(!e.target.closest('#noticeCard3')){
-        e.stopPropagation();
-        e.preventDefault();
-      }
-    }
-    ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{
-      noticePopup3.addEventListener(ev, bgTrap3, {passive:false});
-    });
-    fadeShow(noticePopup3, 280, 'flex');
-    playBellChime();
-    setTimeout(()=>{ noticeOk3 && noticeOk3.focus && noticeOk3.focus(); }, 50);
-
-    noticeOk3.onclick = async (e)=>{
-      e.stopPropagation();
-      claimImmersive();
-      await ensureResumed();
-      playClick();
-      fadeHide(noticePopup3, 260);
-      await sleep(300);
-      goToSleepCity();
-    };
-  }
-
-  async function showIntroFlow(){
-    claimImmersive();
-    await ensureResumed();
-    if(!Ambient.isRunning()) Ambient.start(0.8, 1.0);
-
-    showCamera = false;
-    camFadeAlpha = 0;
-
-    introBig.style.display = 'flex';
-    introBig.style.opacity = '1';
-    introBig.style.transition = 'none';
-    const word = 'INTRODUCTION';
-    introBigText.textContent = '';
-    speakText('인트로덕션');
-    for(let i=0;i<word.length;i++){
-      introBigText.textContent += word[i];
-      typeTick();
-      await sleep(45);
-    }
-    fitTitleLine(introBigText);
-
-    await sleep(1400);
-    introBig.style.transition = 'opacity 1600ms ease';
-    introBig.style.opacity = '0';
-    await sleep(1700);
-    introBig.style.display = 'none';
-
-    introWalking = true;
-    introStartTime = performance.now();
-    showIntroLayer = true;
-    fgAlpha = 1.0;
-    initIntroWalkers();
-
-    introIndex = 0;
-    fadeShow(introDialogue, 300, 'block');
-    typeIntroLine(introIndex);
-  }
-
-  document.getElementById('goIntro').addEventListener('click', ()=>{
-    primeAudio();
-    ensureResumed().then(async ()=>{
-      claimImmersive();
-      if(!Ambient.isRunning()) Ambient.start(0.8,1.0);
-      playClick();
-      fadeHide(welcome, FADE);
-      stage = 'intro';
-      showIntroFlow();
-    });
-  }, {passive:true});
-
-  let mapMarkers = [];
-
-  function drawMap(){
-    if(!mapOverlay || mapOverlay.style.display==='none') return;
-    const rect = mapOverlay.getBoundingClientRect();
-    const w = rect.width;
-    const h = rect.height;
-    const dpr = window.devicePixelRatio || 1;
-    mapCanvas.width = w*dpr;
-    mapCanvas.height = h*dpr;
-    const ctx = mapCanvas.getContext('2d');
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-
-    ctx.clearRect(0,0,w,h);
-    ctx.fillStyle='#000';
-    ctx.fillRect(0,0,w,h);
-
-    const cx = w*0.5;
-    const cy = h*0.5;
-
-    const mw = w*0.7;
-    const mh = h*0.6;
-    const left = cx - mw/2;
-    const top  = cy - mh/2;
-
-    ctx.fillStyle='#000';
-    ctx.fillRect(left, top, mw, mh);
-    ctx.strokeStyle='rgba(208,208,208,0.85)';
-    ctx.lineWidth=2;
-    ctx.strokeRect(left, top, mw, mh);
-
-    const r = Math.min(mw,mh)*0.16;
-    ctx.fillStyle='#555555';
-    ctx.beginPath();
-    for(let i=0;i<6;i++){
-      const ang = Math.PI/2 + i*Math.PI/3;
-      const x = cx + r*Math.cos(ang);
-      const y = cy + r*Math.sin(ang);
-      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    }
-    ctx.closePath();
-    ctx.fill();
-
-    mapMarkers=[];
-    const rectW = r*0.9;
-    const rectH = r*0.5;
-    const offsets = [
-      {id:1, dx:0,       dy:-r*1.7},
-      {id:2, dx:r*1.45,  dy:-r*1.05},
-      {id:3, dx:r*1.9,   dy:0},
-      {id:4, dx:r*1.45,  dy:r*1.05},
-      {id:5, dx:0,       dy:r*1.7},
-      {id:6, dx:-r*1.45, dy:r*1.05},
-      {id:7, dx:-r*1.9,  dy:0},
-      {id:8, dx:-r*1.45, dy:-r*1.05}
-    ];
-
-    ctx.font='14px "Press Start 2P","Courier New",monospace';
-    ctx.textAlign='center';
-    ctx.textBaseline='middle';
-
-    offsets.forEach(o=>{
-      const cxRect = cx + o.dx;
-      const cyRect = cy + o.dy;
-      const x = cxRect - rectW/2;
-      const y = cyRect - rectH/2;
-
-      mapMarkers.push({id:o.id, x, y, w:rectW, h:rectH});
-
-      ctx.fillStyle='rgba(0,0,0,0.85)';
-      ctx.fillRect(x,y,rectW,rectH);
-      ctx.strokeStyle='rgba(208,208,208,0.9)';
-      ctx.strokeRect(x,y,rectW,rectH);
-      ctx.fillStyle='rgba(208,208,208,0.96)';
-      ctx.fillText(String(o.id), x+rectW/2, y+rectH/2+1);
-    });
-  }
-
-  function showMapOverlay(){
-    fadeShow(mapOverlay, 600, 'flex');
-    setTimeout(drawMap, 80);
-    stage = 'second';
-    startSecondTimer();
-    startSecondBell();
-    runTimer.style.display='block';
-  }
-
-  function openMarkerPopup(id){
-    const txt = `ZONE ${id}`;
-    mapPopBody.textContent = txt;
-    speakText(`존 ${id}`);
-    mapPop.style.display='flex';
-  }
-
-  mapPopClose.addEventListener('click', (e)=>{
-    e.stopPropagation();
-    mapPop.style.display='none';
-  }, {passive:true});
-
-  mapCanvas.addEventListener('pointerdown', (e)=>{
-    const rect = mapCanvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    for(const m of mapMarkers){
-      if(x>=m.x && x<=m.x+m.w && y>=m.y && y<=m.y+m.h){
-        openMarkerPopup(m.id);
-        break;
-      }
-    }
-  });
-
-  function startSecondTimer(){
-    secondLeft = 5*60;
-    runTimer.textContent = formatMMSS(secondLeft);
-    runTimer.style.display = 'block';
-    if(secondTimer) clearInterval(secondTimer);
-    secondTimer = setInterval(()=>{
-      secondLeft = Math.max(0, secondLeft-1);
-      runTimer.textContent = formatMMSS(secondLeft);
-      if(secondLeft<=0){
-        clearInterval(secondTimer);
-        secondTimer=null;
-        stopSecondBell();
-        runTimer.style.display='none';
-        endSecondStageAndStartThird();
-      }
-    },1000);
-  }
-
-  async function endSecondStageAndStartThird(){
-    fadeHide(mapOverlay, 600);
-    mapPop.style.display = 'none';
-    await sleep(650);
-    await startThirdSleepSequence();
-  }
-
-  function setAppH2(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
-  setAppH2();
-  addEventListener('resize', setAppH2, {passive:true});
-  if (window.visualViewport){
-    visualViewport.addEventListener('resize', ()=>setTimeout(setAppH2,50));
-  }
-
-  /* ====== SKIP 버튼 ====== */
-  skipBtn.addEventListener('click', ()=>{
-    primeAudio();
-    playClick();
-
-    if(stage === 'intro'){
-      fadeHide(introDialogue, 300);
-      introWalking=false;
-      showIntroLayer=false;
-      setTimeout(async ()=>{
-        await playBellChime();
-        startIntroToFirstSleepSequence();
-      }, 350);
-    }else if(stage === 'first'){
-      if(mainTimer){
-        clearInterval(mainTimer);
-        mainTimer=null;
-      }
-      timerFinished = true;
-      onFirstSleepTimerEnd();
-    }else if(stage === 'second'){
-      stopSecondBell();
-      if(secondTimer){
-        clearInterval(secondTimer);
-        secondTimer=null;
-      }
-      runTimer.style.display='none';
-      endSecondStageAndStartThird();
-    }else if(stage === 'thirdIntro'){
-      goToSleepCity();
-    }else if(stage === 'third'){
-      if(finalTimer){
-        clearInterval(finalTimer);
-        finalTimer = null;
-      }
-      runTimer.style.display='none';
-      startFourthSleepSequence();
-    }else if(stage === 'fourthIntro'){
-      startFourthTimer();
-    }else if(stage === 'fourth'){
-      if(fourthTimer){
-        clearInterval(fourthTimer);
-        fourthTimer = null;
-      }
-      runTimer.style.display='none';
-      showEndingSequence();
-    }else if(stage === 'silence'){
-      if(silenceTimer){
-        clearInterval(silenceTimer);
-        silenceTimer=null;
-      }
-      runTimer.style.display='none';
-      startTheEndChapter();
-    }else if(stage === 'theEnd'){
-      if(endTimer){
-        clearInterval(endTimer);
-        endTimer=null;
-      }
-      runTimer.style.display='none';
-      if(endReturn){
-        endReturn.textContent = '※ 프로그램이 종료되었습니다. 태블릿과 헤드폰을 반납해 주세요.';
-      }
-    }else{
-      if(mainTimer){
-        clearInterval(mainTimer);
-        mainTimer=null;
-      }
-      timerFinished = true;
-      onFirstSleepTimerEnd();
-    }
-  }, {passive:true});
-
-  startCameraFresh(true);
-  if(!animStarted){
-    animStarted=true;
-    loop();
-  }
-
-  window.stage = 'gate';
-})();
+}
+
+/* ============================================================
+   SKIP 기능
+============================================================ */
+document.getElementById("skipBtn").addEventListener("click", ()=>{
+  playButtonSound();
+  skipCurrentScene();
+});
+
+function skipCurrentScene(){
+  if(currentScene === "scene-intro") goScene1();
+  else if(currentScene === "scene-1") goScene2();
+  else if(currentScene === "scene-2") goScene3();
+  else if(currentScene === "scene-3") goScene4();
+  else if(currentScene === "scene-4") goSilence();
+  else if(currentScene === "scene-silence") goEnd();
+}
+
+/* ============================================================
+   각 SCENE 실행 로직
+============================================================ */
+
+/* ---------- INTRO ---------- */
+document.getElementById("introNextBtn").addEventListener("click", ()=>{
+  playButtonSound();
+  goScene1();
+});
+
+/* ---------- Scene 1 ---------- */
+async function goScene1(){
+  disableCamera();
+  showScene("scene-1");
+
+  const text = 
+`- 문장을 입력하세요
+- 문장을 입력하세요
+- 문장을 입력하세요`;
+
+  const box = document.getElementById("text-1");
+  await sleep(300);
+  await typeText(box, text, 28, true);
+
+  // 5분 타이머 → 자동 다음
+  setTimeout(goScene2, 5*60*1000);
+}
+
+/* ---------- Scene 2 ---------- */
+async function goScene2(){
+  disableCamera();
+  showScene("scene-2");
+
+  const text = 
+`- 문장을 입력하세요
+- 문장을 입력하세요
+- 문장을 입력하세요`;
+
+  const box = document.getElementById("text-2");
+  await sleep(300);
+  await typeText(box, text, 28, false);
+
+  // 8분 타이머
+  setTimeout(goScene3, 8*60*1000);
+}
+
+/* ---------- Scene 3 ---------- */
+async function goScene3(){
+  disableCamera();
+  showScene("scene-3");
+
+  const text =
+`- 문장을 입력하세요
+- 문장을 입력하세요
+- 문장을 입력하세요`;
+
+  const box = document.getElementById("text-3");
+  await sleep(300);
+  await typeText(box, text, 32, false);
+
+  // 5분 후
+  setTimeout(goScene4, 5*60*1000);
+}
+
+/* ---------- Scene 4 ---------- */
+async function goScene4(){
+  disableCamera();
+  showScene("scene-4");
+
+  const text =
+`- 문장을 입력하세요
+- 문장을 입력하세요
+- 문장을 입력하세요`;
+
+  const box = document.getElementById("text-4");
+  await sleep(300);
+  await typeText(box, text, 30, false);
+
+  // 5분 후
+  setTimeout(goSilence, 5*60*1000);
+}
+
+/* ---------- SILENCE ---------- */
+async function goSilence(){
+  showScene("scene-silence");
+
+  await sleep(500);
+  enableCamera();
+
+  // 3분 후 THE END
+  setTimeout(goEnd, 3*60*1000);
+}
+
+/* ---------- THE END ---------- */
+function goEnd(){
+  disableCamera();
+  showScene("scene-end");
+}
+
+document.getElementById("restartBtn").addEventListener("click", ()=>{
+  playButtonSound();
+  disableCamera();
+  showScene("scene-intro");
+});
+/* ============================================================
+   초기 시작 처리
+============================================================ */
+window.addEventListener("load", ()=>{
+  // 오디오/tts 재활성화
+  resumeAll();
+
+  // 인트로 장면 이미 active 상태
+  showScene("scene-intro");
+});
+
+/* ============================================================
+   SCRIPT 종료
+============================================================ */
 </script>
+
 </body>
 </html>
