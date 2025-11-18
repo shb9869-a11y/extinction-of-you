@@ -81,6 +81,7 @@
     height:100vh;
     display:block;
     z-index:0;
+    /* 카메라를 포함한 뒤 배경은 항상 흑백 */
     filter:grayscale(1);
   }
   #fg{
@@ -273,7 +274,7 @@
     text-align:center;
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
     padding:24px 20px 20px;
-    border:none;
+    border:none; /* 하얀 테두리 제거 */
     background:rgba(0,0,0,0.85);
     box-shadow:0 10px 24px rgba(0,0,0,0.8);
   }
@@ -372,6 +373,8 @@
     pointer-events:none;
     z-index:210;
   }
+  #introBigText{
+  }
 
   /* INTRO 텍스트 박스 */
   #introDialogue{
@@ -409,6 +412,8 @@
     pointer-events:none;
     z-index:850;
     text-align:center;
+  }
+  #firstSleepText{
   }
 
   /* NOTICE Popup (FIRST SLEEP) */
@@ -498,7 +503,7 @@
   .sleepLine{
     font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
     letter-spacing:.16em;
-    font-size:clamp(32px, 12vmin, 160px);
+    font-size:clamp(32px, 12vmin, 160px); /* FIRST SLEEP 기준 */
     text-transform:uppercase;
     white-space:nowrap;
     text-shadow:0 0 8px rgba(0,0,0,.85);
@@ -512,7 +517,7 @@
     box-sizing:border-box;
   }
 
-  /* INTRO → FIRST SLEEP */
+  /* INTRO → FIRST SLEEP: SLEEEEEEEEP + THE FIRST SLEEP */
   #firstTransition{
     position:fixed;
     inset:0;
@@ -526,8 +531,14 @@
     pointer-events:none;
     text-align:center;
   }
+  #firstTransWord{
+    margin-bottom:10px;
+  }
+  #firstTransTitle{
+    margin-top:10px;
+  }
 
-  /* BETWEEN FIRST & SECOND SLEEP */
+  /* BETWEEN FIRST & SECOND SLEEP (2줄) */
   #sleepTransition{
     position:fixed;
     inset:0;
@@ -541,8 +552,11 @@
     pointer-events:none;
     text-align:center;
   }
+  #sleepSecondTitle{
+    margin-top:14px;
+  }
 
-  /* THIRD SLEEP 타이틀 */
+  /* THIRD SLEEP 타이틀 (3줄 SLEEEEEEEEP) */
   #thirdTransition{
     position:fixed;
     inset:0;
@@ -557,7 +571,7 @@
     text-align:center;
   }
 
-  /* FOURTH SLEEP 타이틀 */
+  /* FOURTH SLEEP 타이틀 (4줄 SLEEEEEEEEP) */
   #fourthTransition{
     position:fixed;
     inset:0;
@@ -572,7 +586,6 @@
     text-align:center;
   }
 
-  /* THIRD NOTICE */
   #noticePopup3{
     position:fixed;
     inset:0;
@@ -640,42 +653,6 @@
     font-size:clamp(12px,2.4vmin,16px);
   }
   #noticeActions2{
-    margin-top:10px;
-    text-align:right;
-  }
-
-  /* FOURTH NOTICE */
-  #noticePopup4{
-    position:fixed;
-    inset:0;
-    z-index:965;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    background:rgba(0,0,0,.8);
-  }
-  #noticeCard4{
-    width:min(92vw, 640px);
-    background:#0b0b0b;
-    color:var(--accent);
-    border:1px solid #444;
-    padding:18px;
-    box-shadow:0 10px 30px rgba(0,0,0,.8);
-    font-family:"Courier New",ui-monospace,monospace;
-    line-height:1.7;
-  }
-  #noticeCard4 h3{
-    margin:0 0 6px 0;
-    letter-spacing:.06em;
-    font-weight:700;
-    font-size:clamp(15px,3vmin,20px);
-    color:var(--accent);
-  }
-  #noticeCard4 p{
-    margin:4px 0;
-    font-size:clamp(12px,2.4vmin,16px);
-  }
-  #noticeActions4{
     margin-top:10px;
     text-align:right;
   }
@@ -771,7 +748,7 @@
   <button id="docLauncher" class="uiBtn small">DOCUMENT</button>
   <button id="mapLauncher" class="uiBtn small">MAP</button>
   <button id="audioToggle" class="uiBtn small">AUDIO</button>
-  <div id="runTimer" aria-live="polite">05:00</div>
+  <div id="runTimer" aria-live="polite">04:00</div>
 
   <div id="rotateOverlay" aria-live="polite">
     <div>
@@ -829,7 +806,7 @@
     <button id="introNext" class="uiBtn small" type="button">NEXT</button>
   </div>
 
-  <!-- THE FIRST SLEEP title (unused direct) -->
+  <!-- THE FIRST SLEEP title (지금은 사용 X) -->
   <div id="firstSleep"><div id="firstSleepText" class="sleepLine">THE FIRST SLEEP</div></div>
 
   <!-- NOTICE Popup (FIRST SLEEP) -->
@@ -853,7 +830,7 @@
     </div>
   </div>
 
-  <!-- INTRO → FIRST SLEEP -->
+  <!-- INTRO → FIRST SLEEP: SLEEEEEEEEP + THE FIRST SLEEP -->
   <div id="firstTransition" class="fade">
     <div id="firstTransWord" class="sleepLine"></div>
     <div id="firstTransTitle" class="sleepLine"></div>
@@ -866,20 +843,20 @@
     <div id="sleepSecondTitle" class="sleepLine"></div>
   </div>
 
-  <!-- THIRD SLEEP 타이틀 -->
+  <!-- THIRD SLEEP 타이틀 (3줄) -->
   <div id="thirdTransition" class="fade">
-    <div id="thirdLine1" class="sleepLine"></div>
-    <div id="thirdLine2" class="sleepLine"></div>
-    <div id="thirdLine3" class="sleepLine"></div>
+    <div id="thirdSleepLine1" class="sleepLine"></div>
+    <div id="thirdSleepLine2" class="sleepLine"></div>
+    <div id="thirdSleepLine3" class="sleepLine"></div>
     <div id="thirdTitle" class="sleepLine">THE THIRD SLEEP</div>
   </div>
 
-  <!-- FOURTH SLEEP 타이틀 -->
+  <!-- FOURTH SLEEP 타이틀 (4줄) -->
   <div id="fourthTransition" class="fade">
-    <div id="fourthLine1" class="sleepLine"></div>
-    <div id="fourthLine2" class="sleepLine"></div>
-    <div id="fourthLine3" class="sleepLine"></div>
-    <div id="fourthLine4" class="sleepLine"></div>
+    <div id="fourthSleepLine1" class="sleepLine"></div>
+    <div id="fourthSleepLine2" class="sleepLine"></div>
+    <div id="fourthSleepLine3" class="sleepLine"></div>
+    <div id="fourthSleepLine4" class="sleepLine"></div>
     <div id="fourthTitle" class="sleepLine">THE FOURTH SLEEP</div>
   </div>
 
@@ -896,28 +873,15 @@
     </div>
   </div>
 
-  <!-- THIRD NOTICE (3번째 수면) -->
+  <!-- THIRD NOTICE (세 번째 수면 안내) -->
   <div id="noticePopup3" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle3">
     <div id="noticeCard3">
       <h3 id="noticeTitle3">NOTICE</h3>
       <p>※ 이제 “THE THIRD SLEEP”으로 진입합니다.</p>
       <p>※ 잠시 후 5분 동안 이 수면 상태가 이어집니다.</p>
-      <p>※ 타이머가 끝나면 “THE FOURTH SLEEP”으로 이어집니다.</p>
+      <p>※ 타이머가 끝나면 “THE FOURTH SLEEP”으로 넘어갑니다.</p>
       <div id="noticeActions3">
         <button id="noticeOk3" class="uiBtn flat" type="button">OK</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- FOURTH NOTICE (4번째 수면) -->
-  <div id="noticePopup4" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle4">
-    <div id="noticeCard4">
-      <h3 id="noticeTitle4">NOTICE</h3>
-      <p>※ 이제 “THE FOURTH SLEEP”으로 진입합니다.</p>
-      <p>※ 잠시 후 5분 동안 이 수면 상태가 이어집니다.</p>
-      <p>※ 타이머가 끝나면 “SILENCE” 화면으로 전환됩니다.</p>
-      <div id="noticeActions4">
-        <button id="noticeOk4" class="uiBtn flat" type="button">OK</button>
       </div>
     </div>
   </div>
@@ -935,7 +899,7 @@
     </div>
   </div>
 
-  <!-- ENDING OVERLAY: SILENCE / THE END (장면에 따라 하나만 사용) -->
+  <!-- ENDING OVERLAY: SILENCE / THE END (각 5분 챕터) -->
   <div id="endOverlay" class="fade">
     <div id="endInner">
       <div id="endSilence" class="sleepLine"></div>
@@ -1084,16 +1048,16 @@
   const sleepSecondTitle = qs('#sleepSecondTitle');
 
   const thirdTransition = qs('#thirdTransition');
-  const thirdLine1 = qs('#thirdLine1');
-  const thirdLine2 = qs('#thirdLine2');
-  const thirdLine3 = qs('#thirdLine3');
+  const thirdSleepLine1 = qs('#thirdSleepLine1');
+  const thirdSleepLine2 = qs('#thirdSleepLine2');
+  const thirdSleepLine3 = qs('#thirdSleepLine3');
   const thirdTitle = qs('#thirdTitle');
 
   const fourthTransition = qs('#fourthTransition');
-  const fourthLine1 = qs('#fourthLine1');
-  const fourthLine2 = qs('#fourthLine2');
-  const fourthLine3 = qs('#fourthLine3');
-  const fourthLine4 = qs('#fourthLine4');
+  const fourthSleepLine1 = qs('#fourthSleepLine1');
+  const fourthSleepLine2 = qs('#fourthSleepLine2');
+  const fourthSleepLine3 = qs('#fourthSleepLine3');
+  const fourthSleepLine4 = qs('#fourthSleepLine4');
   const fourthTitle = qs('#fourthTitle');
 
   const noticePopup2 = qs('#noticePopup2');
@@ -1101,9 +1065,6 @@
 
   const noticePopup3 = qs('#noticePopup3');
   const noticeOk3 = qs('#noticeOk3');
-
-  const noticePopup4 = qs('#noticePopup4');
-  const noticeOk4 = qs('#noticeOk4');
 
   const mapOverlay = qs('#mapOverlay');
   const mapCanvas = qs('#mapCanvas');
@@ -1196,6 +1157,7 @@
       window.speechSynthesis.speak(u);
     }catch(e){}
   }
+  /* ----------------------------------------------------- */
 
   /* ================= 안정화된 BGM 엔진 ================= */
   const Ambient = (() => {
@@ -1529,6 +1491,7 @@
     const v = (nickInput.value||'').trim();
     if(v.length>0){ displayName = v; }
     await playWoongClick();
+    /* 이름 카드만 사라지고, 프리셋 화면은 그대로 유지 */
     fadeHide(nameOverlay, FADE);
     stage = 'preset';
     skipBtn.style.display='block';
@@ -1538,8 +1501,9 @@
     if(e.key==='Enter'){ acceptName(); }
   });
 
-  /* === 프리셋 세이버 === */
+  /* === 프리셋 세이버: 안정화 버전 === */
   let saverObjs = [];
+  let saverT0 = 0;
   let lastSaverTime = null;
 
   function showPreset(){
@@ -1569,6 +1533,7 @@
         size: (Math.floor(Math.random()*60)+90)*2
       });
     }
+    saverT0 = performance.now();
     lastSaverTime = null;
     requestAnimationFrame(saverLoop);
   }
@@ -1584,7 +1549,7 @@
     const dpr = devicePixelRatio || 1;
 
     if(lastSaverTime == null) lastSaverTime = now;
-    const dt = (now - lastSaverTime) / 1000;
+    const dt = (now - lastSaverTime) / 1000; // 초 단위
     lastSaverTime = now;
 
     presetCanvas.width = w * dpr;
@@ -1598,9 +1563,11 @@
     ctx.textBaseline = 'middle';
 
     for(const o of saverObjs){
+      // 위치 업데이트 (dt 기반)
       o.x += o.vx * dt * 60;
       o.y += o.vy * dt * 60;
 
+      // 화면 밖으로 튀어나가면 살짝 튕김
       if(o.x < 0 || o.x > w){
         o.vx *= -1;
         o.x = Math.max(0, Math.min(w, o.x));
@@ -1610,6 +1577,7 @@
         o.y = Math.max(0, Math.min(h, o.y));
       }
 
+      // 꿀렁이는 속도/진폭 고정
       o.phase += dt * 0.6;
       const wob = Math.sin(o.phase)*0.08 + 1;
 
@@ -1668,17 +1636,10 @@
     }
   }
   function fitTitleLineSafe(){
-    [
-      introBigText,
-      firstSleepText,
-      thirdTitle,
-      fourthTitle,
-      sleepSecondTitle,
-      sleepLine1,
-      sleepLine2,
-      thirdLine1,thirdLine2,thirdLine3,
-      fourthLine1,fourthLine2,fourthLine3,fourthLine4
-    ].forEach(fitTitleLine);
+    fitTitleLine(introBigText);
+    fitTitleLine(firstSleepText);
+    fitTitleLine(thirdTitle);
+    fitTitleLine(fourthTitle);
   }
   window.addEventListener('load', fitTitleLineSafe);
 
@@ -1698,29 +1659,28 @@
   }
   window.addEventListener('resize', ()=>fitWelcomeTitles(), {passive:true});
 
-  /* === 토끼 픽셀 스프라이트 === */
   const PIXEL_SPRITE=[
-    "....XX......",
-    "...XXXX.....",
-    "..XXXXXX....",
-    "..XX..XX....",
     "..XXXXXX....",
     ".XXXXXXXX...",
     ".XX.XX.XX...",
     ".XXXXXXXX...",
-    ".XXXXXXXX...",
-    ".XXXXXXXX...",
     "..XXXXXX....",
-    "...XXXX.....",
-    "...XXXX.....",
-    "...XXXX.....",
-    "..XX..XX....",
+    ".XXXXXXXX...",
+    ".XXXXXXXX...",
+    ".XXXXXXXX...",
+    ".XXXXXXXX...",
+    ".XXXXXXXX...",
+    ".XX....XX...",
+    ".XX....XX...",
+    ".XX....XX...",
+    ".XX....XX...",
+    ".XX....XX...",
     ".XX....XX..."
   ];
   const COLOR_FILL='#d0d0d0';
   const COLOR_STROKE='#000';
 
-  function drawPixelRabbit(ctx, cx, baselineY, W, hop=0, alpha=1, angleRad=0){
+  function drawPixelHuman(ctx, cx, baselineY, W, hop=0, alpha=1, angleRad=0){
     const cell=Math.max(2, Math.min(4, Math.floor(W*0.0018)));
     const cols=PIXEL_SPRITE[0].length;
     const rows=PIXEL_SPRITE.length;
@@ -1854,36 +1814,70 @@
     });
   }
 
-  /* 공통 타이머 시스템 (모든 장 5분) */
-  let stageTimer = null;
-  let stageSeconds = 0;
-  let stageOnEnd = null;
-
+  /* 공통 타이머 */
+  let mainTimer=null, mainLeft=5*60, timerFinished=false;
   function formatMMSS(s){
     const m=Math.floor(s/60);
     const ss=(s%60).toString().padStart(2,'0');
     return `${m.toString().padStart(2,'0')}:${ss}`;
   }
-
-  function startStageTimer(sec, onEnd){
-    if(stageTimer) clearInterval(stageTimer);
-    stageSeconds = sec;
-    stageOnEnd   = onEnd;
-    runTimer.textContent = formatMMSS(stageSeconds);
+  function startMainTimer(){
+    mainLeft=5*60;
+    timerFinished=false;
+    runTimer.textContent=formatMMSS(mainLeft);
     runTimer.style.display='block';
-    stageTimer = setInterval(()=>{
-      stageSeconds = Math.max(0, stageSeconds-1);
-      runTimer.textContent = formatMMSS(stageSeconds);
-      if(stageSeconds<=0){
-        clearInterval(stageTimer);
-        stageTimer=null;
-        runTimer.style.display='none';
-        const cb = stageOnEnd;
-        stageOnEnd = null;
-        if(cb) cb();
+    if(mainTimer) clearInterval(mainTimer);
+    mainTimer=setInterval(()=>{
+      mainLeft=Math.max(0,mainLeft-1);
+      runTimer.textContent=formatMMSS(mainLeft);
+      if(mainLeft<=0){
+        clearInterval(mainTimer);
+        mainTimer=null;
+        if(!timerFinished){
+          timerFinished=true;
+          onFirstSleepTimerEnd();
+        }
       }
     },1000);
   }
+
+  /* 2장: 5분 타이머 */
+  let secondTimer = null;
+  let secondLeft  = 0;
+
+  function startSecondTimer(){
+    secondLeft = 5*60;
+    runTimer.textContent = formatMMSS(secondLeft);
+    runTimer.style.display = 'block';
+    if(secondTimer) clearInterval(secondTimer);
+    secondTimer = setInterval(()=>{
+      secondLeft = Math.max(0, secondLeft-1);
+      runTimer.textContent = formatMMSS(secondLeft);
+      if(secondLeft<=0){
+        clearInterval(secondTimer);
+        secondTimer=null;
+        stopSecondBell();
+        runTimer.style.display='none';
+        endSecondStageAndStartThird();
+      }
+    },1000);
+  }
+
+  /* 3장(THIRD SLEEP) 타이머 – 기존 finalTimer 재활용 */
+  let finalTimer = null;
+  let finalLeft  = 0;
+
+  /* FOURTH SLEEP 타이머 */
+  let fourthTimer = null;
+  let fourthLeft  = 0;
+
+  /* SILENCE 타이머 */
+  let silenceTimer = null;
+  let silenceLeft  = 0;
+
+  /* THE END 타이머 */
+  let endTimer = null;
+  let endLeft  = 0;
 
   /* 엔딩용 타이핑 */
   async function typeSleepLine(el, text){
@@ -1896,8 +1890,32 @@
     fitTitleLine(el);
   }
 
-  /* SILENCE 장면 */
-  async function showSilenceStage(){
+  async function startTheEndChapter(){
+    stage = 'theEnd';
+    endTheEnd.textContent = '';
+    if(endReturn) endReturn.textContent = '';
+    await typeSleepLine(endTheEnd, 'THE END');
+    speakText('디 엔드');
+
+    endLeft = 5*60;
+    runTimer.textContent = formatMMSS(endLeft);
+    runTimer.style.display = 'block';
+    if(endTimer) clearInterval(endTimer);
+    endTimer = setInterval(()=>{
+      endLeft = Math.max(0, endLeft-1);
+      runTimer.textContent = formatMMSS(endLeft);
+      if(endLeft<=0){
+        clearInterval(endTimer);
+        endTimer=null;
+        runTimer.style.display='none';
+        if(endReturn){
+          endReturn.textContent = '※ 프로그램이 종료되었습니다. 태블릿과 헤드폰을 반납해 주세요.';
+        }
+      }
+    },1000);
+  }
+
+  async function showEndingSequence(){
     claimImmersive();
     await ensureResumed();
 
@@ -1909,44 +1927,153 @@
 
     endSilence.textContent = '';
     endTheEnd.textContent  = '';
-    endReturn.textContent  = '';
+    if(endReturn) endReturn.textContent = '';
 
     fadeShow(endOverlay, 2000, 'flex');
     await sleep(2200);
 
+    // SILENCE 챕터 (5분)
+    stage = 'silence';
     await typeSleepLine(endSilence, 'SILENCE');
+    playDreamWoong();
     speakText('사일런스');
+
+    silenceLeft = 5*60;
+    runTimer.textContent = formatMMSS(silenceLeft);
+    runTimer.style.display = 'block';
+    if(silenceTimer) clearInterval(silenceTimer);
+    silenceTimer = setInterval(()=>{
+      silenceLeft = Math.max(0, silenceLeft-1);
+      runTimer.textContent = formatMMSS(silenceLeft);
+      if(silenceLeft<=0){
+        clearInterval(silenceTimer);
+        silenceTimer=null;
+        runTimer.style.display='none';
+        startTheEndChapter();
+      }
+    },1000);
   }
 
-  /* THE END 장면 */
-  async function showEndStage(){
+  /* THIRD SLEEP 이후: 4번째 수면 타이틀 → 5분 타이머 → 엔딩 */
+  function startFourthTimer(){
+    stage = 'fourth';
+    fourthLeft = 5*60;
+    runTimer.textContent = formatMMSS(fourthLeft);
+    runTimer.style.display = 'block';
+    if(fourthTimer) clearInterval(fourthTimer);
+    fourthTimer = setInterval(()=>{
+      fourthLeft = Math.max(0, fourthLeft-1);
+      runTimer.textContent = formatMMSS(fourthLeft);
+      if(fourthLeft<=0){
+        clearInterval(fourthTimer);
+        fourthTimer=null;
+        runTimer.style.display='none';
+        showEndingSequence();
+      }
+    },1000);
+  }
+
+  async function startFourthSleepSequence(){
     claimImmersive();
     await ensureResumed();
 
-    endSilence.textContent = '';
-    endTheEnd.textContent  = '';
-    endReturn.textContent  = '';
+    stage = 'fourthIntro';
 
-    if(getComputedStyle(endOverlay).display === 'none'){
-      fadeShow(endOverlay, 1500, 'flex');
-      await sleep(1600);
+    fourthSleepLine1.textContent='';
+    fourthSleepLine2.textContent='';
+    fourthSleepLine3.textContent='';
+    fourthSleepLine4.textContent='';
+    fourthTitle.textContent='';
+
+    fourthTransition.style.display='flex';
+    fourthTransition.style.opacity='0';
+    fourthTransition.style.transition='opacity 2000ms ease';
+    await nextFrame();
+    fourthTransition.style.opacity='1';
+
+    const word = 'SLEEEEEEEEP,';
+
+    for(let i=0;i<word.length;i++){
+      fourthSleepLine1.textContent += word[i];
+      typeTick();
+      await sleep(45);
     }
+    fitTitleLine(fourthSleepLine1);
+    await sleep(350);
 
-    await typeSleepLine(endTheEnd, 'THE END');
-    speakText('디 엔드');
-    endReturn.textContent = '※ 프로그램이 종료되었습니다. 태블릿과 헤드폰을 반납해 주세요.';
+    for(let i=0;i<word.length;i++){
+      fourthSleepLine2.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(fourthSleepLine2);
+    await sleep(350);
+
+    for(let i=0;i<word.length;i++){
+      fourthSleepLine3.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(fourthSleepLine3);
+    await sleep(350);
+
+    for(let i=0;i<word.length;i++){
+      fourthSleepLine4.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(fourthSleepLine4);
+
+    await sleep(900);
+
+    fourthTitle.style.opacity='0';
+    fourthTitle.style.transition='opacity 1500ms ease';
+    fourthTitle.textContent='THE FOURTH SLEEP';
+    fitTitleLine(fourthTitle);
+    playDreamWoong();
+    speakText('더 포스 슬립');
+    await nextFrame();
+    fourthTitle.style.opacity='1';
+
+    await sleep(2200);
+
+    fourthTransition.style.transition='opacity 2000ms ease';
+    fourthTransition.style.opacity='0';
+    await sleep(2100);
+    fourthTransition.style.display='none';
+    fourthTransition.style.transition='';
+    fourthTitle.style.transition='';
+    fourthTitle.style.opacity='1';
+
+    startFourthTimer();
   }
 
-  /* SILENCE 타이머 끝 → THE END */
-  function onSilenceTimerEnd(){
-    showEndStage();
-  }
+  /* THIRD SLEEP: 기존 goToSleepCity를 5분 타이머로 사용 */
+  function goToSleepCity(){
+    try{
+      stopSecondBell();
+      if(secondTimer){
+        clearInterval(secondTimer);
+        secondTimer = null;
+      }
+    }catch(e){}
 
-  /* SILENCE로 진입 (4번째 수면 후) */
-  async function goToSilence(){
-    await showSilenceStage();
-    stage = 'silence';
-    startStageTimer(5*60, onSilenceTimerEnd);
+    stage = 'third';
+    finalLeft = 5*60;
+    runTimer.textContent = formatMMSS(finalLeft);
+    runTimer.style.display = 'block';
+
+    if(finalTimer) clearInterval(finalTimer);
+    finalTimer = setInterval(()=>{
+      finalLeft = Math.max(0, finalLeft - 1);
+      runTimer.textContent = formatMMSS(finalLeft);
+      if(finalLeft <= 0){
+        clearInterval(finalTimer);
+        finalTimer = null;
+        runTimer.style.display = 'none';
+        startFourthSleepSequence();
+      }
+    }, 1000);
   }
 
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, micPreGain=null;
@@ -2245,7 +2372,7 @@
           else if(pos.edge === 'top') angle = Math.PI;
           else if(pos.edge === 'left') angle = Math.PI/2;
 
-          drawPixelRabbit(
+          drawPixelHuman(
             fgctx,
             Math.round(pos.x),
             Math.round(pos.baselineY),
@@ -2492,7 +2619,7 @@
       noticePopup.addEventListener(ev, bgTrap, {passive:false});
     });
     fadeShow(noticePopup, 280, 'flex');
-    playBellChime();
+    playBellChime(); // 노티스 뜰 때 띵 소리
     setTimeout(()=>{
       noticeOk && noticeOk.focus && noticeOk.focus();
     }, 50);
@@ -2511,7 +2638,7 @@
       captureBtn.classList.add('show');
 
       stage = 'first';
-      startStageTimer(5*60, onFirstSleepTimerEnd);
+      startMainTimer();
       startFirstSleepStory();
     };
   }
@@ -2545,6 +2672,8 @@
       await typeFirstSleepLine(line);
       await sleep(4000);
     }
+
+    fadeHide(chapterOverlay, 800);
   }
 
   async function runSecondSleepTitleSequence(){
@@ -2557,18 +2686,19 @@
     await nextFrame();
     sleepTransition.style.opacity='1';
 
-    const line = 'SLEEEEEEEEP,';
+    const line1 = 'SLEEEEEEEEP,';
+    const line2 = 'SLEEEEEEEEP,';
 
-    for(let i=0;i<line.length;i++){
-      sleepLine1.textContent += line[i];
+    for(let i=0;i<line1.length;i++){
+      sleepLine1.textContent += line1[i];
       typeTick();
       await sleep(45);
     }
     fitTitleLine(sleepLine1);
 
     await sleep(350);
-    for(let i=0;i<line.length;i++){
-      sleepLine2.textContent += line[i];
+    for(let i=0;i<line2.length;i++){
+      sleepLine2.textContent += line2[i];
       typeTick();
       await sleep(45);
     }
@@ -2627,7 +2757,7 @@
       noticePopup2.addEventListener(ev, bgTrap2, {passive:false});
     });
     fadeShow(noticePopup2, 280, 'flex');
-    playBellChime();
+    playBellChime(); // 노티스 뜰 때 띵 소리
     setTimeout(()=>{
       noticeOk2 && noticeOk2.focus && noticeOk2.focus();
     }, 50);
@@ -2639,22 +2769,22 @@
       await playWoongClick();
       fadeHide(noticePopup2, 260);
       await sleep(280);
-      await playBellChime();
+      await playBellChime(); // 지도 뜰 때 기존 띵 소리
       showMapOverlay();
     };
   }
 
-  /* THIRD SLEEP 타이틀 + NOTICE3 → 5분 타이머 */
+  /* THIRD SLEEP 타이틀 + NOTICE3 → 5분 타이머(3번째 수면) */
   async function startThirdSleepSequence(){
     claimImmersive();
     await ensureResumed();
 
     stage = 'thirdIntro';
 
-    thirdLine1.textContent = '';
-    thirdLine2.textContent = '';
-    thirdLine3.textContent = '';
-    thirdTitle.textContent = 'THE THIRD SLEEP';
+    thirdSleepLine1.textContent='';
+    thirdSleepLine2.textContent='';
+    thirdSleepLine3.textContent='';
+    thirdTitle.textContent='';
 
     thirdTransition.style.display='flex';
     thirdTransition.style.opacity='0';
@@ -2662,34 +2792,36 @@
     await nextFrame();
     thirdTransition.style.opacity='1';
 
-    const word='SLEEEEEEEEP,';
+    const word = 'SLEEEEEEEEP,';
 
     for(let i=0;i<word.length;i++){
-      thirdLine1.textContent += word[i];
+      thirdSleepLine1.textContent += word[i];
       typeTick();
       await sleep(45);
     }
-    fitTitleLine(thirdLine1);
+    fitTitleLine(thirdSleepLine1);
+    await sleep(350);
 
-    await sleep(300);
     for(let i=0;i<word.length;i++){
-      thirdLine2.textContent += word[i];
+      thirdSleepLine2.textContent += word[i];
       typeTick();
       await sleep(45);
     }
-    fitTitleLine(thirdLine2);
+    fitTitleLine(thirdSleepLine2);
+    await sleep(350);
 
-    await sleep(300);
     for(let i=0;i<word.length;i++){
-      thirdLine3.textContent += word[i];
+      thirdSleepLine3.textContent += word[i];
       typeTick();
       await sleep(45);
     }
-    fitTitleLine(thirdLine3);
+    fitTitleLine(thirdSleepLine3);
 
     await sleep(900);
+
     thirdTitle.style.opacity='0';
     thirdTitle.style.transition='opacity 1500ms ease';
+    thirdTitle.textContent='THE THIRD SLEEP';
     fitTitleLine(thirdTitle);
     playDreamWoong();
     speakText('더 써드 슬립');
@@ -2702,6 +2834,9 @@
     thirdTransition.style.opacity='0';
     await sleep(1900);
     thirdTransition.style.display='none';
+    thirdTransition.style.transition='';
+    thirdTitle.style.transition='';
+    thirdTitle.style.opacity='1';
 
     showThirdNotice();
   }
@@ -2714,5 +2849,284 @@
       }
     }
     ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{
-      noticePopup3.add
-      
+      noticePopup3.addEventListener(ev, bgTrap3, {passive:false});
+    });
+    fadeShow(noticePopup3, 280, 'flex');
+    playBellChime(); // 노티스 뜰 때 띵 소리
+    setTimeout(()=>{ noticeOk3 && noticeOk3.focus && noticeOk3.focus(); }, 50);
+
+    noticeOk3.onclick = async (e)=>{
+      e.stopPropagation();
+      claimImmersive();
+      await ensureResumed();
+      await playWoongClick();
+      fadeHide(noticePopup3, 260);
+      await sleep(300);
+      /* 여기서 3번째 수면 5분 타이머 시작 */
+      goToSleepCity();
+    };
+  }
+
+  async function showIntroFlow(){
+    claimImmersive();
+    await ensureResumed();
+    if(!Ambient.isRunning()) Ambient.start(0.8, 1.0);
+
+    showCamera = false;
+    camFadeAlpha = 0;
+
+    // INTRODUCTION 타이틀도 타이핑되게
+    introBig.style.display = 'flex';
+    introBig.style.opacity = '1';
+    introBig.style.transition = 'none';
+    const word = 'INTRODUCTION';
+    introBigText.textContent = '';
+    for(let i=0;i<word.length;i++){
+      introBigText.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(introBigText);
+    speakText('인트로덕션');
+
+    await sleep(1400);
+    introBig.style.transition = 'opacity 1600ms ease';
+    introBig.style.opacity = '0';
+    await sleep(1700);
+    introBig.style.display = 'none';
+
+    // 여기서부터는 인트로 캐릭터 + 대화창
+    introWalking = true;
+    introStartTime = performance.now();
+    showIntroLayer = true;
+    fgAlpha = 1.0;
+    initIntroWalkers();
+
+    introIndex = 0;
+    fadeShow(introDialogue, 300, 'block');
+    typeIntroLine(introIndex);
+  }
+
+  document.getElementById('goIntro').addEventListener('click', ()=>{
+    ensureResumed().then(async ()=>{
+      claimImmersive();
+      if(!Ambient.isRunning()) Ambient.start(0.8,1.0);
+      await playWoongClick();
+      fadeHide(welcome, FADE);
+      stage = 'intro';
+      showIntroFlow();
+    });
+  }, {passive:true});
+
+  let mapMarkers = [];
+
+  function drawMap(){
+    if(!mapOverlay || mapOverlay.style.display==='none') return;
+    const rect = mapOverlay.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+    const dpr = window.devicePixelRatio || 1;
+    mapCanvas.width = w*dpr;
+    mapCanvas.height = h*dpr;
+    const ctx = mapCanvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle='#000';
+    ctx.fillRect(0,0,w,h);
+
+    const cx = w*0.5;
+    const cy = h*0.5;
+
+    const mw = w*0.7;
+    const mh = h*0.6;
+    const left = cx - mw/2;
+    const top  = cy - mh/2;
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(left, top, mw, mh);
+    ctx.strokeStyle='rgba(208,208,208,0.85)';
+    ctx.lineWidth=2;
+    ctx.strokeRect(left, top, mw, mh);
+
+    const r = Math.min(mw,mh)*0.16;
+    ctx.fillStyle='#555555';
+    ctx.beginPath();
+    for(let i=0;i<6;i++){
+      const ang = Math.PI/2 + i*Math.PI/3;
+      const x = cx + r*Math.cos(ang);
+      const y = cy + r*Math.sin(ang);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    mapMarkers=[];
+    const rectW = r*0.9;
+    const rectH = r*0.5;
+    const offsets = [
+      {id:1, dx:0,       dy:-r*1.7},
+      {id:2, dx:r*1.45,  dy:-r*1.05},
+      {id:3, dx:r*1.9,   dy:0},
+      {id:4, dx:r*1.45,  dy:r*1.05},
+      {id:5, dx:0,       dy:r*1.7},
+      {id:6, dx:-r*1.45, dy:r*1.05},
+      {id:7, dx:-r*1.9,  dy:0},
+      {id:8, dx:-r*1.45, dy:-r*1.05}
+    ];
+
+    ctx.font='14px "Press Start 2P","Courier New",monospace';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+
+    offsets.forEach(o=>{
+      const cxRect = cx + o.dx;
+      const cyRect = cy + o.dy;
+      const x = cxRect - rectW/2;
+      const y = cyRect - rectH/2;
+
+      mapMarkers.push({id:o.id, x, y, w:rectW, h:rectH});
+
+      ctx.fillStyle='rgba(0,0,0,0.85)';
+      ctx.fillRect(x,y,rectW,rectH);
+      ctx.strokeStyle='rgba(208,208,208,0.9)';
+      ctx.strokeRect(x,y,rectW,rectH);
+      ctx.fillStyle='rgba(208,208,208,0.96)';
+      ctx.fillText(String(o.id), x+rectW/2, y+rectH/2+1);
+    });
+  }
+
+  function showMapOverlay(){
+    fadeShow(mapOverlay, 600, 'flex');
+    setTimeout(drawMap, 80);
+    stage = 'second';
+    startSecondTimer();
+    startSecondBell();
+    runTimer.style.display='block';
+  }
+
+  function openMarkerPopup(id){
+    mapPopBody.textContent = `ZONE ${id}`;
+    speakText(`존 ${id}`);
+    mapPop.style.display='flex';
+  }
+
+  mapPopClose.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    mapPop.style.display='none';
+  }, {passive:true});
+
+  mapCanvas.addEventListener('pointerdown', (e)=>{
+    const rect = mapCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    for(const m of mapMarkers){
+      if(x>=m.x && x<=m.x+m.w && y>=m.y && y<=m.y+m.h){
+        openMarkerPopup(m.id);
+        break;
+      }
+    }
+  });
+
+  function setAppH2(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
+  setAppH2();
+  addEventListener('resize', setAppH2, {passive:true});
+  if (window.visualViewport){
+    visualViewport.addEventListener('resize', ()=>setTimeout(setAppH2,50));
+  }
+
+  /* 2장 종료 시: 지도/팝업 닫고 3번째 수면 시퀀스로 */
+  async function endSecondStageAndStartThird(){
+    fadeHide(mapOverlay, 600);
+    mapPop.style.display = 'none';
+    await sleep(650);
+    await startThirdSleepSequence();
+  }
+
+  /* SKIP 버튼 – 현재 챕터에 맞춰 건너뛰기 */
+  skipBtn.addEventListener('click', async ()=>{
+    await ensureResumed();
+    await playWoongClick();
+
+    if(stage === 'intro'){
+      fadeHide(introDialogue, 300);
+      introWalking=false;
+      showIntroLayer=false;
+      await sleep(350);
+      await playTduung();
+      startIntroToFirstSleepSequence();
+    }else if(stage === 'first'){
+      if(mainTimer){
+        clearInterval(mainTimer);
+        mainTimer=null;
+      }
+      timerFinished = true;
+      await onFirstSleepTimerEnd();
+    }else if(stage === 'second'){
+      /* 2장에서 SKIP → 지도/팝업 닫고 바로 THIRD SLEEP 시퀀스로 */
+      stopSecondBell();
+      if(secondTimer){
+        clearInterval(secondTimer);
+        secondTimer=null;
+      }
+      runTimer.style.display='none';
+      await endSecondStageAndStartThird();
+    }else if(stage === 'thirdIntro'){
+      /* THIRD SLEEP 타이틀/노티스 구간에서 SKIP → 3번째 수면 5분 타이머 바로 시작 */
+      goToSleepCity();
+    }else if(stage === 'third'){
+      /* 세 번째 수면 타이머 중 SKIP → 바로 FOURTH SLEEP으로 */
+      if(finalTimer){
+        clearInterval(finalTimer);
+        finalTimer = null;
+      }
+      runTimer.style.display='none';
+      await startFourthSleepSequence();
+    }else if(stage === 'fourthIntro'){
+      /* FOURTH SLEEP 타이틀에서 SKIP → 바로 4번째 수면 타이머 */
+      startFourthTimer();
+    }else if(stage === 'fourth'){
+      /* 네 번째 수면 타이머 중 SKIP → 바로 SILENCE 챕터 */
+      if(fourthTimer){
+        clearInterval(fourthTimer);
+        fourthTimer = null;
+      }
+      runTimer.style.display='none';
+      await showEndingSequence();
+    }else if(stage === 'silence'){
+      /* SILENCE 5분 중 SKIP → 바로 THE END 챕터 */
+      if(silenceTimer){
+        clearInterval(silenceTimer);
+        silenceTimer=null;
+      }
+      runTimer.style.display='none';
+      await startTheEndChapter();
+    }else if(stage === 'theEnd'){
+      /* THE END 5분 중 SKIP → 프로그램 종료 문구 바로 표시 */
+      if(endTimer){
+        clearInterval(endTimer);
+        endTimer=null;
+      }
+      runTimer.style.display='none';
+      if(endReturn){
+        endReturn.textContent = '※ 프로그램이 종료되었습니다. 태블릿과 헤드폰을 반납해 주세요.';
+      }
+    }else{
+      if(mainTimer){
+        clearInterval(mainTimer);
+        mainTimer=null;
+      }
+      timerFinished = true;
+      await onFirstSleepTimerEnd();
+    }
+  }, {passive:true});
+
+  startCameraFresh(true);
+  if(!animStarted){
+    animStarted=true;
+    loop();
+  }
+})();
+</script>
+</body>
+</html>
