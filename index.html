@@ -1141,7 +1141,8 @@
   let ttsVoice   = null;
   let ttsEnabled = false;
   let ttsPrimed  = false;   // ★ 갤럭시 탭용 TTS unlock 플래그
-
+  let ttsUnlocked = false;
+  
 // === 갤럭시 탭 TTS 잠금 해제 ===
 document.addEventListener('click', () => {
   if (!ttsReady || ttsPrimed) return;
