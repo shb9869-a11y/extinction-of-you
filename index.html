@@ -402,7 +402,7 @@
     margin-left:auto;
   }
 
-  /* FIRST SLEEP title (지금은 사용 X) */
+  /* THE FIRST SLEEP title (지금은 사용 X) */
   #firstSleep{
     position:fixed;
     inset:0;
@@ -705,6 +705,12 @@
     align-items:center;
     gap:18px;
   }
+  #endReturn{
+    font-family:"Courier New",ui-monospace,monospace;
+    font-size:clamp(11px,2.0vmin,15px);
+    max-width:72ch;
+    line-height:1.7;
+  }
 </style>
 </head>
 <body>
@@ -871,6 +877,7 @@
     <div id="endInner">
       <div id="endSilence" class="sleepLine"></div>
       <div id="endTheEnd" class="sleepLine"></div>
+      <div id="endReturn"></div>
     </div>
   </div>
 
@@ -1033,6 +1040,7 @@
   const endOverlay = qs('#endOverlay');
   const endSilence = qs('#endSilence');
   const endTheEnd  = qs('#endTheEnd');
+  const endReturn  = qs('#endReturn');
 
   let vctx=null, fgctx=null;
 
@@ -1815,8 +1823,8 @@
         secondTimer=null;
         stopSecondBell();
         runTimer.style.display='none';
-        /* 2장 끝나면 THIRD SLEEP 시퀀스로 */
-        startThirdSleepSequence();
+        // 2장 끝나면: 지도/팝업 닫고 3번째 수면 시퀀스로
+        endSecondStageAndStartThird();
       }
     },1000);
   }
@@ -1844,6 +1852,7 @@
 
     endSilence.textContent = '';
     endTheEnd.textContent  = '';
+    if(endReturn) endReturn.textContent = '';
 
     fadeShow(endOverlay, 2000, 'flex');
     await sleep(2200);
@@ -1858,6 +1867,10 @@
     // THE END
     await typeSleepLine(endTheEnd, 'THE END');
     speakText('디 엔드');
+
+    if(endReturn){
+      endReturn.textContent = '※ 프로그램이 종료되었습니다. 태블릿과 헤드폰을 반납해 주세요.';
+    }
   }
 
   /* THIRD SLEEP 이후: 별도 게임 없이 5분 타이머 → 엔딩 */
@@ -2435,6 +2448,7 @@
       noticePopup.addEventListener(ev, bgTrap, {passive:false});
     });
     fadeShow(noticePopup, 280, 'flex');
+    playBellChime(); // 노티스 뜰 때 띵 소리
     setTimeout(()=>{
       noticeOk && noticeOk.focus && noticeOk.focus();
     }, 50);
@@ -2572,6 +2586,7 @@
       noticePopup2.addEventListener(ev, bgTrap2, {passive:false});
     });
     fadeShow(noticePopup2, 280, 'flex');
+    playBellChime(); // 노티스 뜰 때 띵 소리
     setTimeout(()=>{
       noticeOk2 && noticeOk2.focus && noticeOk2.focus();
     }, 50);
@@ -2583,7 +2598,7 @@
       await playWoongClick();
       fadeHide(noticePopup2, 260);
       await sleep(280);
-      await playBellChime();
+      await playBellChime(); // 지도 뜰 때 기존 띵 소리
       showMapOverlay();
     };
   }
@@ -2624,6 +2639,7 @@
       noticePopup3.addEventListener(ev, bgTrap3, {passive:false});
     });
     fadeShow(noticePopup3, 280, 'flex');
+    playBellChime(); // 노티스 뜰 때 띵 소리
     setTimeout(()=>{ noticeOk3 && noticeOk3.focus && noticeOk3.focus(); }, 50);
 
     noticeOk3.onclick = async (e)=>{
@@ -2806,6 +2822,14 @@
     visualViewport.addEventListener('resize', ()=>setTimeout(setAppH2,50));
   }
 
+  /* 2장 종료 시: 지도/팝업 닫고 3번째 수면 시퀀스로 */
+  async function endSecondStageAndStartThird(){
+    fadeHide(mapOverlay, 600);
+    mapPop.style.display = 'none';
+    await sleep(650);
+    await startThirdSleepSequence();
+  }
+
   /* SKIP 버튼 – 현재 챕터에 맞춰 건너뛰기 */
   skipBtn.addEventListener('click', async ()=>{
     await ensureResumed();
@@ -2826,14 +2850,14 @@
       timerFinished = true;
       await onFirstSleepTimerEnd();
     }else if(stage === 'second'){
-      /* 2장에서 SKIP → 바로 THIRD SLEEP 시퀀스로 */
+      /* 2장에서 SKIP → 지도/팝업 닫고 바로 THIRD SLEEP 시퀀스로 */
       stopSecondBell();
       if(secondTimer){
         clearInterval(secondTimer);
         secondTimer=null;
       }
       runTimer.style.display='none';
-      await startThirdSleepSequence();
+      await endSecondStageAndStartThird();
     }else if(stage === 'thirdIntro'){
       /* THIRD SLEEP 타이틀/노티스 구간에서 SKIP → 바로 5분 타이머 시작 */
       goToSleepCity();
