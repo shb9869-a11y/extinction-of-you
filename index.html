@@ -571,6 +571,21 @@
     text-align:center;
   }
 
+  /* FOURTH SLEEP 타이틀 */
+  #fourthTransition{
+    position:fixed;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    color:var(--accent);
+    z-index:947;
+    pointer-events:none;
+    text-align:center;
+  }
+
   #noticePopup3{
     position:fixed;
     inset:0;
@@ -828,9 +843,21 @@
     <div id="sleepSecondTitle" class="sleepLine"></div>
   </div>
 
-  <!-- THIRD SLEEP 타이틀 -->
+  <!-- THIRD SLEEP 타이틀 (SLEE 3줄) -->
   <div id="thirdTransition" class="fade">
+    <div id="thirdSleepLine1" class="sleepLine"></div>
+    <div id="thirdSleepLine2" class="sleepLine"></div>
+    <div id="thirdSleepLine3" class="sleepLine"></div>
     <div id="thirdTitle" class="sleepLine">THE THIRD SLEEP</div>
+  </div>
+
+  <!-- FOURTH SLEEP 타이틀 (SLEE 4줄) -->
+  <div id="fourthTransition" class="fade">
+    <div id="fourthSleepLine1" class="sleepLine"></div>
+    <div id="fourthSleepLine2" class="sleepLine"></div>
+    <div id="fourthSleepLine3" class="sleepLine"></div>
+    <div id="fourthSleepLine4" class="sleepLine"></div>
+    <div id="fourthTitle" class="sleepLine">THE FOURTH SLEEP</div>
   </div>
 
   <!-- SECOND NOTICE (지도 전) -->
@@ -846,13 +873,13 @@
     </div>
   </div>
 
-  <!-- THIRD NOTICE (게임 대신 5분 타이머/엔딩) -->
+  <!-- THIRD NOTICE (세 번째/네 번째 수면 안내) -->
   <div id="noticePopup3" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle3">
     <div id="noticeCard3">
       <h3 id="noticeTitle3">NOTICE</h3>
       <p>※ 이제 “THE THIRD SLEEP”으로 진입합니다.</p>
-      <p>※ 잠시 후 5분 동안 이 수면 상태가 이어집니다.</p>
-      <p>※ 타이머가 끝나면 “SILENCE” 화면과 “THE END” 화면으로 이어집니다.</p>
+      <p>※ 잠시 후 이어지는 “THE FOURTH SLEEP”에서 5분 동안 이 수면 상태가 이어집니다.</p>
+      <p>※ 이후 “SILENCE”와 “THE END” 화면이 순차적으로 나타나며 프로그램이 종료됩니다.</p>
       <div id="noticeActions3">
         <button id="noticeOk3" class="uiBtn flat" type="button">OK</button>
       </div>
@@ -1021,7 +1048,17 @@
   const sleepSecondTitle = qs('#sleepSecondTitle');
 
   const thirdTransition = qs('#thirdTransition');
+  const thirdSleepLine1 = qs('#thirdSleepLine1');
+  const thirdSleepLine2 = qs('#thirdSleepLine2');
+  const thirdSleepLine3 = qs('#thirdSleepLine3');
   const thirdTitle = qs('#thirdTitle');
+
+  const fourthTransition = qs('#fourthTransition');
+  const fourthSleepLine1 = qs('#fourthSleepLine1');
+  const fourthSleepLine2 = qs('#fourthSleepLine2');
+  const fourthSleepLine3 = qs('#fourthSleepLine3');
+  const fourthSleepLine4 = qs('#fourthSleepLine4');
+  const fourthTitle = qs('#fourthTitle');
 
   const noticePopup2 = qs('#noticePopup2');
   const noticeOk2 = qs('#noticeOk2');
@@ -1602,6 +1639,7 @@
     fitTitleLine(introBigText);
     fitTitleLine(firstSleepText);
     fitTitleLine(thirdTitle);
+    fitTitleLine(fourthTitle);
   }
   window.addEventListener('load', fitTitleLineSafe);
 
@@ -1622,20 +1660,20 @@
   window.addEventListener('resize', ()=>fitWelcomeTitles(), {passive:true});
 
   const PIXEL_SPRITE=[
-    ".XX....XX....",
-    ".XX....XX...",
-    ".XX....XX...",
+    "..XXXXXX....",
     ".XXXXXXXX...",
     ".XX.XX.XX...",
-    ".XX.XX.XX...",
+    ".XXXXXXXX...",
+    "..XXXXXX....",
     ".XXXXXXXX...",
     ".XXXXXXXX...",
     ".XXXXXXXX...",
     ".XXXXXXXX...",
     ".XXXXXXXX...",
-    ".XXXXXXXX...",
-    ".XXXXXXXX...",
-    ".XXXXXXXX...",
+    ".XX....XX...",
+    ".XX....XX...",
+    ".XX....XX...",
+    ".XX....XX...",
     ".XX....XX...",
     ".XX....XX..."
   ];
@@ -1653,7 +1691,7 @@
     const y0 = -height - hop;
 
     ctx.save();
-    ctx.translate(cx, baselineY);
+    ctx.translate(cx,baselineY);
     ctx.rotate(angleRad);
     ctx.globalAlpha=alpha;
 
@@ -1857,14 +1895,22 @@
     fadeShow(endOverlay, 2000, 'flex');
     await sleep(2200);
 
-    // SILENCE
+    // CHAPTER: SILENCE
+    endSilence.style.opacity = '1';
     await typeSleepLine(endSilence, 'SILENCE');
     playDreamWoong();
     speakText('사일런스');
-
     await sleep(2500);
 
-    // THE END
+    // SILENCE 페이드아웃(다른 챕터로 분리)
+    endSilence.style.transition = 'opacity 1600ms ease';
+    endSilence.style.opacity = '0';
+    await sleep(1700);
+    endSilence.textContent = '';
+    endSilence.style.transition = '';
+    endSilence.style.opacity = '1';
+
+    // CHAPTER: THE END
     await typeSleepLine(endTheEnd, 'THE END');
     speakText('디 엔드');
 
@@ -1873,7 +1919,7 @@
     }
   }
 
-  /* THIRD SLEEP 이후: 별도 게임 없이 5분 타이머 → 엔딩 */
+  /* THIRD SLEEP 이후: FOURTH SLEEP(타이틀) + 5분 타이머 → 엔딩 */
   function goToSleepCity(){
     try{
       stopSecondBell();
@@ -1900,7 +1946,11 @@
         clearInterval(finalTimer);
         finalTimer = null;
         runTimer.style.display = 'none';
-        showEndingSequence();
+        (async ()=>{
+          // 네 번째 수면 타이틀(4줄 SLEEEEEEEEP) 후 엔딩
+          await runFourthSleepTitleSequence();
+          await showEndingSequence();
+        })();
       }
     }, 1000);
   }
@@ -2603,27 +2653,70 @@
     };
   }
 
-  /* THIRD SLEEP 타이틀 + NOTICE3 → 5분 타이머/엔딩 */
+  /* THIRD SLEEP 타이틀 (SLEE 3줄) + NOTICE3 → FOURTH SLEEP(5분 타이머) */
   async function startThirdSleepSequence(){
     claimImmersive();
     await ensureResumed();
 
     stage = 'thirdIntro';
 
+    thirdSleepLine1.textContent = '';
+    thirdSleepLine2.textContent = '';
+    thirdSleepLine3.textContent = '';
+    thirdTitle.textContent      = '';
+
     thirdTransition.style.display='flex';
     thirdTransition.style.opacity='0';
     thirdTransition.style.transition='opacity 2000ms ease';
     await nextFrame();
-    fitTitleLine(thirdTitle);
     thirdTransition.style.opacity='1';
+
+    const word = 'SLEEEEEEEEP,';
+
+    // 1줄째
+    for(let i=0;i<word.length;i++){
+      thirdSleepLine1.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(thirdSleepLine1);
+
+    await sleep(300);
+    // 2줄째
+    for(let i=0;i<word.length;i++){
+      thirdSleepLine2.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(thirdSleepLine2);
+
+    await sleep(300);
+    // 3줄째
+    for(let i=0;i<word.length;i++){
+      thirdSleepLine3.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(thirdSleepLine3);
+
+    await sleep(900);
+
+    thirdTitle.style.opacity = '0';
+    thirdTitle.style.transition = 'opacity 1500ms ease';
+    thirdTitle.textContent = 'THE THIRD SLEEP';
+    fitTitleLine(thirdTitle);
     playDreamWoong();
     speakText('더 써드 슬립');
-    await sleep(2600);
+    await nextFrame();
+    thirdTitle.style.opacity = '1';
+
+    await sleep(2200);
 
     thirdTransition.style.transition='opacity 1800ms ease';
     thirdTransition.style.opacity='0';
     await sleep(1900);
     thirdTransition.style.display='none';
+    thirdTransition.style.transition='';
 
     showThirdNotice();
   }
@@ -2649,9 +2742,81 @@
       await playWoongClick();
       fadeHide(noticePopup3, 260);
       await sleep(300);
-      /* 여기서 5분 타이머 시작 → 엔딩 */
+      /* 여기서 FOURTH SLEEP(5분 타이머)로 진입 */
       goToSleepCity();
     };
+  }
+
+  /* 네 번째 수면: SLEE 4줄 + THE FOURTH SLEEP (타이틀만) */
+  async function runFourthSleepTitleSequence(){
+    fourthSleepLine1.textContent = '';
+    fourthSleepLine2.textContent = '';
+    fourthSleepLine3.textContent = '';
+    fourthSleepLine4.textContent = '';
+    fourthTitle.textContent      = '';
+
+    fourthTransition.style.display='flex';
+    fourthTransition.style.opacity='0';
+    fourthTransition.style.transition='opacity 2000ms ease';
+    await nextFrame();
+    fourthTransition.style.opacity='1';
+
+    const word = 'SLEEEEEEEEP,';
+
+    // 1줄
+    for(let i=0;i<word.length;i++){
+      fourthSleepLine1.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(fourthSleepLine1);
+
+    await sleep(250);
+    // 2줄
+    for(let i=0;i<word.length;i++){
+      fourthSleepLine2.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(fourthSleepLine2);
+
+    await sleep(250);
+    // 3줄
+    for(let i=0;i<word.length;i++){
+      fourthSleepLine3.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(fourthSleepLine3);
+
+    await sleep(250);
+    // 4줄
+    for(let i=0;i<word.length;i++){
+      fourthSleepLine4.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(fourthSleepLine4);
+
+    await sleep(900);
+
+    fourthTitle.style.opacity='0';
+    fourthTitle.style.transition='opacity 1500ms ease';
+    fourthTitle.textContent='THE FOURTH SLEEP';
+    fitTitleLine(fourthTitle);
+    playDreamWoong();
+    speakText('더 포스 슬립');
+    await nextFrame();
+    fourthTitle.style.opacity='1';
+
+    await sleep(2200);
+
+    fourthTransition.style.transition='opacity 1800ms ease';
+    fourthTransition.style.opacity='0';
+    await sleep(1900);
+    fourthTransition.style.display='none';
+    fourthTransition.style.transition='';
+    fourthTitle.style.transition='';
   }
 
   async function showIntroFlow(){
@@ -2859,15 +3024,16 @@
       runTimer.style.display='none';
       await endSecondStageAndStartThird();
     }else if(stage === 'thirdIntro'){
-      /* THIRD SLEEP 타이틀/노티스 구간에서 SKIP → 바로 5분 타이머 시작 */
+      /* THIRD SLEEP 타이틀/노티스 구간에서 SKIP → 바로 FOURTH SLEEP(5분 타이머) */
       goToSleepCity();
     }else if(stage === 'final'){
-      /* 이미 마지막 타이머 중에 SKIP 누르면 바로 엔딩으로 */
+      /* 네 번째 수면(5분 타이머) 중 SKIP → 바로 네 번째 수면 타이틀 + 엔딩 */
       if(finalTimer){
         clearInterval(finalTimer);
         finalTimer = null;
       }
       runTimer.style.display='none';
+      await runFourthSleepTitleSequence();
       await showEndingSequence();
     }else{
       if(mainTimer){
