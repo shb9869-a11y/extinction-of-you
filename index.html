@@ -1136,9 +1136,35 @@
   }
 
   /* --------- TTS --------- */
-  let ttsReady = 'speechSynthesis' in window;
-  let ttsVoice = null;
-  let ttsUnlocked = false;
+  /* === TTS 설정 === */
+  let ttsReady   = 'speechSynthesis' in window;
+  let ttsVoice   = null;
+  let ttsEnabled = false;
+  let ttsPrimed  = false;   // ★ 갤럭시 탭용 TTS unlock 플래그
+
+// === 갤럭시 탭 TTS 잠금 해제 ===
+document.addEventListener('click', () => {
+  if (!ttsReady || ttsPrimed) return;
+
+  try {
+    speechSynthesis.cancel();
+    speechSynthesis.resume();
+
+    const initUtter = new SpeechSynthesisUtterance(" ");
+    initUtter.volume = 0;
+    initUtter.rate = 1;
+    initUtter.pitch = 1;
+
+    initUtter.onend = () => {
+      ttsPrimed = true;
+      console.log("TTS primed on Android.");
+    };
+
+    speechSynthesis.speak(initUtter);
+  } catch (e) {
+    console.warn("TTS priming failed", e);
+  }
+}, { once: true });
 
   function chooseTtsVoice(){
     if(!ttsReady) return;
@@ -1168,20 +1194,24 @@
     window.speechSynthesis.onvoiceschanged = chooseTtsVoice;
   }
 
-  function speakText(text){
-    if(!ttsReady || !text) return;
-    try{
-      if(window.speechSynthesis.speaking || window.speechSynthesis.pending){
-        window.speechSynthesis.cancel();
-      }
-      const u = new SpeechSynthesisUtterance(text);
-      if(ttsVoice) u.voice = ttsVoice;
-      u.pitch = 1.05;
-      u.rate = 0.9;
-      u.volume = 0.9;
-      window.speechSynthesis.speak(u);
-    }catch(e){}
+function speakText(text) {
+  if (!ttsEnabled || !ttsReady) return;
+
+  try {
+    speechSynthesis.cancel();
+    speechSynthesis.resume();
+
+    const u = new SpeechSynthesisUtterance(text);
+    u.voice  = ttsVoice;
+    u.rate   = 1.0;
+    u.pitch  = 1.0;
+    u.volume = 1.0;
+
+    speechSynthesis.speak(u);
+  } catch (e) {
+    console.warn("TTS speak error:", e);
   }
+}
   /* ----------------------------------------------------- */
 
   /* ================= 안정화된 BGM 엔진 ================= */
