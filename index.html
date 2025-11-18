@@ -11,7 +11,7 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="SLEEEEEP">
+<meta name="apple-mobile-web-app-title" content="SLEEP">
 <meta name="theme-color" content="#000000">
 
 <style>
@@ -1090,19 +1090,28 @@
   let showCamera=false;
   let camFadeAlpha=0;
 
+  /* === AudioContext & TTS 설정 (지연 줄이기) === */
   let audioCtx = null;
+  let audioUnlocked = false;
+
   function ensureAudio(){
-    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(!audioCtx){
+      try{
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)({latencyHint:'interactive'});
+      }catch(e){
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
   }
   async function ensureResumed(){
     try{
       ensureAudio();
-      if(audioCtx.state==='suspended') await audioCtx.resume();
-    }catch{}
+      if(audioCtx.state === 'suspended'){
+        await audioCtx.resume();
+      }
+      audioUnlocked = true;
+    }catch(e){}
   }
-
-  /* 현재 챕터 상태 */
-  let stage = 'gate';
 
   /* --------- 입력/타이핑 공용 사운드 --------- */
   function playGameInputSound(){
@@ -1129,6 +1138,7 @@
   /* --------- TTS --------- */
   let ttsReady = 'speechSynthesis' in window;
   let ttsVoice = null;
+  let ttsUnlocked = false;
 
   function chooseTtsVoice(){
     if(!ttsReady) return;
@@ -1140,6 +1150,19 @@
       voices[0];
   }
 
+  function primeTts(){
+    if(!ttsReady || ttsUnlocked) return;
+    try{
+      const u = new SpeechSynthesisUtterance(' ');
+      if(ttsVoice) u.voice = ttsVoice;
+      u.volume = 0.01;
+      u.rate = 1;
+      u.pitch = 1;
+      window.speechSynthesis.speak(u);
+      ttsUnlocked = true;
+    }catch(e){}
+  }
+
   if(ttsReady){
     chooseTtsVoice();
     window.speechSynthesis.onvoiceschanged = chooseTtsVoice;
@@ -1148,7 +1171,9 @@
   function speakText(text){
     if(!ttsReady || !text) return;
     try{
-      window.speechSynthesis.cancel();
+      if(window.speechSynthesis.speaking || window.speechSynthesis.pending){
+        window.speechSynthesis.cancel();
+      }
       const u = new SpeechSynthesisUtterance(text);
       if(ttsVoice) u.voice = ttsVoice;
       u.pitch = 1.05;
@@ -1300,9 +1325,9 @@
   })();
   /* ==================================================== */
 
-  async function playWoongClick(){
+  function playWoongClick(){
     try{
-      await ensureResumed();
+      ensureAudio();
       const now = audioCtx.currentTime;
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
@@ -1317,9 +1342,9 @@
       o.stop(now+0.4);
     }catch(e){}
   }
-  async function playTduung(){
+  function playTduung(){
     try{
-      await ensureResumed();
+      ensureAudio();
       const now = audioCtx.currentTime;
       const o1=audioCtx.createOscillator(), o2=audioCtx.createOscillator();
       const g=audioCtx.createGain();
@@ -1333,9 +1358,9 @@
       o1.stop(now+0.62); o2.stop(now+0.62);
     }catch(e){}
   }
-  async function playBellChime(){
+  function playBellChime(){
     try{
-      await ensureResumed();
+      ensureAudio();
       const now = audioCtx.currentTime;
       const osc1 = audioCtx.createOscillator();
       const osc2 = audioCtx.createOscillator();
@@ -1353,9 +1378,9 @@
   }
 
   /* 낮은 드림 "부우웅" 효과음 */
-  async function playDreamWoong(){
+  function playDreamWoong(){
     try{
-      await ensureResumed();
+      ensureAudio();
       const now = audioCtx.currentTime;
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
@@ -1375,9 +1400,9 @@
   let secondBellInterval = null;
   let secondBellRunning = false;
 
-  async function playSoftBellChime(){
+  function playSoftBellChime(){
     try{
-      await ensureResumed();
+      ensureAudio();
       const now = audioCtx.currentTime;
       const o1 = audioCtx.createOscillator();
       const o2 = audioCtx.createOscillator();
@@ -1420,12 +1445,12 @@
   zoomIn.addEventListener('click', async ()=>{
     ZOOM=Math.min(3.0, ZOOM+0.05);
     updateZoomLabel();
-    await playWoongClick();
+    playWoongClick();
   }, {passive:true});
   zoomOut.addEventListener('click', async ()=>{
     ZOOM=1.0;
     updateZoomLabel();
-    await playWoongClick();
+    playWoongClick();
   }, {passive:true});
 
   async function immediateGestureStart(e){
@@ -1433,6 +1458,7 @@
 
     claimImmersive();
     await ensureResumed();
+    primeTts();
 
     try{
       if (typeof DeviceOrientationEvent !== 'undefined' &&
@@ -1490,7 +1516,7 @@
     if(!Ambient.isRunning()) Ambient.start(0.5, 1.0);
     const v = (nickInput.value||'').trim();
     if(v.length>0){ displayName = v; }
-    await playWoongClick();
+    playWoongClick();
     /* 이름 카드만 사라지고, 프리셋 화면은 그대로 유지 */
     fadeHide(nameOverlay, FADE);
     stage = 'preset';
@@ -1598,7 +1624,7 @@
     claimImmersive();
     await ensureResumed();
     if(!Ambient.isRunning()) Ambient.start(0.5,1.0);
-    await playWoongClick();
+    playWoongClick();
     fadeHide(preset, FADE);
     await startCameraFresh(false);
     fadeShow(welcome, FADE);
@@ -2054,7 +2080,7 @@
       stopSecondBell();
       if(secondTimer){
         clearInterval(secondTimer);
-        secondTimer = null;
+        secondTimer=null;
       }
     }catch(e){}
 
@@ -2272,9 +2298,12 @@
         loop();
       }
       document.querySelectorAll('.uiBtn').forEach(b=>{
-        b.addEventListener('click', ()=>{
-          ensureResumed().then(playWoongClick);
-        }, {passive:true});
+        if(!b.dataset.sfxBound){
+          b.dataset.sfxBound = '1';
+          b.addEventListener('click', ()=>{
+            playWoongClick();
+          }, {passive:true});
+        }
       });
     }catch(e){
       console.warn('startCameraFresh error:', e);
@@ -2439,7 +2468,7 @@
     claimImmersive();
     if(captureAnimating) return;
     await ensureResumed();
-    await playWoongClick();
+    playWoongClick();
     captureAnimating=true;
     capturing=true;
     const cssW=view.clientWidth;
@@ -2517,12 +2546,12 @@
 
   introNextBtn.addEventListener('click', async ()=>{
     await ensureResumed();
-    await playWoongClick();
+    playWoongClick();
     introIndex++;
     if(introIndex >= INTRO_LINES.length){
       fadeHide(introDialogue, 300);
       await sleep(350);
-      await playTduung();
+      playTduung();
       startIntroToFirstSleepSequence();
     }else{
       typeIntroLine(introIndex);
@@ -2627,7 +2656,7 @@
       e.stopPropagation();
       claimImmersive();
       await ensureResumed();
-      await playWoongClick();
+      playWoongClick();
       fadeHide(noticePopup, 250);
       await sleep(260);
 
@@ -2766,10 +2795,10 @@
       e.stopPropagation();
       claimImmersive();
       await ensureResumed();
-      await playWoongClick();
+      playWoongClick();
       fadeHide(noticePopup2, 260);
       await sleep(280);
-      await playBellChime(); // 지도 뜰 때 기존 띵 소리
+      playBellChime(); // 지도 뜰 때 기존 띵 소리
       showMapOverlay();
     };
   }
@@ -2859,7 +2888,7 @@
       e.stopPropagation();
       claimImmersive();
       await ensureResumed();
-      await playWoongClick();
+      playWoongClick();
       fadeHide(noticePopup3, 260);
       await sleep(300);
       /* 여기서 3번째 수면 5분 타이머 시작 */
@@ -2911,7 +2940,7 @@
     ensureResumed().then(async ()=>{
       claimImmersive();
       if(!Ambient.isRunning()) Ambient.start(0.8,1.0);
-      await playWoongClick();
+      playWoongClick();
       fadeHide(welcome, FADE);
       stage = 'intro';
       showIntroFlow();
@@ -3046,14 +3075,14 @@
   /* SKIP 버튼 – 현재 챕터에 맞춰 건너뛰기 */
   skipBtn.addEventListener('click', async ()=>{
     await ensureResumed();
-    await playWoongClick();
+    playWoongClick();
 
     if(stage === 'intro'){
       fadeHide(introDialogue, 300);
       introWalking=false;
       showIntroLayer=false;
       await sleep(350);
-      await playTduung();
+      playTduung();
       startIntroToFirstSleepSequence();
     }else if(stage === 'first'){
       if(mainTimer){
