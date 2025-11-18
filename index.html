@@ -1,3 +1,731 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,interactive-widget=resizes-content">
+<title>SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP</title>
+
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SLEEEEEP">
+<meta name="theme-color" content="#000000">
+
+<style>
+  :root{
+    --appH: 100svh;
+    --frame: clamp(16px, 4vmin, 40px);
+    --ui-gap: 8px;
+
+    --fs-body: clamp(12px, 2.2vmin, 16px);
+    --fs-strong: clamp(14px, 2.8vmin, 20px);
+    --fs-small: clamp(10px, 1.8vmin, 13px);
+
+    --c-bg: #000000;
+    --c-fg: #f4f4f4;
+    --c-accent: #d0d0d0;
+    --c-accent-soft: #666666;
+    --c-border: #444444;
+    --shadow-soft: 0 0 0 1px rgba(255,255,255,0.06),
+                   0 18px 45px rgba(0,0,0,0.85);
+  }
+
+  *{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+  }
+  html,body{
+    width:100%;
+    height:100%;
+    background:#000;
+    color:var(--c-fg);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                 "Press Start 2P", sans-serif;
+    overscroll-behavior:none;
+    -webkit-user-select:none;
+    user-select:none;
+    touch-action:manipulation;
+  }
+  body{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  #app{
+    position:relative;
+    width:100vw;
+    height:var(--appH);
+    background:#000;
+    overflow:hidden;
+  }
+
+  .frameOuter{
+    position:absolute;
+    inset:0;
+    padding:var(--frame);
+    display:flex;
+    align-items:stretch;
+    justify-content:stretch;
+  }
+  .frameBox{
+    position:relative;
+    flex:1;
+    border:1px solid var(--c-border);
+    box-shadow:var(--shadow-soft);
+    background:#000;
+    overflow:hidden;
+  }
+
+  #view,#fg,#freezeLayer{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    display:block;
+  }
+  #fg{
+    pointer-events:none;
+  }
+  #freezeLayer{
+    display:none;
+    pointer-events:none;
+  }
+
+  .hud{
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    pointer-events:none;
+    padding:var(--frame);
+  }
+
+  #runTimer{
+    align-self:flex-end;
+    font-family:"Press Start 2P", monospace;
+    font-size:clamp(11px,2vmin,14px);
+    background:rgba(0,0,0,0.75);
+    border:1px solid rgba(208,208,208,0.35);
+    padding:4px 8px;
+    border-radius:4px;
+    letter-spacing:.08em;
+    display:none;
+  }
+
+  #controls{
+    display:flex;
+    gap:var(--ui-gap);
+    pointer-events:auto;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity 350ms ease, transform 350ms ease;
+  }
+  #controls.show{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  .uiPanel{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:5px 8px;
+    background:rgba(0,0,0,0.78);
+    border-radius:6px;
+    border:1px solid rgba(255,255,255,0.14);
+    backdrop-filter:blur(10px);
+  }
+  .uiLabel{
+    font-size:var(--fs-small);
+    opacity:.75;
+    letter-spacing:.05em;
+  }
+  .uiBtn{
+    border:none;
+    outline:none;
+    padding:4px 8px;
+    border-radius:4px;
+    font-size:var(--fs-small);
+    font-family:"Press Start 2P", monospace;
+    background:#111;
+    color:var(--c-fg);
+    border:1px solid rgba(255,255,255,0.24);
+    box-shadow:0 2px 0 rgba(0,0,0,0.6);
+    cursor:pointer;
+    touch-action:manipulation;
+  }
+  .uiBtn:active{
+    transform:translateY(1px);
+    box-shadow:0 0 0 rgba(0,0,0,0.6);
+  }
+
+  #zoomVal{
+    min-width:3em;
+    text-align:center;
+  }
+  #captureBtn{
+    pointer-events:auto;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity 350ms ease, transform 350ms ease;
+  }
+  #captureBtn.show{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  /* rotate overlay */
+  #rotateOverlay{
+    position:fixed;
+    inset:0;
+    background:#000;
+    color:#fff;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    z-index:9999;
+  }
+  #rotateOverlayInner{
+    border:1px solid #444;
+    border-radius:10px;
+    padding:20px 24px;
+    max-width:460px;
+    text-align:center;
+    box-shadow:var(--shadow-soft);
+    background:#050505;
+    font-family:"Press Start 2P", monospace;
+    font-size:12px;
+    line-height:1.6;
+  }
+
+  /* gate overlay */
+  #overlay{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    z-index:40;
+  }
+  #overlayCard{
+    border-radius:12px;
+    padding:20px 22px;
+    max-width:480px;
+    width:min(80vw,480px);
+    background:#050505;
+    box-shadow:var(--shadow-soft);
+    border:1px solid #444;
+    text-align:center;
+    font-family:"Press Start 2P", monospace;
+  }
+  #overlayCard h1{
+    font-size:12px;
+    margin-bottom:14px;
+    letter-spacing:.12em;
+  }
+  #overlayCard p{
+    font-size:11px;
+    line-height:1.7;
+    opacity:.9;
+  }
+  #permGateBtn{
+    margin-top:18px;
+    width:100%;
+  }
+
+  /* 이름 overlay */
+  #nameOverlay{
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:35;
+    background:radial-gradient(circle at center,#111 0,#000 60%);
+  }
+  #nameCard{
+    background:#050505;
+    border-radius:12px;
+    border:1px solid #444;
+    box-shadow:var(--shadow-soft);
+    padding:18px 20px 20px;
+    width:min(80vw,420px);
+    font-family:"Press Start 2P", monospace;
+  }
+  #nameCard h2{
+    font-size:11px;
+    margin-bottom:10px;
+    letter-spacing:.1em;
+  }
+  #nameCard p{
+    font-size:10px;
+    line-height:1.6;
+    opacity:.9;
+    margin-bottom:10px;
+  }
+  #nick{
+    width:100%;
+    padding:7px 8px;
+    border-radius:4px;
+    border:1px solid #444;
+    background:#000;
+    color:#fff;
+    font-family:"Press Start 2P", monospace;
+    font-size:10px;
+    margin-bottom:10px;
+  }
+
+  /* preset saver */
+  #preset{
+    position:absolute;
+    inset:0;
+    display:none;
+    z-index:20;
+    background:#000;
+  }
+  #presetCanvas{
+    width:100%;
+    height:100%;
+    display:block;
+  }
+
+  /* welcome */
+  #overlayWelcome{
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:28;
+    background:radial-gradient(circle at center,#050505 0,#000 55%);
+  }
+  #welcomeCard{
+    background:#050505;
+    border-radius:12px;
+    border:1px solid #444;
+    box-shadow:var(--shadow-soft);
+    padding:18px 20px 22px;
+    width:min(86vw,560px);
+    font-family:"Press Start 2P", monospace;
+    text-align:left;
+  }
+  #welcomeCard .title{
+    font-size:12px;
+    margin-bottom:8px;
+    letter-spacing:.12em;
+  }
+  #welcomeCard .body{
+    font-size:10px;
+    line-height:1.7;
+    opacity:.9;
+    margin-bottom:14px;
+  }
+  #goIntro{
+    display:inline-block;
+    margin-top:8px;
+  }
+
+  /* intro big */
+  #introBig{
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:25;
+    background:#000;
+  }
+  #introBigText{
+    font-family:"Press Start 2P", monospace;
+    font-size:clamp(18px,5vmin,28px);
+    letter-spacing:.16em;
+  }
+
+  /* intro dialogue */
+  #introDialogue{
+    position:absolute;
+    inset:auto var(--frame) var(--frame) var(--frame);
+    max-width:640px;
+    margin:0 auto;
+    background:rgba(0,0,0,0.85);
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.16);
+    padding:14px 16px 12px;
+    font-family:"Press Start 2P", monospace;
+    font-size:10px;
+    line-height:1.7;
+    display:none;
+    z-index:26;
+  }
+  #introText{
+    margin-bottom:10px;
+    min-height:3em;
+  }
+  #introNext{
+    width:100%;
+    margin-top:4px;
+  }
+
+  /* FIRST SLEEP title */
+  #firstTransition,
+  #sleepTransition,
+  #thirdTransition,
+  #fourthTransition{
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    background:#000;
+    z-index:30;
+    gap:12px;
+  }
+  #firstTransWord,
+  #firstTransTitle,
+  #sleepLine1,#sleepLine2,#sleepSecondTitle,
+  #thirdSleepLine1,#thirdSleepLine2,#thirdSleepLine3,#thirdTitle,
+  #fourthSleepLine1,#fourthSleepLine2,#fourthSleepLine3,#fourthSleepLine4,#fourthTitle{
+    font-family:"Press Start 2P", monospace;
+    font-size:clamp(18px,4.8vmin,26px);
+    letter-spacing:.12em;
+    text-align:center;
+  }
+
+  /* chapter text */
+  #chapterOverlay{
+    position:absolute;
+    inset:var(--frame);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:24;
+    pointer-events:none;
+  }
+  #chapterBox{
+    max-width:720px;
+    padding:14px 16px;
+    background:rgba(0,0,0,0.72);
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.2);
+    font-family:"Press Start 2P", monospace;
+    font-size:10px;
+    line-height:1.9;
+  }
+
+  /* notice popups */
+  .popupOverlay{
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,0.85);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:45;
+  }
+  .popupCard{
+    width:min(80vw,460px);
+    background:#050505;
+    border-radius:12px;
+    border:1px solid #444;
+    box-shadow:var(--shadow-soft);
+    padding:16px 18px 18px;
+    font-family:"Press Start 2P", monospace;
+    font-size:10px;
+    line-height:1.8;
+  }
+  .popupCard h2{
+    font-size:11px;
+    margin-bottom:8px;
+    letter-spacing:.12em;
+  }
+  .popupCard p{
+    margin-bottom:10px;
+  }
+  .popupCard .popupBtnRow{
+    display:flex;
+    justify-content:flex-end;
+  }
+  .popupCard button{
+    min-width:96px;
+  }
+
+  /* map overlay */
+  #mapOverlay{
+    position:absolute;
+    inset:var(--frame);
+    background:rgba(0,0,0,0.94);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:32;
+  }
+  #mapCanvas{
+    width:100%;
+    height:100%;
+    display:block;
+  }
+  #mapPop{
+    position:absolute;
+    left:50%;
+    bottom:var(--frame);
+    transform:translateX(-50%);
+    display:none;
+    z-index:33;
+  }
+  #mapPopCard{
+    background:#050505;
+    border-radius:10px;
+    border:1px solid #444;
+    box-shadow:var(--shadow-soft);
+    padding:10px 12px;
+    min-width:220px;
+    font-family:"Press Start 2P", monospace;
+    font-size:10px;
+  }
+  #mapPopTitle{
+    font-size:11px;
+    margin-bottom:4px;
+    letter-spacing:.12em;
+  }
+
+  /* skip button */
+  #skipBtn{
+    position:absolute;
+    top:var(--frame);
+    left:var(--frame);
+    z-index:50;
+    pointer-events:auto;
+  }
+
+  /* END overlay */
+  #endOverlay{
+    position:absolute;
+    inset:0;
+    background:#000;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:18px;
+    z-index:60;
+  }
+  #endSilence,
+  #endTheEnd,
+  #endReturn{
+    font-family:"Press Start 2P", monospace;
+    text-align:center;
+  }
+  #endSilence{
+    font-size:clamp(18px,4.5vmin,26px);
+  }
+  #endTheEnd{
+    font-size:clamp(18px,4.5vmin,26px);
+  }
+  #endReturn{
+    font-size:10px;
+    max-width:480px;
+    line-height:1.8;
+    opacity:.8;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="frameOuter">
+    <div class="frameBox">
+      <canvas id="view"></canvas>
+      <canvas id="fg"></canvas>
+      <canvas id="freezeLayer"></canvas>
+
+      <div class="hud">
+        <div id="runTimer">00:00</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none;">
+          <div id="controls">
+            <div class="uiPanel">
+              <span class="uiLabel">ZOOM</span>
+              <button id="zoomOut" class="uiBtn">RESET</button>
+              <button id="zoomIn" class="uiBtn">+</button>
+              <span id="zoomVal" class="uiLabel">1.0×</span>
+            </div>
+          </div>
+          <button id="captureBtn" class="uiBtn">CAPTURE</button>
+        </div>
+      </div>
+
+      <!-- gate overlay -->
+      <div id="overlay">
+        <div id="overlayCard">
+          <h1>SLEEEEEEEEEEP</h1>
+          <p>
+            TAP ANYWHERE TO ALLOW<br>
+            CAMERA / MICROPHONE / AUDIO / VOICE.
+          </p>
+          <button id="permGateBtn" class="uiBtn">TAP TO START</button>
+        </div>
+      </div>
+
+      <!-- rotate -->
+      <div id="rotateOverlay">
+        <div id="rotateOverlayInner">
+          PLEASE ROTATE YOUR DEVICE.<br>
+          THIS PROGRAM IS LANDSCAPE ONLY.
+        </div>
+      </div>
+
+      <!-- 이름 입력 -->
+      <div id="nameOverlay">
+        <div id="nameCard">
+          <h2>ENTER YOUR NAME</h2>
+          <p>
+            이 프로그램 속에서 불릴 이름을 입력해 주세요.<br>
+            입력하지 않으면 &ldquo;_____&rdquo;로 진행됩니다.
+          </p>
+          <input id="nick" autocomplete="off" placeholder="YOUR NAME" />
+          <button id="nameSubmit" class="uiBtn">OK</button>
+        </div>
+      </div>
+
+      <!-- 프리셋 세이버 -->
+      <div id="preset">
+        <canvas id="presetCanvas"></canvas>
+      </div>
+
+      <!-- 웰컴 -->
+      <div id="overlayWelcome">
+        <div id="welcomeCard">
+          <div class="title">WELCOME</div>
+          <div class="body">
+            30분 동안, 당신의 내면 도시를 거닐게 됩니다.<br>
+            이어폰을 귀에 꽂고, 작은 목소리로만 말해 주세요.
+          </div>
+          <button id="goIntro" class="uiBtn">ENTER INTRODUCTION</button>
+        </div>
+      </div>
+
+      <!-- INTRODUCTION 타이틀 -->
+      <div id="introBig">
+        <div id="introBigText">INTRODUCTION</div>
+      </div>
+
+      <!-- INTRO 대화 -->
+      <div id="introDialogue">
+        <div id="introText"></div>
+        <button id="introNext" class="uiBtn">NEXT</button>
+      </div>
+
+      <!-- FIRST SLEEP 전환 -->
+      <div id="firstTransition">
+        <div id="firstTransWord"></div>
+        <div id="firstTransTitle"></div>
+      </div>
+
+      <!-- SECOND SLEEP 전환 -->
+      <div id="sleepTransition">
+        <div id="sleepLine1"></div>
+        <div id="sleepLine2"></div>
+        <div id="sleepSecondTitle"></div>
+      </div>
+
+      <!-- THIRD SLEEP 전환 -->
+      <div id="thirdTransition">
+        <div id="thirdSleepLine1"></div>
+        <div id="thirdSleepLine2"></div>
+        <div id="thirdSleepLine3"></div>
+        <div id="thirdTitle"></div>
+      </div>
+
+      <!-- FOURTH SLEEP 전환 -->
+      <div id="fourthTransition">
+        <div id="fourthSleepLine1"></div>
+        <div id="fourthSleepLine2"></div>
+        <div id="fourthSleepLine3"></div>
+        <div id="fourthSleepLine4"></div>
+        <div id="fourthTitle"></div>
+      </div>
+
+      <!-- 챕터 텍스트 -->
+      <div id="chapterOverlay">
+        <div id="chapterBox"></div>
+      </div>
+
+      <!-- 첫 번째 알림 -->
+      <div id="noticePopup" class="popupOverlay">
+        <div id="noticeCard" class="popupCard">
+          <h2>THE FIRST SLEEP</h2>
+          <p>
+            지금부터 카메라와 마이크가 켜집니다.<br>
+            화면 속 도시를 조용히 바라보며, 작은 목소리로 숨을 섞어 주세요.
+          </p>
+          <div class="popupBtnRow">
+            <button id="noticeOk" class="uiBtn">OK</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 두 번째 알림 -->
+      <div id="noticePopup2" class="popupOverlay">
+        <div id="noticeCard2" class="popupCard">
+          <h2>THE SECOND SLEEP</h2>
+          <p>
+            이제 도시의 지도를 펼칩니다.<br>
+            원하는 구역을 눌러, 그곳의 울림을 들어 보세요.
+          </p>
+          <div class="popupBtnRow">
+            <button id="noticeOk2" class="uiBtn">OK</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 세 번째 알림 -->
+      <div id="noticePopup3" class="popupOverlay">
+        <div id="noticeCard3" class="popupCard">
+          <h2>THE THIRD SLEEP</h2>
+          <p>
+            마지막으로, 당신은 내면의 거리를 걷게 됩니다.<br>
+            소리와 함께 천천히, 스스로를 따라가 보세요.
+          </p>
+          <div class="popupBtnRow">
+            <button id="noticeOk3" class="uiBtn">OK</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 지도 -->
+      <div id="mapOverlay">
+        <canvas id="mapCanvas"></canvas>
+        <div id="mapPop">
+          <div id="mapPopCard">
+            <div id="mapPopTitle">ZONE</div>
+            <div id="mapPopBody"></div>
+            <div style="margin-top:6px;text-align:right;">
+              <button id="mapPopClose" class="uiBtn">OK</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SKIP -->
+      <button id="skipBtn" class="uiBtn" style="display:none;">SKIP</button>
+
+      <!-- END -->
+      <div id="endOverlay">
+        <div id="endSilence"></div>
+        <div id="endTheEnd"></div>
+        <div id="endReturn"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <script>
 (() => {
   (function injectManifest(){
@@ -82,7 +810,6 @@
   let ttsEnabled = false;
 
   function selectKoreanVoice(voices){
-    // 갤럭시 / 삼성인터넷에서 ko-KR 우선 찾기
     let v = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('ko'));
     if(!v) v = voices.find(v => /korean/i.test(v.name||'')) || voices[0];
     return v || null;
@@ -92,7 +819,6 @@
     if(!ttsReady) return;
     const voices = window.speechSynthesis.getVoices() || [];
     if(!voices.length){
-      // 안드로이드에서 늦게 뜰 수 있음
       setTimeout(initTts, 400);
       return;
     }
@@ -108,20 +834,15 @@
   function speakText(text){
     if(!ttsReady || !text) return;
     try{
-      // 우선 이전 발화 정리
       window.speechSynthesis.cancel();
-
       const u = new SpeechSynthesisUtterance(text);
       if(ttsVoice) u.voice = ttsVoice;
       u.lang  = (ttsVoice && ttsVoice.lang) ? ttsVoice.lang : 'ko-KR';
       u.pitch = 1.0;
       u.rate  = 0.9;
       u.volume= 1.0;
-
       window.speechSynthesis.speak(u);
-    }catch(e){
-      // 브라우저가 speechSynthesis를 막으면 조용히 실패
-    }
+    }catch(e){}
   }
 
   const MASTER_BGM_GAIN = 0.4;
@@ -178,9 +899,6 @@
   const introDialogue = qs('#introDialogue');
   const introTextEl = qs('#introText');
   const introNextBtn = qs('#introNext');
-
-  const firstSleep = qs('#firstSleep');
-  const firstSleepText = qs('#firstSleepText');
 
   const controls = qs('#controls');
   const zoomIn = qs('#zoomIn');
@@ -250,51 +968,49 @@
   let showCamera=false;
   let camFadeAlpha=0;
 
-  /* --------- 입력/타이핑 공용 사운드 (버벅임 줄인 버전) --------- */
+  /* --------- 타이핑/버튼 사운드 ---------- */
   let typeBuffer = null;
   let lastTypeSoundTime = 0;
 
   function buildTypeBuffer(ctx){
-    const duration   = 0.05; // 더 짧게
+    const duration   = 0.04;
     const sampleRate = ctx.sampleRate;
     const length     = Math.floor(sampleRate * duration);
     const buffer     = ctx.createBuffer(1, length, sampleRate);
     const data       = buffer.getChannelData(0);
-    const freq       = 1500;
+    const freq       = 1800;
 
     for(let i=0;i<length;i++){
       const t   = i / sampleRate;
-      const env = Math.exp(-t * 14);
+      const env = Math.exp(-t * 20);
       const phase = 2 * Math.PI * freq * t;
       data[i] = Math.sin(phase) * env;
     }
     return buffer;
   }
 
-  function playGameInputSound(){
+  function playTypeBeep(){
     try{
       ensureAudio();
       const ctx = audioCtx;
       const now = ctx.currentTime || 0;
 
-      // 더 천천히 (약 15fps 수준)
-      if(now - lastTypeSoundTime < 0.06) return;
+      // 갤탭에서 버벅임 줄이려고, 0.07초보다 촘촘한 건 막기
+      if(now - lastTypeSoundTime < 0.07) return;
       lastTypeSoundTime = now;
 
       if(!typeBuffer) typeBuffer = buildTypeBuffer(ctx);
-
       const src = ctx.createBufferSource();
       src.buffer = typeBuffer;
       const g = ctx.createGain();
-      g.gain.value = MASTER_SFX_GAIN;
-
+      g.gain.value = MASTER_SFX_GAIN * 0.75;
       src.connect(g).connect(ctx.destination);
       src.start();
     }catch(e){}
   }
 
   function typeTick(){
-    playGameInputSound();
+    playTypeBeep();
   }
 
   function updateZoomLabel(){
@@ -304,20 +1020,20 @@
   zoomIn.addEventListener('click', ()=>{
     ZOOM=Math.min(3.0, ZOOM+0.05);
     updateZoomLabel();
-    playWoongClick(); // await 제거해서 UI 딜레이 줄임
+    playClick();   // await 안 씀 → 딜레이 최소화
   }, {passive:true});
   zoomOut.addEventListener('click', ()=>{
     ZOOM=1.0;
     updateZoomLabel();
-    playWoongClick();
+    playClick();
   }, {passive:true});
 
   async function immediateGestureStart(e){
     e && e.preventDefault && e.preventDefault();
 
     claimImmersive();
-    await primeAudio();       // 첫 제스처에서 오디오/tts 한 번에 깨우기
-    initTts();                // 가능한 빨리 voice 로딩
+    await primeAudio();
+    initTts();
 
     try{
       if (typeof DeviceOrientationEvent !== 'undefined' &&
@@ -344,12 +1060,10 @@
     })
     .finally(()=>{
       fadeHide(overlay, FADE);
-
-      // 프리셋 + 이름 바로
       showPreset();
       fadeShow(nameOverlay, FADE);
       stage = 'name';
-      setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 60);
+      setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 80);
     });
   }
 
@@ -369,7 +1083,7 @@
     await ensureResumed();
     const v = (nickInput.value||'').trim();
     if(v.length>0){ displayName = v; }
-    playWoongClick();
+    playClick();
     fadeHide(nameOverlay, FADE);
     stage = 'preset';
     skipBtn.style.display='block';
@@ -387,7 +1101,6 @@
   function showPreset(){
     if(preset.style.display!=='block'){
       preset.style.display='block';
-      preset.classList.add('show');
       fadeShow(preset, FADE);
       initSaver();
       startCameraFresh(true);
@@ -472,11 +1185,10 @@
     claimImmersive();
     ensureResumed();
     if(!Ambient.isRunning()) Ambient.start(0.5,1.0);
-    playWoongClick();
+    playClick();
     fadeHide(preset, FADE);
     startCameraFresh(false);
     fadeShow(welcome, FADE);
-    fitWelcomeTitles();
     stage = 'welcome';
   }, {passive:true});
 
@@ -508,29 +1220,6 @@
       el.style.fontSize=size+'px';
     }
   }
-  function fitTitleLineSafe(){
-    fitTitleLine(introBigText);
-    fitTitleLine(firstSleepText);
-    fitTitleLine(thirdTitle);
-    fitTitleLine(fourthTitle);
-  }
-  window.addEventListener('load', fitTitleLineSafe);
-
-  function fitWelcomeTitles(){
-    const titles = document.querySelectorAll('#welcomeCard .title');
-    const card = document.getElementById('welcomeCard');
-    if(!titles.length || !card) return;
-    const maxW = card.clientWidth * 0.95;
-    titles.forEach(el=>{
-      el.style.whiteSpace='nowrap';
-      let size = parseFloat(getComputedStyle(el).fontSize) || 40;
-      while(el.scrollWidth>maxW && size>14){
-        size *= 0.94;
-        el.style.fontSize = size+'px';
-      }
-    });
-  }
-  window.addEventListener('resize', ()=>fitWelcomeTitles(), {passive:true});
 
   const PIXEL_SPRITE=[
     "..XXXXXX....",
@@ -687,9 +1376,7 @@
     });
   }
 
-  /* ============= 타이머/사운드들 ============= */
-
-  /* BGM */
+  /* ============= BGM & SFX ============= */
   const Ambient = (() => {
     let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, killers=[];
     function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
@@ -829,7 +1516,7 @@
     return { start, stop, isRunning };
   })();
 
-  async function playWoongClick(){
+  function playClick(){
     try{
       ensureAudio();
       const now = audioCtx.currentTime;
@@ -837,47 +1524,33 @@
       const g = audioCtx.createGain();
       o.type='sine';
       o.frequency.setValueAtTime(220, now);
-      o.frequency.exponentialRampToValueAtTime(110, now+0.24);
+      o.frequency.exponentialRampToValueAtTime(110, now+0.22);
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.03);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+0.35);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+0.3);
       o.connect(g).connect(audioCtx.destination);
       o.start(now);
-      o.stop(now+0.4);
+      o.stop(now+0.35);
     }catch(e){}
   }
-  async function playTduung(){
-    try{
-      ensureAudio();
-      const now = audioCtx.currentTime;
-      const o1=audioCtx.createOscillator(), o2=audioCtx.createOscillator();
-      const g=audioCtx.createGain();
-      o1.type='sine'; o2.type='sine';
-      o1.frequency.value=90; o2.frequency.value=45;
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN*1.1, now+0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+0.6);
-      o1.connect(g); o2.connect(g); g.connect(audioCtx.destination);
-      o1.start(); o2.start();
-      o1.stop(now+0.62); o2.stop(now+0.62);
-    }catch(e){}
-  }
+
   async function playBellChime(){
     try{
       ensureAudio();
       const now = audioCtx.currentTime;
-      const osc1 = audioCtx.createOscillator();
-      const osc2 = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      osc1.type='sine'; osc2.type='sine';
-      osc1.frequency.setValueAtTime(1200, now);
-      osc2.frequency.setValueAtTime(1800, now);
+      const o1 = audioCtx.createOscillator();
+      const o2 = audioCtx.createOscillator();
+      const g  = audioCtx.createGain();
+      o1.type='sine';
+      o2.type='sine';
+      o1.frequency.setValueAtTime(1200, now);
+      o2.frequency.setValueAtTime(1800, now);
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.02);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.03);
       g.gain.exponentialRampToValueAtTime(0.0001, now+1.4);
-      osc1.connect(g); osc2.connect(g); g.connect(audioCtx.destination);
-      osc1.start(now); osc2.start(now);
-      osc1.stop(now+1.5); osc2.stop(now+1.5);
+      o1.connect(g); o2.connect(g); g.connect(audioCtx.destination);
+      o1.start(now); o2.start(now);
+      o1.stop(now+1.5); o2.stop(now+1.5);
     }catch(e){}
   }
 
@@ -962,38 +1635,10 @@
     },1000);
   }
 
-  let secondTimer = null;
-  let secondLeft  = 0;
-
-  function startSecondTimer(){
-    secondLeft = 5*60;
-    runTimer.textContent = formatMMSS(secondLeft);
-    runTimer.style.display = 'block';
-    if(secondTimer) clearInterval(secondTimer);
-    secondTimer = setInterval(()=>{
-      secondLeft = Math.max(0, secondLeft-1);
-      runTimer.textContent = formatMMSS(secondLeft);
-      if(secondLeft<=0){
-        clearInterval(secondTimer);
-        secondTimer=null;
-        stopSecondBell();
-        runTimer.style.display='none';
-        endSecondStageAndStartThird();
-      }
-    },1000);
-  }
-
-  let finalTimer = null;
-  let finalLeft  = 0;
-
-  let fourthTimer = null;
-  let fourthLeft  = 0;
-
-  let silenceTimer = null;
-  let silenceLeft  = 0;
-
-  let endTimer = null;
-  let endLeft  = 0;
+  let secondTimer=null, secondLeft=0, finalTimer=null, finalLeft=0;
+  let fourthTimer=null, fourthLeft=0;
+  let silenceTimer=null, silenceLeft=0;
+  let endTimer=null, endLeft=0;
 
   async function typeSleepLine(el, text){
     el.textContent = '';
@@ -1033,7 +1678,6 @@
   async function showEndingSequence(){
     claimImmersive();
     await ensureResumed();
-
     if (Ambient && Ambient.isRunning && Ambient.isRunning()){
       Ambient.stop(3.0);
     }
@@ -1049,8 +1693,8 @@
 
     stage = 'silence';
     await typeSleepLine(endSilence, 'SILENCE');
-    playDreamWoong();
     speakText('사일런스');
+    playDreamWoong();
 
     silenceLeft = 5*60;
     runTimer.textContent = formatMMSS(silenceLeft);
@@ -1494,9 +2138,10 @@
             angle
           );
 
-          if(now-w.bubbleTimer>700+Math.random()*500){
+          const now2 = performance.now();
+          if(now2-w.bubbleTimer>700+Math.random()*500){
             w.bubbleIndex=(w.bubbleIndex+1)%bubbleSeq.length;
-            w.bubbleTimer=now;
+            w.bubbleTimer=now2;
           }
           drawBubble(fgctx, Math.round(pos.x), Math.round(pos.baselineY)-28, bubbleSeq[w.bubbleIndex]);
         });
@@ -1551,7 +2196,7 @@
     claimImmersive();
     if(captureAnimating) return;
     primeAudio();
-    playWoongClick();
+    playClick();
     captureAnimating=true;
     capturing=true;
     const cssW=view.clientWidth;
@@ -1619,23 +2264,22 @@
   async function typeIntroLine(idx){
     introTextEl.textContent='';
     const text = resolveIntroLine(idx);
-    // TTS: 인트로 문장은 한 줄 단위로 읽기
     speakText(text);
     for(let i=0;i<text.length;i++){
       introTextEl.textContent += text[i];
-      typeTick();
+      if(i%2===0) typeTick();  // 2글자마다 한 번만 소리
       await sleep(24);
     }
   }
 
   introNextBtn.addEventListener('click', ()=>{
     primeAudio();
-    playWoongClick();
+    playClick();
     introIndex++;
     if(introIndex >= INTRO_LINES.length){
       fadeHide(introDialogue, 300);
       setTimeout(async ()=>{
-        await playTduung();
+        await playBellChime();
         startIntroToFirstSleepSequence();
       }, 320);
     }else{
@@ -1741,7 +2385,7 @@
       e.stopPropagation();
       claimImmersive();
       await ensureResumed();
-      playWoongClick();
+      playClick();
       fadeHide(noticePopup, 250);
       await sleep(260);
 
@@ -1771,7 +2415,7 @@
       span.className = 'charBox';
       span.textContent = ch;
       chapterBox.appendChild(span);
-      typeTick();
+      if(i%2===0) typeTick();
       await sleep(26);
     }
   }
@@ -1880,7 +2524,7 @@
       e.stopPropagation();
       claimImmersive();
       await ensureResumed();
-      playWoongClick();
+      playClick();
       fadeHide(noticePopup2, 260);
       await sleep(280);
       await playBellChime();
@@ -1972,7 +2616,7 @@
       e.stopPropagation();
       claimImmersive();
       await ensureResumed();
-      playWoongClick();
+      playClick();
       fadeHide(noticePopup3, 260);
       await sleep(300);
       goToSleepCity();
@@ -2022,7 +2666,7 @@
     ensureResumed().then(async ()=>{
       claimImmersive();
       if(!Ambient.isRunning()) Ambient.start(0.8,1.0);
-      playWoongClick();
+      playClick();
       fadeHide(welcome, FADE);
       stage = 'intro';
       showIntroFlow();
@@ -2054,7 +2698,7 @@
     const left = cx - mw/2;
     const top  = cy - mh/2;
 
-    ctx.fillStyle = '#000';
+    ctx.fillStyle='#000';
     ctx.fillRect(left, top, mw, mh);
     ctx.strokeStyle='rgba(208,208,208,0.85)';
     ctx.lineWidth=2;
@@ -2117,7 +2761,8 @@
   }
 
   function openMarkerPopup(id){
-    mapPopBody.textContent = `ZONE ${id}`;
+    const txt = `ZONE ${id}`;
+    mapPopBody.textContent = txt;
     speakText(`존 ${id}`);
     mapPop.style.display='flex';
   }
@@ -2139,11 +2784,22 @@
     }
   });
 
-  function setAppH2(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
-  setAppH2();
-  addEventListener('resize', setAppH2, {passive:true});
-  if (window.visualViewport){
-    visualViewport.addEventListener('resize', ()=>setTimeout(setAppH2,50));
+  function startSecondTimer(){
+    secondLeft = 5*60;
+    runTimer.textContent = formatMMSS(secondLeft);
+    runTimer.style.display = 'block';
+    if(secondTimer) clearInterval(secondTimer);
+    secondTimer = setInterval(()=>{
+      secondLeft = Math.max(0, secondLeft-1);
+      runTimer.textContent = formatMMSS(secondLeft);
+      if(secondLeft<=0){
+        clearInterval(secondTimer);
+        secondTimer=null;
+        stopSecondBell();
+        runTimer.style.display='none';
+        endSecondStageAndStartThird();
+      }
+    },1000);
   }
 
   async function endSecondStageAndStartThird(){
@@ -2153,17 +2809,24 @@
     await startThirdSleepSequence();
   }
 
+  function setAppH2(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
+  setAppH2();
+  addEventListener('resize', setAppH2, {passive:true});
+  if (window.visualViewport){
+    visualViewport.addEventListener('resize', ()=>setTimeout(setAppH2,50));
+  }
+
   /* ====== SKIP 버튼 ====== */
   skipBtn.addEventListener('click', ()=>{
     primeAudio();
-    playWoongClick();
+    playClick();
 
     if(stage === 'intro'){
       fadeHide(introDialogue, 300);
       introWalking=false;
       showIntroLayer=false;
       setTimeout(async ()=>{
-        await playTduung();
+        await playBellChime();
         startIntroToFirstSleepSequence();
       }, 350);
     }else if(stage === 'first'){
@@ -2231,7 +2894,8 @@
     loop();
   }
 
-  // stage 전역
   window.stage = 'gate';
 })();
 </script>
+</body>
+</html>
