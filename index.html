@@ -1,16 +1,13 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,interactive-widget=resizes-content">
-<title>SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP</title>
+<meta charset="utf-8" />
 <meta name="viewport"
-      content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>SLEEEEEP STAGE SYSTEM</title>
+      content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,interactive-widget=resizes-content">
+<title>SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP</title>
 
-<!-- 픽셀 게임 폰트 -->
 <link rel="stylesheet"
-href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -25,968 +22,708 @@ href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
 
     --fs-body: clamp(12px, 2.2vmin, 16px);
     --fs-strong: clamp(14px, 2.8vmin, 20px);
-    --fs-small: clamp(11px, 1.8vmin, 14px);
-    --fs-name: clamp(14px,2.8vmin,20px);
+    --fs-small: clamp(10px, 1.8vmin, 13px);
 
-    --pad-btn-y: clamp(6px, 1.1vmin, 10px);
-    --pad-btn-x: clamp(10px, 1.8vmin, 20px);
-
-    --safe-t: env(safe-area-inset-top, 0px);
-    --safe-b: env(safe-area-inset-bottom, 0px);
-    --safe-l: env(safe-area-inset-left, 0px);
-    --safe-r: env(safe-area-inset-right, 0px);
-
-    --dialogue-offset-vh: 8vh;
-    --char-offset-vh: 16vh;
-
-    /* 전체 톤을 흑백 계열로 (조금 더 어두운 회색) */
-    --accent: #d0d0d0;
-  }
-
-  html,body{
-    margin:0;
-    padding:0;
-    width:100%;
-    height:100%;
-    background:#000;
-    overflow:hidden;
-    touch-action:manipulation;
-  }
-
-  *{margin:0;padding:0;box-sizing:border-box;}
-body{
-    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans KR",sans-serif;
-    -webkit-user-select:none;
-    user-select:none;
-    -webkit-touch-callout:none;
-    color:var(--accent);
+    --c-bg: #000000;
+    --c-fg: #f4f4f4;
+    --c-accent: #d0d0d0;
+    --c-accent-soft: #666666;
+    --c-border: #444444;
+    --shadow-soft: 0 0 0 1px rgba(255,255,255,0.06),
+                   0 18px 45px rgba(0,0,0,0.85);
   }
 
   *{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+  }
+  html,body{
+    width:100%;
+    height:100%;
+    background:#000;
+    color:var(--c-fg);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                 "Press Start 2P", sans-serif;
+    overscroll-behavior:none;
     -webkit-user-select:none;
     user-select:none;
-    -webkit-touch-callout:none;
-    -webkit-tap-highlight-color: transparent;
-    box-sizing:border-box;
+    touch-action:manipulation;
   }
-  input, textarea{
-    -webkit-user-select:text;
-    user-select:text;
-  }
-
-  .fade{opacity:0; transition:opacity 1800ms ease}
-  .fade.show{opacity:1}
-
-  #view{
-    position:fixed;
-    left:0;
-    top:0;
-    width:100vw;
-    height:100vh;
-    display:block;
-    z-index:0;
-    /* 카메라를 포함한 뒤 배경은 항상 흑백 */
-    filter:grayscale(1);
-  }
-  #fg{
-    position:fixed;
-    left:0;
-    top:0;
-    width:100vw;
-    height:100vh;
-    display:block;
-    z-index:880;
-    pointer-events:none;
-  }
-
-  #freezeLayer{
-    position:fixed;
-    inset:0;
-    z-index:500;
-    display:none;
-  }
-
-  .frameBox{
-    position:fixed;
-    left:calc(var(--frame) + var(--safe-l));
-    top:calc(var(--frame) + var(--safe-t));
-    right:calc(var(--frame) + var(--safe-r));
-    bottom:calc(var(--frame) + var(--safe-b));
-    border:2px solid rgba(208,208,208,.75);
-    pointer-events:none;
-    z-index:50;
-  }
-
-  .uiBtn{
-    background:transparent;
-    color:var(--accent);
-    border:none;
-    font-size:var(--fs-strong);
-    padding:var(--pad-btn-y) var(--pad-btn-x);
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    white-space:nowrap;
-    cursor:pointer;
-    user-select:none;
-  }
-  .uiBtn.small{
-    font-size:var(--fs-small);
-    padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6);
-  }
-  .uiBtn.flat{
-    border:none;
-    background:transparent;
-    text-decoration:none;
-  }
-  .uiBtn[disabled]{
-    opacity:.35;
-    pointer-events:none;
-    filter:grayscale(1);
-  }
-  .hide{display:none !important;}
-
-  .controls{
-    position:fixed;
-    right:calc(var(--frame) + var(--ui-gap) + var(--safe-r));
-    bottom:calc(var(--frame) + var(--ui-gap) + var(--safe-b));
-    z-index:400;
-    display:flex;
-    gap:6px;
-    align-items:center;
-    opacity:0;
-    transition:opacity 1800ms ease;
-    background:black;color:white;
-    font-family:'Press Start 2P',monospace;
-    overflow:hidden;
-}
-  .controls.show{opacity:1}
-
-  .readout{
-    min-width:48px;
-  .scene{
-    position:absolute;inset:0;
-    display:flex;flex-direction:column;
-    justify-content:center;align-items:center;
-    opacity:0;transition:opacity 1s;
-text-align:center;
-    opacity:.9;
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    font-size:var(--fs-small);
-    color:var(--accent);
-  }
-
-  .btn-capture{
-    position:fixed;
-    left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
-    bottom:calc(var(--frame) + var(--ui-gap) + var(--safe-b));
-    z-index:450;
-    opacity:0;
-    transition:opacity 1800ms ease;
-  }
-  .btn-capture.show{opacity:1}
-
-  /* SKIP 버튼 (모든 장에서 좌측 상단) */
-  .skip-btn{
-    position:fixed;
-    left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
-    top:calc(var(--frame) + var(--ui-gap) + var(--safe-t));
-    z-index:1001;
-    display:none;
-  }
-
-  #mapLauncher, #docLauncher, #audioToggle { display:none; }
-
-  #runTimer{
-    position:fixed;
-    right:calc(var(--frame) + var(--ui-gap) + var(--safe-r));
-    top:calc(var(--frame) + var(--ui-gap) + var(--safe-t));
-    z-index:460;
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    font-size:var(--fs-strong);
-    color:var(--accent);
-    opacity:.95;
-    pointer-events:none;
-    user-select:none;
-    display:none;
-}
-  .show{opacity:1;}
-
-  .credits{
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    letter-spacing:.08em;
-    font-size:clamp(9px,1.4vmin,11px);
-    margin:0;
-    color:var(--accent);
-  /* 토끼 캐릭터 */
-  .rabbit{
-    font-size:32px;
-    line-height:1.2;
-    white-space:pre;
-    margin-top:30px;
-}
-
-  #rotateOverlay{
-    position:fixed;
-    inset:0;
-    z-index:1000;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-    background:#000;
-    color:var(--accent);
-    padding:40px;
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    pointer-events:auto;
-  /* 타이머 */
-  .timer{
-    font-size:18px;
-    margin-top:20px;
-    opacity:0.8;
-}
-
-  /* Gate */
-  #overlay{
-    position:fixed;
-    inset:0;
-    z-index:300;
+  body{
     display:flex;
     align-items:center;
     justify-content:center;
-    padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));
-    color:var(--accent);
-    background:rgba(0,0,0,.85);
   }
-  #overlayContent{
-    max-width:min(92vw, 72ch);
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    line-height:1.7;
-    text-align:center;
-  }
-  .gateLine{
-    display:inline-block;
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    font-size:var(--fs-small);
-  /* 버튼 */
-  button{
-    margin-top:30px;
-    padding:14px 22px;
-    background:white;color:black;
-border:none;
-    background:transparent;
-    color:var(--accent);
-    cursor:pointer;
-    padding:6px 10px;
-    width:100%;
-    line-height:1.6;
-  }
-  .gateHint{
-    opacity:.7;
-    margin-top:6px;
-    font-size:clamp(9px,1.6vmin,11px);
-  }
-
-  /* Name – 뒤에 프리셋이 보이도록 반투명 */
-  #nameOverlay{
-    position:fixed;
-    inset:0;
-    z-index:260;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    background:rgba(0,0,0,.5);
-    color:var(--accent);
-  }
-  #nameCard{
+  #app{
     position:relative;
-    z-index:1;
-    width:min(92vw,600px);
-    text-align:center;
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    padding:24px 20px 20px;
-    border:none; /* 하얀 테두리 제거 */
-    background:rgba(0,0,0,0.85);
-    box-shadow:0 10px 24px rgba(0,0,0,0.8);
-  }
-  #nameCard h2{
-    margin:0 0 12px 0;
-    letter-spacing:.12em;
-    font-size:var(--fs-name);
-    font-weight:400;
-    text-shadow:0 0 12px rgba(0,0,0,.9);
-    color:var(--accent);
-  }
-  #nick{
-    width:100%;
-    padding:14px 14px;
-    background:rgba(0,0,0,.88);
-    border:1px solid #777;
-    color:var(--accent);
-    font-size:var(--fs-name);
-    outline:none;
-    box-shadow:0 0 12px rgba(0,0,0,.8);
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-  }
-  #nick::placeholder{
-    color:rgba(208,208,208,0.25);
-  }
-  #nameRow{
-    display:flex;
-    gap:10px;
-    margin-top:16px;
-    justify-content:center;
-  }
-  #nameRow .uiBtn{
-    padding:10px 18px;
+    width:100vw;
+    height:var(--appH);
+    background:#000;
+    overflow:hidden;
   }
 
-  /* Preset */
-  #preset{
-    position:fixed;
-    inset:0;
-    z-index:250;
-    background:#000;
-    display:none;
-    font-family:'Press Start 2P';
-cursor:pointer;
-}
-  #presetCanvas{
+  .frameOuter{
     position:absolute;
-    left:0;top:0;width:100%;height:100%;
-  }
-
-  /* Welcome */
-  #overlayWelcome{
-    position:fixed;
     inset:0;
-    z-index:220;
-    display:none;
-    place-items:center;
-    color:var(--accent);
-    background:rgba(0,0,0,.55);
-    padding:0;
-  }
-  #welcomeCard{
+    padding:var(--frame);
     display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    width:100%;
-    max-width:min(92vw, 820px);
-    margin:0 auto;
-    text-align:center;
-    padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;
-    gap:18px;
+    align-items:stretch;
+    justify-content:stretch;
   }
-  #welcomeCard .title{
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    font-size:clamp(28px, 8vmin, 72px);
-    font-weight:400;
-    letter-spacing:.12em;
-    line-height:1.15;
-    margin:0;
-    text-transform:uppercase;
-    color:var(--accent);
-    white-space:nowrap;
-  }
-  #goIntro{
-    margin-top:0;
-    font-size:var(--fs-small);
-  }
-
-  /* INTRO big title */
-  #introBig{
-    position:fixed;
-    inset:0;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    pointer-events:none;
-    z-index:210;
-  }
-  #introBigText{
-  }
-
-  /* INTRO 텍스트 박스 */
-  #introDialogue{
-    position:fixed;
-    right:calc(var(--frame) + var(--safe-r) + 12px);
-    bottom:calc(var(--frame) + var(--safe-b) + 12px);
-    max-width:min(420px, 60vw);
-    padding:12px 14px 10px;
-    border:1px solid rgba(208,208,208,0.9);
-    background:#000;
-    font-family:"Courier New",ui-monospace,monospace;
-    font-size:clamp(11px,2.1vmin,15px);
-    line-height:1.7;
-    color:var(--accent);
-    display:none;
-    z-index:900;
-  }
-  #introText{
-    margin-bottom:8px;
-    text-align:left;
-    white-space:pre-line;
-  }
-  #introNext{
-    display:inline-block;
-    margin-left:auto;
-  }
-
-  /* THE FIRST SLEEP title (지금은 사용 X) */
-  #firstSleep{
-    position:fixed;
-    inset:0;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    pointer-events:none;
-    z-index:850;
-    text-align:center;
-  }
-  #firstSleepText{
-  }
-
-  /* NOTICE Popup (FIRST SLEEP) */
-  #noticePopup{
-    position:fixed;
-    inset:0;
-    z-index:900;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    background:rgba(0,0,0,.72);
-  }
-  #noticeCard{
-    width:min(92vw, 640px);
-    background:#0b0b0b;
-    color:var(--accent);
-    border:1px solid #333;
-    padding:18px;
-    box-shadow:0 10px 30px rgba(0,0,0,.6);
-    font-family:"Courier New",ui-monospace,monospace;
-    line-height:1.7;
-  }
-  #noticeCard h3{
-    margin:0 0 6px 0;
-    letter-spacing:.06em;
-    font-weight:700;
-    font-size:clamp(15px,3vmin,20px);
-    color:var(--accent);
-  }
-  #noticeCard p{
-    margin:4px 0;
-    font-size:clamp(12px,2.4vmin,16px);
-  }
-  #noticeActions{
-    margin-top:10px;
-    text-align:right;
-  }
-
-  /* FIRST SLEEP: 중앙 문장 오버레이 */
-  #chapterOverlay{
-    position:fixed;
-    inset:0;
-    z-index:930;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    background:transparent;
-    color:var(--accent);
-    padding:24px;
-    pointer-events:none;
-  }
-  #chapterCenter{
-    max-width:min(900px, 92vw);
-    max-height:80vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-    overflow:hidden;
-  }
-  #chapterBox{
-    display:inline-block;
-    font-family:"Courier New",ui-monospace,monospace;
-    line-height:1.8;
-    font-size:clamp(11px,2.0vmin,15px);
-    text-align:center;
-    color:var(--accent);
-    padding:0;
-    background:transparent;
-    border:none;
-    box-shadow:none;
-  }
-
-  /* 1장 텍스트 글자 박스 – 테두리 제거 */
-  .charBox{
-    display:inline-block;
-    background:#000;
-    color:var(--accent);
-    padding:3px 2px;
-    margin:1px 0;
-    border-radius:0;
-    border:none;
-    box-sizing:border-box;
-  }
-
-  /* 공통 타이틀 스타일 */
-  .sleepLine{
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    letter-spacing:.16em;
-    font-size:clamp(32px, 12vmin, 160px); /* FIRST SLEEP 기준 */
-    text-transform:uppercase;
-    white-space:nowrap;
-    text-shadow:0 0 8px rgba(0,0,0,.85);
-    margin:6px 0;
-    padding:8px 16px;
-    background:transparent;
-    border:none;
-    display:inline-block;
-    text-align:center;
-    max-width:96vw;
-    box-sizing:border-box;
-  }
-
-  /* INTRO → FIRST SLEEP: SLEEEEEEEEP + THE FIRST SLEEP */
-  #firstTransition{
-    position:fixed;
-    inset:0;
-    display:none;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    background:#000;
-    color:var(--accent);
-    z-index:940;
-    pointer-events:none;
-    text-align:center;
-  }
-  #firstTransWord{
-    margin-bottom:10px;
-  }
-  #firstTransTitle{
-    margin-top:10px;
-  }
-
-  /* BETWEEN FIRST & SECOND SLEEP (2줄) */
-  #sleepTransition{
-    position:fixed;
-    inset:0;
-    display:none;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    background:#000;
-    color:var(--accent);
-    z-index:940;
-    pointer-events:none;
-    text-align:center;
-  }
-  #sleepSecondTitle{
-    margin-top:14px;
-  }
-
-  /* THIRD SLEEP 타이틀 (3줄 SLEEEEEEEEP) */
-  #thirdTransition{
-    position:fixed;
-    inset:0;
-    display:none;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    background:#000;
-    color:var(--accent);
-    z-index:945;
-    pointer-events:none;
-    text-align:center;
-  }
-
-  /* FOURTH SLEEP 타이틀 (4줄 SLEEEEEEEEP) */
-  #fourthTransition{
-    position:fixed;
-    inset:0;
-    display:none;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    background:#000;
-    color:var(--accent);
-    z-index:946;
-    pointer-events:none;
-    text-align:center;
-  }
-
-  #noticePopup3{
-    position:fixed;
-    inset:0;
-    z-index:950;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    background:rgba(0,0,0,.8);
-  }
-  #noticeCard3{
-    width:min(92vw, 640px);
-    background:#0b0b0b;
-    color:var(--accent);
-    border:1px solid #444;
-    padding:18px;
-    box-shadow:0 10px 30px rgba(0,0,0,.8);
-    font-family:"Courier New",ui-monospace,monospace;
-    line-height:1.7;
-  }
-  #noticeCard3 h3{
-    margin:0 0 6px 0;
-    letter-spacing:.06em;
-    font-weight:700;
-    font-size:clamp(15px,3vmin,20px);
-    color:var(--accent);
-  }
-  #noticeCard3 p{
-    margin:4px 0;
-    font-size:clamp(12px,2.4vmin,16px);
-  }
-  #noticeActions3{
-    margin-top:10px;
-    text-align:right;
-  }
-
-  /* SECOND NOTICE */
-  #noticePopup2{
-    position:fixed;
-    inset:0;
-    z-index:960;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    background:rgba(0,0,0,.8);
-  }
-  #noticeCard2{
-    width:min(92vw, 640px);
-    background:#0b0b0b;
-    color:var(--accent);
-    border:1px solid #444;
-    padding:18px;
-    box-shadow:0 10px 30px rgba(0,0,0,.8);
-    font-family:"Courier New",ui-monospace,monospace;
-    line-height:1.7;
-  }
-  #noticeCard2 h3{
-    margin:0 0 6px 0;
-    letter-spacing:.06em;
-    font-weight:700;
-    font-size:clamp(15px,3vmin,20px);
-    color:var(--accent);
-  }
-  #noticeCard2 p{
-    margin:4px 0;
-    font-size:clamp(12px,2.4vmin,16px);
-  }
-  #noticeActions2{
-    margin-top:10px;
-    text-align:right;
-  }
-
-  /* MAP OVERLAY – 2장 직사각형 지도 */
-  #mapOverlay{
-    position:fixed;
-    inset:0;
-    z-index:950;
-    display:none;
-    align-items:center;
-    justify-content:center;
+  .frameBox{
+    position:relative;
+    flex:1;
+    border:1px solid var(--c-border);
+    box-shadow:var(--shadow-soft);
     background:#000;
     overflow:hidden;
   }
-  #mapCanvas{
+
+  #view,#fg,#freezeLayer{
     position:absolute;
     inset:0;
     width:100%;
     height:100%;
+    display:block;
+  }
+  #fg{
+    pointer-events:none;
+  }
+  #freezeLayer{
+    display:none;
+    pointer-events:none;
   }
 
-  .map-popup{
+  .hud{
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    pointer-events:none;
+    padding:var(--frame);
+  }
+
+  #runTimer{
+    align-self:flex-end;
+    font-family:"Press Start 2P", monospace;
+    font-size:clamp(11px,2vmin,14px);
+    background:rgba(0,0,0,0.75);
+    border:1px solid rgba(208,208,208,0.35);
+    padding:4px 8px;
+    border-radius:4px;
+    letter-spacing:.08em;
+    display:none;
+  }
+
+  #controls{
+    display:flex;
+    gap:var(--ui-gap);
+    pointer-events:auto;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity 350ms ease, transform 350ms ease;
+  }
+  #controls.show{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  .uiPanel{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:5px 8px;
+    background:rgba(0,0,0,0.78);
+    border-radius:6px;
+    border:1px solid rgba(255,255,255,0.14);
+    backdrop-filter:blur(10px);
+  }
+  .uiLabel{
+    font-size:var(--fs-small);
+    opacity:.75;
+    letter-spacing:.05em;
+  }
+  .uiBtn{
+    border:none;
+    outline:none;
+    padding:4px 8px;
+    border-radius:4px;
+    font-size:var(--fs-small);
+    font-family:"Press Start 2P", monospace;
+    background:#111;
+    color:var(--c-fg);
+    border:1px solid rgba(255,255,255,0.24);
+    box-shadow:0 2px 0 rgba(0,0,0,0.6);
+    cursor:pointer;
+    touch-action:manipulation;
+  }
+  .uiBtn:active{
+    transform:translateY(1px);
+    box-shadow:0 0 0 rgba(0,0,0,0.6);
+  }
+
+  #zoomVal{
+    min-width:3em;
+    text-align:center;
+  }
+  #captureBtn{
+    pointer-events:auto;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity 350ms ease, transform 350ms ease;
+  }
+  #captureBtn.show{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  /* rotate overlay */
+  #rotateOverlay{
     position:fixed;
     inset:0;
-    z-index:970;
+    background:#000;
+    color:#fff;
     display:none;
     align-items:center;
     justify-content:center;
-    pointer-events:none;
+    padding:24px;
+    z-index:9999;
   }
-  .map-popup-inner{
-    pointer-events:auto;
-    width:min(92vw, 520px);
+  #rotateOverlayInner{
+    border:1px solid #444;
+    border-radius:10px;
+    padding:20px 24px;
+    max-width:460px;
+    text-align:center;
+    box-shadow:var(--shadow-soft);
     background:#050505;
-    border:1px solid #333;
-    box-shadow:0 10px 30px rgba(0,0,0,.85);
-    padding:18px 18px 14px;
-    color:var(--accent);
-    font-family:"Courier New",ui-monospace,monospace;
-    position:relative;
-    line-height:1.7;
-  }
-  .map-pop-close{
-    position:absolute;
-    top:8px;
-    right:10px;
+    font-family:"Press Start 2P", monospace;
+    font-size:12px;
+    line-height:1.6;
   }
 
-  /* ENDING OVERLAY */
-  #endOverlay{
-    position:fixed;
+  /* gate overlay */
+  #overlay{
+    position:absolute;
     inset:0;
-    display:none;
+    display:flex;
     align-items:center;
     justify-content:center;
     background:#000;
-    color:var(--accent);
-    z-index:980;
+    z-index:40;
+  }
+  #overlayCard{
+    border-radius:12px;
+    padding:20px 22px;
+    max-width:480px;
+    width:min(80vw,480px);
+    background:#050505;
+    box-shadow:var(--shadow-soft);
+    border:1px solid #444;
+    text-align:center;
+    font-family:"Press Start 2P", monospace;
+  }
+  #overlayCard h1{
+    font-size:12px;
+    margin-bottom:14px;
+    letter-spacing:.12em;
+  }
+  #overlayCard p{
+    font-size:11px;
+    line-height:1.7;
+    opacity:.9;
+  }
+  #permGateBtn{
+    margin-top:18px;
+    width:100%;
+  }
+
+  /* 이름 overlay */
+  #nameOverlay{
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:35;
+    background:radial-gradient(circle at center,#111 0,#000 60%);
+  }
+  #nameCard{
+    background:#050505;
+    border-radius:12px;
+    border:1px solid #444;
+    box-shadow:var(--shadow-soft);
+    padding:18px 20px 20px;
+    width:min(80vw,420px);
+    font-family:"Press Start 2P", monospace;
+  }
+  #nameCard h2{
+    font-size:11px;
+    margin-bottom:10px;
+    letter-spacing:.1em;
+  }
+  #nameCard p{
+    font-size:10px;
+    line-height:1.6;
+    opacity:.9;
+    margin-bottom:10px;
+  }
+  #nick{
+    width:100%;
+    padding:7px 8px;
+    border-radius:4px;
+    border:1px solid #444;
+    background:#000;
+    color:#fff;
+    font-family:"Press Start 2P", monospace;
+    font-size:10px;
+    margin-bottom:10px;
+  }
+
+  /* preset saver */
+  #preset{
+    position:absolute;
+    inset:0;
+    display:none;
+    z-index:20;
+    background:#000;
+  }
+  #presetCanvas{
+    width:100%;
+    height:100%;
+    display:block;
+  }
+
+  /* welcome */
+  #overlayWelcome{
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:28;
+    background:radial-gradient(circle at center,#050505 0,#000 55%);
+  }
+  #welcomeCard{
+    background:#050505;
+    border-radius:12px;
+    border:1px solid #444;
+    box-shadow:var(--shadow-soft);
+    padding:18px 20px 22px;
+    width:min(86vw,560px);
+    font-family:"Press Start 2P", monospace;
+    text-align:left;
+  }
+  #welcomeCard .title{
+    font-size:12px;
+    margin-bottom:8px;
+    letter-spacing:.12em;
+  }
+  #welcomeCard .body{
+    font-size:10px;
+    line-height:1.7;
+    opacity:.9;
+    margin-bottom:14px;
+  }
+  #goIntro{
+    display:inline-block;
+    margin-top:8px;
+  }
+
+  /* intro big */
+  #introBig{
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:25;
+    background:#000;
+  }
+  #introBigText{
+    font-family:"Press Start 2P", monospace;
+    font-size:clamp(18px,5vmin,28px);
+    letter-spacing:.16em;
+  }
+
+  /* intro dialogue */
+  #introDialogue{
+    position:absolute;
+    inset:auto var(--frame) var(--frame) var(--frame);
+    max-width:640px;
+    margin:0 auto;
+    background:rgba(0,0,0,0.85);
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.16);
+    padding:14px 16px 12px;
+    font-family:"Press Start 2P", monospace;
+    font-size:10px;
+    line-height:1.7;
+    display:none;
+    z-index:26;
+  }
+  #introText{
+    margin-bottom:10px;
+    min-height:3em;
+  }
+  #introNext{
+    width:100%;
+    margin-top:4px;
+  }
+
+  /* FIRST SLEEP title */
+  #firstTransition,
+  #sleepTransition,
+  #thirdTransition,
+  #fourthTransition{
+    position:absolute;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    background:#000;
+    z-index:30;
+    gap:12px;
+  }
+  #firstTransWord,
+  #firstTransTitle,
+  #sleepLine1,#sleepLine2,#sleepSecondTitle,
+  #thirdSleepLine1,#thirdSleepLine2,#thirdSleepLine3,#thirdTitle,
+  #fourthSleepLine1,#fourthSleepLine2,#fourthSleepLine3,#fourthSleepLine4,#fourthTitle{
+    font-family:"Press Start 2P", monospace;
+    font-size:clamp(18px,4.8vmin,26px);
+    letter-spacing:.12em;
     text-align:center;
   }
-  #endInner{
-    display:flex;
-    flex-direction:column;
+
+  /* chapter text */
+  #chapterOverlay{
+    position:absolute;
+    inset:var(--frame);
+    display:none;
     align-items:center;
+    justify-content:center;
+    z-index:24;
+    pointer-events:none;
+  }
+  #chapterBox{
+    max-width:720px;
+    padding:14px 16px;
+    background:rgba(0,0,0,0.72);
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.2);
+    font-family:"Press Start 2P", monospace;
+    font-size:10px;
+    line-height:1.9;
+  }
+
+  /* notice popups */
+  .popupOverlay{
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,0.85);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:45;
+  }
+  .popupCard{
+    width:min(80vw,460px);
+    background:#050505;
+    border-radius:12px;
+    border:1px solid #444;
+    box-shadow:var(--shadow-soft);
+    padding:16px 18px 18px;
+    font-family:"Press Start 2P", monospace;
+    font-size:10px;
+    line-height:1.8;
+  }
+  .popupCard h2{
+    font-size:11px;
+    margin-bottom:8px;
+    letter-spacing:.12em;
+  }
+  .popupCard p{
+    margin-bottom:10px;
+  }
+  .popupCard .popupBtnRow{
+    display:flex;
+    justify-content:flex-end;
+  }
+  .popupCard button{
+    min-width:96px;
+  }
+
+  /* map overlay */
+  #mapOverlay{
+    position:absolute;
+    inset:var(--frame);
+    background:rgba(0,0,0,0.94);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:32;
+  }
+  #mapCanvas{
+    width:100%;
+    height:100%;
+    display:block;
+  }
+  #mapPop{
+    position:absolute;
+    left:50%;
+    bottom:var(--frame);
+    transform:translateX(-50%);
+    display:none;
+    z-index:33;
+  }
+  #mapPopCard{
+    background:#050505;
+    border-radius:10px;
+    border:1px solid #444;
+    box-shadow:var(--shadow-soft);
+    padding:10px 12px;
+    min-width:220px;
+    font-family:"Press Start 2P", monospace;
+    font-size:10px;
+  }
+  #mapPopTitle{
+    font-size:11px;
+    margin-bottom:4px;
+    letter-spacing:.12em;
+  }
+
+  /* skip button */
+  #skipBtn{
+    position:absolute;
+    top:var(--frame);
+    left:var(--frame);
+    z-index:50;
+    pointer-events:auto;
+  }
+
+  /* END overlay */
+  #endOverlay{
+    position:absolute;
+    inset:0;
+    background:#000;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
     gap:18px;
+    z-index:60;
+  }
+  #endSilence,
+  #endTheEnd,
+  #endReturn{
+    font-family:"Press Start 2P", monospace;
+    text-align:center;
+  }
+  #endSilence{
+    font-size:clamp(18px,4.5vmin,26px);
+  }
+  #endTheEnd{
+    font-size:clamp(18px,4.5vmin,26px);
   }
   #endReturn{
-    font-family:"Courier New",ui-monospace,monospace;
-    font-size:clamp(11px,2.0vmin,15px);
-    max-width:72ch;
-    line-height:1.7;
+    font-size:10px;
+    max-width:480px;
+    line-height:1.8;
+    opacity:.8;
   }
 </style>
 </head>
 <body>
-  <canvas id="view"></canvas>
-  <canvas id="fg"></canvas>
+<div id="app">
+  <div class="frameOuter">
+    <div class="frameBox">
+      <canvas id="view"></canvas>
+      <canvas id="fg"></canvas>
+      <canvas id="freezeLayer"></canvas>
 
-  <canvas id="freezeLayer"></canvas>
-  <div class="frameBox" aria-hidden="true"></div>
-
-  <div class="controls" id="controls">
-    <button class="uiBtn small" id="zoomOut">–</button>
-    <div class="readout"><span id="zoomVal">1.0×</span></div>
-    <button class="uiBtn small" id="zoomIn">+</button>
-  </div>
-  <button id="captureBtn" class="uiBtn small btn-capture">CAPTURE</button>
-
-  <!-- 공통 SKIP 버튼 -->
-  <button id="skipBtn" class="uiBtn small skip-btn" type="button">SKIP</button>
-
-  <button id="docLauncher" class="uiBtn small">DOCUMENT</button>
-  <button id="mapLauncher" class="uiBtn small">MAP</button>
-  <button id="audioToggle" class="uiBtn small">AUDIO</button>
-  <div id="runTimer" aria-live="polite">04:00</div>
-
-  <div id="rotateOverlay" aria-live="polite">
-    <div>
-      <b>Landscape mode required</b><br/>
-      Please rotate your device to landscape to continue.<br/>
-      If the screen doesn’t rotate, unlock orientation in your device settings.
-    </div>
-  </div>
-
-  <!-- Permission Gate -->
-  <div id="overlay" class="fade show">
-    <div id="overlayContent">
-      <div class="credits">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
-      <button id="permGateBtn" class="gateLine" type="button">
-        Tap anywhere to allow Camera, Microphone & Motion sensors
-      </button>
-      <div class="gateHint">After allowing, you'll move to the name screen.</div>
-    </div>
-  </div>
-
-  <!-- Name -->
-  <div id="nameOverlay" class="fade">
-    <div id="nameCard">
-      <h2>TELL ME YOUR NAME</h2>
-      <input id="nick" type="text" maxlength="24" placeholder="" autocomplete="off" />
-      <div id="nameRow">
-        <button id="nameSubmit" class="uiBtn flat" type="button">GO</button>
+      <div class="hud">
+        <div id="runTimer">00:00</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none;">
+          <div id="controls">
+            <div class="uiPanel">
+              <span class="uiLabel">ZOOM</span>
+              <button id="zoomOut" class="uiBtn">RESET</button>
+              <button id="zoomIn" class="uiBtn">+</button>
+              <span id="zoomVal" class="uiLabel">1.0×</span>
+            </div>
+          </div>
+          <button id="captureBtn" class="uiBtn">CAPTURE</button>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Preset -->
-  <div id="preset" class="fade" title="Tap to continue">
-    <canvas id="presetCanvas"></canvas>
-  </div>
-
-  <!-- Welcome -->
-  <div id="overlayWelcome" class="fade">
-    <div id="welcomeCard">
-      <div class="credits">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
-      <div class="title">SLEEEEEEEEP,</div>
-      <div class="title">SLEEEEEEEEP,</div>
-      <div class="title">SLEEEEEEEEP,</div>
-      <div class="title">SLEEEEEEEEP,</div>
-      <button id="goIntro" class="uiBtn flat" type="button">PRESS HERE TO SLEEP</button>
-    </div>
-  </div>
-
-  <!-- INTRODUCTION title -->
-  <div id="introBig" class="fade"><div id="introBigText" class="sleepLine">INTRODUCTION</div></div>
-
-  <!-- INTRODUCTION sentences -->
-  <div id="introDialogue">
-    <div id="introText"></div>
-    <button id="introNext" class="uiBtn small" type="button">NEXT</button>
-  </div>
-
-  <!-- THE FIRST SLEEP title (지금은 사용 X) -->
-  <div id="firstSleep"><div id="firstSleepText" class="sleepLine">THE FIRST SLEEP</div></div>
-
-  <!-- NOTICE Popup (FIRST SLEEP) -->
-  <div id="noticePopup" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle">
-    <div id="noticeCard">
-      <h3 id="noticeTitle">NOTICE</h3>
-      <p>※ “THE FIRST SLEEP”은 눈으로 인식하던 타자를 귀로 인식해 나가는 챕터입니다.</p>
-      <p>※ 앞으로 당신의 태블릿 위로 타자와 몇가지 흔적들이 텍스트로 제시될 것입니다.</p>
-      <p>※ 당신은 내면 세계의 탐험가로써 그 흔적들을 화면 아래 ‘CAPTURE’와 ‘+’, ‘-’버튼을 눌러 포착하세요.</p>
-      <p>※ 확인하셨다면, 아래 ‘OK’버튼을 눌러주세요</p>
-      <div id="noticeActions">
-        <button id="noticeOk" class="uiBtn flat" type="button">OK</button>
+      <!-- gate overlay -->
+      <div id="overlay">
+        <div id="overlayCard">
+          <h1>SLEEEEEEEEEEP</h1>
+          <p>
+            TAP ANYWHERE TO ALLOW<br>
+            CAMERA / MICROPHONE / AUDIO / VOICE.
+          </p>
+          <button id="permGateBtn" class="uiBtn">TAP TO START</button>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <!-- FIRST SLEEP: 중앙 문장 -->
-  <div id="chapterOverlay" class="fade">
-    <div id="chapterCenter">
-      <div id="chapterBox"></div>
-    </div>
-  </div>
-
-  <!-- INTRO → FIRST SLEEP: SLEEEEEEEEP + THE FIRST SLEEP -->
-  <div id="firstTransition" class="fade">
-    <div id="firstTransWord" class="sleepLine"></div>
-    <div id="firstTransTitle" class="sleepLine"></div>
-  </div>
-
-  <!-- BETWEEN FIRST & SECOND SLEEP -->
-  <div id="sleepTransition" class="fade">
-    <div id="sleepLine1" class="sleepLine"></div>
-    <div id="sleepLine2" class="sleepLine"></div>
-    <div id="sleepSecondTitle" class="sleepLine"></div>
-  </div>
-
-  <!-- THIRD SLEEP 타이틀 (3줄) -->
-  <div id="thirdTransition" class="fade">
-    <div id="thirdSleepLine1" class="sleepLine"></div>
-    <div id="thirdSleepLine2" class="sleepLine"></div>
-    <div id="thirdSleepLine3" class="sleepLine"></div>
-    <div id="thirdTitle" class="sleepLine">THE THIRD SLEEP</div>
-  </div>
-
-  <!-- FOURTH SLEEP 타이틀 (4줄) -->
-  <div id="fourthTransition" class="fade">
-    <div id="fourthSleepLine1" class="sleepLine"></div>
-    <div id="fourthSleepLine2" class="sleepLine"></div>
-    <div id="fourthSleepLine3" class="sleepLine"></div>
-    <div id="fourthSleepLine4" class="sleepLine"></div>
-    <div id="fourthTitle" class="sleepLine">THE FOURTH SLEEP</div>
-  </div>
-
-  <!-- SECOND NOTICE (지도 전) -->
-  <div id="noticePopup2" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle2">
-    <div id="noticeCard2">
-      <h3 id="noticeTitle2">NOTICE</h3>
-      <p>※ 이제 두 번째 수면으로 진입하기 전, 내면의 지도 위에서 여덟 개의 지점을 탐험하게 됩니다.</p>
-      <p>※ 지도 중앙의 육각형을 중심으로 1번부터 8번까지의 사각형을 클릭하여 각 구역의 목소리를 불러오세요.</p>
-      <p>※ 준비가 되었다면 아래 ‘OK’를 눌러 지도로 이동합니다.</p>
-      <div id="noticeActions2">
-        <button id="noticeOk2" class="uiBtn flat" type="button">OK</button>
+      <!-- rotate -->
+      <div id="rotateOverlay">
+        <div id="rotateOverlayInner">
+          PLEASE ROTATE YOUR DEVICE.<br>
+          THIS PROGRAM IS LANDSCAPE ONLY.
+        </div>
       </div>
-    </div>
-  </div>
 
-  <!-- THIRD NOTICE (세 번째 수면 안내) -->
-  <div id="noticePopup3" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle3">
-    <div id="noticeCard3">
-      <h3 id="noticeTitle3">NOTICE</h3>
-      <p>※ 이제 “THE THIRD SLEEP”으로 진입합니다.</p>
-      <p>※ 잠시 후 5분 동안 이 수면 상태가 이어집니다.</p>
-      <p>※ 타이머가 끝나면 “THE FOURTH SLEEP”으로 넘어갑니다.</p>
-      <div id="noticeActions3">
-        <button id="noticeOk3" class="uiBtn flat" type="button">OK</button>
+      <!-- 이름 입력 -->
+      <div id="nameOverlay">
+        <div id="nameCard">
+          <h2>ENTER YOUR NAME</h2>
+          <p>
+            이 프로그램 속에서 불릴 이름을 입력해 주세요.<br>
+            입력하지 않으면 &ldquo;_____&rdquo;로 진행됩니다.
+          </p>
+          <input id="nick" autocomplete="off" placeholder="YOUR NAME" />
+          <button id="nameSubmit" class="uiBtn">OK</button>
+        </div>
       </div>
+
+      <!-- 프리셋 세이버 -->
+      <div id="preset">
+        <canvas id="presetCanvas"></canvas>
+      </div>
+
+      <!-- 웰컴 -->
+      <div id="overlayWelcome">
+        <div id="welcomeCard">
+          <div class="title">WELCOME</div>
+          <div class="body">
+            30분 동안, 당신의 내면 도시를 거닐게 됩니다.<br>
+            이어폰을 귀에 꽂고, 작은 목소리로만 말해 주세요.
+          </div>
+          <button id="goIntro" class="uiBtn">ENTER INTRODUCTION</button>
+        </div>
+      </div>
+
+      <!-- INTRODUCTION 타이틀 -->
+      <div id="introBig">
+        <div id="introBigText">INTRODUCTION</div>
+      </div>
+
+      <!-- INTRO 대화 -->
+      <div id="introDialogue">
+        <div id="introText"></div>
+        <button id="introNext" class="uiBtn">NEXT</button>
+      </div>
+
+      <!-- FIRST SLEEP 전환 -->
+      <div id="firstTransition">
+        <div id="firstTransWord"></div>
+        <div id="firstTransTitle"></div>
+      </div>
+
+      <!-- SECOND SLEEP 전환 -->
+      <div id="sleepTransition">
+        <div id="sleepLine1"></div>
+        <div id="sleepLine2"></div>
+        <div id="sleepSecondTitle"></div>
+      </div>
+
+      <!-- THIRD SLEEP 전환 -->
+      <div id="thirdTransition">
+        <div id="thirdSleepLine1"></div>
+        <div id="thirdSleepLine2"></div>
+        <div id="thirdSleepLine3"></div>
+        <div id="thirdTitle"></div>
+      </div>
+
+      <!-- FOURTH SLEEP 전환 -->
+      <div id="fourthTransition">
+        <div id="fourthSleepLine1"></div>
+        <div id="fourthSleepLine2"></div>
+        <div id="fourthSleepLine3"></div>
+        <div id="fourthSleepLine4"></div>
+        <div id="fourthTitle"></div>
+      </div>
+
+      <!-- 챕터 텍스트 -->
+      <div id="chapterOverlay">
+        <div id="chapterBox"></div>
+      </div>
+
+      <!-- 첫 번째 알림 -->
+      <div id="noticePopup" class="popupOverlay">
+        <div id="noticeCard" class="popupCard">
+          <h2>THE FIRST SLEEP</h2>
+          <p>
+            지금부터 카메라와 마이크가 켜집니다.<br>
+            화면 속 도시를 조용히 바라보며, 작은 목소리로 숨을 섞어 주세요.
+          </p>
+          <div class="popupBtnRow">
+            <button id="noticeOk" class="uiBtn">OK</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 두 번째 알림 -->
+      <div id="noticePopup2" class="popupOverlay">
+        <div id="noticeCard2" class="popupCard">
+          <h2>THE SECOND SLEEP</h2>
+          <p>
+            이제 도시의 지도를 펼칩니다.<br>
+            원하는 구역을 눌러, 그곳의 울림을 들어 보세요.
+          </p>
+          <div class="popupBtnRow">
+            <button id="noticeOk2" class="uiBtn">OK</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 세 번째 알림 -->
+      <div id="noticePopup3" class="popupOverlay">
+        <div id="noticeCard3" class="popupCard">
+          <h2>THE THIRD SLEEP</h2>
+          <p>
+            마지막으로, 당신은 내면의 거리를 걷게 됩니다.<br>
+            소리와 함께 천천히, 스스로를 따라가 보세요.
+          </p>
+          <div class="popupBtnRow">
+            <button id="noticeOk3" class="uiBtn">OK</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 지도 -->
+      <div id="mapOverlay">
+        <canvas id="mapCanvas"></canvas>
+        <div id="mapPop">
+          <div id="mapPopCard">
+            <div id="mapPopTitle">ZONE</div>
+            <div id="mapPopBody"></div>
+            <div style="margin-top:6px;text-align:right;">
+              <button id="mapPopClose" class="uiBtn">OK</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SKIP -->
+      <button id="skipBtn" class="uiBtn" style="display:none;">SKIP</button>
+
+      <!-- END -->
+      <div id="endOverlay">
+        <div id="endSilence"></div>
+        <div id="endTheEnd"></div>
+        <div id="endReturn"></div>
+      </div>
+
     </div>
   </div>
-
-  <!-- MAP OVERLAY -->
-  <div id="mapOverlay">
-    <canvas id="mapCanvas"></canvas>
-  </div>
-
-  <!-- MAP POPUP -->
-  <div id="mapPop" class="map-popup">
-    <div class="map-popup-inner">
-      <button id="mapPopClose" class="uiBtn small map-pop-close" type="button">CLOSE</button>
-      <div id="mapPopBody"></div>
-    </div>
-  </div>
-
-  <!-- ENDING OVERLAY: SILENCE / THE END (각 5분 챕터) -->
-  <div id="endOverlay" class="fade">
-    <div id="endInner">
-      <div id="endSilence" class="sleepLine"></div>
-      <div id="endTheEnd" class="sleepLine"></div>
-      <div id="endReturn"></div>
-    </div>
-  </div>
-<!-- INTRO -->
-<div id="intro" class="scene show">
-  <div>SLEEEEEEEEEEP</div>
-  <button onclick="goFirst()">START</button>
-</div>
-
-<!-- FIRST SLEEP -->
-<div id="first" class="scene">
-  <div>THE FIRST SLEEP</div>
-  <div class="rabbit">(\_/)
-( •_• )
-/ >🍀  ></div>
-  <div class="timer" id="timer1"></div>
-</div>
-
-<!-- SECOND -->
-<div id="second" class="scene">
-  <div>THE SECOND SLEEP</div>
-  <div class="rabbit">(\_/)
-( •_• )
-/ >🍀  ></div>
-  <div class="timer" id="timer2"></div>
-</div>
-
-<!-- THIRD -->
-<div id="third" class="scene">
-  <div>THE THIRD SLEEP</div>
-  <div class="rabbit">(\_/)
-( •_• )
-/ >🍀  ></div>
-  <div class="timer" id="timer3"></div>
-</div>
-
-<!-- FOURTH -->
-<div id="fourth" class="scene">
-  <div>THE FOURTH SLEEP</div>
-  <div class="rabbit">(\_/)
-( •_• )
-/ >🍀  ></div>
-  <div class="timer" id="timer4"></div>
-</div>
-
-<!-- SILENCE -->
-<div id="silence" class="scene">
-  <div>SILENCE</div>
-</div>
-
-<!-- END -->
-<div id="end" class="scene">
-  <div>THE END</div>
 </div>
 
 <script>
@@ -1044,7 +781,70 @@ cursor:pointer;
   const nextFrame = () => new Promise(resolve=>requestAnimationFrame(()=>resolve()));
   const qs = s => document.querySelector(s);
 
-  /* === 볼륨 공통 설정 === */
+  /* ====== 오디오 / TTS 공통 ====== */
+  let audioCtx = null;
+  let audioPrimed = false;
+
+  function ensureAudio(){
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+
+  async function primeAudio(){
+    ensureAudio();
+    if(audioCtx.state === 'suspended'){
+      try{ await audioCtx.resume(); }catch(e){}
+    }
+    audioPrimed = true;
+  }
+
+  async function ensureResumed(){
+    ensureAudio();
+    if(audioCtx.state === 'suspended'){
+      try{ await audioCtx.resume(); }catch(e){}
+    }
+  }
+
+  /* === TTS 설정 === */
+  let ttsReady   = 'speechSynthesis' in window;
+  let ttsVoice   = null;
+  let ttsEnabled = false;
+
+  function selectKoreanVoice(voices){
+    let v = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('ko'));
+    if(!v) v = voices.find(v => /korean/i.test(v.name||'')) || voices[0];
+    return v || null;
+  }
+
+  function initTts(){
+    if(!ttsReady) return;
+    const voices = window.speechSynthesis.getVoices() || [];
+    if(!voices.length){
+      setTimeout(initTts, 400);
+      return;
+    }
+    ttsVoice = selectKoreanVoice(voices);
+    ttsEnabled = !!ttsVoice;
+  }
+
+  if(ttsReady){
+    initTts();
+    window.speechSynthesis.onvoiceschanged = initTts;
+  }
+
+  function speakText(text){
+    if(!ttsReady || !text) return;
+    try{
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      if(ttsVoice) u.voice = ttsVoice;
+      u.lang  = (ttsVoice && ttsVoice.lang) ? ttsVoice.lang : 'ko-KR';
+      u.pitch = 1.0;
+      u.rate  = 0.9;
+      u.volume= 1.0;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
+
   const MASTER_BGM_GAIN = 0.4;
   const MASTER_SFX_GAIN = 0.45;
 
@@ -1099,9 +899,6 @@ cursor:pointer;
   const introDialogue = qs('#introDialogue');
   const introTextEl = qs('#introText');
   const introNextBtn = qs('#introNext');
-
-  const firstSleep = qs('#firstSleep');
-  const firstSleepText = qs('#firstSleepText');
 
   const controls = qs('#controls');
   const zoomIn = qs('#zoomIn');
@@ -1171,356 +968,77 @@ cursor:pointer;
   let showCamera=false;
   let camFadeAlpha=0;
 
-  let audioCtx = null;
-  function ensureAudio(){
-    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  async function ensureResumed(){
-    try{
-      ensureAudio();
-      if(audioCtx.state==='suspended') await audioCtx.resume();
-    }catch{}
+  /* --------- 타이핑/버튼 사운드 ---------- */
+  let typeBuffer = null;
+  let lastTypeSoundTime = 0;
+
+  function buildTypeBuffer(ctx){
+    const duration   = 0.04;
+    const sampleRate = ctx.sampleRate;
+    const length     = Math.floor(sampleRate * duration);
+    const buffer     = ctx.createBuffer(1, length, sampleRate);
+    const data       = buffer.getChannelData(0);
+    const freq       = 1800;
+
+    for(let i=0;i<length;i++){
+      const t   = i / sampleRate;
+      const env = Math.exp(-t * 20);
+      const phase = 2 * Math.PI * freq * t;
+      data[i] = Math.sin(phase) * env;
+    }
+    return buffer;
   }
 
-  /* 현재 챕터 상태 */
-  let stage = 'gate';
-
-  /* --------- 입력/타이핑 공용 사운드 --------- */
-  function playGameInputSound(){
+  function playTypeBeep(){
     try{
       ensureAudio();
       const ctx = audioCtx;
-      const now = ctx.currentTime;
-      const o1 = ctx.createOscillator();
-      const o2 = ctx.createOscillator();
-      const g  = ctx.createGain();
-      o1.type = 'triangle';
-      o2.type = 'triangle';
-      o1.frequency.setValueAtTime(1350, now);
-      o2.frequency.setValueAtTime(900,  now);
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+0.18);
-      o1.connect(g); o2.connect(g); g.connect(ctx.destination);
-      o1.start(now); o2.start(now);
-      o1.stop(now+0.2); o2.stop(now+0.2);
-    }catch(e){}
-  }
+      const now = ctx.currentTime || 0;
 
-  /* --------- TTS --------- */
-  let ttsReady = 'speechSynthesis' in window;
-  let ttsVoice = null;
+      // 갤탭에서 버벅임 줄이려고, 0.07초보다 촘촘한 건 막기
+      if(now - lastTypeSoundTime < 0.07) return;
+      lastTypeSoundTime = now;
 
-  function chooseTtsVoice(){
-    if(!ttsReady) return;
-    const voices = window.speechSynthesis.getVoices();
-    if(!voices || !voices.length) return;
-    ttsVoice =
-      voices.find(v => v.lang.startsWith('ko') && /female|woman|A|F/i.test(v.name)) ||
-      voices.find(v => v.lang.startsWith('ko')) ||
-      voices[0];
-  }
-
-  if(ttsReady){
-    chooseTtsVoice();
-    window.speechSynthesis.onvoiceschanged = chooseTtsVoice;
-  }
-
-  function speakText(text){
-    if(!ttsReady || !text) return;
-    try{
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      if(ttsVoice) u.voice = ttsVoice;
-      u.pitch = 1.05;
-      u.rate = 0.9;
-      u.volume = 0.9;
-      window.speechSynthesis.speak(u);
-    }catch(e){}
-  }
-  /* ----------------------------------------------------- */
-
-  /* ================= 안정화된 BGM 엔진 ================= */
-  const Ambient = (() => {
-    let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, killers=[];
-    function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
-    function setup(){
-      ensureAudio();
-      ctx = audioCtx;
-      master = ctx.createGain();
-      master.gain.value = 0.0001;
-      delay = ctx.createDelay(2.5);
-      delay.delayTime.value = 0.45;
-      fb = ctx.createGain();
-      fb.gain.value = 0.32;
-      delay.connect(fb).connect(delay);
-      hp = ctx.createBiquadFilter();
-      hp.type='highpass';
-      hp.frequency.value=150;
-      lp = ctx.createBiquadFilter();
-      lp.type='lowpass';
-      lp.frequency.value=4200;
-      mix = ctx.createGain();
-      mix.gain.value = 0.7;
-      mix.connect(hp).connect(lp).connect(master);
-      busGain = ctx.createGain();
-      busGain.gain.value = 0.6;
-      busGain.connect(master);
-      master.connect(ctx.destination);
-    }
-    function connectDW(node){
-      node.connect(busGain);
-      node.connect(delay);
-      delay.connect(mix);
-    }
-    function airy(){
-      const b=ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate);
-      const d=b.getChannelData(0);
-      for(let i=0;i<d.length;i++){
-        d[i]=(Math.random()*2-1)*0.06;
-      }
-      const s=ctx.createBufferSource();
-      s.buffer=b; s.loop=true;
-      const g=ctx.createGain();
-      g.gain.value=0.015;
-      const f=ctx.createBiquadFilter();
-      f.type='bandpass';
-      f.frequency.value=1100;
-      f.Q.value=0.9;
-      s.connect(f).connect(g);
-      connectDW(g);
-      s.start();
-      killers.push(()=>{ try{s.stop();}catch{} });
-    }
-    function pad(root){
-      const out = ctx.createGain();
-      out.gain.value=0.24;
-      const filt=ctx.createBiquadFilter();
-      filt.type='lowpass';
-      filt.frequency.value=1200;
-      filt.Q.value=0.7;
-      const lfo=ctx.createOscillator();
-      const lfoG=ctx.createGain();
-      lfo.type='sine';
-      lfo.frequency.value=0.04;
-      lfoG.gain.value=260;
-      lfo.connect(lfoG).connect(filt.frequency);
-      lfo.start();
-      [0,7,12].forEach((i,k)=>{
-        const o=ctx.createOscillator();
-        o.type='triangle';
-        o.frequency.value=midi(root+i);
-        o.detune.value=(k-1)*4;
-        const g=ctx.createGain();
-        g.gain.value=0.05;
-        o.connect(g).connect(filt);
-        o.start();
-        killers.push(()=>{ try{g.disconnect();}catch{} });
-      });
-      filt.connect(out);
-      connectDW(out);
-      killers.push(()=>{ try{ out.disconnect(); }catch{} });
-    }
-    function plucked(root){
-      const now = ctx.currentTime;
-      const o = ctx.createOscillator();
+      if(!typeBuffer) typeBuffer = buildTypeBuffer(ctx);
+      const src = ctx.createBufferSource();
+      src.buffer = typeBuffer;
       const g = ctx.createGain();
-      const f = ctx.createBiquadFilter();
-      const steps = [0,7,12,14];
-      const pick = steps[Math.floor(Math.random()*steps.length)];
-      o.type='sine';
-      o.frequency.value = midi(root+pick);
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN*0.6, now+0.04);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+1.9);
-      f.type='bandpass';
-      f.frequency.value = o.frequency.value*2;
-      f.Q.value=4;
-      o.connect(f).connect(g);
-      connectDW(g);
-      o.start(now);
-      o.stop(now+2.1);
-      killers.push(()=>{ try{g.disconnect();}catch{} });
-    }
-    async function start(fadeIn=1.0, target=1.0){
-      await ensureResumed();
-      if(running) return;
-      setup();
-      running=true;
-      airy();
-      const seq=[57,52,48,43];
-      let i=0;
-      (function tick(){
-        if(!running) return;
-        const root = seq[i%seq.length];
-        pad(root);
-        if(Math.random()<0.7) plucked(root);
-        i++;
-        setTimeout(tick,9000);
-      })();
-      const t=ctx.currentTime;
-      const targetGain = MASTER_BGM_GAIN * target;
-      master.gain.cancelScheduledValues(t);
-      master.gain.setValueAtTime(0.0001, t);
-      master.gain.linearRampToValueAtTime(targetGain, t+fadeIn);
-    }
-    function stop(fade=2.0){
-      if(!running||!master) return;
-      const t=ctx.currentTime;
-      master.gain.cancelScheduledValues(t);
-      master.gain.setValueAtTime(master.gain.value, t);
-      master.gain.linearRampToValueAtTime(0.0001, t+fade);
-      setTimeout(()=>{
-        killers.forEach(fn=>{try{fn();}catch{}});
-        killers=[];
-        running=false;
-      }, fade*1000+200);
-    }
-    function isRunning(){ return running; }
-    return { start, stop, isRunning };
-  })();
-  /* ==================================================== */
-
-  async function playWoongClick(){
-    try{
-      await ensureResumed();
-      const now = audioCtx.currentTime;
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.type='sine';
-      o.frequency.setValueAtTime(220, now);
-      o.frequency.exponentialRampToValueAtTime(110, now+0.24);
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.03);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+0.35);
-      o.connect(g).connect(audioCtx.destination);
-      o.start(now);
-      o.stop(now+0.4);
-    }catch(e){}
-  }
-  async function playTduung(){
-    try{
-      await ensureResumed();
-      const now = audioCtx.currentTime;
-      const o1=audioCtx.createOscillator(), o2=audioCtx.createOscillator();
-      const g=audioCtx.createGain();
-      o1.type='sine'; o2.type='sine';
-      o1.frequency.value=90; o2.frequency.value=45;
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN*1.1, now+0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+0.6);
-      o1.connect(g); o2.connect(g); g.connect(audioCtx.destination);
-      o1.start(); o2.start();
-      o1.stop(now+0.62); o2.stop(now+0.62);
-    }catch(e){}
-  }
-  async function playBellChime(){
-    try{
-      await ensureResumed();
-      const now = audioCtx.currentTime;
-      const osc1 = audioCtx.createOscillator();
-      const osc2 = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      osc1.type='sine'; osc2.type='sine';
-      osc1.frequency.setValueAtTime(1200, now);
-      osc2.frequency.setValueAtTime(1800, now);
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+1.4);
-      osc1.connect(g); osc2.connect(g); g.connect(audioCtx.destination);
-      osc1.start(now); osc2.start(now);
-      osc1.stop(now+1.5); osc2.stop(now+1.5);
+      g.gain.value = MASTER_SFX_GAIN * 0.75;
+      src.connect(g).connect(ctx.destination);
+      src.start();
     }catch(e){}
   }
 
-  /* 낮은 드림 "부우웅" 효과음 */
-  async function playDreamWoong(){
-    try{
-      await ensureResumed();
-      const now = audioCtx.currentTime;
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.type = 'sine';
-      o.frequency.setValueAtTime(90, now);
-      o.frequency.exponentialRampToValueAtTime(55, now+2.0);
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.15);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+2.0);
-      o.connect(g).connect(audioCtx.destination);
-      o.start(now);
-      o.stop(now+2.05);
-    }catch(e){}
-  }
-
-  /* 2장용: 작은 짤랑 짤랑 종소리 루프 */
-  let secondBellInterval = null;
-  let secondBellRunning = false;
-
-  async function playSoftBellChime(){
-    try{
-      await ensureResumed();
-      const now = audioCtx.currentTime;
-      const o1 = audioCtx.createOscillator();
-      const o2 = audioCtx.createOscillator();
-      const g  = audioCtx.createGain();
-      o1.type='sine';
-      o2.type='sine';
-      o1.frequency.setValueAtTime(880, now);
-      o2.frequency.setValueAtTime(1320, now);
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN*0.8, now+0.03);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+2.4);
-      o1.connect(g); o2.connect(g); g.connect(audioCtx.destination);
-      o1.start(now); o2.start(now);
-      o1.stop(now+2.5); o2.stop(now+2.5);
-    }catch(e){}
-  }
-
-  function startSecondBell(){
-    if(secondBellRunning) return;
-    secondBellRunning = true;
-    playSoftBellChime();
-    secondBellInterval = setInterval(()=>{ playSoftBellChime(); }, 12000);
-  }
-
-  function stopSecondBell(){
-    if(secondBellInterval) clearInterval(secondBellInterval);
-    secondBellInterval = null;
-    secondBellRunning = false;
-  }
-
-  /* 타이핑 사운드 */
   function typeTick(){
-    playGameInputSound();
+    playTypeBeep();
   }
 
   function updateZoomLabel(){
     zoomVal.textContent = ZOOM.toFixed(1)+'×';
   }
   updateZoomLabel();
-  zoomIn.addEventListener('click', async ()=>{
+  zoomIn.addEventListener('click', ()=>{
     ZOOM=Math.min(3.0, ZOOM+0.05);
     updateZoomLabel();
-    await playWoongClick();
+    playClick();   // await 안 씀 → 딜레이 최소화
   }, {passive:true});
-  zoomOut.addEventListener('click', async ()=>{
+  zoomOut.addEventListener('click', ()=>{
     ZOOM=1.0;
     updateZoomLabel();
-    await playWoongClick();
+    playClick();
   }, {passive:true});
 
   async function immediateGestureStart(e){
     e && e.preventDefault && e.preventDefault();
 
     claimImmersive();
-    await ensureResumed();
+    await primeAudio();
+    initTts();
 
     try{
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission()
-          .then(()=>{ claimImmersive(); })
-          .catch(()=>{});
+        DeviceOrientationEvent.requestPermission().catch(()=>{});
       }
     }catch(_){}
 
@@ -1533,10 +1051,7 @@ cursor:pointer;
       },
       audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}
     })
-    .then(async (s)=>{
-      await ensureResumed();
-      if(!Ambient.isRunning()) Ambient.start(1.2, 1.0);
-      claimImmersive();
+    .then((s)=>{
       s.getTracks().forEach(t=>t.stop());
       camPermGranted = true;
     })
@@ -1545,12 +1060,10 @@ cursor:pointer;
     })
     .finally(()=>{
       fadeHide(overlay, FADE);
-
-      /* 이름 입력 단계에서부터 프리셋 화면이 뒤에 보이도록 즉시 띄움 */
       showPreset();
       fadeShow(nameOverlay, FADE);
       stage = 'name';
-      setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 60);
+      setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 80);
     });
   }
 
@@ -1568,11 +1081,9 @@ cursor:pointer;
   async function acceptName(){
     claimImmersive();
     await ensureResumed();
-    if(!Ambient.isRunning()) Ambient.start(0.5, 1.0);
     const v = (nickInput.value||'').trim();
     if(v.length>0){ displayName = v; }
-    await playWoongClick();
-    /* 이름 카드만 사라지고, 프리셋 화면은 그대로 유지 */
+    playClick();
     fadeHide(nameOverlay, FADE);
     stage = 'preset';
     skipBtn.style.display='block';
@@ -1582,7 +1093,7 @@ cursor:pointer;
     if(e.key==='Enter'){ acceptName(); }
   });
 
-  /* === 프리셋 세이버: 안정화 버전 === */
+  /* ===== 프리셋 세이버 ===== */
   let saverObjs = [];
   let saverT0 = 0;
   let lastSaverTime = null;
@@ -1590,7 +1101,6 @@ cursor:pointer;
   function showPreset(){
     if(preset.style.display!=='block'){
       preset.style.display='block';
-      preset.classList.add('show');
       fadeShow(preset, FADE);
       initSaver();
       startCameraFresh(true);
@@ -1630,7 +1140,7 @@ cursor:pointer;
     const dpr = devicePixelRatio || 1;
 
     if(lastSaverTime == null) lastSaverTime = now;
-    const dt = (now - lastSaverTime) / 1000; // 초 단위
+    const dt = (now - lastSaverTime) / 1000;
     lastSaverTime = now;
 
     presetCanvas.width = w * dpr;
@@ -1644,11 +1154,9 @@ cursor:pointer;
     ctx.textBaseline = 'middle';
 
     for(const o of saverObjs){
-      // 위치 업데이트 (dt 기반)
       o.x += o.vx * dt * 60;
       o.y += o.vy * dt * 60;
 
-      // 화면 밖으로 튀어나가면 살짝 튕김
       if(o.x < 0 || o.x > w){
         o.vx *= -1;
         o.x = Math.max(0, Math.min(w, o.x));
@@ -1658,88 +1166,8 @@ cursor:pointer;
         o.y = Math.max(0, Math.min(h, o.y));
       }
 
-      // 꿀렁이는 속도/진폭 고정
       o.phase += dt * 0.6;
       const wob = Math.sin(o.phase)*0.08 + 1;
-/* 장면 전환 */
-function show(id){
-  document.querySelectorAll('.scene')
-    .forEach(s=>s.classList.remove('show'));
-  document.getElementById(id).classList.add('show');
-}
-
-/* 5분 타이머 */
-function startTimer(duration, display, nextScene){
-  let timer = duration;
-  let interval = setInterval(()=>{
-    let m = String(Math.floor(timer/60)).padStart(2,'0');
-    let s = String(timer%60).padStart(2,'0');
-    display.textContent = `TIMER  ${m}:${s}`;
-
-    if(--timer < 0){
-      clearInterval(interval);
-      show(nextScene);
-    }
-  },1000);
-}
-
-/* START → FIRST */
-function goFirst(){
-  show("first");
-  startTimer(300, document.getElementById("timer1"), "second");
-}
-
-/* FIRST → SECOND → THIRD → FOURTH */
-document.getElementById("first").ontransitionend = function(){};
-show;
-
-function goSecond(){
-  show("second");
-  startTimer(300, document.getElementById("timer2"), "third");
-}
-
-function goThird(){
-  show("third");
-  startTimer(300, document.getElementById("timer3"), "fourth");
-}
-
-function goFourth(){
-  show("fourth");
-  startTimer(300, document.getElementById("timer4"), "silence");
-}
-
-/* 자동 연결 */
-document.getElementById("first").addEventListener("transitionend",()=>{
-  if(document.getElementById("first").classList.contains("show")){
-    startTimer(300, document.getElementById("timer1"), "second");
-  }
-});
-
-document.getElementById("second").addEventListener("transitionend",()=>{
-  if(document.getElementById("second").classList.contains("show")){
-    startTimer(300, document.getElementById("timer2"), "third");
-  }
-});
-
-document.getElementById("third").addEventListener("transitionend",()=>{
-  if(document.getElementById("third").classList.contains("show")){
-    startTimer(300, document.getElementById("timer3"), "fourth");
-  }
-});
-
-document.getElementById("fourth").addEventListener("transitionend",()=>{
-  if(document.getElementById("fourth").classList.contains("show")){
-    startTimer(300, document.getElementById("timer4"), "silence");
-  }
-});
-
-/* SILENCE → END 자동 5초 후 */
-document.getElementById("silence").addEventListener("transitionend",()=>{
-  if(document.getElementById("silence").classList.contains("show")){
-    setTimeout(()=>show("end"), 5000);
-  }
-});
-</script>
 
       ctx.save();
       ctx.translate(o.x, o.y);
@@ -1753,20 +1181,17 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
     requestAnimationFrame(saverLoop);
   }
 
-  /* 프리셋 화면 누르면 웰컴으로 */
-  preset.addEventListener('click', async ()=>{
+  preset.addEventListener('click', ()=>{
     claimImmersive();
-    await ensureResumed();
+    ensureResumed();
     if(!Ambient.isRunning()) Ambient.start(0.5,1.0);
-    await playWoongClick();
+    playClick();
     fadeHide(preset, FADE);
-    await startCameraFresh(false);
+    startCameraFresh(false);
     fadeShow(welcome, FADE);
-    fitWelcomeTitles();
     stage = 'welcome';
   }, {passive:true});
 
-  /* 인트로/1장 텍스트 placeholder */
   const INTRO_LINES = [
     '멘트를 입력하세요',
     '멘트를 입력하세요',
@@ -1795,29 +1220,6 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
       el.style.fontSize=size+'px';
     }
   }
-  function fitTitleLineSafe(){
-    fitTitleLine(introBigText);
-    fitTitleLine(firstSleepText);
-    fitTitleLine(thirdTitle);
-    fitTitleLine(fourthTitle);
-  }
-  window.addEventListener('load', fitTitleLineSafe);
-
-  function fitWelcomeTitles(){
-    const titles = document.querySelectorAll('#welcomeCard .title');
-    const card = document.getElementById('welcomeCard');
-    if(!titles.length || !card) return;
-    const maxW = card.clientWidth * 0.95;
-    titles.forEach(el=>{
-      el.style.whiteSpace='nowrap';
-      let size = parseFloat(getComputedStyle(el).fontSize) || 40;
-      while(el.scrollWidth>maxW && size>14){
-        size *= 0.94;
-        el.style.fontSize = size+'px';
-      }
-    });
-  }
-  window.addEventListener('resize', ()=>fitWelcomeTitles(), {passive:true});
 
   const PIXEL_SPRITE=[
     "..XXXXXX....",
@@ -1974,7 +1376,239 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
     });
   }
 
-  /* 공통 타이머 */
+  /* ============= BGM & SFX ============= */
+  const Ambient = (() => {
+    let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, killers=[];
+    function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
+    function setup(){
+      ensureAudio();
+      ctx = audioCtx;
+      master = ctx.createGain();
+      master.gain.value = 0.0001;
+      delay = ctx.createDelay(2.5);
+      delay.delayTime.value = 0.45;
+      fb = ctx.createGain();
+      fb.gain.value = 0.32;
+      delay.connect(fb).connect(delay);
+      hp = ctx.createBiquadFilter();
+      hp.type='highpass';
+      hp.frequency.value=150;
+      lp = ctx.createBiquadFilter();
+      lp.type='lowpass';
+      lp.frequency.value=4200;
+      mix = ctx.createGain();
+      mix.gain.value = 0.7;
+      mix.connect(hp).connect(lp).connect(master);
+      busGain = ctx.createGain();
+      busGain.gain.value = 0.6;
+      busGain.connect(master);
+      master.connect(ctx.destination);
+    }
+    function connectDW(node){
+      node.connect(busGain);
+      node.connect(delay);
+      delay.connect(mix);
+    }
+    function airy(){
+      const b=ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate);
+      const d=b.getChannelData(0);
+      for(let i=0;i<d.length;i++){
+        d[i]=(Math.random()*2-1)*0.06;
+      }
+      const s=ctx.createBufferSource();
+      s.buffer=b; s.loop=true;
+      const g=ctx.createGain();
+      g.gain.value=0.015;
+      const f=ctx.createBiquadFilter();
+      f.type='bandpass';
+      f.frequency.value=1100;
+      f.Q.value=0.9;
+      s.connect(f).connect(g);
+      connectDW(g);
+      s.start();
+      killers.push(()=>{ try{s.stop();}catch{} });
+    }
+    function pad(root){
+      const out = ctx.createGain();
+      out.gain.value=0.24;
+      const filt=ctx.createBiquadFilter();
+      filt.type='lowpass';
+      filt.frequency.value=1200;
+      filt.Q.value=0.7;
+      const lfo=ctx.createOscillator();
+      const lfoG=ctx.createGain();
+      lfo.type='sine';
+      lfo.frequency.value=0.04;
+      lfoG.gain.value=260;
+      lfo.connect(lfoG).connect(filt.frequency);
+      lfo.start();
+      [0,7,12].forEach((i,k)=>{
+        const o=ctx.createOscillator();
+        o.type='triangle';
+        o.frequency.value=midi(root+i);
+        o.detune.value=(k-1)*4;
+        const g=ctx.createGain();
+        g.gain.value=0.05;
+        o.connect(g).connect(filt);
+        o.start();
+        killers.push(()=>{ try{g.disconnect();}catch{} });
+      });
+      filt.connect(out);
+      connectDW(out);
+      killers.push(()=>{ try{ out.disconnect(); }catch{} });
+    }
+    function plucked(root){
+      const now = ctx.currentTime;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      const f = ctx.createBiquadFilter();
+      const steps = [0,7,12,14];
+      const pick = steps[Math.floor(Math.random()*steps.length)];
+      o.type='sine';
+      o.frequency.value = midi(root+pick);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN*0.6, now+0.04);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+1.9);
+      f.type='bandpass';
+      f.frequency.value = o.frequency.value*2;
+      f.Q.value=4;
+      o.connect(f).connect(g);
+      connectDW(g);
+      o.start(now);
+      o.stop(now+2.1);
+      killers.push(()=>{ try{g.disconnect();}catch{} });
+    }
+    async function start(fadeIn=1.0, target=1.0){
+      await ensureResumed();
+      if(running) return;
+      setup();
+      running=true;
+      airy();
+      const seq=[57,52,48,43];
+      let i=0;
+      (function tick(){
+        if(!running) return;
+        const root = seq[i%seq.length];
+        pad(root);
+        if(Math.random()<0.7) plucked(root);
+        i++;
+        setTimeout(tick,9000);
+      })();
+      const t=ctx.currentTime;
+      const targetGain = MASTER_BGM_GAIN * target;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setValueAtTime(0.0001, t);
+      master.gain.linearRampToValueAtTime(targetGain, t+fadeIn);
+    }
+    function stop(fade=2.0){
+      if(!running||!master) return;
+      const t=ctx.currentTime;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setValueAtTime(master.gain.value, t);
+      master.gain.linearRampToValueAtTime(0.0001, t+fade);
+      setTimeout(()=>{
+        killers.forEach(fn=>{try{fn();}catch{}});
+        killers=[];
+        running=false;
+      }, fade*1000+200);
+    }
+    function isRunning(){ return running; }
+    return { start, stop, isRunning };
+  })();
+
+  function playClick(){
+    try{
+      ensureAudio();
+      const now = audioCtx.currentTime;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type='sine';
+      o.frequency.setValueAtTime(220, now);
+      o.frequency.exponentialRampToValueAtTime(110, now+0.22);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+0.3);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(now);
+      o.stop(now+0.35);
+    }catch(e){}
+  }
+
+  async function playBellChime(){
+    try{
+      ensureAudio();
+      const now = audioCtx.currentTime;
+      const o1 = audioCtx.createOscillator();
+      const o2 = audioCtx.createOscillator();
+      const g  = audioCtx.createGain();
+      o1.type='sine';
+      o2.type='sine';
+      o1.frequency.setValueAtTime(1200, now);
+      o2.frequency.setValueAtTime(1800, now);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+1.4);
+      o1.connect(g); o2.connect(g); g.connect(audioCtx.destination);
+      o1.start(now); o2.start(now);
+      o1.stop(now+1.5); o2.stop(now+1.5);
+    }catch(e){}
+  }
+
+  async function playDreamWoong(){
+    try{
+      ensureAudio();
+      const now = audioCtx.currentTime;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(90, now);
+      o.frequency.exponentialRampToValueAtTime(55, now+2.0);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.15);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+2.0);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(now);
+      o.stop(now+2.05);
+    }catch(e){}
+  }
+
+  let secondBellInterval = null;
+  let secondBellRunning = false;
+
+  async function playSoftBellChime(){
+    try{
+      ensureAudio();
+      const now = audioCtx.currentTime;
+      const o1 = audioCtx.createOscillator();
+      const o2 = audioCtx.createOscillator();
+      const g  = audioCtx.createGain();
+      o1.type='sine';
+      o2.type='sine';
+      o1.frequency.setValueAtTime(880, now);
+      o2.frequency.setValueAtTime(1320, now);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN*0.8, now+0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+2.4);
+      o1.connect(g); o2.connect(g); g.connect(audioCtx.destination);
+      o1.start(now); o2.start(now);
+      o1.stop(now+2.5); o2.stop(now+2.5);
+    }catch(e){}
+  }
+
+  function startSecondBell(){
+    if(secondBellRunning) return;
+    secondBellRunning = true;
+    playSoftBellChime();
+    secondBellInterval = setInterval(()=>{ playSoftBellChime(); }, 12000);
+  }
+
+  function stopSecondBell(){
+    if(secondBellInterval) clearInterval(secondBellInterval);
+    secondBellInterval = null;
+    secondBellRunning = false;
+  }
+
+  /* ====== 타이머들 ====== */
   let mainTimer=null, mainLeft=5*60, timerFinished=false;
   function formatMMSS(s){
     const m=Math.floor(s/60);
@@ -2001,45 +1635,11 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
     },1000);
   }
 
-  /* 2장: 5분 타이머 */
-  let secondTimer = null;
-  let secondLeft  = 0;
+  let secondTimer=null, secondLeft=0, finalTimer=null, finalLeft=0;
+  let fourthTimer=null, fourthLeft=0;
+  let silenceTimer=null, silenceLeft=0;
+  let endTimer=null, endLeft=0;
 
-  function startSecondTimer(){
-    secondLeft = 5*60;
-    runTimer.textContent = formatMMSS(secondLeft);
-    runTimer.style.display = 'block';
-    if(secondTimer) clearInterval(secondTimer);
-    secondTimer = setInterval(()=>{
-      secondLeft = Math.max(0, secondLeft-1);
-      runTimer.textContent = formatMMSS(secondLeft);
-      if(secondLeft<=0){
-        clearInterval(secondTimer);
-        secondTimer=null;
-        stopSecondBell();
-        runTimer.style.display='none';
-        endSecondStageAndStartThird();
-      }
-    },1000);
-  }
-
-  /* 3장(THIRD SLEEP) 타이머 – 기존 finalTimer 재활용 */
-  let finalTimer = null;
-  let finalLeft  = 0;
-
-  /* FOURTH SLEEP 타이머 */
-  let fourthTimer = null;
-  let fourthLeft  = 0;
-
-  /* SILENCE 타이머 */
-  let silenceTimer = null;
-  let silenceLeft  = 0;
-
-  /* THE END 타이머 */
-  let endTimer = null;
-  let endLeft  = 0;
-
-  /* 엔딩용 타이핑 */
   async function typeSleepLine(el, text){
     el.textContent = '';
     for(let i=0;i<text.length;i++){
@@ -2078,7 +1678,6 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
   async function showEndingSequence(){
     claimImmersive();
     await ensureResumed();
-
     if (Ambient && Ambient.isRunning && Ambient.isRunning()){
       Ambient.stop(3.0);
     }
@@ -2092,11 +1691,10 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
     fadeShow(endOverlay, 2000, 'flex');
     await sleep(2200);
 
-    // SILENCE 챕터 (5분)
     stage = 'silence';
     await typeSleepLine(endSilence, 'SILENCE');
-    playDreamWoong();
     speakText('사일런스');
+    playDreamWoong();
 
     silenceLeft = 5*60;
     runTimer.textContent = formatMMSS(silenceLeft);
@@ -2114,7 +1712,6 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
     },1000);
   }
 
-  /* THIRD SLEEP 이후: 4번째 수면 타이틀 → 5분 타이머 → 엔딩 */
   function startFourthTimer(){
     stage = 'fourth';
     fourthLeft = 5*60;
@@ -2208,7 +1805,6 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
     startFourthTimer();
   }
 
-  /* THIRD SLEEP: 기존 goToSleepCity를 5분 타이머로 사용 */
   function goToSleepCity(){
     try{
       stopSecondBell();
@@ -2433,7 +2029,7 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
       }
       document.querySelectorAll('.uiBtn').forEach(b=>{
         b.addEventListener('click', ()=>{
-          ensureResumed().then(playWoongClick);
+          primeAudio();
         }, {passive:true});
       });
     }catch(e){
@@ -2509,7 +2105,7 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
       vctx.fillRect(0,0,W,H);
     }
 
-    const pr=getProsceniumRect();
+    const pr=getFrameRect();
     fgctx.clearRect(0,0,W,H);
     if(showIntroLayer && fgAlpha>0.001){
       fgctx.save();
@@ -2542,9 +2138,10 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
             angle
           );
 
-          if(now-w.bubbleTimer>700+Math.random()*500){
+          const now2 = performance.now();
+          if(now2-w.bubbleTimer>700+Math.random()*500){
             w.bubbleIndex=(w.bubbleIndex+1)%bubbleSeq.length;
-            w.bubbleTimer=now;
+            w.bubbleTimer=now2;
           }
           drawBubble(fgctx, Math.round(pos.x), Math.round(pos.baselineY)-28, bubbleSeq[w.bubbleIndex]);
         });
@@ -2595,11 +2192,11 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
   }
 
   let captureAnimating=false;
-  captureBtn.addEventListener('click', async ()=>{
+  captureBtn.addEventListener('click', ()=>{
     claimImmersive();
     if(captureAnimating) return;
-    await ensureResumed();
-    await playWoongClick();
+    primeAudio();
+    playClick();
     captureAnimating=true;
     capturing=true;
     const cssW=view.clientWidth;
@@ -2670,20 +2267,21 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
     speakText(text);
     for(let i=0;i<text.length;i++){
       introTextEl.textContent += text[i];
-      typeTick();
+      if(i%2===0) typeTick();  // 2글자마다 한 번만 소리
       await sleep(24);
     }
   }
 
-  introNextBtn.addEventListener('click', async ()=>{
-    await ensureResumed();
-    await playWoongClick();
+  introNextBtn.addEventListener('click', ()=>{
+    primeAudio();
+    playClick();
     introIndex++;
     if(introIndex >= INTRO_LINES.length){
       fadeHide(introDialogue, 300);
-      await sleep(350);
-      await playTduung();
-      startIntroToFirstSleepSequence();
+      setTimeout(async ()=>{
+        await playBellChime();
+        startIntroToFirstSleepSequence();
+      }, 320);
     }else{
       typeIntroLine(introIndex);
     }
@@ -2779,7 +2377,7 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
       noticePopup.addEventListener(ev, bgTrap, {passive:false});
     });
     fadeShow(noticePopup, 280, 'flex');
-    playBellChime(); // 노티스 뜰 때 띵 소리
+    playBellChime();
     setTimeout(()=>{
       noticeOk && noticeOk.focus && noticeOk.focus();
     }, 50);
@@ -2787,7 +2385,7 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
       e.stopPropagation();
       claimImmersive();
       await ensureResumed();
-      await playWoongClick();
+      playClick();
       fadeHide(noticePopup, 250);
       await sleep(260);
 
@@ -2817,7 +2415,7 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
       span.className = 'charBox';
       span.textContent = ch;
       chapterBox.appendChild(span);
-      typeTick();
+      if(i%2===0) typeTick();
       await sleep(26);
     }
   }
@@ -2917,7 +2515,7 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
       noticePopup2.addEventListener(ev, bgTrap2, {passive:false});
     });
     fadeShow(noticePopup2, 280, 'flex');
-    playBellChime(); // 노티스 뜰 때 띵 소리
+    playBellChime();
     setTimeout(()=>{
       noticeOk2 && noticeOk2.focus && noticeOk2.focus();
     }, 50);
@@ -2926,15 +2524,14 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
       e.stopPropagation();
       claimImmersive();
       await ensureResumed();
-      await playWoongClick();
+      playClick();
       fadeHide(noticePopup2, 260);
       await sleep(280);
-      await playBellChime(); // 지도 뜰 때 기존 띵 소리
+      await playBellChime();
       showMapOverlay();
     };
   }
 
-  /* THIRD SLEEP 타이틀 + NOTICE3 → 5분 타이머(3번째 수면) */
   async function startThirdSleepSequence(){
     claimImmersive();
     await ensureResumed();
@@ -3012,17 +2609,16 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
       noticePopup3.addEventListener(ev, bgTrap3, {passive:false});
     });
     fadeShow(noticePopup3, 280, 'flex');
-    playBellChime(); // 노티스 뜰 때 띵 소리
+    playBellChime();
     setTimeout(()=>{ noticeOk3 && noticeOk3.focus && noticeOk3.focus(); }, 50);
 
     noticeOk3.onclick = async (e)=>{
       e.stopPropagation();
       claimImmersive();
       await ensureResumed();
-      await playWoongClick();
+      playClick();
       fadeHide(noticePopup3, 260);
       await sleep(300);
-      /* 여기서 3번째 수면 5분 타이머 시작 */
       goToSleepCity();
     };
   }
@@ -3035,19 +2631,18 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
     showCamera = false;
     camFadeAlpha = 0;
 
-    // INTRODUCTION 타이틀도 타이핑되게
     introBig.style.display = 'flex';
     introBig.style.opacity = '1';
     introBig.style.transition = 'none';
     const word = 'INTRODUCTION';
     introBigText.textContent = '';
+    speakText('인트로덕션');
     for(let i=0;i<word.length;i++){
       introBigText.textContent += word[i];
       typeTick();
       await sleep(45);
     }
     fitTitleLine(introBigText);
-    speakText('인트로덕션');
 
     await sleep(1400);
     introBig.style.transition = 'opacity 1600ms ease';
@@ -3055,7 +2650,6 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
     await sleep(1700);
     introBig.style.display = 'none';
 
-    // 여기서부터는 인트로 캐릭터 + 대화창
     introWalking = true;
     introStartTime = performance.now();
     showIntroLayer = true;
@@ -3068,10 +2662,11 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
   }
 
   document.getElementById('goIntro').addEventListener('click', ()=>{
+    primeAudio();
     ensureResumed().then(async ()=>{
       claimImmersive();
       if(!Ambient.isRunning()) Ambient.start(0.8,1.0);
-      await playWoongClick();
+      playClick();
       fadeHide(welcome, FADE);
       stage = 'intro';
       showIntroFlow();
@@ -3103,7 +2698,7 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
     const left = cx - mw/2;
     const top  = cy - mh/2;
 
-    ctx.fillStyle = '#000';
+    ctx.fillStyle='#000';
     ctx.fillRect(left, top, mw, mh);
     ctx.strokeStyle='rgba(208,208,208,0.85)';
     ctx.lineWidth=2;
@@ -3166,7 +2761,8 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
   }
 
   function openMarkerPopup(id){
-    mapPopBody.textContent = `ZONE ${id}`;
+    const txt = `ZONE ${id}`;
+    mapPopBody.textContent = txt;
     speakText(`존 ${id}`);
     mapPop.style.display='flex';
   }
@@ -3188,14 +2784,24 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
     }
   });
 
-  function setAppH2(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
-  setAppH2();
-  addEventListener('resize', setAppH2, {passive:true});
-  if (window.visualViewport){
-    visualViewport.addEventListener('resize', ()=>setTimeout(setAppH2,50));
+  function startSecondTimer(){
+    secondLeft = 5*60;
+    runTimer.textContent = formatMMSS(secondLeft);
+    runTimer.style.display = 'block';
+    if(secondTimer) clearInterval(secondTimer);
+    secondTimer = setInterval(()=>{
+      secondLeft = Math.max(0, secondLeft-1);
+      runTimer.textContent = formatMMSS(secondLeft);
+      if(secondLeft<=0){
+        clearInterval(secondTimer);
+        secondTimer=null;
+        stopSecondBell();
+        runTimer.style.display='none';
+        endSecondStageAndStartThird();
+      }
+    },1000);
   }
 
-  /* 2장 종료 시: 지도/팝업 닫고 3번째 수면 시퀀스로 */
   async function endSecondStageAndStartThird(){
     fadeHide(mapOverlay, 600);
     mapPop.style.display = 'none';
@@ -3203,66 +2809,67 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
     await startThirdSleepSequence();
   }
 
-  /* SKIP 버튼 – 현재 챕터에 맞춰 건너뛰기 */
-  skipBtn.addEventListener('click', async ()=>{
-    await ensureResumed();
-    await playWoongClick();
+  function setAppH2(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
+  setAppH2();
+  addEventListener('resize', setAppH2, {passive:true});
+  if (window.visualViewport){
+    visualViewport.addEventListener('resize', ()=>setTimeout(setAppH2,50));
+  }
+
+  /* ====== SKIP 버튼 ====== */
+  skipBtn.addEventListener('click', ()=>{
+    primeAudio();
+    playClick();
 
     if(stage === 'intro'){
       fadeHide(introDialogue, 300);
       introWalking=false;
       showIntroLayer=false;
-      await sleep(350);
-      await playTduung();
-      startIntroToFirstSleepSequence();
+      setTimeout(async ()=>{
+        await playBellChime();
+        startIntroToFirstSleepSequence();
+      }, 350);
     }else if(stage === 'first'){
       if(mainTimer){
         clearInterval(mainTimer);
         mainTimer=null;
       }
       timerFinished = true;
-      await onFirstSleepTimerEnd();
+      onFirstSleepTimerEnd();
     }else if(stage === 'second'){
-      /* 2장에서 SKIP → 지도/팝업 닫고 바로 THIRD SLEEP 시퀀스로 */
       stopSecondBell();
       if(secondTimer){
         clearInterval(secondTimer);
         secondTimer=null;
       }
       runTimer.style.display='none';
-      await endSecondStageAndStartThird();
+      endSecondStageAndStartThird();
     }else if(stage === 'thirdIntro'){
-      /* THIRD SLEEP 타이틀/노티스 구간에서 SKIP → 3번째 수면 5분 타이머 바로 시작 */
       goToSleepCity();
     }else if(stage === 'third'){
-      /* 세 번째 수면 타이머 중 SKIP → 바로 FOURTH SLEEP으로 */
       if(finalTimer){
         clearInterval(finalTimer);
         finalTimer = null;
       }
       runTimer.style.display='none';
-      await startFourthSleepSequence();
+      startFourthSleepSequence();
     }else if(stage === 'fourthIntro'){
-      /* FOURTH SLEEP 타이틀에서 SKIP → 바로 4번째 수면 타이머 */
       startFourthTimer();
     }else if(stage === 'fourth'){
-      /* 네 번째 수면 타이머 중 SKIP → 바로 SILENCE 챕터 */
       if(fourthTimer){
         clearInterval(fourthTimer);
         fourthTimer = null;
       }
       runTimer.style.display='none';
-      await showEndingSequence();
+      showEndingSequence();
     }else if(stage === 'silence'){
-      /* SILENCE 5분 중 SKIP → 바로 THE END 챕터 */
       if(silenceTimer){
         clearInterval(silenceTimer);
         silenceTimer=null;
       }
       runTimer.style.display='none';
-      await startTheEndChapter();
+      startTheEndChapter();
     }else if(stage === 'theEnd'){
-      /* THE END 5분 중 SKIP → 프로그램 종료 문구 바로 표시 */
       if(endTimer){
         clearInterval(endTimer);
         endTimer=null;
@@ -3277,7 +2884,7 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
         mainTimer=null;
       }
       timerFinished = true;
-      await onFirstSleepTimerEnd();
+      onFirstSleepTimerEnd();
     }
   }, {passive:true});
 
@@ -3286,6 +2893,8 @@ document.getElementById("silence").addEventListener("transitionend",()=>{
     animStarted=true;
     loop();
   }
+
+  window.stage = 'gate';
 })();
 </script>
 </body>
