@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport"
-      content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,interactive-widget=resizes-content">
 <title>SLEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEP</title>
 
 <!-- 픽셀 게임 폰트 -->
@@ -17,40 +16,90 @@
 
 <style>
   :root{
+    --appH: 100svh;
     --frame: clamp(16px, 4vmin, 40px);
-    --accent: #d0d0d0;
-    --fs-small: clamp(11px, 1.8vmin, 14px);
+    --ui-gap: 8px;
+
+    --fs-body: clamp(12px, 2.2vmin, 16px);
     --fs-strong: clamp(14px, 2.8vmin, 20px);
+    --fs-small: clamp(11px, 1.8vmin, 14px);
+    --fs-name: clamp(14px,2.8vmin,20px);
+
+    --pad-btn-y: clamp(6px, 1.1vmin, 10px);
+    --pad-btn-x: clamp(10px, 1.8vmin, 20px);
 
     --safe-t: env(safe-area-inset-top, 0px);
     --safe-b: env(safe-area-inset-bottom, 0px);
     --safe-l: env(safe-area-inset-left, 0px);
     --safe-r: env(safe-area-inset-right, 0px);
+
+    --dialogue-offset-vh: 8vh;
+    --char-offset-vh: 16vh;
+
+    /* 전체 톤을 흑백 계열로 (조금 더 어두운 회색) */
+    --accent: #d0d0d0;
   }
 
-  *{
-    box-sizing:border-box;
+  html,body{
     margin:0;
     padding:0;
-  }
-  html,body{
     width:100%;
     height:100%;
     background:#000;
     overflow:hidden;
+    touch-action:manipulation;
+  }
+
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans KR",sans-serif;
     -webkit-user-select:none;
     user-select:none;
     -webkit-touch-callout:none;
-    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans KR",sans-serif;
-  }
-  body{
     color:var(--accent);
   }
 
-  #app{
+  *{
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-touch-callout:none;
+    -webkit-tap-highlight-color: transparent;
+    box-sizing:border-box;
+  }
+  input, textarea{
+    -webkit-user-select:text;
+    user-select:text;
+  }
+
+  .fade{opacity:0; transition:opacity 1800ms ease}
+  .fade.show{opacity:1}
+
+  #view{
+    position:fixed;
+    left:0;
+    top:0;
+    width:100vw;
+    height:100vh;
+    display:block;
+    z-index:0;
+    /* 카메라를 포함한 뒤 배경은 항상 흑백 */
+    filter:grayscale(1);
+  }
+  #fg{
+    position:fixed;
+    left:0;
+    top:0;
+    width:100vw;
+    height:100vh;
+    display:block;
+    z-index:880;
+    pointer-events:none;
+  }
+
+  #freezeLayer{
     position:fixed;
     inset:0;
-    background:#000;
+    z-index:500;
+    display:none;
   }
 
   .frameBox{
@@ -59,586 +108,3024 @@
     top:calc(var(--frame) + var(--safe-t));
     right:calc(var(--frame) + var(--safe-r));
     bottom:calc(var(--frame) + var(--safe-b));
-    border:2px solid rgba(208,208,208,0.7);
+    border:2px solid rgba(208,208,208,.75);
     pointer-events:none;
-    z-index:5;
+    z-index:50;
   }
 
-  .screen{
+  .uiBtn{
+    background:transparent;
+    color:var(--accent);
+    border:none;
+    font-size:var(--fs-strong);
+    padding:var(--pad-btn-y) var(--pad-btn-x);
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    white-space:nowrap;
+    cursor:pointer;
+    user-select:none;
+  }
+  .uiBtn.small{
+    font-size:var(--fs-small);
+    padding:calc(var(--pad-btn-y)*0.6) calc(var(--pad-btn-x)*0.6);
+  }
+  .uiBtn.flat{
+    border:none;
+    background:transparent;
+    text-decoration:none;
+  }
+  .uiBtn[disabled]{
+    opacity:.35;
+    pointer-events:none;
+    filter:grayscale(1);
+  }
+  .hide{display:none !important;}
+
+  .controls{
+    position:fixed;
+    right:calc(var(--frame) + var(--ui-gap) + var(--safe-r));
+    bottom:calc(var(--frame) + var(--ui-gap) + var(--safe-b));
+    z-index:400;
+    display:flex;
+    gap:6px;
+    align-items:center;
+    opacity:0;
+    transition:opacity 1800ms ease;
+  }
+  .controls.show{opacity:1}
+
+  .readout{
+    min-width:48px;
+    text-align:center;
+    opacity:.9;
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    font-size:var(--fs-small);
+    color:var(--accent);
+  }
+
+  .btn-capture{
+    position:fixed;
+    left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
+    bottom:calc(var(--frame) + var(--ui-gap) + var(--safe-b));
+    z-index:450;
+    opacity:0;
+    transition:opacity 1800ms ease;
+  }
+  .btn-capture.show{opacity:1}
+
+  /* SKIP 버튼 (모든 장에서 좌측 상단) */
+  .skip-btn{
+    position:fixed;
+    left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
+    top:calc(var(--frame) + var(--ui-gap) + var(--safe-t));
+    z-index:1001;
+    display:none;
+  }
+
+  #mapLauncher, #docLauncher, #audioToggle { display:none; }
+
+  #runTimer{
+    position:fixed;
+    right:calc(var(--frame) + var(--ui-gap) + var(--safe-r));
+    top:calc(var(--frame) + var(--ui-gap) + var(--safe-t));
+    z-index:460;
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    font-size:var(--fs-strong);
+    color:var(--accent);
+    opacity:.95;
+    pointer-events:none;
+    user-select:none;
+    display:none;
+  }
+
+  .credits{
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    letter-spacing:.08em;
+    font-size:clamp(9px,1.4vmin,11px);
+    margin:0;
+    color:var(--accent);
+  }
+
+  #rotateOverlay{
+    position:fixed;
+    inset:0;
+    z-index:1000;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    background:#000;
+    color:var(--accent);
+    padding:40px;
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    pointer-events:auto;
+  }
+
+  /* Gate */
+  #overlay{
+    position:fixed;
+    inset:0;
+    z-index:300;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:calc(20px + var(--safe-t)) calc(20px + var(--safe-r)) calc(20px + var(--safe-b)) calc(20px + var(--safe-l));
+    color:var(--accent);
+    background:rgba(0,0,0,.85);
+  }
+  #overlayContent{
+    max-width:min(92vw, 72ch);
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    line-height:1.7;
+    text-align:center;
+  }
+  .gateLine{
+    display:inline-block;
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    font-size:var(--fs-small);
+    border:none;
+    background:transparent;
+    color:var(--accent);
+    cursor:pointer;
+    padding:6px 10px;
+    width:100%;
+    line-height:1.6;
+  }
+  .gateHint{
+    opacity:.7;
+    margin-top:6px;
+    font-size:clamp(9px,1.6vmin,11px);
+  }
+
+  /* Name – 뒤에 프리셋이 보이도록 반투명 */
+  #nameOverlay{
+    position:fixed;
+    inset:0;
+    z-index:260;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,.5);
+    color:var(--accent);
+  }
+  #nameCard{
+    position:relative;
+    z-index:1;
+    width:min(92vw,600px);
+    text-align:center;
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    padding:24px 20px 20px;
+    border:none; /* 하얀 테두리 제거 */
+    background:rgba(0,0,0,0.85);
+    box-shadow:0 10px 24px rgba(0,0,0,0.8);
+  }
+  #nameCard h2{
+    margin:0 0 12px 0;
+    letter-spacing:.12em;
+    font-size:var(--fs-name);
+    font-weight:400;
+    text-shadow:0 0 12px rgba(0,0,0,.9);
+    color:var(--accent);
+  }
+  #nick{
+    width:100%;
+    padding:14px 14px;
+    background:rgba(0,0,0,.88);
+    border:1px solid #777;
+    color:var(--accent);
+    font-size:var(--fs-name);
+    outline:none;
+    box-shadow:0 0 12px rgba(0,0,0,.8);
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+  }
+  #nick::placeholder{
+    color:rgba(208,208,208,0.25);
+  }
+  #nameRow{
+    display:flex;
+    gap:10px;
+    margin-top:16px;
+    justify-content:center;
+  }
+  #nameRow .uiBtn{
+    padding:10px 18px;
+  }
+
+  /* Preset */
+  #preset{
+    position:fixed;
+    inset:0;
+    z-index:250;
+    background:#000;
+    display:none;
+    cursor:pointer;
+  }
+  #presetCanvas{
+    position:absolute;
+    left:0;top:0;width:100%;height:100%;
+  }
+
+  /* Welcome */
+  #overlayWelcome{
+    position:fixed;
+    inset:0;
+    z-index:220;
+    display:none;
+    place-items:center;
+    color:var(--accent);
+    background:rgba(0,0,0,.55);
+    padding:0;
+  }
+  #welcomeCard{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+    max-width:min(92vw, 820px);
+    margin:0 auto;
+    text-align:center;
+    padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b)) 20px;
+    gap:18px;
+  }
+  #welcomeCard .title{
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    font-size:clamp(28px, 8vmin, 72px);
+    font-weight:400;
+    letter-spacing:.12em;
+    line-height:1.15;
+    margin:0;
+    text-transform:uppercase;
+    color:var(--accent);
+    white-space:nowrap;
+  }
+  #goIntro{
+    margin-top:0;
+    font-size:var(--fs-small);
+  }
+
+  /* INTRO big title */
+  #introBig{
     position:fixed;
     inset:0;
     display:none;
     align-items:center;
     justify-content:center;
-    z-index:10;
+    pointer-events:none;
+    z-index:210;
   }
-  .screen.show{
-    display:flex;
-  }
-
-  .uiBtn{
-    border:none;
-    background:transparent;
-    color:var(--accent);
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    font-size:var(--fs-small);
-    padding:8px 14px;
-    cursor:pointer;
-    text-transform:uppercase;
+  #introBigText{
   }
 
-  #nameScreenInner{
-    width:min(90vw, 500px);
-    padding:20px 18px 22px;
+  /* INTRO 텍스트 박스 */
+  #introDialogue{
+    position:fixed;
+    right:calc(var(--frame) + var(--safe-r) + 12px);
+    bottom:calc(var(--frame) + var(--safe-b) + 12px);
+    max-width:min(420px, 60vw);
+    padding:12px 14px 10px;
+    border:1px solid rgba(208,208,208,0.9);
     background:#000;
-    border:1px solid #444;
-    box-shadow:0 8px 30px rgba(0,0,0,0.9);
-    text-align:center;
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-  }
-  #nameScreenInner h1{
-    font-size:clamp(18px, 3.2vmin, 26px);
-    margin-bottom:16px;
-    letter-spacing:.12em;
-  }
-  #nameInput{
-    width:100%;
-    padding:10px 10px;
-    border:1px solid #777;
-    background:#000;
-    color:var(--accent);
-    outline:none;
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    font-size:clamp(12px,2.3vmin,18px);
-    margin-bottom:16px;
-  }
-  #nameInput::placeholder{
-    color:rgba(208,208,208,0.25);
-  }
-
-  /* INTRO */
-  #introInner{
-    width:min(90vw, 640px);
-    padding:18px 18px 18px;
-    background:#000;
-    border:1px solid #555;
-    box-shadow:0 8px 30px rgba(0,0,0,0.9);
     font-family:"Courier New",ui-monospace,monospace;
+    font-size:clamp(11px,2.1vmin,15px);
+    line-height:1.7;
+    color:var(--accent);
+    display:none;
+    z-index:900;
   }
   #introText{
-    min-height:100px;
-    font-size:14px;
-    line-height:1.7;
+    margin-bottom:8px;
+    text-align:left;
     white-space:pre-line;
-    margin-bottom:12px;
   }
-  #introFooter{
+  #introNext{
+    display:inline-block;
+    margin-left:auto;
+  }
+
+  /* THE FIRST SLEEP title (지금은 사용 X) */
+  #firstSleep{
+    position:fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+    z-index:850;
+    text-align:center;
+  }
+  #firstSleepText{
+  }
+
+  /* NOTICE Popup (FIRST SLEEP) */
+  #noticePopup{
+    position:fixed;
+    inset:0;
+    z-index:900;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,.72);
+  }
+  #noticeCard{
+    width:min(92vw, 640px);
+    background:#0b0b0b;
+    color:var(--accent);
+    border:1px solid #333;
+    padding:18px;
+    box-shadow:0 10px 30px rgba(0,0,0,.6);
+    font-family:"Courier New",ui-monospace,monospace;
+    line-height:1.7;
+  }
+  #noticeCard h3{
+    margin:0 0 6px 0;
+    letter-spacing:.06em;
+    font-weight:700;
+    font-size:clamp(15px,3vmin,20px);
+    color:var(--accent);
+  }
+  #noticeCard p{
+    margin:4px 0;
+    font-size:clamp(12px,2.4vmin,16px);
+  }
+  #noticeActions{
+    margin-top:10px;
     text-align:right;
   }
 
-  /* TITLE OVERLAY */
-  #titleOverlayInner{
-    text-align:center;
+  /* FIRST SLEEP: 중앙 문장 오버레이 */
+  #chapterOverlay{
+    position:fixed;
+    inset:0;
+    z-index:930;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:transparent;
+    color:var(--accent);
     padding:24px;
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    pointer-events:none;
   }
-  .sleepLine{
-    display:block;
-    margin:8px 0;
-    font-size:clamp(32px, 8vmin, 72px);
-    letter-spacing:.16em;
-    text-transform:uppercase;
+  #chapterCenter{
+    max-width:min(900px, 92vw);
+    max-height:80vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    overflow:hidden;
   }
-  #titleSubtitle{
-    margin-top:10px;
-    font-size:clamp(18px,3.2vmin,30px);
-    letter-spacing:.16em;
-    text-transform:uppercase;
+  #chapterBox{
+    display:inline-block;
+    font-family:"Courier New",ui-monospace,monospace;
+    line-height:1.8;
+    font-size:clamp(11px,2.0vmin,15px);
+    text-align:center;
+    color:var(--accent);
+    padding:0;
+    background:transparent;
+    border:none;
+    box-shadow:none;
   }
 
-  /* SCENE(1~4) + 토끼 */
-  #sceneScreen{
-    flex-direction:column;
+  /* 1장 텍스트 글자 박스 – 테두리 제거 */
+  .charBox{
+    display:inline-block;
+    background:#000;
+    color:var(--accent);
+    padding:3px 2px;
+    margin:1px 0;
+    border-radius:0;
+    border:none;
+    box-sizing:border-box;
   }
-  #rabbitCanvas{
-    flex:1;
+
+  /* 공통 타이틀 스타일 */
+  .sleepLine{
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    letter-spacing:.16em;
+    font-size:clamp(32px, 12vmin, 160px); /* FIRST SLEEP 기준 */
+    text-transform:uppercase;
+    white-space:nowrap;
+    text-shadow:0 0 8px rgba(0,0,0,.85);
+    margin:6px 0;
+    padding:8px 16px;
+    background:transparent;
+    border:none;
+    display:inline-block;
+    text-align:center;
+    max-width:96vw;
+    box-sizing:border-box;
+  }
+
+  /* INTRO → FIRST SLEEP: SLEEEEEEEEP + THE FIRST SLEEP */
+  #firstTransition{
+    position:fixed;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    color:var(--accent);
+    z-index:940;
+    pointer-events:none;
+    text-align:center;
+  }
+  #firstTransWord{
+    margin-bottom:10px;
+  }
+  #firstTransTitle{
+    margin-top:10px;
+  }
+
+  /* BETWEEN FIRST & SECOND SLEEP (2줄) */
+  #sleepTransition{
+    position:fixed;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    color:var(--accent);
+    z-index:940;
+    pointer-events:none;
+    text-align:center;
+  }
+  #sleepSecondTitle{
+    margin-top:14px;
+  }
+
+  /* THIRD SLEEP 타이틀 (3줄 SLEEEEEEEEP) */
+  #thirdTransition{
+    position:fixed;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    color:var(--accent);
+    z-index:945;
+    pointer-events:none;
+    text-align:center;
+  }
+
+  /* FOURTH SLEEP 타이틀 (4줄 SLEEEEEEEEP) */
+  #fourthTransition{
+    position:fixed;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    color:var(--accent);
+    z-index:946;
+    pointer-events:none;
+    text-align:center;
+  }
+
+  #noticePopup3{
+    position:fixed;
+    inset:0;
+    z-index:950;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,.8);
+  }
+  #noticeCard3{
+    width:min(92vw, 640px);
+    background:#0b0b0b;
+    color:var(--accent);
+    border:1px solid #444;
+    padding:18px;
+    box-shadow:0 10px 30px rgba(0,0,0,.8);
+    font-family:"Courier New",ui-monospace,monospace;
+    line-height:1.7;
+  }
+  #noticeCard3 h3{
+    margin:0 0 6px 0;
+    letter-spacing:.06em;
+    font-weight:700;
+    font-size:clamp(15px,3vmin,20px);
+    color:var(--accent);
+  }
+  #noticeCard3 p{
+    margin:4px 0;
+    font-size:clamp(12px,2.4vmin,16px);
+  }
+  #noticeActions3{
+    margin-top:10px;
+    text-align:right;
+  }
+
+  /* SECOND NOTICE */
+  #noticePopup2{
+    position:fixed;
+    inset:0;
+    z-index:960;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,.8);
+  }
+  #noticeCard2{
+    width:min(92vw, 640px);
+    background:#0b0b0b;
+    color:var(--accent);
+    border:1px solid #444;
+    padding:18px;
+    box-shadow:0 10px 30px rgba(0,0,0,.8);
+    font-family:"Courier New",ui-monospace,monospace;
+    line-height:1.7;
+  }
+  #noticeCard2 h3{
+    margin:0 0 6px 0;
+    letter-spacing:.06em;
+    font-weight:700;
+    font-size:clamp(15px,3vmin,20px);
+    color:var(--accent);
+  }
+  #noticeCard2 p{
+    margin:4px 0;
+    font-size:clamp(12px,2.4vmin,16px);
+  }
+  #noticeActions2{
+    margin-top:10px;
+    text-align:right;
+  }
+
+  /* MAP OVERLAY – 2장 직사각형 지도 */
+  #mapOverlay{
+    position:fixed;
+    inset:0;
+    z-index:950;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    overflow:hidden;
+  }
+  #mapCanvas{
+    position:absolute;
+    inset:0;
     width:100%;
     height:100%;
-    background:#000;
-  }
-  #sceneLabel{
-    position:fixed;
-    left:50%;
-    bottom:calc(var(--frame) + var(--safe-b) + 8px);
-    transform:translateX(-50%);
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    font-size:var(--fs-small);
-    letter-spacing:.12em;
-    text-transform:uppercase;
-    z-index:12;
   }
 
-  /* SILENCE / THE END */
-  #silenceEndInner{
-    text-align:center;
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-  }
-  #silenceText, #endText{
-    font-size:clamp(32px, 10vmin, 80px);
-    letter-spacing:.16em;
-    text-transform:uppercase;
-    margin:8px 0;
-  }
-
-  /* SKIP + TIMER */
-  #skipBtn{
+  .map-popup{
     position:fixed;
-    left:calc(var(--frame) + var(--safe-l));
-    top:calc(var(--frame) + var(--safe-t));
-    z-index:20;
+    inset:0;
+    z-index:970;
     display:none;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
   }
-  #timerBox{
+  .map-popup-inner{
+    pointer-events:auto;
+    width:min(92vw, 520px);
+    background:#050505;
+    border:1px solid #333;
+    box-shadow:0 10px 30px rgba(0,0,0,.85);
+    padding:18px 18px 14px;
+    color:var(--accent);
+    font-family:"Courier New",ui-monospace,monospace;
+    position:relative;
+    line-height:1.7;
+  }
+  .map-pop-close{
+    position:absolute;
+    top:8px;
+    right:10px;
+  }
+
+  /* ENDING OVERLAY */
+  #endOverlay{
     position:fixed;
-    right:calc(var(--frame) + var(--safe-r));
-    top:calc(var(--frame) + var(--safe-t));
-    z-index:20;
-    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
-    font-size:var(--fs-strong);
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    color:var(--accent);
+    z-index:980;
+    text-align:center;
+  }
+  #endInner{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:18px;
+  }
+  #endReturn{
+    font-family:"Courier New",ui-monospace,monospace;
+    font-size:clamp(11px,2.0vmin,15px);
+    max-width:72ch;
+    line-height:1.7;
   }
 </style>
 </head>
 <body>
-<div id="app">
+  <canvas id="view"></canvas>
+  <canvas id="fg"></canvas>
+
+  <canvas id="freezeLayer"></canvas>
   <div class="frameBox" aria-hidden="true"></div>
 
-  <!-- 이름 입력 화면 -->
-  <div id="nameScreen" class="screen show">
-    <div id="nameScreenInner">
-      <h1>TELL ME YOUR NAME</h1>
-      <input id="nameInput" type="text" maxlength="24" placeholder="" autocomplete="off">
-      <button id="nameOkBtn" class="uiBtn" type="button">GO</button>
+  <div class="controls" id="controls">
+    <button class="uiBtn small" id="zoomOut">–</button>
+    <div class="readout"><span id="zoomVal">1.0×</span></div>
+    <button class="uiBtn small" id="zoomIn">+</button>
+  </div>
+  <button id="captureBtn" class="uiBtn small btn-capture">CAPTURE</button>
+
+  <!-- 공통 SKIP 버튼 -->
+  <button id="skipBtn" class="uiBtn small skip-btn" type="button">SKIP</button>
+
+  <button id="docLauncher" class="uiBtn small">DOCUMENT</button>
+  <button id="mapLauncher" class="uiBtn small">MAP</button>
+  <button id="audioToggle" class="uiBtn small">AUDIO</button>
+  <div id="runTimer" aria-live="polite">04:00</div>
+
+  <div id="rotateOverlay" aria-live="polite">
+    <div>
+      <b>Landscape mode required</b><br/>
+      Please rotate your device to landscape to continue.<br/>
+      If the screen doesn’t rotate, unlock orientation in your device settings.
     </div>
   </div>
 
-  <!-- 인트로 문장 화면 -->
-  <div id="introScreen" class="screen">
-    <div id="introInner">
-      <div id="introText"></div>
-      <div id="introFooter">
-        <button id="introNextBtn" class="uiBtn" type="button">NEXT</button>
+  <!-- Permission Gate -->
+  <div id="overlay" class="fade show">
+    <div id="overlayContent">
+      <div class="credits">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
+      <button id="permGateBtn" class="gateLine" type="button">
+        Tap anywhere to allow Camera, Microphone & Motion sensors
+      </button>
+      <div class="gateHint">After allowing, you'll move to the name screen.</div>
+    </div>
+  </div>
+
+  <!-- Name -->
+  <div id="nameOverlay" class="fade">
+    <div id="nameCard">
+      <h2>TELL ME YOUR NAME</h2>
+      <input id="nick" type="text" maxlength="24" placeholder="" autocomplete="off" />
+      <div id="nameRow">
+        <button id="nameSubmit" class="uiBtn flat" type="button">GO</button>
       </div>
     </div>
   </div>
 
-  <!-- SLEEEEEEEEP 타이틀 화면 -->
-  <div id="titleOverlay" class="screen">
-    <div id="titleOverlayInner">
-      <div id="titleSleepLines"></div>
-      <div id="titleSubtitle"></div>
+  <!-- Preset -->
+  <div id="preset" class="fade" title="Tap to continue">
+    <canvas id="presetCanvas"></canvas>
+  </div>
+
+  <!-- Welcome -->
+  <div id="overlayWelcome" class="fade">
+    <div id="welcomeCard">
+      <div class="credits">SHB, KHJ, JYS, KTK, KCW, KJS, JMJ, PHY</div>
+      <div class="title">SLEEEEEEEEP,</div>
+      <div class="title">SLEEEEEEEEP,</div>
+      <div class="title">SLEEEEEEEEP,</div>
+      <div class="title">SLEEEEEEEEP,</div>
+      <button id="goIntro" class="uiBtn flat" type="button">PRESS HERE TO SLEEP</button>
     </div>
   </div>
 
-  <!-- 1~4 장면 화면 (토끼 + 타이머) -->
-  <div id="sceneScreen" class="screen">
-    <canvas id="rabbitCanvas"></canvas>
-    <div id="sceneLabel"></div>
+  <!-- INTRODUCTION title -->
+  <div id="introBig" class="fade"><div id="introBigText" class="sleepLine">INTRODUCTION</div></div>
+
+  <!-- INTRODUCTION sentences -->
+  <div id="introDialogue">
+    <div id="introText"></div>
+    <button id="introNext" class="uiBtn small" type="button">NEXT</button>
   </div>
 
-  <!-- SILENCE / THE END 화면 -->
-  <div id="silenceEndScreen" class="screen">
-    <div id="silenceEndInner">
-      <div id="silenceText"></div>
-      <div id="endText"></div>
+  <!-- THE FIRST SLEEP title (지금은 사용 X) -->
+  <div id="firstSleep"><div id="firstSleepText" class="sleepLine">THE FIRST SLEEP</div></div>
+
+  <!-- NOTICE Popup (FIRST SLEEP) -->
+  <div id="noticePopup" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle">
+    <div id="noticeCard">
+      <h3 id="noticeTitle">NOTICE</h3>
+      <p>※ “THE FIRST SLEEP”은 눈으로 인식하던 타자를 귀로 인식해 나가는 챕터입니다.</p>
+      <p>※ 앞으로 당신의 태블릿 위로 타자와 몇가지 흔적들이 텍스트로 제시될 것입니다.</p>
+      <p>※ 당신은 내면 세계의 탐험가로써 그 흔적들을 화면 아래 ‘CAPTURE’와 ‘+’, ‘-’버튼을 눌러 포착하세요.</p>
+      <p>※ 확인하셨다면, 아래 ‘OK’버튼을 눌러주세요</p>
+      <div id="noticeActions">
+        <button id="noticeOk" class="uiBtn flat" type="button">OK</button>
+      </div>
     </div>
   </div>
 
-  <!-- SKIP 버튼 & 타이머 -->
-  <button id="skipBtn" class="uiBtn" type="button">SKIP</button>
-  <div id="timerBox">05:00</div>
-</div>
+  <!-- FIRST SLEEP: 중앙 문장 -->
+  <div id="chapterOverlay" class="fade">
+    <div id="chapterCenter">
+      <div id="chapterBox"></div>
+    </div>
+  </div>
+
+  <!-- INTRO → FIRST SLEEP: SLEEEEEEEEP + THE FIRST SLEEP -->
+  <div id="firstTransition" class="fade">
+    <div id="firstTransWord" class="sleepLine"></div>
+    <div id="firstTransTitle" class="sleepLine"></div>
+  </div>
+
+  <!-- BETWEEN FIRST & SECOND SLEEP -->
+  <div id="sleepTransition" class="fade">
+    <div id="sleepLine1" class="sleepLine"></div>
+    <div id="sleepLine2" class="sleepLine"></div>
+    <div id="sleepSecondTitle" class="sleepLine"></div>
+  </div>
+
+  <!-- THIRD SLEEP 타이틀 (3줄) -->
+  <div id="thirdTransition" class="fade">
+    <div id="thirdSleepLine1" class="sleepLine"></div>
+    <div id="thirdSleepLine2" class="sleepLine"></div>
+    <div id="thirdSleepLine3" class="sleepLine"></div>
+    <div id="thirdTitle" class="sleepLine">THE THIRD SLEEP</div>
+  </div>
+
+  <!-- FOURTH SLEEP 타이틀 (4줄) -->
+  <div id="fourthTransition" class="fade">
+    <div id="fourthSleepLine1" class="sleepLine"></div>
+    <div id="fourthSleepLine2" class="sleepLine"></div>
+    <div id="fourthSleepLine3" class="sleepLine"></div>
+    <div id="fourthSleepLine4" class="sleepLine"></div>
+    <div id="fourthTitle" class="sleepLine">THE FOURTH SLEEP</div>
+  </div>
+
+  <!-- SECOND NOTICE (지도 전) -->
+  <div id="noticePopup2" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle2">
+    <div id="noticeCard2">
+      <h3 id="noticeTitle2">NOTICE</h3>
+      <p>※ 이제 두 번째 수면으로 진입하기 전, 내면의 지도 위에서 여덟 개의 지점을 탐험하게 됩니다.</p>
+      <p>※ 지도 중앙의 육각형을 중심으로 1번부터 8번까지의 사각형을 클릭하여 각 구역의 목소리를 불러오세요.</p>
+      <p>※ 준비가 되었다면 아래 ‘OK’를 눌러 지도로 이동합니다.</p>
+      <div id="noticeActions2">
+        <button id="noticeOk2" class="uiBtn flat" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- THIRD NOTICE (세 번째 수면 안내) -->
+  <div id="noticePopup3" class="fade" role="dialog" aria-modal="true" aria-labelledby="noticeTitle3">
+    <div id="noticeCard3">
+      <h3 id="noticeTitle3">NOTICE</h3>
+      <p>※ 이제 “THE THIRD SLEEP”으로 진입합니다.</p>
+      <p>※ 잠시 후 5분 동안 이 수면 상태가 이어집니다.</p>
+      <p>※ 타이머가 끝나면 “THE FOURTH SLEEP”으로 넘어갑니다.</p>
+      <div id="noticeActions3">
+        <button id="noticeOk3" class="uiBtn flat" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAP OVERLAY -->
+  <div id="mapOverlay">
+    <canvas id="mapCanvas"></canvas>
+  </div>
+
+  <!-- MAP POPUP -->
+  <div id="mapPop" class="map-popup">
+    <div class="map-popup-inner">
+      <button id="mapPopClose" class="uiBtn small map-pop-close" type="button">CLOSE</button>
+      <div id="mapPopBody"></div>
+    </div>
+  </div>
+
+  <!-- ENDING OVERLAY: SILENCE / THE END (각 5분 챕터) -->
+  <div id="endOverlay" class="fade">
+    <div id="endInner">
+      <div id="endSilence" class="sleepLine"></div>
+      <div id="endTheEnd" class="sleepLine"></div>
+      <div id="endReturn"></div>
+    </div>
+  </div>
 
 <script>
-(function(){
-  const $ = s => document.querySelector(s);
+(() => {
+  (function injectManifest(){
+    const manifest = {
+      "name":"SLEEEEEP",
+      "short_name":"SLEEEEEP",
+      "display":"fullscreen",
+      "start_url":"./",
+      "background_color":"#000",
+      "theme_color":"#000",
+      "icons":[]
+    };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:"application/manifest+json"}));
+    const link = document.createElement('link');
+    link.rel='manifest';
+    link.href=url;
+    document.head.appendChild(link);
+  })();
 
-  const nameScreen   = $('#nameScreen');
-  const nameInput    = $('#nameInput');
-  const nameOkBtn    = $('#nameOkBtn');
+  async function enterFullscreen(){
+    try{
+      const el = document.documentElement;
+      if (!document.fullscreenElement) {
+        if (el.requestFullscreen) await el.requestFullscreen({ navigationUI: 'hide' });
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      }
+    }catch(e){}
+    try{
+      if (screen.orientation && screen.orientation.lock) {
+        await screen.orientation.lock('landscape').catch(()=>{});
+      }
+    }catch(e){}
+  }
+  let wakeLock = null;
+  async function keepAwake(){
+    try{
+      if ('wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', ()=>{});
+      }
+    }catch(e){}
+  }
+  function claimImmersive(){ enterFullscreen(); keepAwake(); }
+  document.addEventListener('visibilitychange', async ()=>{
+    if (document.visibilityState === 'visible' && wakeLock) {
+      try{ wakeLock = await navigator.wakeLock.request('screen'); }catch(e){}
+    }
+  });
 
-  const introScreen  = $('#introScreen');
-  const introTextEl  = $('#introText');
-  const introNextBtn = $('#introNextBtn');
+  const FADE = 1800;
+  const sleep = ms => new Promise(r=>setTimeout(r,ms));
+  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+  const nextFrame = () => new Promise(resolve=>requestAnimationFrame(()=>resolve()));
+  const qs = s => document.querySelector(s);
 
-  const titleOverlay   = $('#titleOverlay');
-  const titleSleepWrap = $('#titleSleepLines');
-  const titleSubtitle  = $('#titleSubtitle');
+  /* === 볼륨 공통 설정 === */
+  const MASTER_BGM_GAIN = 0.4;
+  const MASTER_SFX_GAIN = 0.45;
 
-  const sceneScreen  = $('#sceneScreen');
-  const rabbitCanvas = $('#rabbitCanvas');
-  const sceneLabel   = $('#sceneLabel');
+  document.addEventListener('contextmenu', e=>e.preventDefault());
+  document.addEventListener('selectstart', e=>e.preventDefault());
 
-  const silenceEndScreen = $('#silenceEndScreen');
-  const silenceText      = $('#silenceText');
-  const endText          = $('#endText');
+  function fadeShow(el, dur=FADE, display='flex'){
+    el.style.display=display;
+    el.style.opacity='0';
+    el.style.transition=`opacity ${dur}ms ease`;
+    requestAnimationFrame(()=> el.style.opacity='1');
+  }
+  function fadeHide(el, dur=FADE){
+    el.style.transition=`opacity ${dur}ms ease`;
+    el.style.opacity='0';
+    setTimeout(()=>{ el.style.display='none'; }, dur);
+  }
 
-  const skipBtn   = $('#skipBtn');
-  const timerBox  = $('#timerBox');
+  function setAppH(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
+  setAppH();
+  addEventListener('resize', setAppH, {passive:true});
+  if (window.visualViewport){
+    visualViewport.addEventListener('resize', ()=>setTimeout(setAppH,50));
+  }
+
+  const rotateOverlay = qs('#rotateOverlay');
+  function isPortrait(){
+    const vv=window.visualViewport;
+    const w=vv?vv.width:innerWidth, h=vv?vv.height:innerHeight;
+    return h>w;
+  }
+  function updateRotateOverlay(){
+    rotateOverlay.style.display = isPortrait() ? 'flex' : 'none';
+  }
+  ['load','pageshow','resize','orientationchange','visibilitychange'].forEach(ev=>{
+    addEventListener(ev, updateRotateOverlay, {passive:true});
+  });
+  updateRotateOverlay();
+
+  const overlay = qs('#overlay');
+  const permBtn = qs('#permGateBtn');
+  const nameOverlay = qs('#nameOverlay');
+  const nickInput = qs('#nick');
+  const nameSubmit = qs('#nameSubmit');
+  const preset = qs('#preset');
+  const presetCanvas = qs('#presetCanvas');
+  const welcome = qs('#overlayWelcome');
+
+  const introBig = qs('#introBig');
+  const introBigText = qs('#introBigText');
+
+  const introDialogue = qs('#introDialogue');
+  const introTextEl = qs('#introText');
+  const introNextBtn = qs('#introNext');
+
+  const firstSleep = qs('#firstSleep');
+  const firstSleepText = qs('#firstSleepText');
+
+  const controls = qs('#controls');
+  const zoomIn = qs('#zoomIn');
+  const zoomOut = qs('#zoomOut');
+  const zoomVal = qs('#zoomVal');
+  const captureBtn = qs('#captureBtn');
+  const view = qs('#view');
+  const fg = qs('#fg');
+  const freezeLayer = qs('#freezeLayer');
+  const runTimer = qs('#runTimer');
+
+  const noticePopup = qs('#noticePopup');
+  const noticeOk = qs('#noticeOk');
+
+  const chapterOverlay = qs('#chapterOverlay');
+  const chapterBox = qs('#chapterBox');
+
+  const firstTransition = qs('#firstTransition');
+  const firstTransWord = qs('#firstTransWord');
+  const firstTransTitle = qs('#firstTransTitle');
+
+  const sleepTransition = qs('#sleepTransition');
+  const sleepLine1 = qs('#sleepLine1');
+  const sleepLine2 = qs('#sleepLine2');
+  const sleepSecondTitle = qs('#sleepSecondTitle');
+
+  const thirdTransition = qs('#thirdTransition');
+  const thirdSleepLine1 = qs('#thirdSleepLine1');
+  const thirdSleepLine2 = qs('#thirdSleepLine2');
+  const thirdSleepLine3 = qs('#thirdSleepLine3');
+  const thirdTitle = qs('#thirdTitle');
+
+  const fourthTransition = qs('#fourthTransition');
+  const fourthSleepLine1 = qs('#fourthSleepLine1');
+  const fourthSleepLine2 = qs('#fourthSleepLine2');
+  const fourthSleepLine3 = qs('#fourthSleepLine3');
+  const fourthSleepLine4 = qs('#fourthSleepLine4');
+  const fourthTitle = qs('#fourthTitle');
+
+  const noticePopup2 = qs('#noticePopup2');
+  const noticeOk2 = qs('#noticeOk2');
+
+  const noticePopup3 = qs('#noticePopup3');
+  const noticeOk3 = qs('#noticeOk3');
+
+  const mapOverlay = qs('#mapOverlay');
+  const mapCanvas = qs('#mapCanvas');
+  const mapPop = qs('#mapPop');
+  const mapPopBody = qs('#mapPopBody');
+  const mapPopClose = qs('#mapPopClose');
+
+  const skipBtn = qs('#skipBtn');
+
+  const endOverlay = qs('#endOverlay');
+  const endSilence = qs('#endSilence');
+  const endTheEnd  = qs('#endTheEnd');
+  const endReturn  = qs('#endReturn');
+
+  let vctx=null, fgctx=null;
+
+  let camPermGranted=false;
+  let camStream=null, camVideo=null, ZOOM=1.0;
+  let animStarted=false, capturing=false, warmupFrames=0;
+
+  let showIntroLayer=false;
+  let fgAlpha=1.0;
+  let showCamera=false;
+  let camFadeAlpha=0;
+
+  let audioCtx = null;
+  function ensureAudio(){
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  async function ensureResumed(){
+    try{
+      ensureAudio();
+      if(audioCtx.state==='suspended') await audioCtx.resume();
+    }catch{}
+  }
+
+  /* 현재 챕터 상태 */
+  let stage = 'gate';
+
+  /* --------- 입력/타이핑 공용 사운드 --------- */
+  function playGameInputSound(){
+    try{
+      ensureAudio();
+      const ctx = audioCtx;
+      const now = ctx.currentTime;
+      const o1 = ctx.createOscillator();
+      const o2 = ctx.createOscillator();
+      const g  = ctx.createGain();
+      o1.type = 'triangle';
+      o2.type = 'triangle';
+      o1.frequency.setValueAtTime(1350, now);
+      o2.frequency.setValueAtTime(900,  now);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+0.18);
+      o1.connect(g); o2.connect(g); g.connect(ctx.destination);
+      o1.start(now); o2.start(now);
+      o1.stop(now+0.2); o2.stop(now+0.2);
+    }catch(e){}
+  }
+
+  /* --------- TTS --------- */
+  let ttsReady = 'speechSynthesis' in window;
+  let ttsVoice = null;
+
+  function chooseTtsVoice(){
+    if(!ttsReady) return;
+    const voices = window.speechSynthesis.getVoices();
+    if(!voices || !voices.length) return;
+    ttsVoice =
+      voices.find(v => v.lang.startsWith('ko') && /female|woman|A|F/i.test(v.name)) ||
+      voices.find(v => v.lang.startsWith('ko')) ||
+      voices[0];
+  }
+
+  if(ttsReady){
+    chooseTtsVoice();
+    window.speechSynthesis.onvoiceschanged = chooseTtsVoice;
+  }
+
+  function speakText(text){
+    if(!ttsReady || !text) return;
+    try{
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      if(ttsVoice) u.voice = ttsVoice;
+      u.pitch = 1.05;
+      u.rate = 0.9;
+      u.volume = 0.9;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
+  /* ----------------------------------------------------- */
+
+  /* ================= 안정화된 BGM 엔진 ================= */
+  const Ambient = (() => {
+    let ctx, master, delay, fb, hp, lp, mix, busGain, running=false, killers=[];
+    function midi(n){ return 440 * Math.pow(2, (n-69)/12); }
+    function setup(){
+      ensureAudio();
+      ctx = audioCtx;
+      master = ctx.createGain();
+      master.gain.value = 0.0001;
+      delay = ctx.createDelay(2.5);
+      delay.delayTime.value = 0.45;
+      fb = ctx.createGain();
+      fb.gain.value = 0.32;
+      delay.connect(fb).connect(delay);
+      hp = ctx.createBiquadFilter();
+      hp.type='highpass';
+      hp.frequency.value=150;
+      lp = ctx.createBiquadFilter();
+      lp.type='lowpass';
+      lp.frequency.value=4200;
+      mix = ctx.createGain();
+      mix.gain.value = 0.7;
+      mix.connect(hp).connect(lp).connect(master);
+      busGain = ctx.createGain();
+      busGain.gain.value = 0.6;
+      busGain.connect(master);
+      master.connect(ctx.destination);
+    }
+    function connectDW(node){
+      node.connect(busGain);
+      node.connect(delay);
+      delay.connect(mix);
+    }
+    function airy(){
+      const b=ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate);
+      const d=b.getChannelData(0);
+      for(let i=0;i<d.length;i++){
+        d[i]=(Math.random()*2-1)*0.06;
+      }
+      const s=ctx.createBufferSource();
+      s.buffer=b; s.loop=true;
+      const g=ctx.createGain();
+      g.gain.value=0.015;
+      const f=ctx.createBiquadFilter();
+      f.type='bandpass';
+      f.frequency.value=1100;
+      f.Q.value=0.9;
+      s.connect(f).connect(g);
+      connectDW(g);
+      s.start();
+      killers.push(()=>{ try{s.stop();}catch{} });
+    }
+    function pad(root){
+      const out = ctx.createGain();
+      out.gain.value=0.24;
+      const filt=ctx.createBiquadFilter();
+      filt.type='lowpass';
+      filt.frequency.value=1200;
+      filt.Q.value=0.7;
+      const lfo=ctx.createOscillator();
+      const lfoG=ctx.createGain();
+      lfo.type='sine';
+      lfo.frequency.value=0.04;
+      lfoG.gain.value=260;
+      lfo.connect(lfoG).connect(filt.frequency);
+      lfo.start();
+      [0,7,12].forEach((i,k)=>{
+        const o=ctx.createOscillator();
+        o.type='triangle';
+        o.frequency.value=midi(root+i);
+        o.detune.value=(k-1)*4;
+        const g=ctx.createGain();
+        g.gain.value=0.05;
+        o.connect(g).connect(filt);
+        o.start();
+        killers.push(()=>{ try{g.disconnect();}catch{} });
+      });
+      filt.connect(out);
+      connectDW(out);
+      killers.push(()=>{ try{ out.disconnect(); }catch{} });
+    }
+    function plucked(root){
+      const now = ctx.currentTime;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      const f = ctx.createBiquadFilter();
+      const steps = [0,7,12,14];
+      const pick = steps[Math.floor(Math.random()*steps.length)];
+      o.type='sine';
+      o.frequency.value = midi(root+pick);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN*0.6, now+0.04);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+1.9);
+      f.type='bandpass';
+      f.frequency.value = o.frequency.value*2;
+      f.Q.value=4;
+      o.connect(f).connect(g);
+      connectDW(g);
+      o.start(now);
+      o.stop(now+2.1);
+      killers.push(()=>{ try{g.disconnect();}catch{} });
+    }
+    async function start(fadeIn=1.0, target=1.0){
+      await ensureResumed();
+      if(running) return;
+      setup();
+      running=true;
+      airy();
+      const seq=[57,52,48,43];
+      let i=0;
+      (function tick(){
+        if(!running) return;
+        const root = seq[i%seq.length];
+        pad(root);
+        if(Math.random()<0.7) plucked(root);
+        i++;
+        setTimeout(tick,9000);
+      })();
+      const t=ctx.currentTime;
+      const targetGain = MASTER_BGM_GAIN * target;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setValueAtTime(0.0001, t);
+      master.gain.linearRampToValueAtTime(targetGain, t+fadeIn);
+    }
+    function stop(fade=2.0){
+      if(!running||!master) return;
+      const t=ctx.currentTime;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setValueAtTime(master.gain.value, t);
+      master.gain.linearRampToValueAtTime(0.0001, t+fade);
+      setTimeout(()=>{
+        killers.forEach(fn=>{try{fn();}catch{}});
+        killers=[];
+        running=false;
+      }, fade*1000+200);
+    }
+    function isRunning(){ return running; }
+    return { start, stop, isRunning };
+  })();
+  /* ==================================================== */
+
+  async function playWoongClick(){
+    try{
+      await ensureResumed();
+      const now = audioCtx.currentTime;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type='sine';
+      o.frequency.setValueAtTime(220, now);
+      o.frequency.exponentialRampToValueAtTime(110, now+0.24);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+0.35);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(now);
+      o.stop(now+0.4);
+    }catch(e){}
+  }
+  async function playTduung(){
+    try{
+      await ensureResumed();
+      const now = audioCtx.currentTime;
+      const o1=audioCtx.createOscillator(), o2=audioCtx.createOscillator();
+      const g=audioCtx.createGain();
+      o1.type='sine'; o2.type='sine';
+      o1.frequency.value=90; o2.frequency.value=45;
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN*1.1, now+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+0.6);
+      o1.connect(g); o2.connect(g); g.connect(audioCtx.destination);
+      o1.start(); o2.start();
+      o1.stop(now+0.62); o2.stop(now+0.62);
+    }catch(e){}
+  }
+  async function playBellChime(){
+    try{
+      await ensureResumed();
+      const now = audioCtx.currentTime;
+      const osc1 = audioCtx.createOscillator();
+      const osc2 = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc1.type='sine'; osc2.type='sine';
+      osc1.frequency.setValueAtTime(1200, now);
+      osc2.frequency.setValueAtTime(1800, now);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+1.4);
+      osc1.connect(g); osc2.connect(g); g.connect(audioCtx.destination);
+      osc1.start(now); osc2.start(now);
+      osc1.stop(now+1.5); osc2.stop(now+1.5);
+    }catch(e){}
+  }
+
+  /* 낮은 드림 "부우웅" 효과음 */
+  async function playDreamWoong(){
+    try{
+      await ensureResumed();
+      const now = audioCtx.currentTime;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(90, now);
+      o.frequency.exponentialRampToValueAtTime(55, now+2.0);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN, now+0.15);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+2.0);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(now);
+      o.stop(now+2.05);
+    }catch(e){}
+  }
+
+  /* 2장용: 작은 짤랑 짤랑 종소리 루프 */
+  let secondBellInterval = null;
+  let secondBellRunning = false;
+
+  async function playSoftBellChime(){
+    try{
+      await ensureResumed();
+      const now = audioCtx.currentTime;
+      const o1 = audioCtx.createOscillator();
+      const o2 = audioCtx.createOscillator();
+      const g  = audioCtx.createGain();
+      o1.type='sine';
+      o2.type='sine';
+      o1.frequency.setValueAtTime(880, now);
+      o2.frequency.setValueAtTime(1320, now);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN*0.8, now+0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+2.4);
+      o1.connect(g); o2.connect(g); g.connect(audioCtx.destination);
+      o1.start(now); o2.start(now);
+      o1.stop(now+2.5); o2.stop(now+2.5);
+    }catch(e){}
+  }
+
+  function startSecondBell(){
+    if(secondBellRunning) return;
+    secondBellRunning = true;
+    playSoftBellChime();
+    secondBellInterval = setInterval(()=>{ playSoftBellChime(); }, 12000);
+  }
+
+  function stopSecondBell(){
+    if(secondBellInterval) clearInterval(secondBellInterval);
+    secondBellInterval = null;
+    secondBellRunning = false;
+  }
+
+  /* 타이핑 사운드 */
+  function typeTick(){
+    playGameInputSound();
+  }
+
+  function updateZoomLabel(){
+    zoomVal.textContent = ZOOM.toFixed(1)+'×';
+  }
+  updateZoomLabel();
+  zoomIn.addEventListener('click', async ()=>{
+    ZOOM=Math.min(3.0, ZOOM+0.05);
+    updateZoomLabel();
+    await playWoongClick();
+  }, {passive:true});
+  zoomOut.addEventListener('click', async ()=>{
+    ZOOM=1.0;
+    updateZoomLabel();
+    await playWoongClick();
+  }, {passive:true});
+
+  async function immediateGestureStart(e){
+    e && e.preventDefault && e.preventDefault();
+
+    claimImmersive();
+    await ensureResumed();
+
+    try{
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+          typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+          .then(()=>{ claimImmersive(); })
+          .catch(()=>{});
+      }
+    }catch(_){}
+
+    navigator.mediaDevices.getUserMedia({
+      video:{
+        facingMode:{ideal:'environment'},
+        width:{min:1280,ideal:1920},
+        height:{min:720,ideal:1080},
+        aspectRatio:{ideal:16/9}
+      },
+      audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}
+    })
+    .then(async (s)=>{
+      await ensureResumed();
+      if(!Ambient.isRunning()) Ambient.start(1.2, 1.0);
+      claimImmersive();
+      s.getTracks().forEach(t=>t.stop());
+      camPermGranted = true;
+    })
+    .catch(err=>{
+      console.warn('permission error:', err);
+    })
+    .finally(()=>{
+      fadeHide(overlay, FADE);
+
+      /* 이름 입력 단계에서부터 프리셋 화면이 뒤에 보이도록 즉시 띄움 */
+      showPreset();
+      fadeShow(nameOverlay, FADE);
+      stage = 'name';
+      setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 60);
+    });
+  }
+
+  ['click','touchstart','pointerdown'].forEach(type=>{
+    permBtn.addEventListener(type, immediateGestureStart, {passive:false});
+    overlay.addEventListener(type, immediateGestureStart, {passive:false});
+    window.addEventListener(type, (ev)=>{
+      if(getComputedStyle(overlay).display !== 'none'){
+        immediateGestureStart(ev);
+      }
+    }, {passive:false});
+  });
 
   let displayName = '_____';
-  let introIndex  = 0;
+  async function acceptName(){
+    claimImmersive();
+    await ensureResumed();
+    if(!Ambient.isRunning()) Ambient.start(0.5, 1.0);
+    const v = (nickInput.value||'').trim();
+    if(v.length>0){ displayName = v; }
+    await playWoongClick();
+    /* 이름 카드만 사라지고, 프리셋 화면은 그대로 유지 */
+    fadeHide(nameOverlay, FADE);
+    stage = 'preset';
+    skipBtn.style.display='block';
+  }
+  nameSubmit.addEventListener('click', acceptName, {passive:true});
+  nickInput.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter'){ acceptName(); }
+  });
 
+  /* === 프리셋 세이버: 안정화 버전 === */
+  let saverObjs = [];
+  let saverT0 = 0;
+  let lastSaverTime = null;
+
+  function showPreset(){
+    if(preset.style.display!=='block'){
+      preset.style.display='block';
+      preset.classList.add('show');
+      fadeShow(preset, FADE);
+      initSaver();
+      startCameraFresh(true);
+    }
+  }
+
+  function initSaver(){
+    const w = preset.clientWidth;
+    const h = preset.clientHeight;
+    saverObjs = [];
+    const letters = ['S','L','E','E','E','E','E','E','E','E','P'];
+
+    for(let i=0;i<20;i++){
+      saverObjs.push({
+        ch: letters[i % letters.length],
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random()*0.2 + 0.08) * (Math.random() < 0.5 ? -1 : 1),
+        vy: (Math.random()*0.2 + 0.08) * (Math.random() < 0.5 ? -1 : 1),
+        phase: Math.random() * Math.PI * 2,
+        size: (Math.floor(Math.random()*60)+90)*2
+      });
+    }
+    saverT0 = performance.now();
+    lastSaverTime = null;
+    requestAnimationFrame(saverLoop);
+  }
+
+  function saverLoop(){
+    if(preset.style.display==='none') {
+      lastSaverTime = null;
+      return;
+    }
+    const now = performance.now();
+    const w = preset.clientWidth;
+    const h = preset.clientHeight;
+    const dpr = devicePixelRatio || 1;
+
+    if(lastSaverTime == null) lastSaverTime = now;
+    const dt = (now - lastSaverTime) / 1000; // 초 단위
+    lastSaverTime = now;
+
+    presetCanvas.width = w * dpr;
+    presetCanvas.height = h * dpr;
+    const ctx = presetCanvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0,0,w,h);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for(const o of saverObjs){
+      // 위치 업데이트 (dt 기반)
+      o.x += o.vx * dt * 60;
+      o.y += o.vy * dt * 60;
+
+      // 화면 밖으로 튀어나가면 살짝 튕김
+      if(o.x < 0 || o.x > w){
+        o.vx *= -1;
+        o.x = Math.max(0, Math.min(w, o.x));
+      }
+      if(o.y < 0 || o.y > h){
+        o.vy *= -1;
+        o.y = Math.max(0, Math.min(h, o.y));
+      }
+
+      // 꿀렁이는 속도/진폭 고정
+      o.phase += dt * 0.6;
+      const wob = Math.sin(o.phase)*0.08 + 1;
+
+      ctx.save();
+      ctx.translate(o.x, o.y);
+      ctx.scale(wob, 1 / wob);
+      ctx.font = `900 ${o.size}px "Press Start 2P", system-ui, sans-serif`;
+      ctx.fillStyle = '#d0d0d0';
+      ctx.fillText(o.ch, 0, 0);
+      ctx.restore();
+    }
+
+    requestAnimationFrame(saverLoop);
+  }
+
+  /* 프리셋 화면 누르면 웰컴으로 */
+  preset.addEventListener('click', async ()=>{
+    claimImmersive();
+    await ensureResumed();
+    if(!Ambient.isRunning()) Ambient.start(0.5,1.0);
+    await playWoongClick();
+    fadeHide(preset, FADE);
+    await startCameraFresh(false);
+    fadeShow(welcome, FADE);
+    fitWelcomeTitles();
+    stage = 'welcome';
+  }, {passive:true});
+
+  /* 인트로/1장 텍스트 placeholder */
   const INTRO_LINES = [
     '멘트를 입력하세요',
     '멘트를 입력하세요',
     '멘트를 입력하세요'
   ];
 
-  /* 장면 구조:
-     INTRO -> (TITLE1) -> FIRST
-            -> (TITLE2) -> SECOND
-            -> (TITLE3) -> THIRD
-            -> (TITLE4) -> FOURTH
-            -> SILENCE
-            -> THE END
-  */
+  const FIRST_SLEEP_LINES = [
+    '멘트를 입력하세요',
+    '멘트를 입력하세요',
+    '멘트를 입력하세요'
+  ];
 
-  let currentStage = 'NAME';
-  let timerId = null;
-  let timerRemain = 0;
-  let timerCallback = null;
-
-  function showScreen(el){
-    [nameScreen,introScreen,titleOverlay,sceneScreen,silenceEndScreen]
-      .forEach(s=>s.classList.remove('show'));
-    el.classList.add('show');
+  function getFrameRect(){
+    return document.querySelector('.frameBox').getBoundingClientRect();
   }
 
-  function setTimerVisible(on){
-    timerBox.style.display = on ? 'block' : 'none';
+  function fitTitleLine(el){
+    if(!el) return;
+    const fr=getFrameRect();
+    const maxW=Math.min(window.innerWidth*0.96, fr.width*0.96);
+    const cs=getComputedStyle(el);
+    let size=parseFloat(cs.fontSize)||48;
+    el.style.whiteSpace='nowrap';
+    while(el.scrollWidth>maxW && size>16){
+      size*=0.94;
+      el.style.fontSize=size+'px';
+    }
   }
-
-  function formatTime(sec){
-    const m = Math.floor(sec/60);
-    const s = sec%60;
-    return m.toString().padStart(2,'0') + ':' + s.toString().padStart(2,'0');
+  function fitTitleLineSafe(){
+    fitTitleLine(introBigText);
+    fitTitleLine(firstSleepText);
+    fitTitleLine(thirdTitle);
+    fitTitleLine(fourthTitle);
   }
+  window.addEventListener('load', fitTitleLineSafe);
 
-  function startTimer(seconds, onDone){
-    if(timerId) clearInterval(timerId);
-    timerRemain = seconds;
-    timerCallback = onDone;
-    setTimerVisible(true);
-    timerBox.textContent = formatTime(timerRemain);
-    timerId = setInterval(()=>{
-      timerRemain = Math.max(0, timerRemain-1);
-      timerBox.textContent = formatTime(timerRemain);
-      if(timerRemain <= 0){
-        clearInterval(timerId);
-        timerId = null;
-        setTimerVisible(false);
-        const cb = timerCallback;
-        timerCallback = null;
-        cb && cb();
+  function fitWelcomeTitles(){
+    const titles = document.querySelectorAll('#welcomeCard .title');
+    const card = document.getElementById('welcomeCard');
+    if(!titles.length || !card) return;
+    const maxW = card.clientWidth * 0.95;
+    titles.forEach(el=>{
+      el.style.whiteSpace='nowrap';
+      let size = parseFloat(getComputedStyle(el).fontSize) || 40;
+      while(el.scrollWidth>maxW && size>14){
+        size *= 0.94;
+        el.style.fontSize = size+'px';
       }
-    }, 1000);
+    });
   }
+  window.addEventListener('resize', ()=>fitWelcomeTitles(), {passive:true});
 
-  function cancelTimerAndGoNext(){
-    if(timerId){
-      clearInterval(timerId);
-      timerId = null;
-    }
-    setTimerVisible(false);
-    if(timerCallback){
-      const cb = timerCallback;
-      timerCallback = null;
-      cb();
-    }
-  }
-
-  skipBtn.addEventListener('click', ()=>{
-    cancelTimerAndGoNext();
-  });
-
-  /* 이름 화면 */
-  function goName(){
-    currentStage = 'NAME';
-    showScreen(nameScreen);
-    skipBtn.style.display = 'none';
-    setTimerVisible(false);
-    setTimeout(()=>nameInput.focus(), 100);
-  }
-
-  function acceptName(){
-    const v = (nameInput.value || '').trim();
-    if(v) displayName = v;
-    goIntro();
-  }
-
-  nameOkBtn.addEventListener('click', acceptName);
-  nameInput.addEventListener('keydown', e=>{
-    if(e.key === 'Enter') acceptName();
-  });
-
-  /* 인트로 화면 */
-  function goIntro(){
-    currentStage = 'INTRO';
-    introIndex = 0;
-    showScreen(introScreen);
-    skipBtn.style.display = 'none';
-    setTimerVisible(false);
-    typeIntroLine(introIndex);
-  }
-
-  function getIntroText(i){
-    return (INTRO_LINES[i] || '').replace(/_____/g, displayName);
-  }
-
-  async function typeTextInto(el, text, speed=25){
-    el.textContent = '';
-    for(let i=0;i<text.length;i++){
-      el.textContent += text[i];
-      await new Promise(r=>setTimeout(r, speed));
-    }
-  }
-
-  function typeIntroLine(i){
-    const txt = getIntroText(i);
-    typeTextInto(introTextEl, txt, 25);
-  }
-
-  introNextBtn.addEventListener('click', ()=>{
-    introIndex++;
-    if(introIndex >= INTRO_LINES.length){
-      // INTRO 끝 -> 1번째 타이틀
-      showTitleSleep(1, 'THE FIRST SLEEP', ()=>startScene('FIRST'));
-    }else{
-      typeIntroLine(introIndex);
-    }
-  });
-
-  /* SLEEEEEEEEP 타이틀 공통 */
-  async function showTitleSleep(count, subtitle, done){
-    currentStage = 'TITLE';
-    showScreen(titleOverlay);
-    skipBtn.style.display = 'none';
-    setTimerVisible(false);
-    titleSleepWrap.innerHTML = '';
-    titleSubtitle.textContent = '';
-
-    const word = 'SLEEEEEEEEP,';
-
-    // SLEEEEEEEEP 줄 수만큼 만들기
-    const lines = [];
-    for(let i=0;i<count;i++){
-      const div = document.createElement('div');
-      div.className = 'sleepLine';
-      div.textContent = '';
-      titleSleepWrap.appendChild(div);
-      lines.push(div);
-    }
-
-    // 한 줄씩 타이핑
-    for(let li=0; li<lines.length; li++){
-      const el = lines[li];
-      for(let i=0;i<word.length;i++){
-        el.textContent += word[i];
-        await new Promise(r=>setTimeout(r, 40));
-      }
-      await new Promise(r=>setTimeout(r, 200));
-    }
-
-    // 서브 타이틀 표시
-    await new Promise(r=>setTimeout(r, 500));
-    titleSubtitle.textContent = subtitle;
-    await new Promise(r=>setTimeout(r, 1800));
-
-    // 다음 장면으로
-    done && done();
-  }
-
-  /* 장면 전환 로직 */
-
-  function startScene(stage){
-    currentStage = stage;
-    if(stage === 'FIRST' || stage === 'SECOND' || stage === 'THIRD' || stage === 'FOURTH'){
-      showScreen(sceneScreen);
-      sceneLabel.textContent = stage === 'FIRST'  ? 'THE FIRST SLEEP'
-                            : stage === 'SECOND' ? 'THE SECOND SLEEP'
-                            : stage === 'THIRD'  ? 'THE THIRD SLEEP'
-                            : 'THE FOURTH SLEEP';
-      skipBtn.style.display = 'block';
-      setTimerVisible(true);
-      startTimer(5*60, ()=>goNextFrom(stage));   // 5분 타이머
-    }else if(stage === 'SILENCE'){
-      showScreen(silenceEndScreen);
-      silenceText.textContent = 'SILENCE';
-      endText.textContent = '';
-      skipBtn.style.display = 'block';
-      setTimerVisible(true);
-      startTimer(5*60, ()=>goNextFrom('SILENCE')); // 5분 후 THE END
-    }else if(stage === 'END'){
-      showScreen(silenceEndScreen);
-      silenceText.textContent = '';
-      endText.textContent = 'THE END';
-      skipBtn.style.display = 'none';
-      setTimerVisible(false);
-    }
-  }
-
-  function goNextFrom(stage){
-    if(stage === 'FIRST'){
-      showTitleSleep(2, 'THE SECOND SLEEP', ()=>startScene('SECOND'));
-    }else if(stage === 'SECOND'){
-      showTitleSleep(3, 'THE THIRD SLEEP', ()=>startScene('THIRD'));
-    }else if(stage === 'THIRD'){
-      showTitleSleep(4, 'THE FOURTH SLEEP', ()=>startScene('FOURTH'));
-    }else if(stage === 'FOURTH'){
-      // 네 번째 수면 끝 -> SILENCE
-      startScene('SILENCE');
-    }else if(stage === 'SILENCE'){
-      // SILENCE 끝 -> THE END
-      startScene('END');
-    }
-  }
-
-  /* 토끼 애니메이션 */
-
-  const sprite = [
-    "....XX......",
-    "...XXXX.....",
-    "..XXXXXX....",
-    "..XX..XX....",
+  const PIXEL_SPRITE=[
     "..XXXXXX....",
     ".XXXXXXXX...",
     ".XX.XX.XX...",
     ".XXXXXXXX...",
-    ".XXXXXXXX...",
-    ".XXXXXXXX...",
     "..XXXXXX....",
-    "...XXXX.....",
-    "...XXXX.....",
-    "...XXXX.....",
-    "..XX..XX....",
+    ".XXXXXXXX...",
+    ".XXXXXXXX...",
+    ".XXXXXXXX...",
+    ".XXXXXXXX...",
+    ".XXXXXXXX...",
+    ".XX....XX...",
+    ".XX....XX...",
+    ".XX....XX...",
+    ".XX....XX...",
+    ".XX....XX...",
     ".XX....XX..."
   ];
+  const COLOR_FILL='#d0d0d0';
+  const COLOR_STROKE='#000';
 
-  let rcctx = null;
-  let rabbitX = 0;
-  let rabbitDir = 1;
-  let lastTime = null;
+  function drawPixelHuman(ctx, cx, baselineY, W, hop=0, alpha=1, angleRad=0){
+    const cell=Math.max(2, Math.min(4, Math.floor(W*0.0018)));
+    const cols=PIXEL_SPRITE[0].length;
+    const rows=PIXEL_SPRITE.length;
+    const width=cols*cell;
+    const height=rows*cell;
 
-  function resizeRabbitCanvas(){
-    const dpr = window.devicePixelRatio || 1;
-    const rect = rabbitCanvas.getBoundingClientRect();
-    rabbitCanvas.width  = rect.width * dpr;
-    rabbitCanvas.height = rect.height * dpr;
-    rcctx = rabbitCanvas.getContext('2d');
-    rcctx.setTransform(dpr,0,0,dpr,0,0);
-  }
+    const x0 = -width/2;
+    const y0 = -height - hop;
 
-  window.addEventListener('resize', resizeRabbitCanvas);
+    ctx.save();
+    ctx.translate(cx,baselineY);
+    ctx.rotate(angleRad);
+    ctx.globalAlpha=alpha;
 
-  function drawRabbit(){
-    if(!rcctx) return;
-    const W = rabbitCanvas.clientWidth;
-    const H = rabbitCanvas.clientHeight;
-    rcctx.clearRect(0,0,W,H);
-
-    // 바닥 라인
-    const groundY = H*0.65;
-    rcctx.strokeStyle = 'rgba(80,80,80,0.7)';
-    rcctx.lineWidth = 2;
-    rcctx.beginPath();
-    rcctx.moveTo(W*0.1, groundY);
-    rcctx.lineTo(W*0.9, groundY);
-    rcctx.stroke();
-
-    // 토끼 크기 & 위치
-    const cols = sprite[0].length;
-    const rows = sprite.length;
-    const cell = Math.max(2, Math.floor(Math.min(W,H)*0.015));
-    const width  = cols * cell;
-    const height = rows * cell;
-
-    const x = rabbitX;
-    const y = groundY - 4;
-
-    rcctx.save();
-    rcctx.translate(x, y);
-    if(rabbitDir < 0){
-      rcctx.scale(-1,1);
-    }
-    rcctx.translate(-width/2, -height);
-
-    // 테두리
-    rcctx.fillStyle = '#000000';
-    for(let j=0;j<rows;j++){
-      for(let i=0;i<cols;i++){
-        if(sprite[j][i] === 'X'){
-          const px = i*cell;
-          const py = j*cell;
-          rcctx.fillRect(px-1,py,cell,cell);
-          rcctx.fillRect(px+1,py,cell,cell);
-          rcctx.fillRect(px,py-1,cell,cell);
-          rcctx.fillRect(px,py+1,cell,cell);
+    ctx.fillStyle=COLOR_STROKE;
+    for(let y=0;y<rows;y++){
+      const row=PIXEL_SPRITE[y];
+      for(let x=0;x<cols;x++){
+        if(row[x]==='X'){
+          ctx.fillRect(x0+x*cell-1,y0+y*cell,cell,cell);
+          ctx.fillRect(x0+x*cell+1,y0+y*cell,cell,cell);
+          ctx.fillRect(x0+x*cell,y0+y*cell-1,cell,cell);
+          ctx.fillRect(x0+x*cell,y0+y*cell+1,cell,cell);
         }
       }
     }
-
-    // 몸
-    rcctx.fillStyle = '#d0d0d0';
-    for(let j=0;j<rows;j++){
-      for(let i=0;i<cols;i++){
-        if(sprite[j][i] === 'X'){
-          const px = i*cell;
-          const py = j*cell;
-          rcctx.fillRect(px,py,cell,cell);
+    ctx.fillStyle=COLOR_FILL;
+    for(let y=0;y<rows;y++){
+      const row=PIXEL_SPRITE[y];
+      for(let x=0;x<cols;x++){
+        if(row[x]==='X'){
+          ctx.fillRect(x0+x*cell,y0+y*cell,cell,cell);
         }
       }
     }
-
-    rcctx.restore();
+    ctx.globalAlpha=1;
+    ctx.restore();
   }
 
-  function loop(time){
-    if(!lastTime) lastTime = time;
-    const dt = (time - lastTime) / 1000;
-    lastTime = time;
+  function getProsceniumRect(){
+    const r=getFrameRect();
+    return {x:r.left,y:r.top,w:r.width,h:r.height};
+  }
 
-    if(currentStage === 'FIRST' || currentStage === 'SECOND' ||
-       currentStage === 'THIRD' || currentStage === 'FOURTH'){
-      const W = rabbitCanvas.clientWidth;
-      const left  = W*0.2;
-      const right = W*0.8;
-      const speed = W * 0.15; // px/s
-      rabbitX += rabbitDir * speed * dt;
-      if(rabbitX < left){
-        rabbitX = left;
-        rabbitDir = 1;
-      }else if(rabbitX > right){
-        rabbitX = right;
-        rabbitDir = -1;
-      }
-      drawRabbit();
+  function prosceniumWalkPos(t01){
+    const pr = getProsceniumRect();
+    const margin = Math.min(pr.w, pr.h) * 0.06;
+    const left   = pr.x + margin;
+    const right  = pr.x + pr.w - margin;
+    const top    = pr.y + margin;
+    const bottom = pr.y + pr.h - margin;
+    const per = (right-left)*2 + (bottom-top)*2;
+    let d = ((t01%1)+1)%1 * per;
+
+    let x,y,edge;
+    if(d <= (right-left)){
+      x = left + d;
+      y = bottom;
+      edge = 'bottom';
+    }else if(d <= (right-left)+(bottom-top)){
+      d -= (right-left);
+      x = right;
+      y = bottom - d;
+      edge = 'right';
+    }else if(d <= (right-left)*2 + (bottom-top)){
+      d -= (right-left + (bottom-top));
+      x = right - d;
+      y = top;
+      edge = 'top';
     }else{
-      // 장면이 아니면 화면만 비워둔다
-      if(rcctx){
-        rcctx.clearRect(0,0,rabbitCanvas.clientWidth,rabbitCanvas.clientHeight);
-      }
+      d -= (right-left)*2 + (bottom-top);
+      x = left;
+      y = top + d;
+      edge = 'left';
     }
-
-    requestAnimationFrame(loop);
+    return { x, y, baselineY:y, edge };
   }
 
-  // 초기화
-  goName();
-  resizeRabbitCanvas();
-  const startRect = rabbitCanvas.getBoundingClientRect();
-  rabbitX = startRect.width * 0.5;
-  lastTime = null;
-  requestAnimationFrame(loop);
+  function drawBubble(ctx, x, y, text){
+    const pad=6, r=6;
+    ctx.font='12px "Courier New", monospace';
+    const m=ctx.measureText(text);
+    const w=Math.max(28,m.width+pad*2);
+    const h=18+pad*2;
+    const bx=Math.round(x-w/2);
+    const by=Math.round(y-h-18);
+    ctx.save();
+    ctx.fillStyle='rgba(0,0,0,0.9)';
+    ctx.strokeStyle='rgba(208,208,208,0.35)';
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(bx+r,by);
+    ctx.arcTo(bx+w,by,bx+w,by+h,r);
+    ctx.arcTo(bx+w,by+h,bx,by+h,r);
+    ctx.arcTo(bx,by+h,bx,by,r);
+    ctx.arcTo(bx,by,bx+w,by,r);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x-6,by+h-1);
+    ctx.lineTo(x,by+h+6);
+    ctx.lineTo(x+6,by+h-1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle='#d0d0d0';
+    ctx.fillText(text,bx+pad,by+pad+12);
+    ctx.restore();
+  }
+
+  let introWalking=false;
+  let introStartTime=0;
+  const INTRO_WALK_DURATION=60_000;
+  const bubbleSeq=[
+    "HELLO","…","HI","…","HELLO!","…",
+    "…헤헤","기억나?","여기 있어.","…쉿","보고 있어",
+    "꿈이야?","아냐","…조금 더 가까이","같이 갈래?",
+    "손… 잡을래?","…응","괜찮아","거기 있어",
+    "작게 불러","내 이름"
+  ];
+  let introWalkers=[];
+
+  function initIntroWalkers(){
+    const now = performance.now();
+    introWalkers = [];
+    introWalkers.push({
+      tOffset: 0,
+      bubbleIndex: 0,
+      bubbleTimer: now + 500
+    });
+  }
+
+  /* 공통 타이머 */
+  let mainTimer=null, mainLeft=5*60, timerFinished=false;
+  function formatMMSS(s){
+    const m=Math.floor(s/60);
+    const ss=(s%60).toString().padStart(2,'0');
+    return `${m.toString().padStart(2,'0')}:${ss}`;
+  }
+  function startMainTimer(){
+    mainLeft=5*60;
+    timerFinished=false;
+    runTimer.textContent=formatMMSS(mainLeft);
+    runTimer.style.display='block';
+    if(mainTimer) clearInterval(mainTimer);
+    mainTimer=setInterval(()=>{
+      mainLeft=Math.max(0,mainLeft-1);
+      runTimer.textContent=formatMMSS(mainLeft);
+      if(mainLeft<=0){
+        clearInterval(mainTimer);
+        mainTimer=null;
+        if(!timerFinished){
+          timerFinished=true;
+          onFirstSleepTimerEnd();
+        }
+      }
+    },1000);
+  }
+
+  /* 2장: 5분 타이머 */
+  let secondTimer = null;
+  let secondLeft  = 0;
+
+  function startSecondTimer(){
+    secondLeft = 5*60;
+    runTimer.textContent = formatMMSS(secondLeft);
+    runTimer.style.display = 'block';
+    if(secondTimer) clearInterval(secondTimer);
+    secondTimer = setInterval(()=>{
+      secondLeft = Math.max(0, secondLeft-1);
+      runTimer.textContent = formatMMSS(secondLeft);
+      if(secondLeft<=0){
+        clearInterval(secondTimer);
+        secondTimer=null;
+        stopSecondBell();
+        runTimer.style.display='none';
+        endSecondStageAndStartThird();
+      }
+    },1000);
+  }
+
+  /* 3장(THIRD SLEEP) 타이머 – 기존 finalTimer 재활용 */
+  let finalTimer = null;
+  let finalLeft  = 0;
+
+  /* FOURTH SLEEP 타이머 */
+  let fourthTimer = null;
+  let fourthLeft  = 0;
+
+  /* SILENCE 타이머 */
+  let silenceTimer = null;
+  let silenceLeft  = 0;
+
+  /* THE END 타이머 */
+  let endTimer = null;
+  let endLeft  = 0;
+
+  /* 엔딩용 타이핑 */
+  async function typeSleepLine(el, text){
+    el.textContent = '';
+    for(let i=0;i<text.length;i++){
+      el.textContent += text[i];
+      typeTick();
+      await sleep(50);
+    }
+    fitTitleLine(el);
+  }
+
+  async function startTheEndChapter(){
+    stage = 'theEnd';
+    endTheEnd.textContent = '';
+    if(endReturn) endReturn.textContent = '';
+    await typeSleepLine(endTheEnd, 'THE END');
+    speakText('디 엔드');
+
+    endLeft = 5*60;
+    runTimer.textContent = formatMMSS(endLeft);
+    runTimer.style.display = 'block';
+    if(endTimer) clearInterval(endTimer);
+    endTimer = setInterval(()=>{
+      endLeft = Math.max(0, endLeft-1);
+      runTimer.textContent = formatMMSS(endLeft);
+      if(endLeft<=0){
+        clearInterval(endTimer);
+        endTimer=null;
+        runTimer.style.display='none';
+        if(endReturn){
+          endReturn.textContent = '※ 프로그램이 종료되었습니다. 태블릿과 헤드폰을 반납해 주세요.';
+        }
+      }
+    },1000);
+  }
+
+  async function showEndingSequence(){
+    claimImmersive();
+    await ensureResumed();
+
+    if (Ambient && Ambient.isRunning && Ambient.isRunning()){
+      Ambient.stop(3.0);
+    }
+    stopMicFXFadeOut(2.5);
+    fadeOutCamera(2000);
+
+    endSilence.textContent = '';
+    endTheEnd.textContent  = '';
+    if(endReturn) endReturn.textContent = '';
+
+    fadeShow(endOverlay, 2000, 'flex');
+    await sleep(2200);
+
+    // SILENCE 챕터 (5분)
+    stage = 'silence';
+    await typeSleepLine(endSilence, 'SILENCE');
+    playDreamWoong();
+    speakText('사일런스');
+
+    silenceLeft = 5*60;
+    runTimer.textContent = formatMMSS(silenceLeft);
+    runTimer.style.display = 'block';
+    if(silenceTimer) clearInterval(silenceTimer);
+    silenceTimer = setInterval(()=>{
+      silenceLeft = Math.max(0, silenceLeft-1);
+      runTimer.textContent = formatMMSS(silenceLeft);
+      if(silenceLeft<=0){
+        clearInterval(silenceTimer);
+        silenceTimer=null;
+        runTimer.style.display='none';
+        startTheEndChapter();
+      }
+    },1000);
+  }
+
+  /* THIRD SLEEP 이후: 4번째 수면 타이틀 → 5분 타이머 → 엔딩 */
+  function startFourthTimer(){
+    stage = 'fourth';
+    fourthLeft = 5*60;
+    runTimer.textContent = formatMMSS(fourthLeft);
+    runTimer.style.display = 'block';
+    if(fourthTimer) clearInterval(fourthTimer);
+    fourthTimer = setInterval(()=>{
+      fourthLeft = Math.max(0, fourthLeft-1);
+      runTimer.textContent = formatMMSS(fourthLeft);
+      if(fourthLeft<=0){
+        clearInterval(fourthTimer);
+        fourthTimer=null;
+        runTimer.style.display='none';
+        showEndingSequence();
+      }
+    },1000);
+  }
+
+  async function startFourthSleepSequence(){
+    claimImmersive();
+    await ensureResumed();
+
+    stage = 'fourthIntro';
+
+    fourthSleepLine1.textContent='';
+    fourthSleepLine2.textContent='';
+    fourthSleepLine3.textContent='';
+    fourthSleepLine4.textContent='';
+    fourthTitle.textContent='';
+
+    fourthTransition.style.display='flex';
+    fourthTransition.style.opacity='0';
+    fourthTransition.style.transition='opacity 2000ms ease';
+    await nextFrame();
+    fourthTransition.style.opacity='1';
+
+    const word = 'SLEEEEEEEEP,';
+
+    for(let i=0;i<word.length;i++){
+      fourthSleepLine1.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(fourthSleepLine1);
+    await sleep(350);
+
+    for(let i=0;i<word.length;i++){
+      fourthSleepLine2.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(fourthSleepLine2);
+    await sleep(350);
+
+    for(let i=0;i<word.length;i++){
+      fourthSleepLine3.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(fourthSleepLine3);
+    await sleep(350);
+
+    for(let i=0;i<word.length;i++){
+      fourthSleepLine4.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(fourthSleepLine4);
+
+    await sleep(900);
+
+    fourthTitle.style.opacity='0';
+    fourthTitle.style.transition='opacity 1500ms ease';
+    fourthTitle.textContent='THE FOURTH SLEEP';
+    fitTitleLine(fourthTitle);
+    playDreamWoong();
+    speakText('더 포스 슬립');
+    await nextFrame();
+    fourthTitle.style.opacity='1';
+
+    await sleep(2200);
+
+    fourthTransition.style.transition='opacity 2000ms ease';
+    fourthTransition.style.opacity='0';
+    await sleep(2100);
+    fourthTransition.style.display='none';
+    fourthTransition.style.transition='';
+    fourthTitle.style.transition='';
+    fourthTitle.style.opacity='1';
+
+    startFourthTimer();
+  }
+
+  /* THIRD SLEEP: 기존 goToSleepCity를 5분 타이머로 사용 */
+  function goToSleepCity(){
+    try{
+      stopSecondBell();
+      if(secondTimer){
+        clearInterval(secondTimer);
+        secondTimer = null;
+      }
+    }catch(e){}
+
+    stage = 'third';
+    finalLeft = 5*60;
+    runTimer.textContent = formatMMSS(finalLeft);
+    runTimer.style.display = 'block';
+
+    if(finalTimer) clearInterval(finalTimer);
+    finalTimer = setInterval(()=>{
+      finalLeft = Math.max(0, finalLeft - 1);
+      runTimer.textContent = formatMMSS(finalLeft);
+      if(finalLeft <= 0){
+        clearInterval(finalTimer);
+        finalTimer = null;
+        runTimer.style.display = 'none';
+        startFourthSleepSequence();
+      }
+    }, 1000);
+  }
+
+  let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, micPreGain=null;
+  function makeImpulse(ctx, seconds=6.0, decay=8.0){
+    const rate=ctx.sampleRate;
+    const len=rate*seconds;
+    const ir=ctx.createBuffer(2, len, rate);
+    for(let ch=0; ch<2; ch++){
+      const data=ir.getChannelData(ch);
+      for(let i=0;i<len;i++){
+        const t=i/len;
+        data[i]=(Math.random()*2-1)*Math.pow(1-t,decay);
+      }
+    }
+    return ir;
+  }
+
+  async function startMicFXFadeIn(fadeSec=2.5){
+    try{
+      await ensureResumed();
+      if(!micStream){
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false},
+          video:false
+        });
+      }
+      if(!micSrc){
+        micSrc = audioCtx.createMediaStreamSource(micStream);
+      }
+
+      micPreGain = audioCtx.createGain();
+      micPreGain.gain.value = 1.0;
+
+      lowshelf = audioCtx.createBiquadFilter();
+      highshelf = audioCtx.createBiquadFilter();
+      lpf = audioCtx.createBiquadFilter();
+      panNode = audioCtx.createStereoPanner();
+
+      lpf.type='lowpass';
+      lpf.frequency.value=2800;
+      lpf.Q.value=0.3;
+
+      lowshelf.type='lowshelf';
+      lowshelf.frequency.value=350;
+      lowshelf.gain.value=0;
+
+      highshelf.type='highshelf';
+      highshelf.frequency.value=3500;
+      highshelf.gain.value=0;
+
+      revConvolver = audioCtx.createConvolver();
+      revConvolver.buffer = makeImpulse(audioCtx, 6.0, 8.0);
+
+      dryGain = audioCtx.createGain();
+      wetGain = audioCtx.createGain();
+      dryGain.gain.value = 0.0;
+      wetGain.gain.value = 0.0;
+
+      const out = audioCtx.createGain();
+      out.gain.value = 0.7;
+
+      micSrc.connect(micPreGain);
+      micPreGain.connect(lowshelf)
+               .connect(highshelf)
+               .connect(lpf)
+               .connect(panNode);
+
+      panNode.connect(dryGain);
+      panNode.connect(revConvolver);
+      revConvolver.connect(wetGain);
+
+      dryGain.connect(out);
+      wetGain.connect(out);
+      out.connect(audioCtx.destination);
+
+      window.addEventListener('deviceorientation', onTiltAudio, {passive:true});
+
+      const t = audioCtx.currentTime;
+      dryGain.gain.linearRampToValueAtTime(0.6, t+fadeSec);
+      wetGain.gain.linearRampToValueAtTime(0.6, t+fadeSec);
+    }catch(e){
+      console.warn('startMicFX error', e);
+    }
+  }
+
+  function stopMicFXFadeOut(sec=2.5){
+    try{
+      if(!audioCtx) return;
+      const t = audioCtx.currentTime;
+      if(dryGain) dryGain.gain.linearRampToValueAtTime(0.0001, t+sec);
+      if(wetGain) wetGain.gain.linearRampToValueAtTime(0.0001, t+sec);
+      if(micPreGain) micPreGain.gain.linearRampToValueAtTime(0.0001, t+sec);
+      setTimeout(()=>{
+        try{
+          if(micStream){
+            micStream.getTracks().forEach(tr=>tr.stop());
+          }
+        }catch(e){}
+        micStream=null;
+        micSrc=null;
+        panNode=null;
+        lpf=null;
+        lowshelf=null;
+        highshelf=null;
+        revConvolver=null;
+        dryGain=null;
+        wetGain=null;
+        micPreGain=null;
+        window.removeEventListener('deviceorientation', onTiltAudio);
+      }, sec*1000+200);
+    }catch(e){}
+  }
+
+  function onTiltAudio(e){
+    if(!audioCtx || !panNode) return;
+
+    const gamma = clamp(e.gamma ?? 0, -90, 90);
+    panNode.pan.value = gamma / 90;
+
+    const beta = clamp(e.beta ?? 0, -90, 90);
+
+    if(lowshelf) {
+      lowshelf.gain.value = (beta < 0) ? (beta / 90) * 10 : 0;
+    }
+
+    if(highshelf) {
+      highshelf.gain.value = (beta > 0) ? (beta / 90) * 10 : 0;
+    }
+
+    if(lpf) {
+      let cutoff;
+      if(beta >= 0) {
+        cutoff = 2800 + (beta / 90) * (4500 - 2800);
+      } else {
+        cutoff = 2800 + (beta / 90) * (2800 - 900);
+      }
+      lpf.frequency.value = clamp(cutoff, 900, 4500);
+      lpf.Q.value = 0.2 + (Math.abs(beta) / 90) * 0.3;
+    }
+
+    if(wetGain && dryGain) {
+      const tilt = Math.abs(beta) / 90;
+      const wetBase = 0.42;
+      const wetAmount = wetBase + tilt * 0.25;
+      wetGain.gain.value = clamp(wetAmount, 0.35, 0.67);
+      dryGain.gain.value = clamp(1.0 - wetGain.gain.value * 0.5, 0.5, 0.85);
+    }
+  }
+
+  let metaReady=false;
+  async function startCameraFresh(warmupOnly=false){
+    try{
+      if(!camPermGranted){
+        await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}, audio:true})
+          .then(s=>{
+            s.getTracks().forEach(t=>t.stop());
+            camPermGranted=true;
+          });
+      }
+      if(!camVideo){
+        camVideo=document.createElement('video');
+        camVideo.setAttribute('playsinline','');
+        camVideo.autoplay=true;
+        camVideo.playsInline=true;
+        camVideo.muted=true;
+      }
+      if(!camStream){
+        camStream = await navigator.mediaDevices.getUserMedia({
+          video:{
+            facingMode:{ideal:'environment'},
+            width:{min:1280,ideal:1920},
+            height:{min:720,ideal:1080},
+            aspectRatio:{ideal:16/9}
+          },
+          audio:false
+        });
+        camVideo.srcObject=camStream;
+      }
+      await camVideo.play().catch(()=>{});
+      if (camVideo.readyState < 1){
+        await new Promise(res=>camVideo.addEventListener('loadedmetadata', res, {once:true}));
+      }
+      metaReady=true;
+      resizeAll();
+      warmupFrames=0;
+
+      if(!vctx){
+        vctx=view.getContext('2d',{alpha:false});
+      }
+      if(!fgctx){
+        fgctx=fg.getContext('2d',{alpha:true});
+      }
+      resizeAll();
+      if(!animStarted && !warmupOnly){
+        animStarted=true;
+        loop();
+      }
+      document.querySelectorAll('.uiBtn').forEach(b=>{
+        b.addEventListener('click', ()=>{
+          ensureResumed().then(playWoongClick);
+        }, {passive:true});
+      });
+    }catch(e){
+      console.warn('startCameraFresh error:', e);
+    }
+  }
+
+  function resizeAll(){
+    const dpr=window.devicePixelRatio||1;
+    const w=window.innerWidth;
+    const h=window.innerHeight;
+    view.width=w*dpr;
+    view.height=h*dpr;
+    if(vctx) vctx.setTransform(dpr,0,0,dpr,0,0);
+    fg.width=w*dpr;
+    fg.height=h*dpr;
+    if(fgctx) fgctx.setTransform(dpr,0,0,dpr,0,0);
+    if(mapOverlay.style.display!=='none') drawMap();
+  }
+  addEventListener('resize', ()=>{
+    setTimeout(resizeAll,30);
+    warmupFrames=30;
+  }, {passive:true});
+
+  function drawBestCover(ctx, video, W, H, PW, PH){
+    const vw=video.videoWidth||0, vh=video.videoHeight||0;
+    if(!vw||!vh) return;
+    function coverScore(rot){
+      let rw=rot?vh:vw, rh=rot?vw:vh;
+      const s=Math.max(PW/rw, PH/rh)*ZOOM;
+      const dw=rw*s, dh=rh*s;
+      const letter=Math.max(0,(PW-dw))+Math.max(0,(PH-dh));
+      return {rot,s,dw,dh,letter};
+    }
+    const a=coverScore(false), b=coverScore(true);
+    let best=(b.letter<a.letter)?b:a;
+    ctx.save();
+    if(best.rot){
+      ctx.translate(PW/2,PH/2);
+      ctx.rotate(Math.PI/2);
+      ctx.drawImage(video,-best.dh/2,-best.dw/2,best.dh,best.dw);
+    }else{
+      const dx=(PW-best.dw)/2;
+      const dy=(PH-best.dh)/2;
+      ctx.drawImage(video,dx,dy,best.dw,best.dh);
+    }
+    ctx.restore();
+  }
+
+  function loop(){
+    requestAnimationFrame(loop);
+    if(capturing) return;
+    if(!vctx || !fgctx) return;
+
+    const W=view.width/(devicePixelRatio||1);
+    const H=view.height/(devicePixelRatio||1);
+    if(warmupFrames>0){
+      resizeAll();
+      warmupFrames--;
+    }
+
+    vctx.clearRect(0,0,W,H);
+    vctx.imageSmoothingEnabled=true;
+
+    if (showCamera && camVideo && camVideo.readyState>=2){
+      vctx.save();
+      vctx.filter='grayscale(1)';
+      drawBestCover(vctx, camVideo, W, H, W, H);
+      vctx.restore();
+      vctx.filter='none';
+    } else {
+      vctx.fillStyle='#000000';
+      vctx.fillRect(0,0,W,H);
+    }
+
+    const pr=getProsceniumRect();
+    fgctx.clearRect(0,0,W,H);
+    if(showIntroLayer && fgAlpha>0.001){
+      fgctx.save();
+      fgctx.globalAlpha=fgAlpha;
+      fgctx.beginPath();
+      fgctx.rect(pr.x,pr.y,pr.w,pr.h);
+      fgctx.clip();
+
+      if(introWalking && introWalkers.length){
+        const now=performance.now();
+        const tGlobal=(now-introStartTime)/INTRO_WALK_DURATION;
+        introWalkers.forEach(w=>{
+          const t = ((tGlobal + w.tOffset)%1+1)%1;
+          const pos = prosceniumWalkPos(t);
+          const hop = Math.max(0,10*Math.sin(t*Math.PI*20));
+
+          let angle = 0;
+          if(pos.edge === 'bottom') angle = 0;
+          else if(pos.edge === 'right') angle = -Math.PI/2;
+          else if(pos.edge === 'top') angle = Math.PI;
+          else if(pos.edge === 'left') angle = Math.PI/2;
+
+          drawPixelHuman(
+            fgctx,
+            Math.round(pos.x),
+            Math.round(pos.baselineY),
+            W,
+            hop,
+            1,
+            angle
+          );
+
+          if(now-w.bubbleTimer>700+Math.random()*500){
+            w.bubbleIndex=(w.bubbleIndex+1)%bubbleSeq.length;
+            w.bubbleTimer=now;
+          }
+          drawBubble(fgctx, Math.round(pos.x), Math.round(pos.baselineY)-28, bubbleSeq[w.bubbleIndex]);
+        });
+      }
+
+      fgctx.restore();
+    }
+
+    if (camFadeAlpha > 0){
+      vctx.save();
+      vctx.fillStyle = `rgba(0,0,0,${camFadeAlpha})`;
+      vctx.fillRect(0,0,W,H);
+      vctx.restore();
+    }
+  }
+
+  function fadeInCamera(ms=2500){
+    showCamera = true;
+    camFadeAlpha = 1;
+    const t0 = performance.now();
+    function step(){
+      const k = Math.min(1, (performance.now()-t0)/ms);
+      camFadeAlpha = 1-k;
+      if(k<1){
+        requestAnimationFrame(step);
+      }else{
+        camFadeAlpha = 0;
+      }
+    }
+    step();
+  }
+
+  function fadeOutCamera(ms=2500){
+    showCamera = true;
+    camFadeAlpha = 0;
+    const t0 = performance.now();
+    function step(){
+      const k = Math.min(1, (performance.now()-t0)/ms);
+      camFadeAlpha = k;
+      if(k<1){
+        requestAnimationFrame(step);
+      }else{
+        camFadeAlpha = 1;
+        showCamera = false;
+      }
+    }
+    step();
+  }
+
+  let captureAnimating=false;
+  captureBtn.addEventListener('click', async ()=>{
+    claimImmersive();
+    if(captureAnimating) return;
+    await ensureResumed();
+    await playWoongClick();
+    captureAnimating=true;
+    capturing=true;
+    const cssW=view.clientWidth;
+    const cssH=view.clientHeight;
+    freezeLayer.width=cssW;
+    freezeLayer.height=cssH;
+    const displayCtx=freezeLayer.getContext('2d');
+    displayCtx.imageSmoothingEnabled=false;
+    freezeLayer.style.transition='';
+    freezeLayer.style.opacity='0';
+    freezeLayer.style.display='block';
+
+    const snapshot=document.createElement('canvas');
+    snapshot.width=cssW;
+    snapshot.height=cssH;
+    const snapCtx=snapshot.getContext('2d');
+    snapCtx.imageSmoothingEnabled=false;
+    snapCtx.drawImage(view,0,0,view.width,view.height,0,0,cssW,cssH);
+    snapCtx.drawImage(fg,0,0,fg.width,fg.height,0,0,cssW,cssH);
+
+    const off=document.createElement('canvas');
+    const oc=off.getContext('2d');
+    let px=2.4;
+    const step=1.015;
+    let revealed=false;
+    function anim(){
+      if(px>420){
+        freezeLayer.style.transition='opacity 2000ms ease';
+        freezeLayer.style.opacity='0';
+        setTimeout(()=>{
+          freezeLayer.style.display='none';
+          freezeLayer.style.transition='';
+          capturing=false;
+          captureAnimating=false;
+        },2020);
+        return;
+      }
+      const w=Math.max(1,Math.floor(cssW/px));
+      const h=Math.max(1,Math.floor(cssH/px));
+      off.width=w;
+      off.height=h;
+      oc.imageSmoothingEnabled=false;
+      oc.clearRect(0,0,w,h);
+      oc.drawImage(snapshot,0,0,cssW,cssH,0,0,w,h);
+      displayCtx.clearRect(0,0,cssW,cssH);
+      displayCtx.imageSmoothingEnabled=false;
+      displayCtx.globalAlpha=1.0;
+      displayCtx.drawImage(off,0,0,w,h,0,0,cssW,cssH);
+      if(!revealed){
+        freezeLayer.style.opacity='1';
+        revealed=true;
+      }
+      px=px*step+0.35;
+      requestAnimationFrame(anim);
+    }
+    requestAnimationFrame(anim);
+  });
+
+  let introIndex=0;
+  function resolveIntroLine(i){
+    let line = INTRO_LINES[i] || '';
+    return line.replace(/_____/g, displayName);
+  }
+
+  async function typeIntroLine(idx){
+    introTextEl.textContent='';
+    const text = resolveIntroLine(idx);
+    speakText(text);
+    for(let i=0;i<text.length;i++){
+      introTextEl.textContent += text[i];
+      typeTick();
+      await sleep(24);
+    }
+  }
+
+  introNextBtn.addEventListener('click', async ()=>{
+    await ensureResumed();
+    await playWoongClick();
+    introIndex++;
+    if(introIndex >= INTRO_LINES.length){
+      fadeHide(introDialogue, 300);
+      await sleep(350);
+      await playTduung();
+      startIntroToFirstSleepSequence();
+    }else{
+      typeIntroLine(introIndex);
+    }
+  }, {passive:true});
+
+  function fadeIntroLayerOut(ms=4500){
+    const t0=performance.now();
+    const startAlpha=fgAlpha;
+    function step(){
+      const k=Math.min(1,(performance.now()-t0)/ms);
+      fgAlpha=startAlpha*(1-k);
+      if(k<1){
+        requestAnimationFrame(step);
+      }else{
+        fgAlpha=0;
+        showIntroLayer=false;
+        introWalking=false;
+        if(fgctx){
+          const W=view.width/(devicePixelRatio||1);
+          const H=view.height/(devicePixelRatio||1);
+          fgctx.clearRect(0,0,W,H);
+        }
+      }
+    }
+    step();
+  }
+
+  async function runFirstSleepTitleSequence(){
+    firstTransWord.textContent='';
+    firstTransTitle.textContent='';
+
+    firstTransition.style.display='flex';
+    firstTransition.style.opacity='0';
+    firstTransition.style.transition='opacity 2000ms ease';
+    await nextFrame();
+    firstTransition.style.opacity='1';
+
+    const word = 'SLEEEEEEEEP,';
+    for(let i=0;i<word.length;i++){
+      firstTransWord.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(firstTransWord);
+
+    await sleep(900);
+
+    firstTransTitle.style.opacity = '0';
+    firstTransTitle.style.transition = 'opacity 1500ms ease';
+    firstTransTitle.textContent = 'THE FIRST SLEEP';
+    fitTitleLine(firstTransTitle);
+    playDreamWoong();
+    speakText('더 퍼스트 슬립');
+    await nextFrame();
+    firstTransTitle.style.opacity = '1';
+
+    await sleep(2000);
+
+    if (Ambient && Ambient.isRunning && Ambient.isRunning()){
+      Ambient.stop(3.0);
+    }
+
+    firstTransition.style.transition='opacity 2000ms ease';
+    firstTransition.style.opacity='0';
+    await sleep(2100);
+    firstTransition.style.display='none';
+    firstTransition.style.transition='';
+    firstTransTitle.style.transition='';
+    firstTransTitle.style.opacity='1';
+  }
+
+  async function startIntroToFirstSleepSequence(){
+    claimImmersive();
+    await ensureResumed();
+
+    introWalking=true;
+    fadeIntroLayerOut(4500);
+
+    await sleep(1000);
+    await runFirstSleepTitleSequence();
+
+    showNoticePopup();
+  }
+
+  function showNoticePopup(){
+    function bgTrap(e){
+      if(!e.target.closest('#noticeCard')){
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }
+    ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{
+      noticePopup.addEventListener(ev, bgTrap, {passive:false});
+    });
+    fadeShow(noticePopup, 280, 'flex');
+    playBellChime(); // 노티스 뜰 때 띵 소리
+    setTimeout(()=>{
+      noticeOk && noticeOk.focus && noticeOk.focus();
+    }, 50);
+    noticeOk.onclick = async (e)=>{
+      e.stopPropagation();
+      claimImmersive();
+      await ensureResumed();
+      await playWoongClick();
+      fadeHide(noticePopup, 250);
+      await sleep(260);
+
+      fadeInCamera(2500);
+      startMicFXFadeIn(2.5);
+
+      controls.classList.add('show');
+      captureBtn.classList.add('show');
+
+      stage = 'first';
+      startMainTimer();
+      startFirstSleepStory();
+    };
+  }
+
+  async function typeFirstSleepLine(text){
+    chapterBox.innerHTML='';
+    const speak = text.replace(/\n/g,' ');
+    speakText(speak);
+    for(let i=0;i<text.length;i++){
+      const ch = text[i];
+      if(ch === '\n'){
+        chapterBox.appendChild(document.createElement('br'));
+        continue;
+      }
+      const span = document.createElement('span');
+      span.className = 'charBox';
+      span.textContent = ch;
+      chapterBox.appendChild(span);
+      typeTick();
+      await sleep(26);
+    }
+  }
+
+  async function startFirstSleepStory(){
+    claimImmersive();
+    await ensureResumed();
+    fadeShow(chapterOverlay, 400, 'flex');
+    await sleep(420);
+
+    for(const line of FIRST_SLEEP_LINES){
+      await typeFirstSleepLine(line);
+      await sleep(4000);
+    }
+
+    fadeHide(chapterOverlay, 800);
+  }
+
+  async function runSecondSleepTitleSequence(){
+    sleepLine1.textContent = '';
+    sleepLine2.textContent = '';
+    sleepSecondTitle.textContent = '';
+    sleepTransition.style.display='flex';
+    sleepTransition.style.opacity='0';
+    sleepTransition.style.transition='opacity 2000ms ease';
+    await nextFrame();
+    sleepTransition.style.opacity='1';
+
+    const line1 = 'SLEEEEEEEEP,';
+    const line2 = 'SLEEEEEEEEP,';
+
+    for(let i=0;i<line1.length;i++){
+      sleepLine1.textContent += line1[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(sleepLine1);
+
+    await sleep(350);
+    for(let i=0;i<line2.length;i++){
+      sleepLine2.textContent += line2[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(sleepLine2);
+
+    await sleep(900);
+
+    sleepSecondTitle.style.opacity = '0';
+    sleepSecondTitle.style.transition = 'opacity 1500ms ease';
+    sleepSecondTitle.textContent = 'THE SECOND SLEEP';
+    fitTitleLine(sleepSecondTitle);
+    playDreamWoong();
+    speakText('더 세컨드 슬립');
+    await nextFrame();
+    sleepSecondTitle.style.opacity = '1';
+
+    await sleep(2200);
+
+    sleepTransition.style.transition='opacity 2000ms ease';
+    sleepTransition.style.opacity='0';
+    await sleep(2100);
+    sleepTransition.style.display='none';
+    sleepTransition.style.transition='';
+    sleepSecondTitle.style.transition='';
+    sleepSecondTitle.style.opacity='1';
+  }
+
+  async function onFirstSleepTimerEnd(){
+    claimImmersive();
+    await ensureResumed();
+
+    controls.classList.remove('show');
+    captureBtn.classList.remove('show');
+    runTimer.style.display='none';
+
+    fadeHide(chapterOverlay, 800);
+
+    fadeOutCamera(2500);
+    stopMicFXFadeOut(2.5);
+
+    await sleep(400);
+    await runSecondSleepTitleSequence();
+
+    stage = 'secondIntro';
+    showSecondNoticePopup();
+  }
+
+  function showSecondNoticePopup(){
+    function bgTrap2(e){
+      if(!e.target.closest('#noticeCard2')){
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }
+    ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{
+      noticePopup2.addEventListener(ev, bgTrap2, {passive:false});
+    });
+    fadeShow(noticePopup2, 280, 'flex');
+    playBellChime(); // 노티스 뜰 때 띵 소리
+    setTimeout(()=>{
+      noticeOk2 && noticeOk2.focus && noticeOk2.focus();
+    }, 50);
+
+    noticeOk2.onclick = async (e)=>{
+      e.stopPropagation();
+      claimImmersive();
+      await ensureResumed();
+      await playWoongClick();
+      fadeHide(noticePopup2, 260);
+      await sleep(280);
+      await playBellChime(); // 지도 뜰 때 기존 띵 소리
+      showMapOverlay();
+    };
+  }
+
+  /* THIRD SLEEP 타이틀 + NOTICE3 → 5분 타이머(3번째 수면) */
+  async function startThirdSleepSequence(){
+    claimImmersive();
+    await ensureResumed();
+
+    stage = 'thirdIntro';
+
+    thirdSleepLine1.textContent='';
+    thirdSleepLine2.textContent='';
+    thirdSleepLine3.textContent='';
+    thirdTitle.textContent='';
+
+    thirdTransition.style.display='flex';
+    thirdTransition.style.opacity='0';
+    thirdTransition.style.transition='opacity 2000ms ease';
+    await nextFrame();
+    thirdTransition.style.opacity='1';
+
+    const word = 'SLEEEEEEEEP,';
+
+    for(let i=0;i<word.length;i++){
+      thirdSleepLine1.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(thirdSleepLine1);
+    await sleep(350);
+
+    for(let i=0;i<word.length;i++){
+      thirdSleepLine2.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(thirdSleepLine2);
+    await sleep(350);
+
+    for(let i=0;i<word.length;i++){
+      thirdSleepLine3.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(thirdSleepLine3);
+
+    await sleep(900);
+
+    thirdTitle.style.opacity='0';
+    thirdTitle.style.transition='opacity 1500ms ease';
+    thirdTitle.textContent='THE THIRD SLEEP';
+    fitTitleLine(thirdTitle);
+    playDreamWoong();
+    speakText('더 써드 슬립');
+    await nextFrame();
+    thirdTitle.style.opacity='1';
+
+    await sleep(2200);
+
+    thirdTransition.style.transition='opacity 1800ms ease';
+    thirdTransition.style.opacity='0';
+    await sleep(1900);
+    thirdTransition.style.display='none';
+    thirdTransition.style.transition='';
+    thirdTitle.style.transition='';
+    thirdTitle.style.opacity='1';
+
+    showThirdNotice();
+  }
+
+  function showThirdNotice(){
+    function bgTrap3(e){
+      if(!e.target.closest('#noticeCard3')){
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }
+    ['touchstart','touchmove','pointerdown','click','wheel','keydown'].forEach(ev=>{
+      noticePopup3.addEventListener(ev, bgTrap3, {passive:false});
+    });
+    fadeShow(noticePopup3, 280, 'flex');
+    playBellChime(); // 노티스 뜰 때 띵 소리
+    setTimeout(()=>{ noticeOk3 && noticeOk3.focus && noticeOk3.focus(); }, 50);
+
+    noticeOk3.onclick = async (e)=>{
+      e.stopPropagation();
+      claimImmersive();
+      await ensureResumed();
+      await playWoongClick();
+      fadeHide(noticePopup3, 260);
+      await sleep(300);
+      /* 여기서 3번째 수면 5분 타이머 시작 */
+      goToSleepCity();
+    };
+  }
+
+  async function showIntroFlow(){
+    claimImmersive();
+    await ensureResumed();
+    if(!Ambient.isRunning()) Ambient.start(0.8, 1.0);
+
+    showCamera = false;
+    camFadeAlpha = 0;
+
+    // INTRODUCTION 타이틀도 타이핑되게
+    introBig.style.display = 'flex';
+    introBig.style.opacity = '1';
+    introBig.style.transition = 'none';
+    const word = 'INTRODUCTION';
+    introBigText.textContent = '';
+    for(let i=0;i<word.length;i++){
+      introBigText.textContent += word[i];
+      typeTick();
+      await sleep(45);
+    }
+    fitTitleLine(introBigText);
+    speakText('인트로덕션');
+
+    await sleep(1400);
+    introBig.style.transition = 'opacity 1600ms ease';
+    introBig.style.opacity = '0';
+    await sleep(1700);
+    introBig.style.display = 'none';
+
+    // 여기서부터는 인트로 캐릭터 + 대화창
+    introWalking = true;
+    introStartTime = performance.now();
+    showIntroLayer = true;
+    fgAlpha = 1.0;
+    initIntroWalkers();
+
+    introIndex = 0;
+    fadeShow(introDialogue, 300, 'block');
+    typeIntroLine(introIndex);
+  }
+
+  document.getElementById('goIntro').addEventListener('click', ()=>{
+    ensureResumed().then(async ()=>{
+      claimImmersive();
+      if(!Ambient.isRunning()) Ambient.start(0.8,1.0);
+      await playWoongClick();
+      fadeHide(welcome, FADE);
+      stage = 'intro';
+      showIntroFlow();
+    });
+  }, {passive:true});
+
+  let mapMarkers = [];
+
+  function drawMap(){
+    if(!mapOverlay || mapOverlay.style.display==='none') return;
+    const rect = mapOverlay.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+    const dpr = window.devicePixelRatio || 1;
+    mapCanvas.width = w*dpr;
+    mapCanvas.height = h*dpr;
+    const ctx = mapCanvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle='#000';
+    ctx.fillRect(0,0,w,h);
+
+    const cx = w*0.5;
+    const cy = h*0.5;
+
+    const mw = w*0.7;
+    const mh = h*0.6;
+    const left = cx - mw/2;
+    const top  = cy - mh/2;
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(left, top, mw, mh);
+    ctx.strokeStyle='rgba(208,208,208,0.85)';
+    ctx.lineWidth=2;
+    ctx.strokeRect(left, top, mw, mh);
+
+    const r = Math.min(mw,mh)*0.16;
+    ctx.fillStyle='#555555';
+    ctx.beginPath();
+    for(let i=0;i<6;i++){
+      const ang = Math.PI/2 + i*Math.PI/3;
+      const x = cx + r*Math.cos(ang);
+      const y = cy + r*Math.sin(ang);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    mapMarkers=[];
+    const rectW = r*0.9;
+    const rectH = r*0.5;
+    const offsets = [
+      {id:1, dx:0,       dy:-r*1.7},
+      {id:2, dx:r*1.45,  dy:-r*1.05},
+      {id:3, dx:r*1.9,   dy:0},
+      {id:4, dx:r*1.45,  dy:r*1.05},
+      {id:5, dx:0,       dy:r*1.7},
+      {id:6, dx:-r*1.45, dy:r*1.05},
+      {id:7, dx:-r*1.9,  dy:0},
+      {id:8, dx:-r*1.45, dy:-r*1.05}
+    ];
+
+    ctx.font='14px "Press Start 2P","Courier New",monospace';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+
+    offsets.forEach(o=>{
+      const cxRect = cx + o.dx;
+      const cyRect = cy + o.dy;
+      const x = cxRect - rectW/2;
+      const y = cyRect - rectH/2;
+
+      mapMarkers.push({id:o.id, x, y, w:rectW, h:rectH});
+
+      ctx.fillStyle='rgba(0,0,0,0.85)';
+      ctx.fillRect(x,y,rectW,rectH);
+      ctx.strokeStyle='rgba(208,208,208,0.9)';
+      ctx.strokeRect(x,y,rectW,rectH);
+      ctx.fillStyle='rgba(208,208,208,0.96)';
+      ctx.fillText(String(o.id), x+rectW/2, y+rectH/2+1);
+    });
+  }
+
+  function showMapOverlay(){
+    fadeShow(mapOverlay, 600, 'flex');
+    setTimeout(drawMap, 80);
+    stage = 'second';
+    startSecondTimer();
+    startSecondBell();
+    runTimer.style.display='block';
+  }
+
+  function openMarkerPopup(id){
+    mapPopBody.textContent = `ZONE ${id}`;
+    speakText(`존 ${id}`);
+    mapPop.style.display='flex';
+  }
+
+  mapPopClose.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    mapPop.style.display='none';
+  }, {passive:true});
+
+  mapCanvas.addEventListener('pointerdown', (e)=>{
+    const rect = mapCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    for(const m of mapMarkers){
+      if(x>=m.x && x<=m.x+m.w && y>=m.y && y<=m.y+m.h){
+        openMarkerPopup(m.id);
+        break;
+      }
+    }
+  });
+
+  function setAppH2(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
+  setAppH2();
+  addEventListener('resize', setAppH2, {passive:true});
+  if (window.visualViewport){
+    visualViewport.addEventListener('resize', ()=>setTimeout(setAppH2,50));
+  }
+
+  /* 2장 종료 시: 지도/팝업 닫고 3번째 수면 시퀀스로 */
+  async function endSecondStageAndStartThird(){
+    fadeHide(mapOverlay, 600);
+    mapPop.style.display = 'none';
+    await sleep(650);
+    await startThirdSleepSequence();
+  }
+
+  /* SKIP 버튼 – 현재 챕터에 맞춰 건너뛰기 */
+  skipBtn.addEventListener('click', async ()=>{
+    await ensureResumed();
+    await playWoongClick();
+
+    if(stage === 'intro'){
+      fadeHide(introDialogue, 300);
+      introWalking=false;
+      showIntroLayer=false;
+      await sleep(350);
+      await playTduung();
+      startIntroToFirstSleepSequence();
+    }else if(stage === 'first'){
+      if(mainTimer){
+        clearInterval(mainTimer);
+        mainTimer=null;
+      }
+      timerFinished = true;
+      await onFirstSleepTimerEnd();
+    }else if(stage === 'second'){
+      /* 2장에서 SKIP → 지도/팝업 닫고 바로 THIRD SLEEP 시퀀스로 */
+      stopSecondBell();
+      if(secondTimer){
+        clearInterval(secondTimer);
+        secondTimer=null;
+      }
+      runTimer.style.display='none';
+      await endSecondStageAndStartThird();
+    }else if(stage === 'thirdIntro'){
+      /* THIRD SLEEP 타이틀/노티스 구간에서 SKIP → 3번째 수면 5분 타이머 바로 시작 */
+      goToSleepCity();
+    }else if(stage === 'third'){
+      /* 세 번째 수면 타이머 중 SKIP → 바로 FOURTH SLEEP으로 */
+      if(finalTimer){
+        clearInterval(finalTimer);
+        finalTimer = null;
+      }
+      runTimer.style.display='none';
+      await startFourthSleepSequence();
+    }else if(stage === 'fourthIntro'){
+      /* FOURTH SLEEP 타이틀에서 SKIP → 바로 4번째 수면 타이머 */
+      startFourthTimer();
+    }else if(stage === 'fourth'){
+      /* 네 번째 수면 타이머 중 SKIP → 바로 SILENCE 챕터 */
+      if(fourthTimer){
+        clearInterval(fourthTimer);
+        fourthTimer = null;
+      }
+      runTimer.style.display='none';
+      await showEndingSequence();
+    }else if(stage === 'silence'){
+      /* SILENCE 5분 중 SKIP → 바로 THE END 챕터 */
+      if(silenceTimer){
+        clearInterval(silenceTimer);
+        silenceTimer=null;
+      }
+      runTimer.style.display='none';
+      await startTheEndChapter();
+    }else if(stage === 'theEnd'){
+      /* THE END 5분 중 SKIP → 프로그램 종료 문구 바로 표시 */
+      if(endTimer){
+        clearInterval(endTimer);
+        endTimer=null;
+      }
+      runTimer.style.display='none';
+      if(endReturn){
+        endReturn.textContent = '※ 프로그램이 종료되었습니다. 태블릿과 헤드폰을 반납해 주세요.';
+      }
+    }else{
+      if(mainTimer){
+        clearInterval(mainTimer);
+        mainTimer=null;
+      }
+      timerFinished = true;
+      await onFirstSleepTimerEnd();
+    }
+  }, {passive:true});
+
+  startCameraFresh(true);
+  if(!animStarted){
+    animStarted=true;
+    loop();
+  }
 })();
 </script>
 </body>
