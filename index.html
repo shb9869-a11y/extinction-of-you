@@ -172,6 +172,18 @@
   }
   .btn-capture.show{opacity:1}
 
+  /* 업로드 상태 텍스트 */
+  .sleep-status-text{
+    position:fixed;
+    left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
+    bottom:calc(var(--frame) + var(--ui-gap) + var(--safe-b) + 36px);
+    z-index:451;
+    font-family:"Press Start 2P","Courier New",ui-monospace,monospace;
+    font-size:var(--fs-small);
+    color:#ffd54f;
+    text-shadow:0 0 4px rgba(0,0,0,0.8);
+  }
+
   /* SKIP 버튼 (모든 장에서 좌측 상단) */
   .skip-btn{
     position:fixed;
@@ -742,6 +754,16 @@
   </div>
   <button id="captureBtn" class="uiBtn small btn-capture">CAPTURE</button>
 
+  <!-- CAPTURE 업로드용 숨겨진 input + 상태 텍스트 -->
+  <input
+    id="sleepPhotoInput"
+    type="file"
+    accept="image/*"
+    capture="environment"
+    style="display:none"
+  />
+  <div id="sleepPhotoStatus" class="sleep-status-text"></div>
+
   <!-- 공통 SKIP 버튼 -->
   <button id="skipBtn" class="uiBtn small skip-btn" type="button">SKIP</button>
   <!-- THE END 단계에서 사용하는 RETURN 버튼 -->
@@ -912,6 +934,9 @@
 
 <script>
 (() => {
+  // ===== 여기 한 줄만 공연장마다 IP 바꿔주면 됨 =====
+  const SLEEP_UPLOAD_SERVER = 'http://172.30.1.85:4000';
+
   // 전체 진행 상태
   let stage = 'gate';
 
@@ -1179,6 +1204,53 @@
   const endSilence = qs('#endSilence');
   const endTheEnd  = qs('#endTheEnd');
   const endReturn  = qs('#endReturn');
+
+  const sleepPhotoInput  = qs('#sleepPhotoInput');
+  const sleepPhotoStatus = qs('#sleepPhotoStatus');
+
+  // ===== 업로드 상태 표시 함수 =====
+  function setSleepPhotoStatus(msg){
+    if(!sleepPhotoStatus) return;
+    sleepPhotoStatus.textContent = msg || '';
+  }
+
+  // ===== 사진 업로드 로직 =====
+  if (sleepPhotoInput) {
+    sleepPhotoInput.addEventListener('change', async () => {
+      const file = sleepPhotoInput.files && sleepPhotoInput.files[0];
+      if (!file) return;
+
+      setSleepPhotoStatus('사진 업로드 중입니다...');
+
+      try{
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const res = await fetch(SLEEP_UPLOAD_SERVER + '/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!res.ok) {
+          throw new Error('Upload failed: ' + res.status);
+        }
+
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.message || '업로드 실패');
+        }
+
+        setSleepPhotoStatus('업로드 완료! (잠시 후 화면에 반영됩니다)');
+        console.log('업로드된 파일 URL:', SLEEP_UPLOAD_SERVER + data.url);
+      }catch(err){
+        console.error(err);
+        setSleepPhotoStatus('업로드 중 오류가 발생했습니다');
+      }finally{
+        sleepPhotoInput.value = '';
+        setTimeout(()=>setSleepPhotoStatus(''), 6000);
+      }
+    });
+  }
 
   // 카메라 캔버스 컨텍스트 미리 생성
   let vctx = view.getContext('2d', { alpha: false });
@@ -2539,6 +2611,13 @@
     if(captureAnimating) return;
     primeAudio();
     playWoongClick();
+
+    // 📸 CAPTURE와 동시에 실제 사진 업로드 트리거
+    if (sleepPhotoInput) {
+      sleepPhotoInput.click();
+    }
+
+    // 아래는 기존 픽셀 깨짐 캡처 애니메이션 그대로 유지
     captureAnimating=true;
     capturing=true;
     const cssW=view.clientWidth;
