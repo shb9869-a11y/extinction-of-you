@@ -1510,22 +1510,22 @@ function getFrameRect(){
   window.addEventListener('resize', ()=>fitWelcomeTitles(), {passive:true});
 
   const PIXEL_SPRITE=[
-    "..XXXXXX....",
-    ".XXXXXXXX...",
-    ".XX.XX.XX...",
-    ".XXXXXXXX...",
-    "..XXXXXX....",
-    ".XXXXXXXX...",
-    ".XXXXXXXX...",
-    ".XXXXXXXX...",
-    ".XXXXXXXX...",
-    ".XXXXXXXX...",
-    ".XX....XX...",
-    ".XX....XX...",
-    ".XX....XX...",
-    ".XX....XX...",
-    ".XX....XX...",
-    ".XX....XX..."
+  "....XX..XX..", // 귀
+  "....XX..XX..",
+  "...XXX..XXX.", // 귀 밑부분
+  "...XXX..XXX.",
+  "..XXXXXXXX..", // 머리
+  "..XX.XX.XX..", // 눈/볼
+  "..XXXXXXXX..",
+  "...XXXXXX...", // 목·어깨
+  "...XXXXXX...",
+  "..XXXXXXXX..", // 몸통
+  ".XXXXXXXXXX.", // 다리
+  ".XXXXXXXXXX.",
+  "XXXXXXXXXXXX",
+  "..XX....XX..",
+  "..XX....XX..",
+  "..XX....XX.."
   ];
   const COLOR_FILL='#d0d0d0';
   const COLOR_STROKE='#000';
@@ -2474,33 +2474,35 @@ function drawPixelHuman(ctx, cx, baselineY, W, hop = 0, alpha = 1, angleRad = 0)
       fgctx.lineWidth = 2;
       fgctx.strokeRect(pr.x, pr.y, pr.w, pr.h);
 
-      // 🔴 INTRO 단계일 때 프레임 안 중앙에 캐릭터 고정
-      if (stage === 'intro') {
-        const cx = pr.x + pr.w * 0.5;
-        const cy = pr.y + pr.h * 0.8; // 아래쪽 80% 지점에 발 위치
+      // 🔁 INTRO: 프레임 사각형을 따라 걷는 토끼/캐릭터
+if (stage === 'intro' && introWalking) {
+  const now = performance.now();
+  const t01 = ((now - introStartTime) % INTRO_WALK_DURATION) / INTRO_WALK_DURATION;
 
-        drawPixelHuman(
-          fgctx,
-          Math.round(cx),
-          Math.round(cy),
-          W,
-          0,
-          1,
-          0
-        );
+  // 프레임 사각형을 한 바퀴 도는 위치
+  const pos = prosceniumWalkPos(t01);
+  const cx  = pos.x;
+  const cy  = pos.baselineY;
 
-        drawBubble(
-          fgctx,
-          Math.round(cx),
-          Math.round(cy) - 40,
-          'HELLO'
-        );
-      }
+  // 토끼(또는 우주인) 스프라이트 그리기
+  drawPixelSprite(   // 토끼/우주인용 함수 이름으로
+    fgctx,
+    Math.round(cx),
+    Math.round(cy),
+    W,
+    0,   // hop
+    1,   // alpha
+    0    // angle
+  );
 
-      fgctx.restore();
-    }
-  }
-
+  // 말풍선은 발 밑에서 살짝 위로
+  drawBubble(
+    fgctx,
+    Math.round(cx),
+    Math.round(cy) - 40,
+    'HELLO'
+  );
+}
   // ▼ 여기부터는 loop() 바깥에 있어야 함!!
   function fadeInCamera(ms = 2500){
     showCamera = true;
