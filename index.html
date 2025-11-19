@@ -940,6 +940,43 @@
   // 전체 진행 상태
   let stage = 'gate';
 
+        // 🔧 사진 업로드할 서버 주소 (장소 바뀌면 이 줄만 바꾸면 됨)
+  const UPLOAD_SERVER = "http://172.30.1.85:4000";
+
+  // 캡쳐된 캔버스를 /upload 서버로 보내는 함수
+  async function uploadSnapshotCanvas(canvas){
+    try{
+      // 캔버스를 JPEG Blob으로 변환
+      const blob = await new Promise((resolve) => {
+        canvas.toBlob((b) => resolve(b), "image/jpeg", 0.9);
+      });
+
+      if(!blob){
+        console.error("캡처 Blob 생성 실패");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("image", blob, `sleep_capture_${Date.now()}.jpg`);
+
+      const res = await fetch(UPLOAD_SERVER + "/upload", {
+        method: "POST",
+        body: formData
+      });
+
+      if(!res.ok){
+        console.error("업로드 HTTP 에러:", res.status, res.statusText);
+        return;
+      }
+
+      const data = await res.json().catch(() => ({}));
+      console.log("업로드 성공:", data);
+
+    }catch(err){
+      console.error("업로드 중 오류:", err);
+    }
+  }
+      
   (function injectManifest(){
     const manifest = {
       "name":"SLEEEEEP",
@@ -2605,21 +2642,15 @@
     }
   }
 
-  let captureAnimating=false;
+    let captureAnimating=false;
   captureBtn.addEventListener('click', ()=>{
     claimImmersive();
     if(captureAnimating) return;
     primeAudio();
     playWoongClick();
-
-    // 📸 CAPTURE와 동시에 실제 사진 업로드 트리거
-    if (sleepPhotoInput) {
-      sleepPhotoInput.click();
-    }
-
-    // 아래는 기존 픽셀 깨짐 캡처 애니메이션 그대로 유지
     captureAnimating=true;
     capturing=true;
+
     const cssW=view.clientWidth;
     const cssH=view.clientHeight;
     freezeLayer.width=cssW;
@@ -2630,6 +2661,7 @@
     freezeLayer.style.opacity='0';
     freezeLayer.style.display='block';
 
+    // 👉 여기서 현재 화면을 한 번 캡쳐 (view + fg 합쳐서)
     const snapshot=document.createElement('canvas');
     snapshot.width=cssW;
     snapshot.height=cssH;
@@ -2638,11 +2670,16 @@
     snapCtx.drawImage(view,0,0,view.width,view.height,0,0,cssW,cssH);
     snapCtx.drawImage(fg,0,0,fg.width,fg.height,0,0,cssW,cssH);
 
+    // 🎯 캡쳐된 이미지를 /upload 서버로 전송
+    uploadSnapshotCanvas(snapshot);
+
+    // 아래는 기존 글리치 줌 아웃 효과 그대로 유지
     const off=document.createElement('canvas');
     const oc=off.getContext('2d');
     let px=2.4;
     const step=1.015;
     let revealed=false;
+
     function anim(){
       if(px>420){
         freezeLayer.style.transition='opacity 2000ms ease';
