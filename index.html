@@ -1530,45 +1530,58 @@ function getFrameRect(){
   const COLOR_FILL='#d0d0d0';
   const COLOR_STROKE='#000';
 
-  function drawPixelHuman(ctx, cx, baselineY, W, hop=0, alpha=1, angleRad=0){
-    const cell=Math.max(2, Math.min(4, Math.floor(W*0.0018)));
-    const cols=PIXEL_SPRITE[0].length;
-    const rows=PIXEL_SPRITE.length;
-    const width=cols*cell;
-    const height=rows*cell;
+function drawPixelHuman(ctx, cx, baselineY, W, hop = 0, alpha = 1, angleRad = 0) {
+  // 화면 크기에 비례해서 캐릭터를 훨씬 크게
+  const screenW = W;
+  const screenH = window.innerHeight || W;
+  const base = Math.min(screenW, screenH);
 
-    const x0 = -width/2;
-    const y0 = -height - hop;
+  // 한 칸당 픽셀 크기 (기존보다 3~4배 이상 크게)
+  const cell = Math.max(4, Math.floor(base * 0.012)); 
+  const cols = PIXEL_SPRITE[0].length;
+  const rows = PIXEL_SPRITE.length;
 
-    ctx.save();
-    ctx.translate(cx,baselineY);
-    ctx.rotate(angleRad);
-    ctx.globalAlpha=alpha;
+  const width  = cols * cell;
+  const height = rows * cell;
 
-    ctx.fillStyle=COLOR_STROKE;
-    for(let y=0;y<rows;y++){
-      const row=PIXEL_SPRITE[y];
-      for(let x=0;x<cols;x++){
-        if(row[x]==='X'){
-          ctx.fillRect(x0+x*cell-1,y0+y*cell,cell,cell);
-          ctx.fillRect(x0+x*cell+1,y0+y*cell,cell,cell);
-          ctx.fillRect(x0+x*cell,y0+y*cell-1,cell,cell);
-          ctx.fillRect(x0+x*cell,y0+y*cell+1,cell,cell);
-        }
+  const x0 = -width / 2;
+  const y0 = -height - hop;
+
+  ctx.save();
+  ctx.translate(cx, baselineY);
+  ctx.rotate(angleRad);
+  ctx.globalAlpha = alpha;
+
+  // 바깥 검정 외곽
+  ctx.fillStyle = COLOR_STROKE;
+  for (let y = 0; y < rows; y++) {
+    const row = PIXEL_SPRITE[y];
+    for (let x = 0; x < cols; x++) {
+      if (row[x] === 'X') {
+        const px = x0 + x * cell;
+        const py = y0 + y * cell;
+        ctx.fillRect(px - 1, py, cell, cell);
+        ctx.fillRect(px + 1, py, cell, cell);
+        ctx.fillRect(px, py - 1, cell, cell);
+        ctx.fillRect(px, py + 1, cell, cell);
       }
     }
-    ctx.fillStyle=COLOR_FILL;
-    for(let y=0;y<rows;y++){
-      const row=PIXEL_SPRITE[y];
-      for(let x=0;x<cols;x++){
-        if(row[x]==='X'){
-          ctx.fillRect(x0+x*cell,y0+y*cell,cell,cell);
-        }
-      }
-    }
-    ctx.globalAlpha=1;
-    ctx.restore();
   }
+
+  // 안쪽 몸(밝은 회색)
+  ctx.fillStyle = COLOR_FILL;
+  for (let y = 0; y < rows; y++) {
+    const row = PIXEL_SPRITE[y];
+    for (let x = 0; x < cols; x++) {
+      if (row[x] === 'X') {
+        ctx.fillRect(x0 + x * cell, y0 + y * cell, cell, cell);
+      }
+    }
+  }
+
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
 
   function getProsceniumRect(){
     const r=getFrameRect();
