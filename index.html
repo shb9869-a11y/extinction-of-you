@@ -910,6 +910,9 @@
 
 <script>
 (() => {
+  // 전체 진행 상태
+  let stage = 'gate';
+
   (function injectManifest(){
     const manifest = {
       "name":"SLEEEEEP",
@@ -3049,13 +3052,6 @@
     }
   });
 
-  function setAppH2(){ document.documentElement.style.setProperty('--appH', window.innerHeight + 'px'); }
-  setAppH2();
-  addEventListener('resize', setAppH2, {passive:true});
-  if (window.visualViewport){
-    visualViewport.addEventListener('resize', ()=>setTimeout(setAppH2,50));
-  }
-
   async function endSecondStageAndStartThird(){
     fadeHide(mapOverlay, 600);
     mapPop.style.display = 'none';
@@ -3140,9 +3136,6 @@
     animStarted=true;
     loop();
   }
-
-  // stage 전역
-  window.stage = 'gate';
 })();
 </script>
 </body>
