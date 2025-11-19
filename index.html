@@ -2421,99 +2421,113 @@ function drawPixelHuman(ctx, cx, baselineY, W, hop = 0, alpha = 1, angleRad = 0)
     ctx.restore();
   }
 
-  function loop(){
+    function loop(){
     requestAnimationFrame(loop);
-    if(capturing) return;
-    if(!vctx || !fgctx) return;
+    if (capturing || !vctx || !fgctx) return;
 
-    const W=view.width/(devicePixelRatio||1);
-    const H=view.height/(devicePixelRatio||1);
-    if(warmupFrames>0){
+    const W = view.width / (devicePixelRatio || 1);
+    const H = view.height / (devicePixelRatio || 1);
+
+    if (warmupFrames > 0) {
       resizeAll();
       warmupFrames--;
     }
 
-    vctx.clearRect(0,0,W,H);
-    vctx.imageSmoothingEnabled=true;
+    // ===== 배경(카메라/검정) =====
+    vctx.clearRect(0, 0, W, H);
+    vctx.imageSmoothingEnabled = true;
 
-    if (showCamera && camVideo && camVideo.readyState>=2){
+    if (showCamera && camVideo && camVideo.readyState >= 2) {
       vctx.save();
-      vctx.filter='grayscale(1)';
+      vctx.filter = 'grayscale(1)';
       drawBestCover(vctx, camVideo, W, H, W, H);
       vctx.restore();
-      vctx.filter='none';
+      vctx.filter = 'none';
     } else {
-      vctx.fillStyle='#000000';
-      vctx.fillRect(0,0,W,H);
+      vctx.fillStyle = '#000000';
+      vctx.fillRect(0, 0, W, H);
     }
 
-    const pr=getFrameRect();
-    fgctx.clearRect(0,0,W,H);
-    if(showIntroLayer && fgAlpha>0.001){
-      fgctx.save();
-      fgctx.globalAlpha=fgAlpha;
-      fgctx.beginPath();
-      fgctx.rect(pr.x,pr.y,pr.w,pr.h);
-      fgctx.clip();
+    // 카메라 페이드용 검은 레이어
+    if (camFadeAlpha > 0) {
+      vctx.save();
+      vctx.fillStyle = `rgba(0,0,0,${camFadeAlpha})`;
+      vctx.fillRect(0, 0, W, H);
+      vctx.restore();
+    }
 
-      // ✅ 디버그용: 프로시니엄 영역 시각화 (캐릭터가 어디 안에 있어야 하는지)
-      fgctx.strokeStyle = 'red';
-      fgctx.lineWidth = 2;
-        fgctx.strokeRect(pr.x, pr.y, pr.w, pr.h);
-  
-             // ✅ 디버그용: 프로시니엄 영역 시각화
+    // ===== 전경(FG) =====
+    fgctx.clearRect(0, 0, W, H);
+
+    if (showIntroLayer && fgAlpha > 0.001) {
+      const pr = getFrameRect();
+      fgctx.save();
+      fgctx.globalAlpha = fgAlpha;
+
+      // 필요하면 클립 다시 켜도 됨 (지금은 디버그 위해 꺼둠)
+      // fgctx.beginPath();
+      // fgctx.rect(pr.x, pr.y, pr.w, pr.h);
+      // fgctx.clip();
+
+      // 디버그: 프로시니엄 빨간 테두리
       fgctx.strokeStyle = 'red';
       fgctx.lineWidth = 2;
       fgctx.strokeRect(pr.x, pr.y, pr.w, pr.h);
 
-      // 🔴 인트로에서는 무조건 프레임 안 중앙에 캐릭터 하나 고정으로 표시
+      // 🔴 INTRO 단계일 때 프레임 안 중앙에 캐릭터 고정
       if (stage === 'intro') {
-        const cx = pr.x + pr.w * 0.5;   // 프레임 중앙 X
-        const cy = pr.y + pr.h * 0.8;   // 프레임 아래쪽 80% 지점
+        const cx = pr.x + pr.w * 0.5;
+        const cy = pr.y + pr.h * 0.8; // 아래쪽 80% 지점에 발 위치
 
-        // 토끼/캐릭터 크게 그리기
         drawPixelHuman(
           fgctx,
           Math.round(cx),
           Math.round(cy),
           W,
-          0,   // hop
-          1,   // alpha
-          0    // angle
+          0,
+          1,
+          0
         );
 
-        // 말풍선 간단 버전
-        drawBubble(fgctx, Math.round(cx), Math.round(cy) - 40, 'HELLO');
+        drawBubble(
+          fgctx,
+          Math.round(cx),
+          Math.round(cy) - 40,
+          'HELLO'
+        );
       }
 
       fgctx.restore();
+    }
+  }
 
-  function fadeInCamera(ms=2500){
+  // ▼ 여기부터는 loop() 바깥에 있어야 함!!
+  function fadeInCamera(ms = 2500){
     showCamera = true;
     camFadeAlpha = 1;
     const t0 = performance.now();
     function step(){
-      const k = Math.min(1, (performance.now()-t0)/ms);
-      camFadeAlpha = 1-k;
-      if(k<1){
+      const k = Math.min(1, (performance.now() - t0) / ms);
+      camFadeAlpha = 1 - k;
+      if (k < 1){
         requestAnimationFrame(step);
-      }else{
+      } else {
         camFadeAlpha = 0;
       }
     }
     step();
   }
 
-  function fadeOutCamera(ms=2500){
+  function fadeOutCamera(ms = 2500){
     showCamera = true;
     camFadeAlpha = 0;
     const t0 = performance.now();
     function step(){
-      const k = Math.min(1, (performance.now()-t0)/ms);
+      const k = Math.min(1, (performance.now() - t0) / ms);
       camFadeAlpha = k;
-      if(k<1){
+      if (k < 1){
         requestAnimationFrame(step);
-      }else{
+      } else {
         camFadeAlpha = 1;
         showCamera = false;
       }
