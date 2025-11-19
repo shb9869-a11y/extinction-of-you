@@ -994,13 +994,32 @@
   let ttsVoice   = null;
   let ttsEnabled = false;
 
-  function selectKoreanVoice(voices){
-    // 갤럭시 / 삼성인터넷에서 ko-KR 우선 찾기
-    let v = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('ko'));
-    if(!v) v = voices.find(v => /korean/i.test(v.name||'')) || voices[0];
-    return v || null;
-  }
+    function selectKoreanVoice(voices){
+    if (!voices || !voices.length) return null;
 
+    // 1. 한국어 보이스만 모으기
+    const koVoices = voices.filter(v =>
+      v.lang && v.lang.toLowerCase().startsWith('ko')
+    );
+
+    if (!koVoices.length) {
+      // 한국어 없으면 걍 첫 번째
+      return voices[0] || null;
+    }
+
+    // 2. 이름에 남성/남자/male 같은 단어가 들어간 보이스 먼저 시도
+    const maleCandidate = koVoices.find(v =>
+      /남성|남자|male|man/i.test(v.name || '')
+    );
+    if (maleCandidate) return maleCandidate;
+
+    // 3. 그래도 없으면, 두 번째 한국어 보이스 정도 시도 (첫 번째가 여성일 때 종종 두 번째가 남성일 때가 있음)
+    if (koVoices.length >= 2) return koVoices[1];
+
+    // 4. 최후에는 첫 번째 한국어 보이스
+    return koVoices[0];
+  }
+  
   function initTts(){
     if(!ttsReady) return;
     const voices = window.speechSynthesis.getVoices() || [];
