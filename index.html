@@ -181,6 +181,15 @@
     display:none;
   }
 
+  /* RETURN 버튼 (엔딩에서만 사용) */
+  .return-btn{
+    position:fixed;
+    left:calc(var(--frame) + var(--ui-gap) + var(--safe-l));
+    top:calc(var(--frame) + var(--ui-gap) + var(--safe-t));
+    z-index:1002;
+    display:none;
+  }
+
   #mapLauncher, #docLauncher, #audioToggle { display:none; }
 
   #runTimer{
@@ -744,6 +753,8 @@
 
   <!-- 공통 SKIP 버튼 -->
   <button id="skipBtn" class="uiBtn small skip-btn" type="button">SKIP</button>
+  <!-- 엔딩 RETURN 버튼 -->
+  <button id="returnBtn" class="uiBtn small return-btn" type="button">RETURN</button>
 
   <button id="docLauncher" class="uiBtn small">DOCUMENT</button>
   <button id="mapLauncher" class="uiBtn small">MAP</button>
@@ -899,7 +910,7 @@
     </div>
   </div>
 
-  <!-- ENDING OVERLAY: SILENCE / THE END (각 5분 챕터) -->
+  <!-- ENDING OVERLAY: SILENCE / THE END -->
   <div id="endOverlay" class="fade">
     <div id="endInner">
       <div id="endSilence" class="sleepLine"></div>
@@ -1061,8 +1072,9 @@
     }catch(e){}
   }
 
-  const MASTER_BGM_GAIN = 0.4;
-  const MASTER_SFX_GAIN = 0.45;
+  // BGM/SFX 전체 레벨: BGM을 약간 낮춰서 지직/버벅 완화
+  const MASTER_BGM_GAIN = 0.25;
+  const MASTER_SFX_GAIN = 0.40;
 
   document.addEventListener('contextmenu', e=>e.preventDefault());
   document.addEventListener('selectstart', e=>e.preventDefault());
@@ -1170,6 +1182,7 @@
   const mapPopClose = qs('#mapPopClose');
 
   const skipBtn = qs('#skipBtn');
+  const returnBtn = qs('#returnBtn');
 
   const endOverlay = qs('#endOverlay');
   const endSilence = qs('#endSilence');
@@ -1669,11 +1682,14 @@
       ctx = audioCtx;
       master = ctx.createGain();
       master.gain.value = 0.0001;
+
       delay = ctx.createDelay(2.5);
       delay.delayTime.value = 0.45;
       fb = ctx.createGain();
-      fb.gain.value = 0.32;
+      // 피드백 살짝 줄여서 과한 누적/지직 방지
+      fb.gain.value = 0.22;
       delay.connect(fb).connect(delay);
+
       hp = ctx.createBiquadFilter();
       hp.type='highpass';
       hp.frequency.value=150;
@@ -1681,10 +1697,10 @@
       lp.type='lowpass';
       lp.frequency.value=4200;
       mix = ctx.createGain();
-      mix.gain.value = 0.7;
+      mix.gain.value = 0.55;
       mix.connect(hp).connect(lp).connect(master);
       busGain = ctx.createGain();
-      busGain.gain.value = 0.6;
+      busGain.gain.value = 0.45;
       busGain.connect(master);
       master.connect(ctx.destination);
     }
@@ -1697,12 +1713,12 @@
       const b=ctx.createBuffer(1, ctx.sampleRate*2, ctx.sampleRate);
       const d=b.getChannelData(0);
       for(let i=0;i<d.length;i++){
-        d[i]=(Math.random()*2-1)*0.06;
+        d[i]=(Math.random()*2-1)*0.03; // 노이즈 레벨 살짝 감소
       }
       const s=ctx.createBufferSource();
       s.buffer=b; s.loop=true;
       const g=ctx.createGain();
-      g.gain.value=0.015;
+      g.gain.value=0.01;
       const f=ctx.createBiquadFilter();
       f.type='bandpass';
       f.frequency.value=1100;
@@ -1713,8 +1729,11 @@
       killers.push(()=>{ try{s.stop();}catch{} });
     }
     function pad(root){
+      const now = ctx.currentTime;
+      const duration = 14.0; // 각 코드가 너무 오래 안 쌓이도록
+
       const out = ctx.createGain();
-      out.gain.value=0.24;
+      out.gain.value=0.18;
       const filt=ctx.createBiquadFilter();
       filt.type='lowpass';
       filt.frequency.value=1200;
@@ -1726,6 +1745,7 @@
       lfoG.gain.value=260;
       lfo.connect(lfoG).connect(filt.frequency);
       lfo.start();
+
       [0,7,12].forEach((i,k)=>{
         const o=ctx.createOscillator();
         o.type='triangle';
@@ -1734,33 +1754,35 @@
         const g=ctx.createGain();
         g.gain.value=0.05;
         o.connect(g).connect(filt);
-        o.start();
-        killers.push(()=>{ try{g.disconnect();}catch{} });
+        o.start(now);
+        o.stop(now+duration);
+        killers.push(()=>{ try{o.stop();}catch{} try{g.disconnect();}catch{} });
       });
+
       filt.connect(out);
       connectDW(out);
-      killers.push(()=>{ try{ out.disconnect(); }catch{} });
+      killers.push(()=>{ try{ out.disconnect(); }catch{} try{lfo.stop();}catch{} });
     }
     function plucked(root){
       const now = ctx.currentTime;
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      const f = ctx.createBiquadFilter();
+      const o1=ctx.createOscillator();
+      const g =ctx.createGain();
+      const f =ctx.createBiquadFilter();
       const steps = [0,7,12,14];
-      const pick = steps[Math.floor(Math.random()*steps.length)];
-      o.type='sine';
-      o.frequency.value = midi(root+pick);
+      const pick  = steps[Math.floor(Math.random()*steps.length)];
+      o1.type='sine';
+      o1.frequency.value=midi(root+pick);
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN*0.6, now+0.04);
+      g.gain.exponentialRampToValueAtTime(MASTER_SFX_GAIN*0.45, now+0.04);
       g.gain.exponentialRampToValueAtTime(0.0001, now+1.9);
       f.type='bandpass';
-      f.frequency.value = o.frequency.value*2;
+      f.frequency.value=o1.frequency.value*2;
       f.Q.value=4;
-      o.connect(f).connect(g);
+      o1.connect(f).connect(g);
       connectDW(g);
-      o.start(now);
-      o.stop(now+2.1);
-      killers.push(()=>{ try{g.disconnect();}catch{} });
+      o1.start(now);
+      o1.stop(now+2.1);
+      killers.push(()=>{ try{o1.stop();}catch{} try{g.disconnect();}catch{} });
     }
     async function start(fadeIn=1.0, target=1.0){
       await ensureResumed();
@@ -1963,8 +1985,7 @@
   let silenceTimer = null;
   let silenceLeft  = 0;
 
-  let endTimer = null;
-  let endLeft  = 0;
+  // 엔딩에서는 더 이상 카운트다운 안씀 (SILENCE만 3분)
 
   async function typeSleepLine(el, text){
     el.textContent = '';
@@ -1976,34 +1997,33 @@
     fitTitleLine(el);
   }
 
+  // THE END 단계: BGM 켜고 엔딩 텍스트만 표시 (타이머 없음)
   async function startTheEndChapter(){
     stage = 'theEnd';
     endTheEnd.textContent = '';
     if(endReturn) endReturn.textContent = '';
+
+    if(!Ambient.isRunning()) {
+      Ambient.start(1.2, 1.0);
+    }
+
     await typeSleepLine(endTheEnd, 'THE END');
+    // THE END는 웅 소리 없이 TTS만
     speakText('THE END');
 
-    endLeft = 5*60;
-    runTimer.textContent = formatMMSS(endLeft);
-    runTimer.style.display = 'block';
-    if(endTimer) clearInterval(endTimer);
-    endTimer = setInterval(()=>{
-      endLeft = Math.max(0, endLeft-1);
-      runTimer.textContent = formatMMSS(endLeft);
-      if(endLeft<=0){
-        clearInterval(endTimer);
-        endTimer=null;
-        runTimer.style.display='none';
-        if(endReturn){
-          endReturn.textContent = '※ 프로그램이 종료되었습니다. 태블릿과 헤드폰을 반납해 주세요.';
-        }
-      }
-    },1000);
+    if(endReturn){
+      endReturn.textContent = '※ 프로그램이 종료되었습니다. 태블릿과 헤드폰을 반납해 주세요.';
+    }
+    runTimer.style.display = 'none';
+    returnBtn.style.display = 'block';
   }
 
   async function showEndingSequence(){
     claimImmersive();
     await ensureResumed();
+
+    // 엔딩에서는 SKIP 숨김
+    skipBtn.style.display = 'none';
 
     if (Ambient && Ambient.isRunning && Ambient.isRunning()){
       Ambient.stop(3.0);
@@ -2020,10 +2040,12 @@
 
     stage = 'silence';
     await typeSleepLine(endSilence, 'SILENCE');
-    playDreamWoong();
-    speakText('SILENCE');
+    // SILENCE 타이틀: 웅 소리 + 약간 후에 TTS
+    await playDreamWoong();
+    setTimeout(()=>speakText('SILENCE'), 700);
 
-    silenceLeft = 5*60;
+    // SILENCE는 3분
+    silenceLeft = 3*60;
     runTimer.textContent = formatMMSS(silenceLeft);
     runTimer.style.display = 'block';
     if(silenceTimer) clearInterval(silenceTimer);
@@ -2114,8 +2136,11 @@
     fourthTitle.style.transition='opacity 1500ms ease';
     fourthTitle.textContent='THE FOURTH SLEEP';
     fitTitleLine(fourthTitle);
-    playDreamWoong();
-    speakText('THE FOURTH SLEEP');
+
+    // 타이틀: 웅 소리 먼저, 약간 후에 TTS
+    await playDreamWoong();
+    setTimeout(()=>speakText('THE FOURTH SLEEP'), 700);
+
     await nextFrame();
     fourthTitle.style.opacity='1';
 
@@ -2189,7 +2214,7 @@
       }
 
       micPreGain = audioCtx.createGain();
-      micPreGain.gain.value = 1.0;
+      micPreGain.gain.value = 1.2; // 전체 마이크 레벨 약간 ↑
 
       lowshelf = audioCtx.createBiquadFilter();
       highshelf = audioCtx.createBiquadFilter();
@@ -2209,7 +2234,8 @@
       highshelf.gain.value=0;
 
       revConvolver = audioCtx.createConvolver();
-      revConvolver.buffer = makeImpulse(audioCtx, 6.0, 8.0);
+      // 잔향 길이/감쇠 더 길게
+      revConvolver.buffer = makeImpulse(audioCtx, 7.5, 11.0);
 
       dryGain = audioCtx.createGain();
       wetGain = audioCtx.createGain();
@@ -2217,7 +2243,7 @@
       wetGain.gain.value = 0.0;
 
       const out = audioCtx.createGain();
-      out.gain.value = 0.7;
+      out.gain.value = 1.05; // 전체 출력 조금 더 키움
 
       micSrc.connect(micPreGain);
       micPreGain.connect(lowshelf)
@@ -2236,8 +2262,9 @@
       window.addEventListener('deviceorientation', onTiltAudio, {passive:true});
 
       const t = audioCtx.currentTime;
-      dryGain.gain.linearRampToValueAtTime(0.6, t+fadeSec);
-      wetGain.gain.linearRampToValueAtTime(0.6, t+fadeSec);
+      // 기본 드라이/웨트 비율을 조금 높게 시작
+      dryGain.gain.linearRampToValueAtTime(0.8, t+fadeSec);
+      wetGain.gain.linearRampToValueAtTime(0.95, t+fadeSec);
     }catch(e){
       console.warn('startMicFX error', e);
     }
@@ -2300,10 +2327,11 @@
 
     if(wetGain && dryGain) {
       const tilt = Math.abs(beta) / 90;
-      const wetBase = 0.42;
+      // 잔향 비중 기본값 더 크게
+      const wetBase = 0.6;
       const wetAmount = wetBase + tilt * 0.25;
-      wetGain.gain.value = clamp(wetAmount, 0.35, 0.67);
-      dryGain.gain.value = clamp(1.0 - wetGain.gain.value * 0.5, 0.5, 0.85);
+      wetGain.gain.value = clamp(wetAmount, 0.5, 0.95);
+      dryGain.gain.value = clamp(1.0 - wetGain.gain.value * 0.5, 0.3, 0.8);
     }
   }
 
@@ -2481,12 +2509,6 @@
       fgctx.save();
       fgctx.globalAlpha = fgAlpha;
 
-      // 프로시니엄 테두리 (디버그용, 필요 없으면 지워도 됨)
-      // fgctx.strokeStyle = 'red';
-      // fgctx.lineWidth = 2;
-      // fgctx.strokeRect(pr.x, pr.y, pr.w, pr.h);
-
-      // INTRO: 프레임 사각형을 따라 걷는 토끼/캐릭터
       if (stage === 'intro' && introWalking) {
         const now = performance.now();
         const t01 = ((now - introStartTime) % INTRO_WALK_DURATION) / INTRO_WALK_DURATION;
@@ -2659,8 +2681,11 @@
     firstTransTitle.style.transition = 'opacity 1500ms ease';
     firstTransTitle.textContent = 'THE FIRST SLEEP';
     fitTitleLine(firstTransTitle);
-    playDreamWoong();
-    speakText('THE FIRST SLEEP');
+
+    // 타이틀: 웅 소리 먼저, 조금 뒤에 TTS
+    await playDreamWoong();
+    setTimeout(()=>speakText('THE FIRST SLEEP'), 700);
+
     await nextFrame();
     firstTransTitle.style.opacity = '1';
 
@@ -2794,8 +2819,10 @@
     sleepSecondTitle.style.transition = 'opacity 1500ms ease';
     sleepSecondTitle.textContent = 'THE SECOND SLEEP';
     fitTitleLine(sleepSecondTitle);
-    playDreamWoong();
-    speakText('THE SECOND SLEEP');
+
+    await playDreamWoong();
+    setTimeout(()=>speakText('THE SECOND SLEEP'), 700);
+
     await nextFrame();
     sleepSecondTitle.style.opacity = '1';
 
@@ -2906,8 +2933,10 @@
     thirdTitle.style.transition='opacity 1500ms ease';
     thirdTitle.textContent='THE THIRD SLEEP';
     fitTitleLine(thirdTitle);
-    playDreamWoong();
-    speakText('THE THIRD SLEEP');
+
+    await playDreamWoong();
+    setTimeout(()=>speakText('THE THIRD SLEEP'), 700);
+
     await nextFrame();
     thirdTitle.style.opacity='1';
 
@@ -3170,11 +3199,6 @@
       runTimer.style.display='none';
       startTheEndChapter();
     }else if(stage === 'theEnd'){
-      if(endTimer){
-        clearInterval(endTimer);
-        endTimer=null;
-      }
-      runTimer.style.display='none';
       if(endReturn){
         endReturn.textContent = '※ 프로그램이 종료되었습니다. 태블릿과 헤드폰을 반납해 주세요.';
       }
@@ -3186,6 +3210,13 @@
       timerFinished = true;
       onFirstSleepTimerEnd();
     }
+  }, {passive:true});
+
+  // RETURN 버튼: 앱을 완전히 초기화해서 다시 닉네임 입력으로
+  returnBtn.addEventListener('click', ()=>{
+    primeAudio();
+    playWoongClick();
+    location.reload();
   }, {passive:true});
 
   // 초기 카메라 워밍업 + 루프 시작
