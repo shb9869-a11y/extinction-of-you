@@ -1226,13 +1226,18 @@
   }, {passive:true});
 
   async function immediateGestureStart(e){
-    e && e.preventDefault && e.preventDefault();
+  e && e.preventDefault && e.preventDefault();
 
-    claimImmersive();
-    await primeAudio();       // 첫 제스처에서 오디오/tts 한 번에 깨우기
-    initTts();                // 가능한 빨리 voice 로딩
+  claimImmersive();
+  await primeAudio();       // 첫 제스처에서 오디오/tts 한 번에 깨우기
+  initTts();                // 가능한 빨리 voice 로딩
 
-    try{
+  // ✅ 여기 추가: 게이트 탭한 직후부터 하우스 BGM 시작
+  if (!Ambient.isRunning()) {
+    Ambient.start(0.8, 1.0);   // (fadeIn, targetGain) 값은 그대로 써도 됨
+  }
+      
+              try{
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission().catch(()=>{});
