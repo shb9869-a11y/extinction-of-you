@@ -1192,14 +1192,12 @@
   const endTheEnd  = qs('#endTheEnd');
   const endReturn  = qs('#endReturn');
 
-  // ❌ 기존
-  // let vctx=null, fgctx=null;
-
-  // ✅ 이렇게 수정
-  let vctx = view.getContext('2d', {alpha:false});
-  let fgctx = fg.getContext('2d', {alpha:true});
-
-  let camPermGranted=false;
+  // 🔧 인트로 캐릭터 안 나오는 버그 수정:
+  //    카메라 준비 여부와 상관없이, 처음부터 캔버스 컨텍스트를 만들어 둔다.
+  let vctx = view.getContext('2d', { alpha: false });
+  let fgctx = fg.getContext('2d', { alpha: true });
+  
+      let camPermGranted=false;
   let camStream=null, camVideo=null, ZOOM=1.0;
   let animStarted=false, capturing=false, warmupFrames=0;
 
@@ -2341,11 +2339,7 @@
       if(!fgctx){
         fgctx=fg.getContext('2d',{alpha:true});
       }
-      resizeAll();
-      if(!animStarted && !warmupOnly){
-        animStarted=true;
-        loop();
-      }
+      
       document.querySelectorAll('.uiBtn').forEach(b=>{
         b.addEventListener('click', ()=>{
           primeAudio();
