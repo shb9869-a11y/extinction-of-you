@@ -1453,9 +1453,25 @@
     '멘트를 입력하세요'
   ];
 
-  function getFrameRect(){
-    return document.querySelector('.frameBox').getBoundingClientRect();
+function getFrameRect(){
+  const box = document.querySelector('.frameBox');
+  if (!box) {
+    // 혹시라도 frameBox를 못 찾으면 전체 화면을 사용
+    return {
+      x: 0,
+      y: 0,
+      w: window.innerWidth,
+      h: window.innerHeight
+    };
   }
+  const r = box.getBoundingClientRect();
+  return {
+    x: r.left,
+    y: r.top,
+    w: r.width,
+    h: r.height
+  };
+}
 
   function fitTitleLine(el){
     if(!el) return;
