@@ -2475,34 +2475,34 @@ function drawPixelHuman(ctx, cx, baselineY, W, hop = 0, alpha = 1, angleRad = 0)
       fgctx.strokeRect(pr.x, pr.y, pr.w, pr.h);
 
       // 🔁 INTRO: 프레임 사각형을 따라 걷는 토끼/캐릭터
-if (stage === 'intro' && introWalking) {
-  const now = performance.now();
-  const t01 = ((now - introStartTime) % INTRO_WALK_DURATION) / INTRO_WALK_DURATION;
+      if (stage === 'intro' && introWalking) {
+      const now = performance.now();
+      const t01 = ((now - introStartTime) % INTRO_WALK_DURATION) / INTRO_WALK_DURATION;
 
-  // 프레임 사각형을 한 바퀴 도는 위치
-  const pos = prosceniumWalkPos(t01);
-  const cx  = pos.x;
-  const cy  = pos.baselineY;
+      // 프레임 사각형을 한 바퀴 도는 위치
+      const pos = prosceniumWalkPos(t01);
+      const cx  = pos.x;
+      const cy  = pos.baselineY;
 
-  // 토끼(또는 우주인) 스프라이트 그리기
-  drawPixelSprite(   // 토끼/우주인용 함수 이름으로
-    fgctx,
-    Math.round(cx),
-    Math.round(cy),
-    W,
-    0,   // hop
-    1,   // alpha
-    0    // angle
-  );
+      // 토끼(또는 우주인) 스프라이트 그리기
+      drawPixelSprite(   // 토끼/우주인용 함수 이름으로
+        fgctx,
+        Math.round(cx),
+        Math.round(cy),
+        W,
+        0,   // hop
+        1,   // alpha
+        0    // angle
+      );
 
-  // 말풍선은 발 밑에서 살짝 위로
-  drawBubble(
-    fgctx,
-    Math.round(cx),
-    Math.round(cy) - 40,
-    'HELLO'
-  );
-}
+      // 말풍선은 발 밑에서 살짝 위로
+      drawBubble(
+        fgctx,
+        Math.round(cx),
+        Math.round(cy) - 40,
+        'HELLO'
+      );
+    }
   // ▼ 여기부터는 loop() 바깥에 있어야 함!!
   function fadeInCamera(ms = 2500){
     showCamera = true;
