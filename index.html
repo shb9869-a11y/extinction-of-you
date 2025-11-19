@@ -1021,15 +1021,36 @@
   function speakText(text){
     if(!ttsReady || !text) return;
     try{
-      // 우선 이전 발화 정리
+      // 이전 발화 정리
       window.speechSynthesis.cancel();
 
       const u = new SpeechSynthesisUtterance(text);
       if(ttsVoice) u.voice = ttsVoice;
-      u.lang  = (ttsVoice && ttsVoice.lang) ? ttsVoice.lang : 'ko-KR';
-      u.pitch = 0.1;
-      u.rate  = 0.8;
-      u.volume= 1.0;
+
+      u.lang = (ttsVoice && ttsVoice.lang) ? ttsVoice.lang : 'ko-KR';
+
+      // --- 여기서 기기별 톤/속도 분리 ---
+      const ua = navigator.userAgent || '';
+      const isAndroid = /Android|SM-|Samsung/i.test(ua);
+      const isIOS     = /iPhone|iPad|iPod/i.test(ua);
+
+      // 기본값(PC 등)
+      let pitch = 0.85;   // 전체적으로 살짝 낮은 톤
+      let rate  = 0.9;    // 너무 빠르지 않게
+
+      if(isIOS){
+        // 아이폰: 지금 느낌이 너무 낮지 않다면 약간만 낮게
+        pitch = 0.9;
+        rate  = 0.92;
+      }else if(isAndroid){
+        // 갤탭/안드로이드: 기본이 높게 들리니까 더 확실히 낮춰버리기
+        pitch = 0.7;
+        rate  = 0.85;
+      }
+
+      u.pitch  = pitch;
+      u.rate   = rate;
+      u.volume = 1.0;
 
       window.speechSynthesis.speak(u);
     }catch(e){
