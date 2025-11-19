@@ -556,7 +556,7 @@
     margin-top:14px;
   }
 
-  /* THIRD SLEEP 타이틀 (3줄 SLEEEEEEEEP) */
+  /* THIRD SLEEP 타이틀 (3줄) */
   #thirdTransition{
     position:fixed;
     inset:0;
@@ -571,7 +571,7 @@
     text-align:center;
   }
 
-  /* FOURTH SLEEP 타이틀 (4줄 SLEEEEEEEEP) */
+  /* FOURTH SLEEP 타이틀 (4줄) */
   #fourthTransition{
     position:fixed;
     inset:0;
@@ -994,37 +994,28 @@
   let ttsVoice   = null;
   let ttsEnabled = false;
 
-    function selectKoreanVoice(voices){
+  function selectKoreanVoice(voices){
     if (!voices || !voices.length) return null;
 
-    // 1. 한국어 보이스만 모으기
     const koVoices = voices.filter(v =>
       v.lang && v.lang.toLowerCase().startsWith('ko')
     );
-
     if (!koVoices.length) {
-      // 한국어 없으면 걍 첫 번째
       return voices[0] || null;
     }
-
-    // 2. 이름에 남성/남자/male 같은 단어가 들어간 보이스 먼저 시도
     const maleCandidate = koVoices.find(v =>
       /남성|남자|male|man/i.test(v.name || '')
     );
     if (maleCandidate) return maleCandidate;
 
-    // 3. 그래도 없으면, 두 번째 한국어 보이스 정도 시도 (첫 번째가 여성일 때 종종 두 번째가 남성일 때가 있음)
     if (koVoices.length >= 2) return koVoices[1];
-
-    // 4. 최후에는 첫 번째 한국어 보이스
     return koVoices[0];
   }
-  
+
   function initTts(){
     if(!ttsReady) return;
     const voices = window.speechSynthesis.getVoices() || [];
     if(!voices.length){
-      // 안드로이드에서 늦게 뜰 수 있음
       setTimeout(initTts, 400);
       return;
     }
@@ -1040,7 +1031,6 @@
   function speakText(text){
     if(!ttsReady || !text) return;
     try{
-      // 이전 발화 정리
       window.speechSynthesis.cancel();
 
       const u = new SpeechSynthesisUtterance(text);
@@ -1048,21 +1038,17 @@
 
       u.lang = (ttsVoice && ttsVoice.lang) ? ttsVoice.lang : 'ko-KR';
 
-      // --- 여기서 기기별 톤/속도 분리 ---
       const ua = navigator.userAgent || '';
       const isAndroid = /Android|SM-|Samsung/i.test(ua);
       const isIOS     = /iPhone|iPad|iPod/i.test(ua);
 
-      // 기본값(PC 등)
-      let pitch = 0.85;   // 전체적으로 살짝 낮은 톤
-      let rate  = 0.9;    // 너무 빠르지 않게
+      let pitch = 0.85;
+      let rate  = 0.9;
 
       if(isIOS){
-        // 아이폰: 지금 느낌이 너무 낮지 않다면 약간만 낮게
         pitch = 0.9;
         rate  = 0.92;
       }else if(isAndroid){
-        // 갤탭/안드로이드: 기본이 높게 들리니까 더 확실히 낮춰버리기
         pitch = 0.0001;
         rate  = 0.9;
       }
@@ -1072,9 +1058,7 @@
       u.volume = 1.0;
 
       window.speechSynthesis.speak(u);
-    }catch(e){
-      // 브라우저가 speechSynthesis를 막으면 조용히 실패
-    }
+    }catch(e){}
   }
 
   const MASTER_BGM_GAIN = 0.4;
@@ -1192,12 +1176,11 @@
   const endTheEnd  = qs('#endTheEnd');
   const endReturn  = qs('#endReturn');
 
-  // 🔧 인트로 캐릭터 안 나오는 버그 수정:
-  //    카메라 준비 여부와 상관없이, 처음부터 캔버스 컨텍스트를 만들어 둔다.
+  // 카메라 캔버스 컨텍스트 미리 생성
   let vctx = view.getContext('2d', { alpha: false });
   let fgctx = fg.getContext('2d', { alpha: true });
-  
-      let camPermGranted=false;
+
+  let camPermGranted=false;
   let camStream=null, camVideo=null, ZOOM=1.0;
   let animStarted=false, capturing=false, warmupFrames=0;
 
@@ -1206,12 +1189,12 @@
   let showCamera=false;
   let camFadeAlpha=0;
 
-  /* --------- 입력/타이핑 공용 사운드 (버벅임 줄인 버전) --------- */
+  /* --------- 입력/타이핑 공용 사운드 --------- */
   let typeBuffer = null;
   let lastTypeSoundTime = 0;
 
   function buildTypeBuffer(ctx){
-    const duration   = 0.05; // 더 짧게
+    const duration   = 0.05;
     const sampleRate = ctx.sampleRate;
     const length     = Math.floor(sampleRate * duration);
     const buffer     = ctx.createBuffer(1, length, sampleRate);
@@ -1233,7 +1216,6 @@
       const ctx = audioCtx;
       const now = ctx.currentTime || 0;
 
-      // 더 천천히 (약 15fps 수준)
       if(now - lastTypeSoundTime < 0.06) return;
       lastTypeSoundTime = now;
 
@@ -1260,7 +1242,7 @@
   zoomIn.addEventListener('click', ()=>{
     ZOOM=Math.min(3.0, ZOOM+0.05);
     updateZoomLabel();
-    playWoongClick(); // await 제거해서 UI 딜레이 줄임
+    playWoongClick();
   }, {passive:true});
   zoomOut.addEventListener('click', ()=>{
     ZOOM=1.0;
@@ -1269,18 +1251,17 @@
   }, {passive:true});
 
   async function immediateGestureStart(e){
-  e && e.preventDefault && e.preventDefault();
+    e && e.preventDefault && e.preventDefault();
 
-  claimImmersive();
-  await primeAudio();       // 첫 제스처에서 오디오/tts 한 번에 깨우기
-  initTts();                // 가능한 빨리 voice 로딩
+    claimImmersive();
+    await primeAudio();
+    initTts();
 
-  // ✅ 여기 추가: 게이트 탭한 직후부터 하우스 BGM 시작
-  if (!Ambient.isRunning()) {
-    Ambient.start(0.8, 1.0);   // (fadeIn, targetGain) 값은 그대로 써도 됨
-  }
-      
-              try{
+    if (!Ambient.isRunning()) {
+      Ambient.start(0.8, 1.0);
+    }
+
+    try{
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission().catch(()=>{});
@@ -1306,7 +1287,6 @@
     .finally(()=>{
       fadeHide(overlay, FADE);
 
-      // 프리셋 + 이름 바로
       showPreset();
       fadeShow(nameOverlay, FADE);
       stage = 'name';
@@ -1453,30 +1433,29 @@
     '멘트를 입력하세요'
   ];
 
-function getFrameRect(){
-  const box = document.querySelector('.frameBox');
-  if (!box) {
-    // 혹시라도 frameBox를 못 찾으면 전체 화면을 사용
+  function getFrameRect(){
+    const box = document.querySelector('.frameBox');
+    if (!box) {
+      return {
+        x: 0,
+        y: 0,
+        w: window.innerWidth,
+        h: window.innerHeight
+      };
+    }
+    const r = box.getBoundingClientRect();
     return {
-      x: 0,
-      y: 0,
-      w: window.innerWidth,
-      h: window.innerHeight
+      x: r.left,
+      y: r.top,
+      w: r.width,
+      h: r.height
     };
   }
-  const r = box.getBoundingClientRect();
-  return {
-    x: r.left,
-    y: r.top,
-    w: r.width,
-    h: r.height
-  };
-}
 
   function fitTitleLine(el){
     if(!el) return;
     const fr=getFrameRect();
-    const maxW=Math.min(window.innerWidth*0.96, fr.width*0.96);
+    const maxW=Math.min(window.innerWidth*0.96, fr.w*0.96);
     const cs=getComputedStyle(el);
     let size=parseFloat(cs.fontSize)||48;
     el.style.whiteSpace='nowrap';
@@ -1509,83 +1488,85 @@ function getFrameRect(){
   }
   window.addEventListener('resize', ()=>fitWelcomeTitles(), {passive:true});
 
+  /* ===== 토끼/캐릭터 스프라이트 ===== */
   const PIXEL_SPRITE=[
-  "....XX..XX..", // 귀
-  "....XX..XX..",
-  "...XXX..XXX.", // 귀 밑부분
-  "...XXX..XXX.",
-  "..XXXXXXXX..", // 머리
-  "..XX.XX.XX..", // 눈/볼
-  "..XXXXXXXX..",
-  "...XXXXXX...", // 목·어깨
-  "...XXXXXX...",
-  "..XXXXXXXX..", // 몸통
-  ".XXXXXXXXXX.", // 다리
-  ".XXXXXXXXXX.",
-  "XXXXXXXXXXXX",
-  "..XX....XX..",
-  "..XX....XX..",
-  "..XX....XX.."
+    "....XX..XX..",
+    "....XX..XX..",
+    "...XXX..XXX.",
+    "...XXX..XXX.",
+    "..XXXXXXXX..",
+    "..XX.XX.XX..",
+    "..XXXXXXXX..",
+    "...XXXXXX...",
+    "...XXXXXX...",
+    "..XXXXXXXX..",
+    ".XXXXXXXXXX.",
+    ".XXXXXXXXXX.",
+    "XXXXXXXXXXXX",
+    "..XX....XX..",
+    "..XX....XX..",
+    "..XX....XX.."
   ];
   const COLOR_FILL='#d0d0d0';
   const COLOR_STROKE='#000';
 
-function drawPixelHuman(ctx, cx, baselineY, W, hop = 0, alpha = 1, angleRad = 0) {
-  // 화면 크기에 비례해서 캐릭터를 훨씬 크게
-  const screenW = W;
-  const screenH = window.innerHeight || W;
-  const base = Math.min(screenW, screenH);
+  function drawPixelHuman(ctx, cx, baselineY, W, hop = 0, alpha = 1, angleRad = 0) {
+    const screenW = W;
+    const screenH = window.innerHeight || W;
+    const base = Math.min(screenW, screenH);
 
-  // 한 칸당 픽셀 크기 (기존보다 3~4배 이상 크게)
-  const cell = Math.max(4, Math.floor(base * 0.012)); 
-  const cols = PIXEL_SPRITE[0].length;
-  const rows = PIXEL_SPRITE.length;
+    const cell = Math.max(4, Math.floor(base * 0.012));
+    const cols = PIXEL_SPRITE[0].length;
+    const rows = PIXEL_SPRITE.length;
 
-  const width  = cols * cell;
-  const height = rows * cell;
+    const width  = cols * cell;
+    const height = rows * cell;
 
-  const x0 = -width / 2;
-  const y0 = -height - hop;
+    const x0 = -width / 2;
+    const y0 = -height - hop;
 
-  ctx.save();
-  ctx.translate(cx, baselineY);
-  ctx.rotate(angleRad);
-  ctx.globalAlpha = alpha;
+    ctx.save();
+    ctx.translate(cx, baselineY);
+    ctx.rotate(angleRad);
+    ctx.globalAlpha = alpha;
 
-  // 바깥 검정 외곽
-  ctx.fillStyle = COLOR_STROKE;
-  for (let y = 0; y < rows; y++) {
-    const row = PIXEL_SPRITE[y];
-    for (let x = 0; x < cols; x++) {
-      if (row[x] === 'X') {
-        const px = x0 + x * cell;
-        const py = y0 + y * cell;
-        ctx.fillRect(px - 1, py, cell, cell);
-        ctx.fillRect(px + 1, py, cell, cell);
-        ctx.fillRect(px, py - 1, cell, cell);
-        ctx.fillRect(px, py + 1, cell, cell);
+    ctx.fillStyle = COLOR_STROKE;
+    for (let y = 0; y < rows; y++) {
+      const row = PIXEL_SPRITE[y];
+      for (let x = 0; x < cols; x++) {
+        if (row[x] === 'X') {
+          const px = x0 + x * cell;
+          const py = y0 + y * cell;
+          ctx.fillRect(px - 1, py, cell, cell);
+          ctx.fillRect(px + 1, py, cell, cell);
+          ctx.fillRect(px, py - 1, cell, cell);
+          ctx.fillRect(px, py + 1, cell, cell);
+        }
       }
     }
-  }
 
-  // 안쪽 몸(밝은 회색)
-  ctx.fillStyle = COLOR_FILL;
-  for (let y = 0; y < rows; y++) {
-    const row = PIXEL_SPRITE[y];
-    for (let x = 0; x < cols; x++) {
-      if (row[x] === 'X') {
-        ctx.fillRect(x0 + x * cell, y0 + y * cell, cell, cell);
+    ctx.fillStyle = COLOR_FILL;
+    for (let y = 0; y < rows; y++) {
+      const row = PIXEL_SPRITE[y];
+      for (let x = 0; x < cols; x++) {
+        if (row[x] === 'X') {
+          ctx.fillRect(x0 + x * cell, y0 + y * cell, cell, cell);
+        }
       }
     }
+
+    ctx.globalAlpha = 1;
+    ctx.restore();
   }
 
-  ctx.globalAlpha = 1;
-  ctx.restore();
-}
+  // 토끼/캐릭터용 이름으로 쓰고 싶어하니까 래퍼 함수 추가
+  function drawPixelSprite(ctx, cx, baselineY, W, hop = 0, alpha = 1, angleRad = 0){
+    drawPixelHuman(ctx, cx, baselineY, W, hop, alpha, angleRad);
+  }
 
   function getProsceniumRect(){
     const r=getFrameRect();
-    return {x:r.left,y:r.top,w:r.width,h:r.height};
+    return {x:r.x,y:r.y,w:r.w,h:r.h};
   }
 
   function prosceniumWalkPos(t01){
@@ -2178,6 +2159,7 @@ function drawPixelHuman(ctx, cx, baselineY, W, hop = 0, alpha = 1, angleRad = 0)
     }, 1000);
   }
 
+  /* 마이크 리버브 FX */
   let micStream=null, micSrc=null, panNode=null, lpf=null, lowshelf=null, highshelf=null, revConvolver=null, dryGain=null, wetGain=null, micPreGain=null;
   function makeImpulse(ctx, seconds=6.0, decay=8.0){
     const rate=ctx.sampleRate;
@@ -2368,7 +2350,7 @@ function drawPixelHuman(ctx, cx, baselineY, W, hop = 0, alpha = 1, angleRad = 0)
       if(!fgctx){
         fgctx=fg.getContext('2d',{alpha:true});
       }
-      
+
       document.querySelectorAll('.uiBtn').forEach(b=>{
         b.addEventListener('click', ()=>{
           primeAudio();
@@ -2421,7 +2403,42 @@ function drawPixelHuman(ctx, cx, baselineY, W, hop = 0, alpha = 1, angleRad = 0)
     ctx.restore();
   }
 
-    function loop(){
+  /* 카메라 페이드 인/아웃 */
+  function fadeInCamera(ms = 2500){
+    showCamera = true;
+    camFadeAlpha = 1;
+    const t0 = performance.now();
+    function step(){
+      const k = Math.min(1, (performance.now() - t0) / ms);
+      camFadeAlpha = 1 - k;
+      if (k < 1){
+        requestAnimationFrame(step);
+      } else {
+        camFadeAlpha = 0;
+      }
+    }
+    step();
+  }
+
+  function fadeOutCamera(ms = 2500){
+    showCamera = true;
+    camFadeAlpha = 0;
+    const t0 = performance.now();
+    function step(){
+      const k = Math.min(1, (performance.now() - t0) / ms);
+      camFadeAlpha = k;
+      if (k < 1){
+        requestAnimationFrame(step);
+      } else {
+        camFadeAlpha = 1;
+        showCamera = false;
+      }
+    }
+    step();
+  }
+
+  /* 메인 렌더 루프 */
+  function loop(){
     requestAnimationFrame(loop);
     if (capturing || !vctx || !fgctx) return;
 
@@ -2464,77 +2481,40 @@ function drawPixelHuman(ctx, cx, baselineY, W, hop = 0, alpha = 1, angleRad = 0)
       fgctx.save();
       fgctx.globalAlpha = fgAlpha;
 
-      // 필요하면 클립 다시 켜도 됨 (지금은 디버그 위해 꺼둠)
-      // fgctx.beginPath();
-      // fgctx.rect(pr.x, pr.y, pr.w, pr.h);
-      // fgctx.clip();
+      // 프로시니엄 테두리 (디버그용, 필요 없으면 지워도 됨)
+      // fgctx.strokeStyle = 'red';
+      // fgctx.lineWidth = 2;
+      // fgctx.strokeRect(pr.x, pr.y, pr.w, pr.h);
 
-      // 디버그: 프로시니엄 빨간 테두리
-      fgctx.strokeStyle = 'red';
-      fgctx.lineWidth = 2;
-      fgctx.strokeRect(pr.x, pr.y, pr.w, pr.h);
-
-      // 🔁 INTRO: 프레임 사각형을 따라 걷는 토끼/캐릭터
+      // INTRO: 프레임 사각형을 따라 걷는 토끼/캐릭터
       if (stage === 'intro' && introWalking) {
-      const now = performance.now();
-      const t01 = ((now - introStartTime) % INTRO_WALK_DURATION) / INTRO_WALK_DURATION;
+        const now = performance.now();
+        const t01 = ((now - introStartTime) % INTRO_WALK_DURATION) / INTRO_WALK_DURATION;
 
-      // 프레임 사각형을 한 바퀴 도는 위치
-      const pos = prosceniumWalkPos(t01);
-      const cx  = pos.x;
-      const cy  = pos.baselineY;
+        const pos = prosceniumWalkPos(t01);
+        const cx  = pos.x;
+        const cy  = pos.baselineY;
 
-      // 토끼(또는 우주인) 스프라이트 그리기
-      drawPixelSprite(   // 토끼/우주인용 함수 이름으로
-        fgctx,
-        Math.round(cx),
-        Math.round(cy),
-        W,
-        0,   // hop
-        1,   // alpha
-        0    // angle
-      );
+        drawPixelSprite(
+          fgctx,
+          Math.round(cx),
+          Math.round(cy),
+          W,
+          0,
+          1,
+          0
+        );
 
-      // 말풍선은 발 밑에서 살짝 위로
-      drawBubble(
-        fgctx,
-        Math.round(cx),
-        Math.round(cy) - 40,
-        'HELLO'
-      );
-    }
-  // ▼ 여기부터는 loop() 바깥에 있어야 함!!
-  function fadeInCamera(ms = 2500){
-    showCamera = true;
-    camFadeAlpha = 1;
-    const t0 = performance.now();
-    function step(){
-      const k = Math.min(1, (performance.now() - t0) / ms);
-      camFadeAlpha = 1 - k;
-      if (k < 1){
-        requestAnimationFrame(step);
-      } else {
-        camFadeAlpha = 0;
+        drawBubble(
+          fgctx,
+          Math.round(cx),
+          Math.round(cy) - 40,
+          'HELLO'
+        );
       }
-    }
-    step();
-  }
 
-  function fadeOutCamera(ms = 2500){
-    showCamera = true;
-    camFadeAlpha = 0;
-    const t0 = performance.now();
-    function step(){
-      const k = Math.min(1, (performance.now() - t0) / ms);
-      camFadeAlpha = k;
-      if (k < 1){
-        requestAnimationFrame(step);
-      } else {
-        camFadeAlpha = 1;
-        showCamera = false;
-      }
+      fgctx.restore();
     }
-    step();
   }
 
   let captureAnimating=false;
@@ -2610,7 +2590,6 @@ function drawPixelHuman(ctx, cx, baselineY, W, hop = 0, alpha = 1, angleRad = 0)
   async function typeIntroLine(idx){
     introTextEl.textContent='';
     const text = resolveIntroLine(idx);
-    // TTS: 인트로 문장은 한 줄 단위로 읽기
     speakText(text);
     for(let i=0;i<text.length;i++){
       introTextEl.textContent += text[i];
@@ -3209,6 +3188,7 @@ function drawPixelHuman(ctx, cx, baselineY, W, hop = 0, alpha = 1, angleRad = 0)
     }
   }, {passive:true});
 
+  // 초기 카메라 워밍업 + 루프 시작
   startCameraFresh(true);
   if(!animStarted){
     animStarted=true;
