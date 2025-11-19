@@ -1999,24 +1999,37 @@
 
   // THE END 단계: BGM 켜고 엔딩 텍스트만 표시 (타이머 없음)
   async function startTheEndChapter(){
-    stage = 'theEnd';
-    endTheEnd.textContent = '';
-    if(endReturn) endReturn.textContent = '';
+  stage = 'theEnd';
 
-    if(!Ambient.isRunning()) {
-      Ambient.start(1.2, 1.0);
-    }
+  // 1) SILENCE 페이드 아웃
+  endSilence.style.transition = 'opacity 1500ms ease';
+  endSilence.style.opacity = '0';
+  await sleep(1600);
+  endSilence.textContent = '';       // 텍스트 지우기
+  endSilence.style.transition = '';
+  endSilence.style.opacity = '1';    // 다음을 위해 초기화
 
-    await typeSleepLine(endTheEnd, 'THE END');
-    // THE END는 웅 소리 없이 TTS만
-    speakText('THE END');
+  // 2) BGM 페이드 인 (3초 정도)
+  if (Ambient && Ambient.start && !Ambient.isRunning()){
+    Ambient.start(3.0, 1.0);        // (페이드 시간, 볼륨 배율)
+  }
 
-    if(endReturn){
-      endReturn.textContent = '※ 프로그램이 종료되었습니다. 태블릿과 헤드폰을 반납해 주세요.';
-    }
-    runTimer.style.display = 'none';
+  // 3) THE END 타이핑
+  endTheEnd.textContent = '';
+  if(endReturn) endReturn.textContent = '';
+  await typeSleepLine(endTheEnd, 'THE END');
+  await sleep(900);                  // 타이핑 끝난 뒤 살짝 텀
+  speakText('THE END');
+
+  if(endReturn){
+    endReturn.textContent = '※ 프로그램이 종료되었습니다. 태블릿과 헤드폰을 반납해 주세요.';
+  }
+
+  // 4) RETURN 버튼 노출 (아래에서 만들 거)
+  if(returnBtn){
     returnBtn.style.display = 'block';
   }
+}
 
   async function showEndingSequence(){
     claimImmersive();
