@@ -1027,8 +1027,8 @@
       const u = new SpeechSynthesisUtterance(text);
       if(ttsVoice) u.voice = ttsVoice;
       u.lang  = (ttsVoice && ttsVoice.lang) ? ttsVoice.lang : 'ko-KR';
-      u.pitch = 1.0;
-      u.rate  = 0.9;
+      u.pitch = 0.8;
+      u.rate  = 0.95;
       u.volume= 1.0;
 
       window.speechSynthesis.speak(u);
@@ -1152,7 +1152,12 @@
   const endTheEnd  = qs('#endTheEnd');
   const endReturn  = qs('#endReturn');
 
-  let vctx=null, fgctx=null;
+  // ❌ 기존
+  // let vctx=null, fgctx=null;
+
+  // ✅ 이렇게 수정
+  let vctx = view.getContext('2d', {alpha:false});
+  let fgctx = fg.getContext('2d', {alpha:true});
 
   let camPermGranted=false;
   let camStream=null, camVideo=null, ZOOM=1.0;
@@ -2387,6 +2392,11 @@
       fgctx.beginPath();
       fgctx.rect(pr.x,pr.y,pr.w,pr.h);
       fgctx.clip();
+
+      // ✅ 디버그용: 프로시니엄 영역 시각화 (캐릭터가 어디 안에 있어야 하는지)
+      fgctx.strokeStyle = 'red';
+      fgctx.lineWidth = 2;
+      fgctx.strokeRect(pr.x, pr.y, pr.w, pr.h);
 
       if(introWalking && introWalkers.length){
         const now=performance.now();
