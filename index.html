@@ -2459,50 +2459,34 @@ function drawPixelHuman(ctx, cx, baselineY, W, hop = 0, alpha = 1, angleRad = 0)
       // ✅ 디버그용: 프로시니엄 영역 시각화 (캐릭터가 어디 안에 있어야 하는지)
       fgctx.strokeStyle = 'red';
       fgctx.lineWidth = 2;
+        fgctx.strokeRect(pr.x, pr.y, pr.w, pr.h);
+  
+             // ✅ 디버그용: 프로시니엄 영역 시각화
+      fgctx.strokeStyle = 'red';
+      fgctx.lineWidth = 2;
       fgctx.strokeRect(pr.x, pr.y, pr.w, pr.h);
 
-      if(introWalking && introWalkers.length){
-        const now=performance.now();
-        const tGlobal=(now-introStartTime)/INTRO_WALK_DURATION;
-        introWalkers.forEach(w=>{
-          const t = ((tGlobal + w.tOffset)%1+1)%1;
-          const pos = prosceniumWalkPos(t);
-          const hop = Math.max(0,10*Math.sin(t*Math.PI*20));
+      // 🔴 인트로에서는 무조건 프레임 안 중앙에 캐릭터 하나 고정으로 표시
+      if (stage === 'intro') {
+        const cx = pr.x + pr.w * 0.5;   // 프레임 중앙 X
+        const cy = pr.y + pr.h * 0.8;   // 프레임 아래쪽 80% 지점
 
-          let angle = 0;
-          if(pos.edge === 'bottom') angle = 0;
-          else if(pos.edge === 'right') angle = -Math.PI/2;
-          else if(pos.edge === 'top') angle = Math.PI;
-          else if(pos.edge === 'left') angle = Math.PI/2;
+        // 토끼/캐릭터 크게 그리기
+        drawPixelHuman(
+          fgctx,
+          Math.round(cx),
+          Math.round(cy),
+          W,
+          0,   // hop
+          1,   // alpha
+          0    // angle
+        );
 
-          drawPixelHuman(
-            fgctx,
-            Math.round(pos.x),
-            Math.round(pos.baselineY),
-            W,
-            hop,
-            1,
-            angle
-          );
-
-          if(now-w.bubbleTimer>700+Math.random()*500){
-            w.bubbleIndex=(w.bubbleIndex+1)%bubbleSeq.length;
-            w.bubbleTimer=now;
-          }
-          drawBubble(fgctx, Math.round(pos.x), Math.round(pos.baselineY)-28, bubbleSeq[w.bubbleIndex]);
-        });
+        // 말풍선 간단 버전
+        drawBubble(fgctx, Math.round(cx), Math.round(cy) - 40, 'HELLO');
       }
 
       fgctx.restore();
-    }
-
-    if (camFadeAlpha > 0){
-      vctx.save();
-      vctx.fillStyle = `rgba(0,0,0,${camFadeAlpha})`;
-      vctx.fillRect(0,0,W,H);
-      vctx.restore();
-    }
-  }
 
   function fadeInCamera(ms=2500){
     showCamera = true;
