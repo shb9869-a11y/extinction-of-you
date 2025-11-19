@@ -940,13 +940,9 @@
   // 전체 진행 상태
   let stage = 'gate';
 
-        // 🔧 사진 업로드할 서버 주소 (장소 바뀌면 이 줄만 바꾸면 됨)
-  const UPLOAD_SERVER = "http://172.30.1.85:4000";
-
   // 캡쳐된 캔버스를 /upload 서버로 보내는 함수
   async function uploadSnapshotCanvas(canvas){
     try{
-      // 캔버스를 JPEG Blob으로 변환
       const blob = await new Promise((resolve) => {
         canvas.toBlob((b) => resolve(b), "image/jpeg", 0.9);
       });
@@ -959,7 +955,7 @@
       const formData = new FormData();
       formData.append("image", blob, `sleep_capture_${Date.now()}.jpg`);
 
-      const res = await fetch(UPLOAD_SERVER + "/upload", {
+      const res = await fetch(SLEEP_UPLOAD_SERVER + "/upload", {
         method: "POST",
         body: formData
       });
@@ -976,7 +972,7 @@
       console.error("업로드 중 오류:", err);
     }
   }
-      
+
   (function injectManifest(){
     const manifest = {
       "name":"SLEEEEEP",
@@ -1251,7 +1247,7 @@
     sleepPhotoStatus.textContent = msg || '';
   }
 
-  // ===== 사진 업로드 로직 =====
+  // ===== 사진 업로드 로직 (수동 input) =====
   if (sleepPhotoInput) {
     sleepPhotoInput.addEventListener('change', async () => {
       const file = sleepPhotoInput.files && sleepPhotoInput.files[0];
@@ -1524,8 +1520,9 @@
 
   preset.addEventListener('click', ()=>{
     claimImmersive();
-    ensureResumed();
-    if(!Ambient.isRunning()) Ambient.start(0.5,1.0);
+    ensureResumed().then(()=>{
+      if(!Ambient.isRunning()) Ambient.start(0.5,1.0);
+    });
     playWoongClick();
     fadeHide(preset, FADE);
     startCameraFresh(false);
@@ -2642,7 +2639,8 @@
     }
   }
 
-    let captureAnimating=false;
+  /* CAPTURE 버튼: 화면 스냅샷 + 서버 업로드 + 글리치 연출 */
+  let captureAnimating=false;
   captureBtn.addEventListener('click', ()=>{
     claimImmersive();
     if(captureAnimating) return;
