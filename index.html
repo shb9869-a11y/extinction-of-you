@@ -1973,7 +1973,7 @@
     endTheEnd.textContent = '';
     if(endReturn) endReturn.textContent = '';
     await typeSleepLine(endTheEnd, 'THE END');
-    speakText('디 엔드');
+    speakText('THE END');
 
     endLeft = 5*60;
     runTimer.textContent = formatMMSS(endLeft);
@@ -2013,7 +2013,7 @@
     stage = 'silence';
     await typeSleepLine(endSilence, 'SILENCE');
     playDreamWoong();
-    speakText('사일런스');
+    speakText('SILENCE');
 
     silenceLeft = 5*60;
     runTimer.textContent = formatMMSS(silenceLeft);
@@ -2107,7 +2107,7 @@
     fourthTitle.textContent='THE FOURTH SLEEP';
     fitTitleLine(fourthTitle);
     playDreamWoong();
-    speakText('더 포스 슬립');
+    speakText('THE FOURTH SLEEP');
     await nextFrame();
     fourthTitle.style.opacity='1';
 
@@ -2905,7 +2905,7 @@
     thirdTitle.textContent='THE THIRD SLEEP';
     fitTitleLine(thirdTitle);
     playDreamWoong();
-    speakText('더 써드 슬립');
+    speakText('THE THIRD SLEEP');
     await nextFrame();
     thirdTitle.style.opacity='1';
 
