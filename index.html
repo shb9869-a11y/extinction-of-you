@@ -934,8 +934,8 @@
 
 <script>
 (() => {
-  // ===== 여기 한 줄만 공연장마다 IP 바꿔주면 됨 =====
-  const SLEEP_UPLOAD_SERVER = 'http://172.30.1.85:4000';
+  // ===== 공연장/와이파이마다 이 한 줄만 IP 바꿔주면 됨 =====
+  const SLEEP_UPLOAD_SERVER = 'http://172.16.71.122:4000';
 
   // 전체 진행 상태
   let stage = 'gate';
@@ -1510,7 +1510,6 @@
       ctx.translate(o.x, o.y);
       ctx.scale(wob, 1 / wob);
       ctx.font = `900 ${o.size}px "Press Start 2P", system-ui, sans-serif`;
-      ctx.fillStyle = '#d0d0d0';
       ctx.fillText(o.ch, 0, 0);
       ctx.restore();
     }
@@ -2223,7 +2222,8 @@
       await sleep(45);
     }
     fitTitleLine(fourthSleepLine3);
-    await sleep(350);
+
+    await sleep(900);
 
     for(let i=0;i<word.length;i++){
       fourthSleepLine4.textContent += word[i];
