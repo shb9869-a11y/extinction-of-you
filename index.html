@@ -934,7 +934,7 @@
 
 <script>
 (() => {
-  // ===== 공연장/와이파이마다 이 한 줄만 IP 바꿔주면 됨 =====
+  // ===== 여기 한 줄만 공연장마다 IP 바꿔주면 됨 =====
   const SLEEP_UPLOAD_SERVER = 'http://172.16.71.122:4000';
 
   // 전체 진행 상태
@@ -1359,9 +1359,24 @@
     playWoongClick();
   }, {passive:true});
 
+  /* ========== Permission Gate 로직 (수정 버전) ========== */
+
+  // 게이트 넘기는 동작만 따로 함수로 분리
+  function goNextFromGate(){
+    console.log('[GATE] goNextFromGate()');
+    fadeHide(overlay, FADE);
+
+    showPreset();
+    fadeShow(nameOverlay, FADE);
+    stage = 'name';
+    setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 60);
+  }
+
   async function immediateGestureStart(e){
     e && e.preventDefault && e.preventDefault();
+    console.log('[GATE] tap detected');
 
+    // 풀스크린 / 오디오 준비
     claimImmersive();
     await primeAudio();
     initTts();
@@ -1370,6 +1385,10 @@
       Ambient.start(0.8, 1.0);
     }
 
+    // ✅ 먼저 다음 화면으로 무조건 넘김
+    goNextFromGate();
+
+    // 그 다음에 센서/카메라 권한은 되는 만큼만 시도
     try{
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -1377,30 +1396,22 @@
       }
     }catch(_){}
 
-    navigator.mediaDevices.getUserMedia({
-      video:{
-        facingMode:{ideal:'environment'},
-        width:{min:1280,ideal:1920},
-        height:{min:720,ideal:1080},
-        aspectRatio:{ideal:16/9}
-      },
-      audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}
-    })
-    .then((s)=>{
+    try{
+      const s = await navigator.mediaDevices.getUserMedia({
+        video:{
+          facingMode:{ideal:'environment'},
+          width:{min:1280,ideal:1920},
+          height:{min:720,ideal:1080},
+          aspectRatio:{ideal:16/9}
+        },
+        audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false}
+      });
       s.getTracks().forEach(t=>t.stop());
       camPermGranted = true;
-    })
-    .catch(err=>{
-      console.warn('permission error:', err);
-    })
-    .finally(()=>{
-      fadeHide(overlay, FADE);
-
-      showPreset();
-      fadeShow(nameOverlay, FADE);
-      stage = 'name';
-      setTimeout(()=>nickInput && nickInput.focus && nickInput.focus(), 60);
-    });
+      console.log('[GATE] getUserMedia OK');
+    }catch(err){
+      console.warn('[GATE] getUserMedia error:', err);
+    }
   }
 
   ['click','touchstart','pointerdown'].forEach(type=>{
@@ -1740,7 +1751,6 @@
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle='#d0d0d0';
     ctx.fillText(text,bx+pad,by+pad+12);
     ctx.restore();
   }
@@ -2222,15 +2232,6 @@
       await sleep(45);
     }
     fitTitleLine(fourthSleepLine3);
-
-    await sleep(900);
-
-    for(let i=0;i<word.length;i++){
-      fourthSleepLine4.textContent += word[i];
-      typeTick();
-      await sleep(45);
-    }
-    fitTitleLine(fourthSleepLine4);
 
     await sleep(900);
 
